@@ -1,11 +1,11 @@
 /**
- * PRD version 1.2 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.6 — sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard — Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '1.2';
+var FOS_PRD_VERSION = '1.6';
 
 /**
  * @return {string}
@@ -29,6 +29,18 @@ function doGet() {
       .setTitle('Access not granted')
       .addMetaTag('viewport', 'width=device-width, initial-scale=1')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
+  }
+
+  // Append a `page_load` row to the User Activity tab (FR-60–FR-66).
+  // Wrapped — logging failures must never break the dashboard render.
+  try {
+    recordPageLoad_(auth);
+  } catch (e) {
+    try {
+      console.warn('doGet: recordPageLoad_ threw: ' + (e && e.message ? e.message : e));
+    } catch (_) {
+      /* ignore */
+    }
   }
 
   var template = HtmlService.createTemplateFromFile('DashboardShell');

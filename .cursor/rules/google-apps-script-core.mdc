@@ -66,8 +66,8 @@ Follow these standards when generating or changing code in this repository.
 
 1. Bump **`FOS_PRD_VERSION`** in `src/Code.js` to match **exactly**.
 2. Update the **PRD version line** at the top of **every** clasp-pushed file under `src/` (**all** `.js` and `.html`; **exclude** `appsscript.json`):
-   - **JavaScript:** first line inside the top `/**` block: ` * PRD version X.Y — sync with docs/FOS-Dashboard-PRD.md`
-   - **HTML:** immediately after `<!DOCTYPE html>`: `<!-- PRD version X.Y — sync with docs/FOS-Dashboard-PRD.md -->`
+   - **JavaScript:** first line inside the top `/**` block: ` * PRD version X.Y — sync with docs/FOS-Dashboard-PRD.md` (example: **1.5**).
+   - **HTML:** immediately after `<!DOCTYPE html>`: `<!-- PRD version X.Y — sync with docs/FOS-Dashboard-PRD.md -->` (same **X.Y** as the PRD file).
 3. Include these header updates in the **same** change as the PRD version bump and changelog row.
 
 **Other harpin Apps Script projects** (e.g. Clockify–Fibery sync): may follow `docs/PRD.md` and `APP_METADATA_.PRD_VERSION` per that project’s rules; apply the same “every pushed `src` file” header discipline using **that** repo’s PRD path.

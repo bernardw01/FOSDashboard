@@ -1,5 +1,5 @@
 /**
- * PRD version 1.2 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.6 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Spreadsheet-backed user authorization (Users tab).
  * Script Properties: AUTH_SPREADSHEET_ID (required), AUTH_USERS_SHEET_NAME (default Users),

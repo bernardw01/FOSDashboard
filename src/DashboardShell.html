@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 1.2 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 1.6 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -8,13 +8,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
     rel="stylesheet"
   />
   <link
     href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
     rel="stylesheet"
     integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+    crossorigin="anonymous"
+  />
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    rel="stylesheet"
     crossorigin="anonymous"
   />
   <style>
@@ -33,6 +38,104 @@
       --bs-border-color: rgba(148, 163, 184, 0.18);
       --bs-secondary-color: rgba(241, 245, 249, 0.62);
       --bs-tertiary-bg: var(--harpin-navy-elevated);
+    }
+
+    /* Agreement dashboard tokens — agreement-dashboard-prd-v2.md §9.5–§9.7 */
+    .fos-agreement-root {
+      --ag-bg: #061b30;
+      --ag-surface: #092747;
+      --ag-surface2: #0d2e4a;
+      --ag-border: #1a4060;
+      --ag-accent: #52c9e5;
+      --ag-accent2: #007fa7;
+      --ag-accent3: #20b4c4;
+      --ag-accent4: #43d6ba;
+      --ag-text: #fffefc;
+      --ag-text-muted: #a0aec0;
+      --ag-text-dim: #2a5a7a;
+      --ag-danger: #fc5c65;
+      --ag-warn: #fd9644;
+      font-size: 14px;
+      color: var(--ag-text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    #panel-finance.fos-agreement-root {
+      background: var(--ag-bg);
+      border-radius: 12px;
+      padding: 4px 0 8px;
+    }
+
+    .fos-agreement-inner {
+      background: var(--ag-surface);
+      border: 1px solid var(--ag-border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .fos-agreement-root .agreement-logo-sep {
+      width: 1px;
+      height: 28px;
+      background: rgba(82, 201, 229, 0.3);
+      flex-shrink: 0;
+    }
+
+    .fos-agreement-kpi {
+      background: var(--ag-surface2);
+      border: 1px solid var(--ag-border);
+      border-radius: 12px;
+      padding: 20px;
+      border-top: 3px solid var(--ag-kpi-accent, var(--ag-accent));
+      min-height: 112px;
+    }
+
+    .fos-agreement-kpi .label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ag-text-muted);
+      font-weight: 600;
+    }
+
+    .fos-agreement-kpi .value {
+      font-size: 1.35rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .fos-agreement-kpi .sub {
+      font-size: 0.8rem;
+      color: var(--ag-text-muted);
+    }
+
+    .fos-agreement-kpi.kpi-blue {
+      --ag-kpi-accent: var(--ag-accent);
+    }
+    .fos-agreement-kpi.kpi-teal {
+      --ag-kpi-accent: var(--ag-accent2);
+    }
+    .fos-agreement-kpi.kpi-green {
+      --ag-kpi-accent: var(--ag-accent4);
+    }
+    .fos-agreement-kpi.kpi-yellow {
+      --ag-kpi-accent: var(--ag-warn);
+    }
+    .fos-agreement-kpi.kpi-margin-neg {
+      --ag-kpi-accent: var(--ag-danger);
+    }
+    .fos-agreement-kpi.kpi-margin-low {
+      --ag-kpi-accent: var(--ag-warn);
+    }
+
+    .fos-agreement-root ::-webkit-scrollbar {
+      width: 4px;
+    }
+    .fos-agreement-root ::-webkit-scrollbar-track {
+      background: var(--ag-border);
+    }
+    .fos-agreement-root ::-webkit-scrollbar-thumb {
+      background: var(--ag-accent2);
+      border-radius: 4px;
     }
 
     body {
@@ -98,6 +201,18 @@
       box-shadow: inset 3px 0 0 var(--harpin-teal);
     }
 
+    .fos-nav-btn .bi {
+      font-size: 1.15rem;
+      line-height: 1;
+      opacity: 0.88;
+      flex-shrink: 0;
+    }
+
+    .fos-nav-btn.active .bi {
+      opacity: 1;
+      color: var(--harpin-teal);
+    }
+
     .fos-topbar {
       background: rgba(5, 10, 24, 0.92);
       backdrop-filter: blur(10px);
@@ -131,7 +246,7 @@
       border-radius: 9999px;
     }
 
-    .btn-fos-profile {
+    .btn-fos-sidebar-footer {
       border-radius: 9999px;
       font-weight: 600;
       border-width: 2px;
@@ -139,10 +254,14 @@
       border-color: rgba(94, 234, 212, 0.45);
     }
 
-    .btn-fos-profile:hover {
+    .btn-fos-sidebar-footer:hover {
       color: var(--harpin-navy);
       background-color: var(--harpin-teal);
       border-color: var(--harpin-teal);
+    }
+
+    .btn-fos-sidebar-footer .bi {
+      font-size: 1.15rem;
     }
 
     #main-panel {
@@ -215,7 +334,14 @@
         <div class="mt-auto border-top border-secondary border-opacity-25 flex-shrink-0">
           <p class="small text-secondary px-3 pt-2 mb-1" style="font-size: 0.65rem; opacity: 0.85">PRD v<?!= prdVersion ?></p>
           <div class="p-3 pt-0">
-            <button type="button" class="btn btn-fos-profile w-100 py-2" id="profile-link">Profile</button>
+            <button
+              type="button"
+              class="btn btn-fos-sidebar-footer w-100 py-2 d-flex align-items-center justify-content-center gap-2"
+              id="settings-link"
+            >
+              <i class="bi bi-gear-fill" aria-hidden="true"></i>
+              <span>Settings</span>
+            </button>
           </div>
         </div>
       </div>
@@ -229,7 +355,7 @@
           data-bs-toggle="offcanvas"
           data-bs-target="#fosSidebar"
           aria-controls="fosSidebar"
-          aria-label="Open navigation and profile"
+          aria-label="Open navigation and settings"
         >
           ☰ Menu
         </button>
@@ -243,7 +369,7 @@
         role="note"
       >
         <strong class="text-info">Tip:</strong> On smaller windows, tap <strong class="text-white">☰ Menu</strong> (top
-        left) to open dashboards and Profile.
+        left) to open dashboards and Settings.
       </div>
 
       <div id="load-banner" class="px-3 py-2 small text-secondary border-bottom border-secondary border-opacity-25" role="status">
@@ -252,12 +378,94 @@
       <div id="error-banner" class="alert alert-danger mx-3 mt-2 mb-0 d-none" role="alert"></div>
 
       <main id="main-panel" class="flex-grow-1 px-3 px-lg-4 py-4" aria-live="polite">
-        <div class="card fos-card rounded-4">
-          <div class="card-body p-4 p-lg-5" id="panel-home">
+        <div id="panel-home" class="card fos-card rounded-4">
+          <div class="card-body p-4 p-lg-5">
             <h1 class="h4 mb-3 fw-bold text-white">Home</h1>
             <p class="text-muted mb-0 lh-lg">
               Welcome to the FOS Dashboard shell. Use the menu for areas you are authorized to see. Until a
               dashboard is enabled, its link opens a “Coming soon” dialog instead of leaving this page.
+            </p>
+          </div>
+        </div>
+
+        <div id="panel-finance" class="d-none fos-agreement-root">
+          <div id="agreement-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
+          <div class="fos-agreement-inner shadow-lg">
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <img
+                src="https://harpin.ai/wp-content/uploads/logo.svg"
+                width="120"
+                height="32"
+                alt=""
+                decoding="async"
+                style="height: 32px; width: auto"
+                onerror="this.style.display='none'"
+              />
+              <div class="agreement-logo-sep" aria-hidden="true"></div>
+              <div class="flex-grow-1 min-w-0">
+                <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Agreement Management Dashboard</h1>
+                <p class="small mb-0" id="agreement-subtitle" style="color: var(--ag-text-muted)">
+                  Portfolio state as of …
+                </p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 mb-4 pb-3 border-bottom" style="border-color: var(--ag-border) !important">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="agreement-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
+                Refresh
+              </button>
+              <span class="small" id="agreement-last-refresh" style="color: var(--ag-text-muted)">Last refreshed: —</span>
+              <span class="small d-none text-danger" id="agreement-fetch-error" role="alert"></span>
+            </div>
+
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-blue h-100" title="Count of active agreements (non–Closed-Lost, non–Internal).">
+                  <div class="label">Total agreements</div>
+                  <div class="value" id="kpi-total-agreements">0</div>
+                  <div class="sub" id="kpi-total-agreements-sub">0 external customers</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-teal h-100" title="Sum of total planned revenue (non–Internal).">
+                  <div class="label">Total contract value</div>
+                  <div class="value" id="kpi-tcv">$0</div>
+                  <div class="sub">Across all active SOWs</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-green h-100" title="Sum of recognized revenue (non–Internal).">
+                  <div class="label">Revenue recognized</div>
+                  <div class="value" id="kpi-rev-rec">$0</div>
+                  <div class="sub" id="kpi-rev-rec-sub">0% of portfolio realized</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-yellow h-100" title="Agreements in Delivery In Progress.">
+                  <div class="label">In delivery</div>
+                  <div class="value" id="kpi-in-delivery">0</div>
+                  <div class="sub" id="kpi-in-delivery-sub">0 proposals · 0 complete</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-blue h-100" title="Customer with highest total contract value.">
+                  <div class="label">Top customer</div>
+                  <div class="value text-truncate" id="kpi-top-customer">—</div>
+                  <div class="sub" id="kpi-top-customer-sub">0% of portfolio · 0 SOWs</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-margin-low h-100" id="kpi-margin-card" title="Lowest margin or worst negative margin agreement.">
+                  <div class="label">Flagged margin</div>
+                  <div class="value" id="kpi-flag-margin">—</div>
+                  <div class="sub text-truncate" id="kpi-flag-margin-sub">—</div>
+                </div>
+              </div>
+            </div>
+
+            <p class="small mt-4 mb-0" style="color: var(--ag-text-muted)">
+              Charts and tables (agreement PRD §7.3–§7.11) ship in a follow-up; KPI strip and Fibery wiring are tracked in
+              <code>docs/features/003-agreement-dashboard-fibery-client-cache.md</code>.
             </p>
           </div>
         </div>
@@ -296,6 +504,105 @@
   <script>
     (function () {
       var navState = { items: [], userLabel: '' };
+      var AGREEMENT_CACHE_KEY = 'fos_agreement_dashboard_v1';
+      var SESSION_ID_KEY = 'fos_session_id_v1';
+      var ACTIVITY_THROTTLE_MS = 250;
+      var activityLastSent = {}; // key `${eventType}|${route}` → epoch ms
+      var cachedSessionId = null;
+
+      function noop() {}
+
+      function getOrCreateSessionId() {
+        if (cachedSessionId) {
+          return cachedSessionId;
+        }
+        try {
+          var existing = sessionStorage.getItem(SESSION_ID_KEY);
+          if (existing) {
+            cachedSessionId = existing;
+            return existing;
+          }
+        } catch (e) {
+          /* sessionStorage unavailable (private mode / iframe sandbox) */
+        }
+        var fresh;
+        try {
+          if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+            fresh = window.crypto.randomUUID();
+          }
+        } catch (e) {
+          fresh = null;
+        }
+        if (!fresh) {
+          fresh = 's-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+        }
+        try {
+          sessionStorage.setItem(SESSION_ID_KEY, fresh);
+        } catch (e) {
+          /* ignore quota / private mode */
+        }
+        cachedSessionId = fresh;
+        return fresh;
+      }
+
+      function shortUserAgent() {
+        try {
+          var ua = (navigator && navigator.userAgent) ? String(navigator.userAgent) : '';
+          return ua.length > 200 ? ua.slice(0, 200) : ua;
+        } catch (e) {
+          return '';
+        }
+      }
+
+      // Fire-and-forget: never blocks UI, never surfaces errors.
+      // Same-route bursts within ACTIVITY_THROTTLE_MS are coalesced (FR-65 friend,
+      // and matches the feature-doc verification step on accidental double-clicks).
+      function logActivity_(eventType, route, label) {
+        if (!eventType || !route) {
+          return;
+        }
+        var now = Date.now();
+        var key = eventType + '|' + route;
+        if (activityLastSent[key] && now - activityLastSent[key] < ACTIVITY_THROTTLE_MS) {
+          return;
+        }
+        activityLastSent[key] = now;
+        if (typeof google === 'undefined' || !google.script || !google.script.run) {
+          return;
+        }
+        try {
+          google.script.run
+            .withSuccessHandler(noop)
+            .withFailureHandler(noop)
+            .logUserActivity({
+              eventType: eventType,
+              route: route,
+              label: label || '',
+              sessionId: getOrCreateSessionId(),
+              userAgent: shortUserAgent(),
+            });
+        } catch (e) {
+          /* never surface logging failures */
+        }
+      }
+
+      /** Bootstrap Icons class suffix (without `bi ` prefix) per nav id. */
+      var NAV_ICONS = {
+        home: 'bi-house-door-fill',
+        finance: 'bi-graph-up-arrow',
+        operations: 'bi-kanban-fill',
+        delivery: 'bi-truck',
+      };
+
+      function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.textContent = text == null ? '' : String(text);
+        return div.innerHTML;
+      }
+
+      function navIconClassForId(id) {
+        return NAV_ICONS[id] || 'bi-grid-1x2-fill';
+      }
 
       var els = {
         sidebar: document.getElementById('fosSidebar'),
@@ -306,7 +613,14 @@
         navHint: document.getElementById('nav-hint'),
         errorBanner: document.getElementById('error-banner'),
         panelHome: document.getElementById('panel-home'),
-        profileLink: document.getElementById('profile-link'),
+        panelFinance: document.getElementById('panel-finance'),
+        agreementRefreshBtn: document.getElementById('agreement-refresh-btn'),
+        agreementLastRefresh: document.getElementById('agreement-last-refresh'),
+        agreementFetchError: document.getElementById('agreement-fetch-error'),
+        agreementSubtitle: document.getElementById('agreement-subtitle'),
+        agreementWarn: document.getElementById('agreement-warn'),
+        kpiMarginCard: document.getElementById('kpi-margin-card'),
+        settingsLink: document.getElementById('settings-link'),
         comingSoonModal: document.getElementById('comingSoonModal'),
         csBody: document.getElementById('cs-body'),
       };
@@ -347,13 +661,199 @@
         modal.show();
       }
 
-      els.profileLink.addEventListener('click', function () {
-        showComingSoon('Profile is not available yet.');
+      els.settingsLink.addEventListener('click', function () {
+        showComingSoon('Settings is not available yet.');
       });
 
+      function readAgreementCache() {
+        try {
+          var raw = sessionStorage.getItem(AGREEMENT_CACHE_KEY);
+          if (!raw) {
+            return null;
+          }
+          var o = JSON.parse(raw);
+          if (!o || o.cacheSchemaVersion !== 1) {
+            return null;
+          }
+          return o;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function writeAgreementCache(data) {
+        try {
+          sessionStorage.setItem(AGREEMENT_CACHE_KEY, JSON.stringify(data));
+        } catch (e) {
+          /* ignore quota / private mode */
+        }
+      }
+
+      function formatMoneyCompact(n) {
+        var x = Number(n);
+        if (!isFinite(x)) {
+          return '—';
+        }
+        var abs = Math.abs(x);
+        var sign = x < 0 ? '-' : '';
+        if (abs >= 1e6) {
+          return sign + '$' + (abs / 1e6).toFixed(2) + 'M';
+        }
+        if (abs >= 1e3) {
+          return sign + '$' + (abs / 1e3).toFixed(1) + 'K';
+        }
+        return sign + '$' + abs.toFixed(0);
+      }
+
+      function formatPct(n) {
+        var x = Number(n);
+        if (!isFinite(x)) {
+          return '0';
+        }
+        return (Math.round(x * 10) / 10).toString();
+      }
+
+      function formatLastRefresh(iso) {
+        if (!iso) {
+          return 'Last refreshed: —';
+        }
+        try {
+          var d = new Date(iso);
+          return 'Last refreshed: ' + d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+        } catch (e) {
+          return 'Last refreshed: —';
+        }
+      }
+
+      function applyAgreementPayload(data) {
+        var agreements = data.agreements || [];
+        var companies = data.companies || [];
+        var kpis = data.kpis || {};
+        var when = new Date();
+        if (data.fetchedAt) {
+          try {
+            when = new Date(data.fetchedAt);
+          } catch (e) {}
+        }
+        var dateStr = when.toLocaleDateString(undefined, { dateStyle: 'long' });
+        els.agreementSubtitle.textContent =
+          'Portfolio state as of ' + dateStr + ' · ' + agreements.length + ' agreements · ' + companies.length + ' customers';
+        els.agreementLastRefresh.textContent = formatLastRefresh(data.fetchedAt);
+
+        if (data.warnings && data.warnings.length) {
+          els.agreementWarn.textContent = data.warnings.join(' ');
+          els.agreementWarn.classList.remove('d-none');
+        } else {
+          els.agreementWarn.classList.add('d-none');
+        }
+
+        document.getElementById('kpi-total-agreements').textContent = String(kpis.totalAgreements != null ? kpis.totalAgreements : 0);
+        document.getElementById('kpi-total-agreements-sub').textContent =
+          String(kpis.externalCustomers != null ? kpis.externalCustomers : 0) + ' external customers';
+        document.getElementById('kpi-tcv').textContent = formatMoneyCompact(kpis.totalContractValue);
+        document.getElementById('kpi-rev-rec').textContent = formatMoneyCompact(kpis.revenueRecognized);
+        document.getElementById('kpi-rev-rec-sub').textContent =
+          formatPct(kpis.portfolioRecognitionRate) + '% of portfolio realized';
+        document.getElementById('kpi-in-delivery').textContent = String(kpis.inDeliveryCount != null ? kpis.inDeliveryCount : 0);
+        document.getElementById('kpi-in-delivery-sub').textContent =
+          String(kpis.proposalsCount != null ? kpis.proposalsCount : 0) +
+          ' proposals · ' +
+          String(kpis.completeCount != null ? kpis.completeCount : 0) +
+          ' complete';
+        document.getElementById('kpi-top-customer').textContent = kpis.topCustomerName || '—';
+        document.getElementById('kpi-top-customer-sub').textContent =
+          formatPct(kpis.topCustomerPortfolioPct) + '% of portfolio · ' + String(kpis.topCustomerSowCount || 0) + ' SOWs';
+
+        var marginEl = document.getElementById('kpi-flag-margin');
+        var marginSub = document.getElementById('kpi-flag-margin-sub');
+        if (kpis.flaggedMarginPct == null || kpis.flaggedMarginPct === '') {
+          marginEl.textContent = '—';
+          marginSub.textContent = kpis.flaggedMarginAgreement || '—';
+          els.kpiMarginCard.classList.remove('kpi-margin-neg', 'kpi-margin-low');
+          els.kpiMarginCard.classList.add('kpi-yellow');
+        } else {
+          marginEl.textContent = formatPct(kpis.flaggedMarginPct) + '%';
+          marginSub.textContent = kpis.flaggedMarginAgreement || '—';
+          els.kpiMarginCard.classList.remove('kpi-yellow');
+          if (kpis.flaggedMarginIsNegative) {
+            els.kpiMarginCard.classList.add('kpi-margin-neg');
+            els.kpiMarginCard.classList.remove('kpi-margin-low');
+          } else {
+            els.kpiMarginCard.classList.remove('kpi-margin-neg');
+            els.kpiMarginCard.classList.add('kpi-margin-low');
+          }
+        }
+      }
+
+      function fetchAgreementFromServer() {
+        if (els.agreementRefreshBtn) {
+          els.agreementRefreshBtn.disabled = true;
+        }
+        els.agreementFetchError.classList.add('d-none');
+        google.script.run
+          .withSuccessHandler(function (data) {
+            if (els.agreementRefreshBtn) {
+              els.agreementRefreshBtn.disabled = false;
+            }
+            if (!data || data.ok === false) {
+              els.agreementFetchError.textContent = (data && data.message) || 'Could not load agreement data.';
+              els.agreementFetchError.classList.remove('d-none');
+              return;
+            }
+            writeAgreementCache(data);
+            applyAgreementPayload(data);
+          })
+          .withFailureHandler(function (err) {
+            if (els.agreementRefreshBtn) {
+              els.agreementRefreshBtn.disabled = false;
+            }
+            var msg = err && err.message ? err.message : 'Refresh failed.';
+            if (msg === 'NOT_AUTHORIZED') {
+              msg = 'Your session is not authorized. Reload the page.';
+            }
+            els.agreementFetchError.textContent = msg;
+            els.agreementFetchError.classList.remove('d-none');
+          })
+          .getAgreementDashboardData();
+      }
+
+      if (els.agreementRefreshBtn) {
+        els.agreementRefreshBtn.addEventListener('click', function () {
+          logActivity_('refresh', 'finance', '');
+          fetchAgreementFromServer();
+        });
+      }
+
       function showHome() {
-        els.panelHome.style.display = 'block';
+        els.panelHome.classList.remove('d-none');
+        if (els.panelFinance) {
+          els.panelFinance.classList.add('d-none');
+        }
         els.topbarTitle.textContent = 'Home';
+      }
+
+      function showFinance() {
+        els.panelHome.classList.add('d-none');
+        if (els.panelFinance) {
+          els.panelFinance.classList.remove('d-none');
+        }
+        els.topbarTitle.textContent = 'Finance';
+        if (els.agreementFetchError) {
+          els.agreementFetchError.classList.add('d-none');
+        }
+        var cached = readAgreementCache();
+        if (cached) {
+          applyAgreementPayload(cached);
+        } else {
+          applyAgreementPayload({
+            agreements: [],
+            companies: [],
+            fetchedAt: null,
+            kpis: {},
+            warnings: [],
+          });
+          fetchAgreementFromServer();
+        }
       }
 
       function setActiveNav(id) {
@@ -375,9 +875,15 @@
           if (!isLargeViewport()) {
             hideMobileSidebar();
           }
+          logActivity_('nav_view', item.id, item.label || '');
           if (item.id === 'home') {
             setActiveNav('home');
             showHome();
+            return;
+          }
+          if (item.id === 'finance') {
+            setActiveNav('finance');
+            showFinance();
             return;
           }
           showComingSoon('The "' + item.label + '" dashboard is not available yet.');
@@ -402,9 +908,15 @@
           var item = items[i];
           var btn = document.createElement('button');
           btn.type = 'button';
-          btn.className = 'btn fos-nav-btn w-100 border-0 rounded-3 py-2';
+          btn.className = 'btn fos-nav-btn w-100 border-0 rounded-3 py-2 d-flex align-items-center gap-2 text-start';
           btn.setAttribute('data-nav-id', item.id);
-          btn.textContent = item.label;
+          var iconClass = navIconClassForId(item.id);
+          btn.innerHTML =
+            '<i class="bi ' +
+            iconClass +
+            '" aria-hidden="true"></i><span class="flex-grow-1">' +
+            escapeHtml(item.label) +
+            '</span>';
           btn.addEventListener('click', onNavClick(item));
           els.navList.appendChild(btn);
         }
