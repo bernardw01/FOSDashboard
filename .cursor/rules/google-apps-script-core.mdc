@@ -1,0 +1,78 @@
+---
+description: Core standards for Google Apps Script with TypeScript and clasp
+alwaysApply: true
+---
+
+# Google Apps Script Core Rule
+
+Follow these standards when generating or changing code in this repository.
+
+## Runtime Constraints
+
+- Target Google Apps Script runtime APIs; do not assume Node runtime APIs are available.
+- Do not use filesystem access in Apps Script code.
+- Avoid unsupported browser APIs in server-side code.
+- Keep dependencies minimal and compatible with Apps Script execution limits.
+
+## Code Organization
+
+- Keep Apps Script entry points in `main.ts` (for example `doGet`, `onOpen`, `onEdit`).
+- Put business logic in `services/`.
+- Keep reusable helpers in `utils/`.
+- Keep sheet access helpers separate from domain logic.
+
+## Google Sheets Performance
+
+- Batch reads and writes whenever possible.
+- Do not call `getRange` inside write loops when a single `setValues` call can be used.
+- Minimize API calls inside loops.
+
+## Configuration and Secrets
+
+- Never hardcode secrets, tokens, or environment-specific IDs.
+- Use `PropertiesService` for configuration and sensitive values.
+- Keep constants limited to safe, non-secret values.
+
+## UI and Error Handling
+
+- Use HTML Service for UI surfaces and `google.script.run` for client-server calls.
+- Return safe, user-friendly error messages to the frontend.
+- Do not expose stack traces, secrets, or raw sensitive responses to users.
+
+## Security and Reliability
+
+- Validate inputs from sidebars, dialogs, forms, and web app requests.
+- Avoid logging sensitive user or business data.
+- Prefer least-privilege behavior and safe defaults for data-changing operations.
+
+## Delivery Workflow
+
+- Make small, testable changes instead of large one-shot rewrites.
+- Compile TypeScript before `clasp push`.
+- Call out Apps Script platform constraints when they affect implementation choices.
+
+## PRD Change Control
+
+- When editing `docs/PRD.md`, always update the PRD change table at the bottom of the document in the same change.
+- Add one new row per PRD update with date, version, summary of change, and author/owner.
+- If the change table does not exist yet, create it at the bottom of `docs/PRD.md` before completing the PRD edit.
+- For any implemented functionality change (not just docs edits), update `docs/PRD.md` in the same change, including a version bump and change-log row.
+- Keep `src/Code.js` `APP_METADATA_.PRD_VERSION` exactly in sync with the version at the top of `docs/PRD.md` in every change.
+- Any code change is blocked until all three are updated together: `docs/PRD.md` content, PRD version number, and `src/Code.js` `APP_METADATA_.PRD_VERSION`.
+
+### PRD version in file headers (clasp / Apps Script)
+
+Whenever the PRD **version number** at the top of `docs/PRD.md` changes, update the **leading comment** in **every** `src/` file that is pushed to Google with `clasp` (all JavaScript under `src/` plus `SyncConsole.html`), so the embedded version matches `docs/PRD.md` exactly.
+
+- **JavaScript:** first line inside the top `/**` block comment must be the standard PRD line with the new version (same wording as existing `src` JavaScript files: PRD version, em dash, and keep in sync with the version line in `docs/PRD.md`).
+- **HTML:** immediately after `<!DOCTYPE html>`, use the same PRD version in an HTML comment (same pattern as `SyncConsole.html`).
+- **Exclude** `appsscript.json` (JSON does not allow comments).
+- When touching any pushed `src/` file for a change that already bumps the PRD version, include its header update in the **same** commit as the PRD / `APP_METADATA_.PRD_VERSION` sync.
+
+## Feature Spec Template Compliance
+
+- All new feature documents in `docs/features/` must follow `docs/FEATURE_TEMPLATE.md`.
+- Use the same section order and headings from the template unless the user explicitly requests a deviation.
+- Keep template checklists as markdown checkboxes (`- [ ]`) so progress can be tracked.
+- Name feature files using the existing numeric convention (for example `001-feature-name.md`).
+- If a feature spec exists but does not match the template, update it to template format when making substantive edits.

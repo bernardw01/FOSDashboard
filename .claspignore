@@ -1,0 +1,9 @@
+# Do not upload local dev / repo scaffolding to Apps Script.
+**/.DS_Store
+.git/**
+.gitignore
+.cursor/**
+.vscode/**
+docs/**
+README.md
+node_modules/**

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <base target="_top" />
+  <title>harpin AI Ops Dashboards</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+    crossorigin="anonymous"
+  />
+  <style>
+    :root,
+    [data-bs-theme='dark'] {
+      --harpin-navy: #050a18;
+      --harpin-navy-mid: #0a1428;
+      --harpin-navy-elevated: #0f1f3d;
+      --harpin-teal: #5eead4;
+      --harpin-teal-hover: #7ff5e1;
+      --harpin-teal-muted: rgba(94, 234, 212, 0.14);
+      --bs-body-bg: var(--harpin-navy);
+      --bs-body-color: #f1f5f9;
+      --bs-primary: var(--harpin-teal);
+      --bs-primary-rgb: 94, 234, 212;
+      --bs-border-color: rgba(148, 163, 184, 0.18);
+      --bs-secondary-color: rgba(241, 245, 249, 0.62);
+      --bs-tertiary-bg: var(--harpin-navy-elevated);
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background-color: var(--harpin-navy);
+      color: var(--bs-body-color);
+    }
+
+    #fosSidebar.offcanvas-md {
+      --bs-offcanvas-width: min(280px, 88vw);
+    }
+
+    /* Keep sidebar in the flex row when Bootstrap makes it static (md+). */
+    @media (min-width: 768px) {
+      #fosSidebar.offcanvas-md {
+        flex-shrink: 0 !important;
+        position: relative !important;
+        visibility: visible !important;
+        transform: none !important;
+        height: auto !important;
+        max-height: none !important;
+        width: min(280px, 34vw);
+        max-width: 280px;
+      }
+    }
+
+    .fos-sidebar {
+      background: linear-gradient(180deg, var(--harpin-navy-mid) 0%, var(--harpin-navy) 100%);
+      border-color: rgba(94, 234, 212, 0.12) !important;
+    }
+
+    .fos-brand-logo {
+      display: block;
+      width: 136px;
+      max-width: 100%;
+      height: auto;
+    }
+
+    .fos-app-headline {
+      font-size: 0.9rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: #f8fafc;
+      line-height: 1.3;
+    }
+
+    .fos-nav-btn {
+      text-align: left;
+      color: rgba(255, 255, 255, 0.78);
+      background-color: transparent;
+      transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .fos-nav-btn:hover {
+      color: #fff;
+      background-color: var(--harpin-teal-muted);
+    }
+
+    .fos-nav-btn.active {
+      color: var(--harpin-teal);
+      background-color: rgba(94, 234, 212, 0.12);
+      font-weight: 600;
+      box-shadow: inset 3px 0 0 var(--harpin-teal);
+    }
+
+    .fos-topbar {
+      background: rgba(5, 10, 24, 0.92);
+      backdrop-filter: blur(10px);
+      border-color: rgba(94, 234, 212, 0.1) !important;
+    }
+
+    .fos-topbar-title {
+      color: #f8fafc !important;
+    }
+
+    .btn-menu-mobile {
+      border-color: rgba(94, 234, 212, 0.35);
+      color: var(--harpin-teal);
+    }
+
+    .btn-menu-mobile:hover {
+      border-color: var(--harpin-teal);
+      color: var(--harpin-teal-hover);
+      background-color: var(--harpin-teal-muted);
+    }
+
+    .btn-fos-primary {
+      --bs-btn-color: var(--harpin-navy);
+      --bs-btn-bg: var(--harpin-teal);
+      --bs-btn-border-color: var(--harpin-teal);
+      --bs-btn-hover-color: var(--harpin-navy);
+      --bs-btn-hover-bg: var(--harpin-teal-hover);
+      --bs-btn-hover-border-color: var(--harpin-teal-hover);
+      --bs-btn-focus-shadow-rgb: 94, 234, 212;
+      font-weight: 600;
+      border-radius: 9999px;
+    }
+
+    .btn-fos-profile {
+      border-radius: 9999px;
+      font-weight: 600;
+      border-width: 2px;
+      color: var(--harpin-teal);
+      border-color: rgba(94, 234, 212, 0.45);
+    }
+
+    .btn-fos-profile:hover {
+      color: var(--harpin-navy);
+      background-color: var(--harpin-teal);
+      border-color: var(--harpin-teal);
+    }
+
+    #main-panel {
+      max-width: 1200px;
+      margin-left: auto;
+      margin-right: auto;
+      width: 100%;
+    }
+
+    .fos-card {
+      background-color: var(--harpin-navy-elevated);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .fos-card .text-muted {
+      color: rgba(203, 213, 225, 0.85) !important;
+    }
+
+    .fos-modal .modal-content {
+      background-color: var(--harpin-navy-mid);
+      border: 1px solid rgba(94, 234, 212, 0.2);
+      color: #f1f5f9;
+    }
+
+    .fos-modal .modal-header,
+    .fos-modal .modal-footer {
+      border-color: rgba(148, 163, 184, 0.2);
+    }
+
+    .fos-modal .btn-close {
+      filter: invert(1) grayscale(1);
+      opacity: 0.75;
+    }
+  </style>
+</head>
+<body>
+  <div class="d-flex min-vh-100">
+    <aside
+      class="offcanvas offcanvas-start offcanvas-md fos-sidebar border-end shadow flex-shrink-0 align-self-stretch min-vh-100"
+      tabindex="-1"
+      id="fosSidebar"
+      aria-labelledby="fosSidebarLabel"
+    >
+      <div class="offcanvas-header border-bottom border-secondary border-opacity-25 d-md-none">
+        <h2 class="offcanvas-title h6 mb-0 text-white" id="fosSidebarLabel">Menu</h2>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+      </div>
+      <div class="offcanvas-body d-flex flex-column p-0 flex-grow-1 min-vh-100 min-h-0">
+        <div class="p-3 border-bottom border-secondary border-opacity-25 flex-shrink-0">
+          <img
+            class="fos-brand-logo mb-2"
+            src="https://harpin.ai/wp-content/uploads/logo.svg"
+            width="136"
+            height="33"
+            alt=""
+            decoding="async"
+          />
+          <p id="fos-app-title" class="fos-app-headline mb-0">harpin AI Ops Dashboards</p>
+          <div id="user-chip" class="small text-secondary text-break mt-2">Loading…</div>
+        </div>
+
+        <div class="flex-grow-1 overflow-auto min-h-0 px-2 py-3">
+          <div class="text-uppercase small text-secondary px-2 mb-2 fw-semibold" style="letter-spacing: 0.06em">
+            Dashboards
+          </div>
+          <nav id="nav-list" class="nav flex-column gap-1 px-2" aria-label="Dashboards"></nav>
+        </div>
+
+        <div class="mt-auto border-top border-secondary border-opacity-25 p-3 flex-shrink-0">
+          <button type="button" class="btn btn-fos-profile w-100 py-2" id="profile-link">Profile</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="flex-fill d-flex flex-column min-vh-100 min-w-0">
+      <header class="navbar navbar-expand fos-topbar border-bottom sticky-top px-3 py-2">
+        <button
+          class="btn btn-outline-secondary btn-menu-mobile d-md-none me-2 rounded-pill px-3 fw-semibold"
+          type="button"
+          data-bs-toggle="offcanvas"
+          data-bs-target="#fosSidebar"
+          aria-controls="fosSidebar"
+          aria-label="Open navigation and profile"
+        >
+          ☰ Menu
+        </button>
+        <span id="topbar-title" class="navbar-brand mb-0 h6 fw-semibold fos-topbar-title">Home</span>
+      </header>
+
+      <div
+        id="nav-hint"
+        class="d-none px-3 py-2 small border-bottom border-secondary border-opacity-25 text-secondary bg-opacity-10"
+        style="background: rgba(94, 234, 212, 0.06)"
+        role="note"
+      >
+        <strong class="text-info">Tip:</strong> On smaller windows, tap <strong class="text-white">☰ Menu</strong> (top
+        left) to open dashboards and Profile.
+      </div>
+
+      <div id="load-banner" class="px-3 py-2 small text-secondary border-bottom border-secondary border-opacity-25" role="status">
+        Loading navigation…
+      </div>
+      <div id="error-banner" class="alert alert-danger mx-3 mt-2 mb-0 d-none" role="alert"></div>
+
+      <main id="main-panel" class="flex-grow-1 px-3 px-lg-4 py-4" aria-live="polite">
+        <div class="card fos-card rounded-4">
+          <div class="card-body p-4 p-lg-5" id="panel-home">
+            <h1 class="h4 mb-3 fw-bold text-white">Home</h1>
+            <p class="text-muted mb-0 lh-lg">
+              Welcome to the FOS Dashboard shell. Use the menu for areas you are authorized to see. Until a
+              dashboard is enabled, its link opens a “Coming soon” dialog instead of leaving this page.
+            </p>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div
+    class="modal fade fos-modal"
+    id="comingSoonModal"
+    tabindex="-1"
+    aria-labelledby="comingSoonTitle"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4">
+        <div class="modal-header">
+          <h5 class="modal-title fw-semibold" id="comingSoonTitle">Coming soon</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-0 text-secondary" id="cs-body">This page is not available yet.</p>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-fos-primary px-4" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+    crossorigin="anonymous"
+  ></script>
+  <script>
+    (function () {
+      var navState = { items: [], userLabel: '' };
+
+      var els = {
+        sidebar: document.getElementById('fosSidebar'),
+        navList: document.getElementById('nav-list'),
+        userChip: document.getElementById('user-chip'),
+        topbarTitle: document.getElementById('topbar-title'),
+        loadBanner: document.getElementById('load-banner'),
+        navHint: document.getElementById('nav-hint'),
+        errorBanner: document.getElementById('error-banner'),
+        panelHome: document.getElementById('panel-home'),
+        profileLink: document.getElementById('profile-link'),
+        comingSoonModal: document.getElementById('comingSoonModal'),
+        csBody: document.getElementById('cs-body'),
+      };
+
+      function hideMobileSidebar() {
+        if (typeof bootstrap === 'undefined' || !bootstrap.Offcanvas) {
+          return;
+        }
+        var inst = bootstrap.Offcanvas.getInstance(els.sidebar);
+        if (inst) {
+          inst.hide();
+        }
+      }
+
+      function isLargeViewport() {
+        return window.matchMedia('(min-width: 768px)').matches;
+      }
+
+      function updateNavHintVisibility() {
+        if (!els.navHint) {
+          return;
+        }
+        if (isLargeViewport()) {
+          els.navHint.classList.add('d-none');
+        } else {
+          els.navHint.classList.remove('d-none');
+        }
+      }
+
+      function showComingSoon(message) {
+        var text = message || 'This page is not available yet.';
+        els.csBody.textContent = text;
+        if (typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+          window.alert(text);
+          return;
+        }
+        var modal = bootstrap.Modal.getOrCreateInstance(els.comingSoonModal);
+        modal.show();
+      }
+
+      els.profileLink.addEventListener('click', function () {
+        showComingSoon('Profile is not available yet.');
+      });
+
+      function showHome() {
+        els.panelHome.style.display = 'block';
+        els.topbarTitle.textContent = 'Home';
+      }
+
+      function setActiveNav(id) {
+        var buttons = els.navList.querySelectorAll('.fos-nav-btn');
+        for (var i = 0; i < buttons.length; i++) {
+          var b = buttons[i];
+          if (b.getAttribute('data-nav-id') === id) {
+            b.classList.add('active');
+            b.setAttribute('aria-current', 'page');
+          } else {
+            b.classList.remove('active');
+            b.removeAttribute('aria-current');
+          }
+        }
+      }
+
+      function onNavClick(item) {
+        return function () {
+          if (!isLargeViewport()) {
+            hideMobileSidebar();
+          }
+          if (item.id === 'home') {
+            setActiveNav('home');
+            showHome();
+            return;
+          }
+          showComingSoon('The "' + item.label + '" dashboard is not available yet.');
+        };
+      }
+
+      function renderNav(model) {
+        navState = model || { items: [], userLabel: '' };
+        els.userChip.textContent = model.userLabel || model.userEmail || 'Signed-in user';
+        els.navList.innerHTML = '';
+
+        var items = model.items || [];
+        for (var i = 0; i < items.length; i++) {
+          var item = items[i];
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'btn fos-nav-btn w-100 border-0 rounded-3 py-2';
+          btn.setAttribute('data-nav-id', item.id);
+          btn.textContent = item.label;
+          btn.addEventListener('click', onNavClick(item));
+          els.navList.appendChild(btn);
+        }
+
+        if (!items.length) {
+          var empty = document.createElement('p');
+          empty.className = 'small text-secondary px-2 mb-0';
+          empty.textContent = 'No dashboards are available for your account.';
+          els.navList.appendChild(empty);
+        }
+
+        setActiveNav('home');
+        showHome();
+        els.loadBanner.classList.add('d-none');
+        updateNavHintVisibility();
+      }
+
+      function showError(msg) {
+        els.loadBanner.classList.add('d-none');
+        els.errorBanner.classList.remove('d-none');
+        els.errorBanner.textContent = msg;
+      }
+
+      window.addEventListener('resize', function () {
+        updateNavHintVisibility();
+      });
+
+      function init() {
+        google.script.run
+          .withSuccessHandler(renderNav)
+          .withFailureHandler(function (err) {
+            showError(err && err.message ? err.message : 'Could not load navigation.');
+          })
+          .getDashboardNavigation();
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
