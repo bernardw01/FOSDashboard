@@ -1,5 +1,7 @@
 # Overview
 
+> **PRD version 1.2** — see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js`).
+
 ## Goal
 
 Ship the **Harpin FOS (Finance & Operations Snapshot) Dashboard**: a **Google Apps Script** Web App (HtmlService) that gives authorized Workspace users one place to see **key metrics, KPIs, and financial performance** aggregated from harpin’s existing tools (for example curated **Google Sheets** metric layers, **Fibery**, **Clockify**, accounting APIs, and other connectors as we add them).

@@ -1,5 +1,7 @@
 # Feature: Dashboard shell and navigation (FOS Web App)
 
+> **PRD version 1.2** — see `docs/FOS-Dashboard-PRD.md`.
+
 ## Goal
 
 Deliver a **responsive** Google Apps Script Web App shell: **left navigation** (including **Profile** pinned to the **bottom of the sidebar**), **main content area**, with **Home** as the only active destination. All other dashboard routes and **Profile** show a **“Coming soon”** dialog until those pages are built. Lay groundwork for **role-based menu visibility** without activating full RBAC yet.

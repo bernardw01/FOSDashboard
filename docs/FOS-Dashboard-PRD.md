@@ -1,8 +1,10 @@
 # Harpin FOS Dashboard (Google Workspace Web App)
 
+**PRD version 1.2** — `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
+
 Product Requirements Document
 
-Version 1.0 - 2026-05-11
+Version 1.2 - 2026-05-12
 
 ## 1) Overview
 
@@ -14,7 +16,7 @@ Build a **Google Apps Script**–hosted web application—the **Harpin FOS (Fina
 
 Provide a **lightweight, Google Workspace–native** experience that:
 
-- authenticates users in the harpin Google Workspace domain,
+- authenticates users in the harpin Google Workspace domain and **authorizes** them against a **maintained Google Sheet** (users tab) before showing any dashboard UI,
 - loads curated metrics and summaries from configured APIs and/or Google Sheets “metric store” layers,
 - presents a clear, scannable layout with optional drill-down where data allows,
 - refreshes on a sensible cadence (manual refresh, scheduled server refresh, or both),
@@ -47,6 +49,7 @@ Provide a **lightweight, Google Workspace–native** experience that:
 
 ### Core Use Cases
 
+- Open the published dashboard only after the system confirms the user appears on the **authorized users** sheet with a defined **role** and **team**; otherwise see a **not authorized** page.
 - Open the published dashboard and see **today’s or period’s** KPI snapshot without hunting across tools.
 - **Refresh** metrics on demand and understand **when data was last updated** and from which source.
 - Compare **actual vs plan** (or prior period) where those series exist in the metric layer.
@@ -62,14 +65,19 @@ Each numbered **FR**, **AC** (section 7), and **NFR** (section 4) item carries a
 | **[In-Progress]** | Partially implemented or not yet validated end-to-end. |
 | **[Backlog]** | Not yet implemented. |
 
-As of **version 1.0**, all functional and acceptance items below are **[Backlog]** unless and until the implementation checklist in the repository marks them otherwise.
+As of **version 1.2**, spreadsheet authorization (FR-05–FR-08a) and related acceptance criteria are **[Released]** in `src/`; other items remain **[Backlog]** unless noted.
 
 ### 3.1 Access, Identity, and Configuration
 
-- FR-01 **[Backlog]**: The Web App MUST restrict access to users in the **harpin Google Workspace** domain (or an explicitly configured allowlist of domains) consistent with Apps Script execution identity and deployment settings.
-- FR-02 **[Backlog]**: The system MUST store non-secret configuration (feature flags, sheet IDs, tab names, API base URLs) in **Script Properties** or an equivalent documented store; secrets MUST NOT be committed to source control.
+- FR-01 **[Backlog]**: The Web App MUST restrict access to users in the **harpin Google Workspace** domain (or an explicitly configured allowlist of domains) consistent with Apps Script execution identity and deployment settings, **in addition to** spreadsheet-based authorization (FR-05–FR-08).
+- FR-02 **[Backlog]**: The system MUST store non-secret configuration (feature flags, sheet IDs, tab names, API base URLs, **authorization sheet column names**) in **Script Properties** or an equivalent documented store; secrets MUST NOT be committed to source control.
 - FR-03 **[Backlog]**: The system MUST fail fast with operator-readable errors when required configuration is missing for a given panel or connector.
 - FR-04 **[Backlog]**: The solution SHOULD support a minimal **environment** or **tier** concept (`dev` / `prod`) for separate Script Properties sets if multiple deployments are used.
+- FR-05 **[Released]**: The system MUST read **authorized users** from a designated **Google Sheet** tab (default name **`Users`**, overridable via Script Property **`AUTH_USERS_SHEET_NAME`**) within a spreadsheet identified by **`AUTH_SPREADSHEET_ID`** stored in Script Properties.
+- FR-06 **[Released]**: The first row of the users tab MUST be a **header row** with stable column names. The system MUST resolve the active user by **email** using a configurable column (default **`Email`**) with **case-insensitive** comparison after **trimming** whitespace.
+- FR-07 **[Released]**: When a row matches the active user, the system MUST read **`Role`** and **`Team`** from that row using configurable column names (defaults **`Role`**, **`Team`**). These values MUST drive server-side navigation filtering and future dashboard entitlements; the client MUST NOT be the source of truth for role or team.
+- FR-08 **[Released]**: When the active user **does not** appear in the users tab (or email is empty / cannot be resolved under **Execute as: User accessing the web app**), the system MUST respond with a dedicated **not authorized** HtmlService page (no main dashboard shell, no embedded metrics, no `google.script.run` exposure of privileged data for that session beyond the error page itself).
+- FR-08a **[Released]**: Every **server function** invokable via `google.script.run` that returns or mutates sensitive data MUST **re-verify** authorization using the same rules as `doGet` (or a shared helper), so bypassing the initial HTML load cannot grant access.
 
 ### 3.2 Dashboard Shell and Navigation
 
@@ -102,12 +110,12 @@ As of **version 1.0**, all functional and acceptance items below are **[Backlog]
 ### 3.6 Branding and Documentation
 
 - FR-50 **[Backlog]**: The published HTML UI SHOULD align with **harpin.ai** visual standards (primary palette, typography, icon set) consistent with other internal Apps Script Web Apps.
-- FR-51 **[Backlog]**: The Web App SHOULD display the **current PRD version** (this document’s version string) so stakeholders can align feedback with the documented baseline.
+- FR-51 **[Released]**: The Web App SHOULD display the **current PRD version** (this document’s version string) so stakeholders can align feedback with the documented baseline (sidebar footer + not-authorized page; `FOS_PRD_VERSION` in `src/Code.js` must match this document’s version line).
 
 ## 4) Non-Functional Requirements
 
 - NFR-01 (Security) **[Backlog]**: Secrets and tokens MUST never be logged or exposed to the client; use server-side only storage and redacted error messages for end users.
-- NFR-02 (Privacy) **[Backlog]**: The dashboard MUST only surface data appropriate for the authenticated audience; row-level or metric-level access rules SHOULD be documented when multiple roles exist.
+- NFR-02 (Privacy) **[Backlog]**: The dashboard MUST only surface data appropriate for the authenticated audience; **role** and **team** from the users sheet SHOULD inform which metrics or sections appear as the model matures. Row-level rules SHOULD be documented when multiple roles exist.
 - NFR-03 (Reliability) **[Backlog]**: Partial connector failures MUST NOT blank the entire dashboard unless the failure is catastrophic; unaffected panels remain usable.
 - NFR-04 (Performance) **[Backlog]**: Initial page load SHOULD complete within a target budget (documented per deployment) using caching, parallel fetches where safe, and minimal payload sizes.
 - NFR-05 (Maintainability) **[Backlog]**: Codebase MUST separate **UI**, **orchestration**, **connectors**, and **metric mapping** into testable modules following the same discipline as other harpin Apps Script projects.
@@ -117,7 +125,11 @@ As of **version 1.0**, all functional and acceptance items below are **[Backlog]
 
 ```text
 User (Workspace) → Published Web App (HtmlService)
-  -> google.script.run → Dashboard Orchestrator
+  -> doGet: Session identity → Users sheet lookup (email → role, team)
+       -> if unauthorized: NotAuthorized.html
+       -> if authorized: DashboardShell.html + server context (role, team)
+  -> google.script.run → (each handler re-checks authorization)
+       -> Dashboard Orchestrator
        -> Metric catalog (Sheets / Drive JSON)
        -> Connector: Google Sheets metric store
        -> Connector(s): REST APIs (Fibery, Clockify, accounting, …)
@@ -146,17 +158,23 @@ The **Clockify to Fibery Sync** product (see `docs/PRD.md`) remains the **system
 - AC-05 **[Backlog]**: A successful refresh cycle writes a **log row** (or equivalent) with timestamp and per-source outcome for admin review.
 - AC-06 **[Backlog]**: The UI displays **last updated** metadata that matches the server’s latest successful refresh for that panel or global scope.
 - AC-07 **[Backlog]**: README (or project index doc) links to this PRD as the dashboard requirements baseline.
-- AC-08 **[Backlog]**: The published UI shows the **PRD version** string when FR-51 is implemented.
+- AC-08 **[Released]**: The published UI shows the **PRD version** string (sidebar + not-authorized page; version constant in code).
+- AC-09 **[Released]**: A user whose email appears in the configured **users** tab receives the **dashboard shell**; the server response includes **role** and **team** derived from that row (shown in the user chip from `getDashboardNavigation`).
+- AC-10 **[Released]**: A user who is **signed in** but **not** listed in the users tab receives only the **not authorized** page with a clear message that access has not been granted; they do **not** see dashboard navigation or KPI placeholders.
+- AC-11 **[Released]**: With required Script Properties **missing** for the authorization sheet, the deployment fails **closed** (user sees the configuration-oriented message on the not-authorized page **without** exposing internal keys).
+- AC-12 **[Released]**: `getDashboardNavigation` **re-checks** authorization via `requireAuthForApi_()` and throws if the user is not on the sheet, so the client does not receive the navigation model when unauthorized.
 
 ## 8) Open Questions (for product refinement)
 
 - Which **v1 KPI set** is mandatory for launch (exact list, owners, and source per metric)?
 - **Single deployment** vs separate dev/prod Apps Script projects and Web App URLs?
 - Preferred **metric catalog** format: Sheets-only v1 vs JSON in Drive vs hybrid?
-- **Role model**: one dashboard for all internal viewers vs role-specific layouts?
+- **Role model**: one dashboard for all internal viewers vs role-specific layouts? (**Partially answered** for v1: role and team come from the users sheet; layout rules TBD per feature 002 delivery.)
 
 ## 9) Change Log
 
 | Date | Version | Change Summary | Author |
 | --- | --- | --- | --- |
 | 2026-05-11 | 1.0 | Initial FOS Dashboard PRD; structure aligned with `docs/PRD.md`; all requirements tagged Backlog pending implementation. | Cursor |
+| 2026-05-12 | 1.1 | Added spreadsheet **users** tab authorization (FR-05–FR-08a), not-authorized page requirement, server re-check rule, AC-09–AC-12, architecture update. | Cursor |
+| 2026-05-12 | 1.2 | Implemented sheet auth (`authUsersSheet.js`), `NotAuthorized.html`, `doGet` gate, `getDashboardNavigation` re-check, role/team in nav payload, PRD version in UI; PRD headers in all `src` text files; FR-05–FR-08a, FR-51, AC-08–AC-12 marked **Released**. | Cursor |

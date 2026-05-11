@@ -1,15 +1,38 @@
 /**
+ * PRD version 1.2 — sync with docs/FOS-Dashboard-PRD.md
+ *
  * FOS Dashboard — Apps Script entry points.
- * Web App shell: doGet serves DashboardShell.html.
  */
 
+/** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
+var FOS_PRD_VERSION = '1.2';
+
 /**
- * Serves the dashboard Web App HTML shell.
+ * @return {string}
+ */
+function getFosPrdVersion_() {
+  return FOS_PRD_VERSION;
+}
+
+/**
+ * Serves the dashboard Web App HTML shell, or the not-authorized page.
  * @return {GoogleAppsScript.HTML.HtmlOutput}
  */
 function doGet() {
-  const template = HtmlService.createTemplateFromFile('DashboardShell');
-  template.initialNav = getDashboardNavigation_();
+  var auth = getAuthorizationForActiveUser_();
+  if (!auth.ok) {
+    var deny = HtmlService.createTemplateFromFile('NotAuthorized');
+    deny.reason = auth.reason;
+    deny.prdVersion = getFosPrdVersion_();
+    return deny
+      .evaluate()
+      .setTitle('Access not granted')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
+  }
+
+  var template = HtmlService.createTemplateFromFile('DashboardShell');
+  template.prdVersion = getFosPrdVersion_();
   return template
     .evaluate()
     .setTitle('harpin AI Ops Dashboards')
@@ -18,68 +41,46 @@ function doGet() {
 }
 
 /**
- * Returns navigation + user hints for the signed-in user.
- * Stub: filter by domain / allowlist until a real RBAC source exists.
- * Called from template at load; may be extended for client refresh via google.script.run.
+ * Returns navigation + user hints for the signed-in user (re-checks sheet authorization).
  * @return {{
  *   userEmail: string,
  *   userLabel: string,
+ *   role: string,
+ *   team: string,
  *   items: Array<{ id: string, label: string, active: boolean }>
  * }}
  */
 function getDashboardNavigation() {
-  return getDashboardNavigation_();
+  var auth = requireAuthForApi_();
+  return buildNavigationModel_(auth);
 }
 
 /**
+ * @param {{ email: string, role: string, team: string }} auth
  * @return {{
  *   userEmail: string,
  *   userLabel: string,
+ *   role: string,
+ *   team: string,
  *   items: Array<{ id: string, label: string, active: boolean }>
  * }}
  * @private
  */
-function getDashboardNavigation_() {
-  const user = Session.getActiveUser();
-  const email = user.getEmail() || '';
-  const label = email || 'Signed-in user';
+function buildNavigationModel_(auth) {
+  var label = auth.email || 'Signed-in user';
 
-  const allItems = [
+  var allItems = [
     { id: 'home', label: 'Home', active: true },
     { id: 'finance', label: 'Finance', active: false },
     { id: 'operations', label: 'Operations', active: false },
     { id: 'delivery', label: 'Delivery', active: false },
   ];
 
-  const items = filterNavItemsForUser_(email, allItems);
-
   return {
-    userEmail: email,
+    userEmail: auth.email,
     userLabel: label,
-    items: items,
+    role: auth.role,
+    team: auth.team,
+    items: allItems.slice(),
   };
-}
-
-/**
- * Placeholder RBAC: same catalog for all @harpin.ai users; trim finance for others if email present.
- * Replace with Script Properties, Sheet, or Directory-backed roles.
- * @param {string} email
- * @param {Array<{ id: string, label: string, active: boolean }>} items
- * @return {Array<{ id: string, label: string, active: boolean }>}
- * @private
- */
-function filterNavItemsForUser_(email, items) {
-  if (!email) {
-    return items.filter(function (i) {
-      return i.id === 'home';
-    });
-  }
-  // Example stub: non-harpin users only see Home until policies are defined.
-  var domain = email.split('@')[1] || '';
-  if (domain.toLowerCase() !== 'harpin.ai') {
-    return items.filter(function (i) {
-      return i.id === 'home';
-    });
-  }
-  return items.slice();
 }

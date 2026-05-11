@@ -62,12 +62,15 @@ Follow these standards when generating or changing code in this repository.
 
 ### PRD version in file headers (clasp / Apps Script)
 
-Whenever the PRD **version number** at the top of `docs/PRD.md` changes, update the **leading comment** in **every** `src/` file that is pushed to Google with `clasp` (all JavaScript under `src/` plus `SyncConsole.html`), so the embedded version matches `docs/PRD.md` exactly.
+**FOS Dashboard (`FOSDashboard` repo):** The product PRD is **`docs/FOS-Dashboard-PRD.md`**. Whenever its **version number** (header line `Version X.Y`) changes:
 
-- **JavaScript:** first line inside the top `/**` block comment must be the standard PRD line with the new version (same wording as existing `src` JavaScript files: PRD version, em dash, and keep in sync with the version line in `docs/PRD.md`).
-- **HTML:** immediately after `<!DOCTYPE html>`, use the same PRD version in an HTML comment (same pattern as `SyncConsole.html`).
-- **Exclude** `appsscript.json` (JSON does not allow comments).
-- When touching any pushed `src/` file for a change that already bumps the PRD version, include its header update in the **same** commit as the PRD / `APP_METADATA_.PRD_VERSION` sync.
+1. Bump **`FOS_PRD_VERSION`** in `src/Code.js` to match **exactly**.
+2. Update the **PRD version line** at the top of **every** clasp-pushed file under `src/` (**all** `.js` and `.html`; **exclude** `appsscript.json`):
+   - **JavaScript:** first line inside the top `/**` block: ` * PRD version X.Y — sync with docs/FOS-Dashboard-PRD.md`
+   - **HTML:** immediately after `<!DOCTYPE html>`: `<!-- PRD version X.Y — sync with docs/FOS-Dashboard-PRD.md -->`
+3. Include these header updates in the **same** change as the PRD version bump and changelog row.
+
+**Other harpin Apps Script projects** (e.g. Clockify–Fibery sync): may follow `docs/PRD.md` and `APP_METADATA_.PRD_VERSION` per that project’s rules; apply the same “every pushed `src` file” header discipline using **that** repo’s PRD path.
 
 ## Feature Spec Template Compliance
 
