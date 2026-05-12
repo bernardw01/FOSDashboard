@@ -1,6 +1,6 @@
 # Feature: User activity logging (User Activity tab)
 
-> **PRD version 1.9.2** — see `docs/FOS-Dashboard-PRD.md` (`§3.8`, **FR-60–FR-66**, **NFR-08**, **AC-15–AC-17**).
+> **PRD version 1.11.0** — see `docs/FOS-Dashboard-PRD.md` (`§3.8`, **FR-60–FR-66**, **NFR-08**, **AC-15–AC-17**).
 
 ## Goal
 
@@ -17,8 +17,9 @@ Log every authorized **page request** the FOS Dashboard handles — initial Web 
 ## Acceptance Criteria (testable)
 
 - [ ] **Given** `AUTH_SPREADSHEET_ID` is set, the `User Activity` tab exists with the documented headers, and `USER_ACTIVITY_LOGGING_ENABLED` is unset or `true`, **when** an authorized user opens the Web App, **then** a row appears in `User Activity` with `Event Type = page_load`, the user's **Email**, **Role**, **Team**, a server-set ISO **Timestamp**, and `Route = doGet`.
-- [ ] **Given** the conditions above, **when** the user clicks **Home**, **Finance**, **Operations**, or **Delivery** in the sidebar, **then** a row is appended with `Event Type = nav_view` and `Route` equal to the nav id of the clicked entry (e.g. `finance`).
-- [ ] **Given** the user is on the **Finance** panel and clicks the agreement-dashboard **Refresh** control, **when** the click completes, **then** a row is appended with `Event Type = refresh` and `Route = finance`.
+- [ ] **Given** the conditions above, **when** the user clicks **Home**, **Agreement Dashboard**, **Operations**, or **Delivery** in the sidebar, **then** a row is appended with `Event Type = nav_view` and `Route` equal to the nav id of the clicked entry (e.g. `agreement-dashboard` for the Agreement Dashboard entry; rows tagged `finance` in this `Route` column are pre-v1.11.0 historical data).
+- [ ] **Given** the user is on the **Agreement Dashboard** panel and clicks the agreement-dashboard **Refresh** control, **when** the click completes, **then** a row is appended with `Event Type = refresh` and `Route = agreement-dashboard`.
+- [ ] **Given** the user is on the **Agreement Dashboard** panel and clicks a tab in the Financial Performance table, **when** the click completes, **then** a row is appended with `Event Type = agreement_table_tab` (renamed from `finance_table_tab` in v1.11.0) and `Route = agreement-dashboard`.
 - [ ] **Given** an **unauthorized** session, **when** the visitor lands on the Web App, **then** **no** row is written to the `User Activity` tab (the `NotAuthorized.html` path does not log).
 - [ ] **Given** an unauthorized session, **when** the visitor invokes `google.script.run.logUserActivity({...})` directly from the browser console, **then** the handler throws / returns the same `NOT_AUTHORIZED` shape used elsewhere and **no row is written**.
 - [ ] **Given** `USER_ACTIVITY_LOGGING_ENABLED` is set to `false`, **when** any of the above events occur, **then** no rows are written and the UI continues to function normally (no banners, no client errors).
@@ -47,7 +48,7 @@ Log every authorized **page request** the FOS Dashboard handles — initial Web 
 | **Role** | Yes | Server (Users-tab lookup snapshot) | Empty string if the row no longer matches (event still drops by FR-64). |
 | **Team** | Yes | Server (Users-tab lookup snapshot) | Same as above. |
 | **Event Type** | Yes | Server-validated enum | One of: `page_load`, `nav_view`, `refresh`, `server_call`. Unknown values → coerced to `server_call` and a warning logged. |
-| **Route** | Yes (for nav/refresh) | Server-normalized | Lowercase token from a server-side allowlist (e.g. `home`, `finance`, `operations`, `delivery`, `doGet`); arbitrary client strings are sanitized to `[a-z0-9_\-]{1,40}`. |
+| **Route** | Yes (for nav/refresh) | Server-normalized | Kebab-case token from a server-side allowlist (e.g. `home`, `agreement-dashboard`, `operations`, `delivery`, `doGet`); the legacy `finance` value is retained in the allowlist so historical rows remain queryable. Arbitrary client strings are sanitized to `[a-z0-9_\-]{1,40}`. |
 | **Label** | No | Client | Short context (≤ 120 chars). Free text but bounded; do not include form input contents. |
 | **Session ID** | No | Client (`sessionStorage`) | Random ID generated client-side (e.g. `crypto.randomUUID()` with fallback). Best-effort; empty allowed. |
 | **User Agent** | No | Client | Truncated to ≤ 200 chars server-side. Empty for server-initiated `page_load`/`server_call`. |
@@ -70,7 +71,7 @@ The existing `AUTH_SPREADSHEET_ID` is reused; no new spreadsheet handle is intro
 ```text
 {
   eventType: 'nav_view' | 'refresh' | 'server_call',
-  route: string,          // sanitized server-side, e.g. 'finance'
+  route: string,          // sanitized server-side, e.g. 'agreement-dashboard'
   label?: string,         // optional, ≤ 120 chars
   sessionId?: string,     // sessionStorage 'fos_session_id_v1'
   userAgent?: string      // navigator.userAgent (truncated server-side)
@@ -107,7 +108,7 @@ Constraints on this payload:
   - On `init()`: read/create `sessionStorage.getItem('fos_session_id_v1')`, with `crypto.randomUUID()` (fallback: `Date.now()` + `Math.random()`).
   - Define `logActivity_(eventType, route, label)` helper that wraps `google.script.run.withFailureHandler(noop).withSuccessHandler(noop).logUserActivity({ ... })` with the cached `sessionId` + truncated `navigator.userAgent`.
   - Wire `logActivity_('nav_view', item.id)` into `onNavClick(item)` (after the route is decided, before/alongside showing the panel).
-  - Wire `logActivity_('refresh', 'finance')` into the agreement-dashboard refresh-button click handler.
+  - Wire `logActivity_('refresh', 'agreement-dashboard')` into the agreement-dashboard refresh-button click handler.
   - **Throttle**: in `logActivity_`, ignore a call if the same `(eventType, route)` was logged < 250 ms ago (in-memory `lastLogged` map). The throttle prevents accidental double-fires (e.g. fast double-clicks).
 
 ## Edge Cases
@@ -129,8 +130,8 @@ Constraints on this payload:
 2. Ensure `USER_ACTIVITY_LOGGING_ENABLED` is **unset** (or `true`) in Script Properties.
 3. `clasp push` and open the deployed Web App URL as an authorized user.
 4. Confirm a new row appears in `User Activity` with `Event Type = page_load`, `Route = doGet`, your email, role, and team.
-5. Click **Finance** in the sidebar; confirm a `nav_view` / `finance` row appears with a non-empty `Session ID` and your browser's `User Agent`.
-6. Click **Refresh** on the agreement dashboard; confirm a `refresh` / `finance` row appears.
+5. Click **Agreement Dashboard** in the sidebar; confirm a `nav_view` / `agreement-dashboard` row appears with a non-empty `Session ID` and your browser's `User Agent`.
+6. Click **Refresh** on the agreement dashboard; confirm a `refresh` / `agreement-dashboard` row appears.
 7. Click **Operations** and **Delivery**; confirm `nav_view` rows with the matching routes.
 8. Open the Web App in a different browser as a user **not** on the Users tab; confirm the `NotAuthorized` page renders and **no** rows are appended.
 9. From the unauthorized browser console, run `google.script.run.withFailureHandler(console.log).logUserActivity({eventType:'nav_view', route:'home'})` and confirm a `NOT_AUTHORIZED` error is returned and **no** rows are appended.
@@ -149,7 +150,7 @@ Constraints on this payload:
 - [x] Update `src/DashboardShell.html`:
   - Add `sessionStorage` session-ID generation (key `fos_session_id_v1`) via `getOrCreateSessionId()`.
   - Add `logActivity_(eventType, route, label)` helper with the 250 ms same-route throttle (`activityLastSent` map + `ACTIVITY_THROTTLE_MS`).
-  - Called from `onNavClick(item)` (every nav click — Home/Finance/Operations/Delivery) and from the agreement-dashboard refresh button click handler.
+  - Called from `onNavClick(item)` (every nav click — Home / Agreement Dashboard / Operations / Delivery) and from the agreement-dashboard refresh button click handler.
   - Failures wired through `withFailureHandler(noop)` (no UI banner; outer `try/catch` swallows transport errors too).
 - [x] `activityWarn_` in `userActivityLog.js` captures `(reason, error message)` to `console.warn` when the tab/headers are misconfigured or `appendRow` fails, so admins can self-diagnose without exposing details to end users.
 - [ ] Manual verification per steps above on a deployed Web App.

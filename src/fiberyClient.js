@@ -1,5 +1,5 @@
 /**
- * PRD version 1.9.2 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.11.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Fibery REST API client (Apps Script UrlFetchApp).
  *

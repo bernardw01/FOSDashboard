@@ -1,6 +1,6 @@
 # Harpin FOS Dashboard
 
-**FOS** (Finance & Operations Snapshot) is a **Google Apps Script** web application that gives authorized Workspace users a single place to open **harpin AI Ops Dashboards**: a shell with navigation, spreadsheet-backed access control, and a first **Finance / Agreement Management** view aligned with the product baseline in `[docs/FOS-Dashboard-PRD.md](docs/FOS-Dashboard-PRD.md)`.
+**FOS** (Finance & Operations Snapshot) is a **Google Apps Script** web application that gives authorized Workspace users a single place to open **harpin AI Ops Dashboards**: a shell with navigation, spreadsheet-backed access control, and a first **Agreement Dashboard** view (Fibery-backed Agreement Management) aligned with the product baseline in `[docs/FOS-Dashboard-PRD.md](docs/FOS-Dashboard-PRD.md)`.
 
 The app **reads and presents** data from configured sources (today: stub agreement payload; planned: Fibery, Sheets metric layers, and other connectors). It does **not** replace upstream systems of record (for example the Clockify → Fibery pipeline described in `[docs/PRD.md](docs/PRD.md)`).
 
@@ -15,7 +15,7 @@ The app **reads and presents** data from configured sources (today: stub agreeme
 | **Authorization** | Active user’s email is matched against a **Google Sheet** tab (default name `**Users`**) in a spreadsheet whose ID is stored in **Script Properties**. **Role** and **Team** come from that row and appear in the sidebar user chip.                                                        |
 | **Server API**    | `getDashboardNavigation()` and `getAgreementDashboardData()` use `**requireAuthForApi_()`** so `google.script.run` cannot bypass the sheet gate.                                                                                                                                            |
 | **Shell UI**      | Bootstrap **dark** layout: left nav (icons + labels), **Home** welcome copy, **Settings** (gear) at bottom of sidebar with a “coming soon” placeholder.                                                                                                                                     |
-| **Finance**       | Opens the **Agreement Management Dashboard** panel: harpin branding tokens (see agreement PRD §9.5–9.7), header, six KPI cards, **Attention items** panel, **Agreement status** + **Agreement type mix** donuts, **Revenue recognition** stacked bar, **Customer contract value** bar, and tabbed **Financial performance** table. Live data is fetched from Fibery via the server (REST `/api/commands`, credentials in Script Properties `FIBERY_HOST` + `FIBERY_API_TOKEN`). The client uses **`sessionStorage`** key `fos_agreement_dashboard_v2` (no secrets in cache) and an **Auto-refresh** selector (5 / 10 / 30 min / Off, default 10 min, persisted in `localStorage`) that surfaces a **Stale** badge and refreshes in the background when the cache exceeds the TTL. |
+| **Agreement Dashboard** | Opens the **Agreement Management Dashboard** panel: harpin branding tokens (see agreement PRD §9.5–9.7), header, six KPI cards, **Attention items** panel, **Agreement status** + **Agreement type mix** donuts, **Revenue recognition** stacked bar, **Customer contract value** bar, **Customer relationship cards**, **Forward revenue pipeline**, tabbed **Financial performance** table, and the **D3 revenue-flow Sankey** (Status → Customer → Type). Live data is fetched from Fibery via the server (REST `/api/commands`, credentials in Script Properties `FIBERY_HOST` + `FIBERY_API_TOKEN`). The client uses **`sessionStorage`** key `fos_agreement_dashboard_v2` (no secrets in cache) and an **Auto-refresh** selector (5 / 10 / 30 min / Off, default 10 min, persisted in `localStorage`) that surfaces a **Stale** badge and refreshes in the background when the cache exceeds the TTL. Chart.js v4 and D3 v7 + d3-sankey are lazy-loaded from jsDelivr on first render. Internal route id is **`agreement-dashboard`** (DOM panel `#panel-agreement-dashboard`, activity-log Route field); the legacy `finance` route id was retired in **v1.11.0**, but historical `User Activity` rows tagged `Route = finance` and event type `finance_table_tab` remain queryable alongside new `agreement-dashboard` / `agreement_table_tab` rows. |
 | **Other routes**  | **Operations** and **Delivery** still open the shared **coming soon** modal.                                                                                                                                                                                                                |
 | **Version**       | Sidebar footer and not-authorized page show **PRD version** from `FOS_PRD_VERSION` in `[src/Code.js](src/Code.js)` (must match the version line in `docs/FOS-Dashboard-PRD.md`).                                                                                                            |
 
@@ -127,7 +127,7 @@ Review diffs carefully: `**clasp pull**` overwrites local `src/` files with the 
 
 ### Documentation and PRDs
 
-Requirements and feature breakdowns live under `**docs/**`. They are **not** deployed with clasp; treat them as the source of truth for behavior and update them when you change product scope (for example `[docs/features/003-agreement-dashboard-fibery-client-cache.md](docs/features/003-agreement-dashboard-fibery-client-cache.md)` for the Finance route).
+Requirements and feature breakdowns live under `**docs/**`. They are **not** deployed with clasp; treat them as the source of truth for behavior and update them when you change product scope (for example `[docs/features/003-agreement-dashboard-fibery-client-cache.md](docs/features/003-agreement-dashboard-fibery-client-cache.md)` for the Agreement Dashboard route).
 
 ### Useful clasp commands
 
@@ -145,6 +145,6 @@ Requirements and feature breakdowns live under `**docs/**`. They are **not** dep
 ## Related documents
 
 - `[docs/FOS-Dashboard-PRD.md](docs/FOS-Dashboard-PRD.md)` — main product PRD for this Web App.
-- `[docs/agreement-dashboard-prd-v2.md](docs/agreement-dashboard-prd-v2.md)` — agreement dashboard visuals, Fibery model, and thresholds (Finance view pulls from this where applicable).
+- `[docs/agreement-dashboard-prd-v2.md](docs/agreement-dashboard-prd-v2.md)` — agreement dashboard visuals, Fibery model, and thresholds (the Agreement Dashboard view pulls from this where applicable).
 - `[docs/PRD.md](docs/PRD.md)` — separate Clockify ↔ Fibery sync PRD (related data pipelines).
 

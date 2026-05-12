@@ -1,5 +1,5 @@
 /**
- * PRD version 1.9.2 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.11.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement-dashboard constants per agreement-dashboard-prd-v2.md §8:
  *   - §8.1 Alert thresholds (with optional Script Property overrides).
@@ -16,6 +16,8 @@
  *   AGREEMENT_THRESHOLD_EXPIRY_DAYS
  *   AGREEMENT_TOP_N_RECOGNITION_BARS
  *   AGREEMENT_INTERNAL_COMPANY_NAMES   (comma-separated)
+ *   AGREEMENT_SANKEY_LINK_OPACITY      (0–1, default 0.35)
+ *   AGREEMENT_SANKEY_INCLUDE_INTERNAL  (boolean, default false)
  */
 
 /** @const {!Object} §8.2 workflow state → hex color (harpin.ai palette). */
@@ -65,6 +67,8 @@ var THRESHOLD_DEFAULTS_ = {
   INTERNAL_LABOR_THRESHOLD: 5000,
   EXPIRY_WARNING_DAYS: 60,
   TOP_N_RECOGNITION_BARS: 10,
+  SANKEY_LINK_OPACITY: 0.35,
+  SANKEY_INCLUDE_INTERNAL: false,
 };
 
 /**
@@ -79,6 +83,8 @@ var THRESHOLD_DEFAULTS_ = {
  *   expiryDays: number,
  *   topNRecognition: number,
  *   internalCompanyNames: !Array<string>,
+ *   sankeyLinkOpacity: number,
+ *   sankeyIncludeInternal: boolean,
  *   workflowStateColor: !Object,
  *   workflowStateColorFallback: string,
  *   agreementTypeColor: !Object,
@@ -111,12 +117,27 @@ function getAgreementThresholds_() {
     internalNames = INTERNAL_COMPANY_NAMES_DEFAULT_.slice();
   }
 
+  var sankeyOpacity = parsePositiveNumber_(
+    props.getProperty('AGREEMENT_SANKEY_LINK_OPACITY'),
+    THRESHOLD_DEFAULTS_.SANKEY_LINK_OPACITY
+  );
+  // Clamp opacity to [0, 1] regardless of source.
+  if (sankeyOpacity < 0) sankeyOpacity = 0;
+  if (sankeyOpacity > 1) sankeyOpacity = 1;
+
+  var sankeyIncludeInternal = parseBoolean_(
+    props.getProperty('AGREEMENT_SANKEY_INCLUDE_INTERNAL'),
+    THRESHOLD_DEFAULTS_.SANKEY_INCLUDE_INTERNAL
+  );
+
   return {
     lowMargin: lowMargin,
     internalLabor: internalLabor,
     expiryDays: expiryDays,
     topNRecognition: Math.max(1, Math.round(topN)),
     internalCompanyNames: internalNames,
+    sankeyLinkOpacity: sankeyOpacity,
+    sankeyIncludeInternal: sankeyIncludeInternal,
     workflowStateColor: WORKFLOW_STATE_COLOR_,
     workflowStateColorFallback: WORKFLOW_STATE_COLOR_FALLBACK_,
     agreementTypeColor: AGREEMENT_TYPE_COLOR_,
@@ -235,6 +256,33 @@ function parsePositiveNumber_(raw, fallback) {
     return fallback;
   }
   return n;
+}
+
+/**
+ * Parses a Script Property as a boolean. Accepts `true`/`false`, `1`/`0`,
+ * `yes`/`no`, `on`/`off` (case-insensitive). Falls back to `defaultValue` for
+ * empty / unrecognized inputs.
+ *
+ * @param {?string} raw
+ * @param {boolean} defaultValue
+ * @return {boolean}
+ * @private
+ */
+function parseBoolean_(raw, defaultValue) {
+  if (raw === null || raw === undefined) {
+    return defaultValue;
+  }
+  var s = String(raw).trim().toLowerCase();
+  if (!s) {
+    return defaultValue;
+  }
+  if (s === 'true' || s === '1' || s === 'yes' || s === 'on') {
+    return true;
+  }
+  if (s === 'false' || s === '0' || s === 'no' || s === 'off') {
+    return false;
+  }
+  return defaultValue;
 }
 
 /**

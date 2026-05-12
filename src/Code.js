@@ -1,11 +1,11 @@
 /**
- * PRD version 1.9.2 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.11.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard — Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '1.9.2';
+var FOS_PRD_VERSION = '1.11.0';
 
 /**
  * @return {string}
@@ -83,7 +83,7 @@ function buildNavigationModel_(auth) {
 
   var allItems = [
     { id: 'home', label: 'Home', active: true },
-    { id: 'finance', label: 'Finance', active: false },
+    { id: 'agreement-dashboard', label: 'Agreement Dashboard', active: false },
     { id: 'operations', label: 'Operations', active: false },
     { id: 'delivery', label: 'Delivery', active: false },
   ];

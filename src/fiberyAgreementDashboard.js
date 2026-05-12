@@ -1,7 +1,8 @@
 /**
- * PRD version 1.9.2 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.11.0 — sync with docs/FOS-Dashboard-PRD.md
  *
- * Agreement / Finance dashboard orchestrator. No persistent server-side cache
+ * Agreement Dashboard orchestrator (route id `agreement-dashboard`, panel
+ * `#panel-agreement-dashboard`). No persistent server-side cache
  * of payloads — Fibery is source of truth. The browser owns presentation cache
  * (`sessionStorage`) with a configurable TTL surfaced through
  * `getAgreementCacheTtlMinutes()` (Script Property `AGREEMENT_CACHE_TTL_MINUTES`,
@@ -42,7 +43,7 @@ function getAgreementCacheTtlMinutes() {
 }
 
 /**
- * Returns normalized agreement dashboard JSON for the Finance panel.
+ * Returns normalized agreement dashboard JSON for the Agreement Dashboard panel.
  * Re-checks spreadsheet authorization via requireAuthForApi_().
  *
  * @return {{
@@ -95,6 +96,9 @@ function getAgreementDashboardData() {
       alerts: [],
       charts: emptyCharts_(),
       financialTable: emptyFinancialTable_(),
+      customerCards: [],
+      forwardPipeline: emptyForwardPipeline_(),
+      sankey: emptySankey_(),
       message: batchResult.message || 'Could not load agreement data from Fibery.',
       warnings: ['Fibery error: ' + (batchResult.reason || 'UNKNOWN')],
     };
@@ -120,6 +124,9 @@ function getAgreementDashboardData() {
   var alerts = evaluateAlerts_(agreements, futureRevenueItems, thresholds);
   var charts = buildChartViewModels_(agreements, companies, companyByName, customerColorMap, thresholds);
   var financialTable = buildFinancialTable_(agreements, kpis.topCustomerName, thresholds);
+  var customerCards = buildCustomerCards_(companies, customerColorMap, thresholds);
+  var forwardPipeline = buildForwardPipeline_(agreements, futureRevenueItems, customerColorMap, thresholds);
+  var sankey = buildSankey_(agreements, customerColorMap, thresholds);
 
   return {
     ok: true,
@@ -135,6 +142,9 @@ function getAgreementDashboardData() {
     alerts: alerts,
     charts: charts,
     financialTable: financialTable,
+    customerCards: customerCards,
+    forwardPipeline: forwardPipeline,
+    sankey: sankey,
   };
 }
 
@@ -785,6 +795,263 @@ function buildFinancialRow_(a, thresholds) {
 }
 
 /* ------------------------------------------------------------------------- */
+/* Customer Relationship Cards (§7.6)                                         */
+/* ------------------------------------------------------------------------- */
+
+/**
+ * Builds the §7.6 view model: one card per company, sorted by TCV desc with
+ * internal companies pushed to the bottom. Each card carries the data the
+ * client needs for direct render (no further enrichment required).
+ *
+ * @param {!Array<!Object>} companies   Normalized companies (with agreementCount).
+ * @param {!Object<string,string>} customerColorMap
+ * @param {!Object} thresholds
+ * @return {!Array<!Object>}
+ * @private
+ */
+function buildCustomerCards_(companies, customerColorMap, thresholds) {
+  var cards = [];
+  for (var i = 0; i < companies.length; i++) {
+    var c = companies[i];
+    var isInternal = isInternalCompany_(c, thresholds.internalCompanyNames);
+    cards.push({
+      id: c.id,
+      name: c.name,
+      initials: computeInitials_(c.name),
+      color: isInternal
+        ? thresholds.agreementTypeColor.Internal || '#2a5a7a'
+        : customerColorMap[c.name] || thresholds.customerPalette[i % thresholds.customerPalette.length],
+      agreementCount: c.agreementCount || 0,
+      funnelStage: c.funnelStage || '—',
+      segment: c.segment || (isInternal ? 'Internal' : '—'),
+      ndaCompleted: c.ndaCompleted === true,
+      totalContractValue: Number(c.totalContractValue || 0),
+      isInternal: isInternal,
+    });
+  }
+  cards.sort(function (a, b) {
+    if (a.isInternal !== b.isInternal) {
+      return a.isInternal ? 1 : -1;
+    }
+    return Number(b.totalContractValue || 0) - Number(a.totalContractValue || 0);
+  });
+  return cards;
+}
+
+/**
+ * @param {?string} name
+ * @return {string}  Up to 3 uppercase initials, falling back to "??".
+ * @private
+ */
+function computeInitials_(name) {
+  var s = String(name || '').trim();
+  if (!s) {
+    return '??';
+  }
+  var parts = s.split(/\s+/);
+  var letters = '';
+  for (var i = 0; i < parts.length && letters.length < 3; i++) {
+    var first = parts[i].charAt(0);
+    if (/[A-Za-z0-9]/.test(first)) {
+      letters += first.toUpperCase();
+    }
+  }
+  if (!letters) {
+    letters = s.slice(0, 2).toUpperCase();
+  }
+  return letters;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Forward Revenue Pipeline (§7.8 + §5.5)                                     */
+/* ------------------------------------------------------------------------- */
+
+/**
+ * Builds the §7.8 view model. One row per non-Internal agreement, with the
+ * §5.5 monthly billing rate derived from its future revenue items. Agreements
+ * that are still active but have no future items are surfaced with a null
+ * monthly rate so the client can render the "no pipeline items" treatment.
+ *
+ * Result is sorted by monthly rate desc (nulls last). Used directly by the
+ * client horizontal-bar chart.
+ *
+ * @param {!Array<!Object>} agreements
+ * @param {!Array<!Object>} futureItems
+ * @param {!Object<string,string>} customerColorMap
+ * @param {!Object} thresholds
+ * @return {!{ rows: !Array<!Object>, maxMonthlyRate: number }}
+ * @private
+ */
+function buildForwardPipeline_(agreements, futureItems, customerColorMap, thresholds) {
+  // Group future items by agreement id and collect the distinct calendar
+  // months they span (formula §5.5).
+  var byAgreement = {};
+  for (var i = 0; i < futureItems.length; i++) {
+    var f = futureItems[i];
+    if (!f.agreementId) {
+      continue;
+    }
+    if (!byAgreement[f.agreementId]) {
+      byAgreement[f.agreementId] = { total: 0, months: {} };
+    }
+    var bucket = byAgreement[f.agreementId];
+    bucket.total += Number(f.targetAmount || 0);
+    var monthKey = extractYearMonth_(f.targetDate);
+    if (monthKey) {
+      bucket.months[monthKey] = true;
+    }
+  }
+
+  var rows = [];
+  for (var j = 0; j < agreements.length; j++) {
+    var a = agreements[j];
+    if (a.type === 'Internal') {
+      continue;
+    }
+    var stats = byAgreement[a.id];
+    // §7.8: "Each bar represents one agreement with future scheduled revenue
+    // items." Agreements with no future items are surfaced separately via the
+    // §6.5 "no pipeline data" attention alert, so they're skipped here.
+    if (!stats || !stats.total) {
+      continue;
+    }
+    var monthCount = Object.keys(stats.months).length;
+    var monthlyRate = monthCount > 0 ? stats.total / monthCount : null;
+
+    rows.push({
+      agreementId: a.id,
+      agreementName: a.name,
+      customer: a.customer || '—',
+      color: customerColorMap[a.customer] || thresholds.customerPalette[j % thresholds.customerPalette.length],
+      monthlyRate: monthlyRate,
+      totalFutureRevenue: stats.total,
+      futureMonthCount: monthCount,
+      schedulingStatus: a.schedulingStatus || 'Not Scheduled',
+      futureRevenueItemCount: a.futureRevenueItemCount || 0,
+    });
+  }
+
+  rows.sort(function (x, y) {
+    var xr = x.monthlyRate === null ? -Infinity : Number(x.monthlyRate);
+    var yr = y.monthlyRate === null ? -Infinity : Number(y.monthlyRate);
+    return yr - xr;
+  });
+
+  var maxRate = 0;
+  for (var k = 0; k < rows.length; k++) {
+    var r = rows[k].monthlyRate;
+    if (r !== null && r > maxRate) {
+      maxRate = r;
+    }
+  }
+  return { rows: rows, maxMonthlyRate: maxRate };
+}
+
+/**
+ * @param {?string} isoDate  yyyy-mm-dd or yyyy-mm-ddTHH:MM:SSZ
+ * @return {?string}         "yyyy-mm" or null
+ * @private
+ */
+function extractYearMonth_(isoDate) {
+  if (!isoDate) {
+    return null;
+  }
+  var s = String(isoDate);
+  if (s.length < 7) {
+    return null;
+  }
+  return s.slice(0, 7);
+}
+
+/* ------------------------------------------------------------------------- */
+/* Revenue Flow Sankey (§7.11)                                                */
+/* ------------------------------------------------------------------------- */
+
+/**
+ * Builds the §7.11 Sankey view model: three node layers (Status, Customer,
+ * Type) joined by two link sets (Status→Customer and Customer→Type). Values
+ * are summed Total Planned Revenue. Internal-type agreements are excluded
+ * unless the operator sets `AGREEMENT_SANKEY_INCLUDE_INTERNAL=true`.
+ *
+ * The output matches the contract documented in §7.11.7 — `nodes` carries
+ * `{name, layer, color}` and `links` carries `{source, target, value}` with
+ * 0-based indices into `nodes`. The opacity comes from `thresholds.sankeyLinkOpacity`.
+ *
+ * @param {!Array<!Object>} agreements
+ * @param {!Object<string,string>} customerColorMap
+ * @param {!Object} thresholds
+ * @return {!{
+ *   nodes: !Array<!Object>,
+ *   links: !Array<!Object>,
+ *   total: number,
+ *   linkOpacity: number,
+ *   includeInternal: boolean
+ * }}
+ * @private
+ */
+function buildSankey_(agreements, customerColorMap, thresholds) {
+  var nodes = [];
+  var nodeIndex = {};
+  var linkIndex = {};
+  var links = [];
+  var total = 0;
+
+  function getNode(name, layer, color) {
+    var key = layer + '::' + name;
+    if (!Object.prototype.hasOwnProperty.call(nodeIndex, key)) {
+      nodeIndex[key] = nodes.length;
+      nodes.push({ name: name, layer: layer, color: color });
+    }
+    return nodeIndex[key];
+  }
+
+  function addOrMergeLink(sourceIdx, targetIdx, value) {
+    var key = sourceIdx + '|' + targetIdx;
+    if (Object.prototype.hasOwnProperty.call(linkIndex, key)) {
+      links[linkIndex[key]].value += value;
+      return;
+    }
+    linkIndex[key] = links.length;
+    links.push({ source: sourceIdx, target: targetIdx, value: value });
+  }
+
+  for (var i = 0; i < agreements.length; i++) {
+    var a = agreements[i];
+    if (!thresholds.sankeyIncludeInternal && a.type === 'Internal') {
+      continue;
+    }
+    var planned = Number(a.plannedRev || 0);
+    if (!planned || planned <= 0) {
+      continue;
+    }
+
+    var statusName = a.state || '(No Status)';
+    var customerName = a.customer || '(Unassigned)';
+    var typeName = a.type || '(No Type)';
+
+    var statusColor = thresholds.workflowStateColor[statusName] || thresholds.workflowStateColorFallback;
+    var customerColor = customerColorMap[customerName] || '#4a5580';
+    var typeColor = thresholds.agreementTypeColor[typeName] || thresholds.agreementTypeColorFallback;
+
+    var sIdx = getNode(statusName, 'status', statusColor);
+    var cIdx = getNode(customerName, 'customer', customerColor);
+    var tIdx = getNode(typeName, 'type', typeColor);
+
+    addOrMergeLink(sIdx, cIdx, planned);
+    addOrMergeLink(cIdx, tIdx, planned);
+    total += planned;
+  }
+
+  return {
+    nodes: nodes,
+    links: links,
+    total: total,
+    linkOpacity: thresholds.sankeyLinkOpacity,
+    includeInternal: !!thresholds.sankeyIncludeInternal,
+  };
+}
+
+/* ------------------------------------------------------------------------- */
 /* Helpers                                                                    */
 /* ------------------------------------------------------------------------- */
 
@@ -873,6 +1140,16 @@ function emptyFinancialTable_() {
     topCustomerName: '—',
     tabs: { allActive: [], topCustomer: [], otherCustomers: [] },
   };
+}
+
+/** @private */
+function emptyForwardPipeline_() {
+  return { rows: [], maxMonthlyRate: 0 };
+}
+
+/** @private */
+function emptySankey_() {
+  return { nodes: [], links: [], total: 0, linkOpacity: 0.35, includeInternal: false };
 }
 
 /** @private */

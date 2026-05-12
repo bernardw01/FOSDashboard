@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 1.9.2 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 1.11.0 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -70,7 +70,7 @@
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
 
-    #panel-finance.fos-agreement-root {
+    #panel-agreement-dashboard.fos-agreement-root {
       background: var(--ag-bg);
       border-radius: 12px;
       padding: 4px 0 8px;
@@ -307,6 +307,174 @@
       color: var(--ag-text-muted);
     }
 
+    /* Customer Relationship Cards (§7.6) */
+    .fos-customer-list {
+      max-height: 460px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-right: 4px;
+    }
+    .fos-customer-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--ag-border);
+      border-radius: 10px;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .fos-customer-card.is-internal {
+      opacity: 0.7;
+    }
+    .fos-customer-card .avatar {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.8rem;
+      color: #061b30;
+      letter-spacing: 0.04em;
+    }
+    .fos-customer-card .meta {
+      flex: 1;
+      min-width: 0;
+    }
+    .fos-customer-card .name {
+      font-weight: 600;
+      color: var(--ag-text);
+      font-size: 0.88rem;
+      line-height: 1.25;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .fos-customer-card .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 12px;
+      font-size: 0.72rem;
+      color: var(--ag-text-muted);
+      margin-top: 4px;
+    }
+    .fos-customer-card .nda-ok {
+      color: var(--ag-accent4);
+    }
+    .fos-customer-card .tcv {
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      color: var(--ag-text);
+      font-size: 0.85rem;
+      text-align: right;
+      padding-top: 2px;
+    }
+    .fos-customer-card .tcv.internal {
+      color: var(--ag-text-muted);
+      font-weight: 500;
+    }
+
+    /* Forward Revenue Pipeline (§7.8) — vertical list, not a Chart.js chart,
+       to support per-row opacity + dashed border on unscheduled rows. */
+    .fos-pipeline-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 420px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .fos-pipeline-row {
+      display: grid;
+      grid-template-columns: minmax(120px, 1.2fr) 2fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--ag-border);
+    }
+    .fos-pipeline-row.unscheduled {
+      opacity: 0.5;
+      border-style: dashed;
+    }
+    .fos-pipeline-row .name {
+      font-weight: 600;
+      font-size: 0.8rem;
+      color: var(--ag-text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .fos-pipeline-row .name .customer {
+      font-weight: 500;
+      color: var(--ag-text-muted);
+      font-size: 0.72rem;
+      display: block;
+      margin-top: 1px;
+    }
+    .fos-pipeline-row .bar-track {
+      height: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .fos-pipeline-row .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+    }
+    .fos-pipeline-row .rate {
+      font-size: 0.78rem;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      color: var(--ag-text);
+      text-align: right;
+      white-space: nowrap;
+    }
+    .fos-pipeline-row .rate .unsched-note {
+      display: block;
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: var(--ag-warn);
+      margin-top: 1px;
+    }
+
+    /* Sankey (§7.11) — D3-rendered SVG. Container height set inline by JS. */
+    .fos-sankey-wrap {
+      width: 100%;
+      min-height: 400px;
+      position: relative;
+    }
+    .fos-sankey-wrap svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    .fos-sankey-wrap .sankey-label {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 11px;
+      fill: var(--ag-text);
+      pointer-events: none;
+    }
+    .fos-sankey-wrap .sankey-label.muted {
+      fill: var(--ag-text-muted);
+    }
+    .fos-sankey-wrap .empty {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--ag-text-muted);
+      font-size: 0.85rem;
+    }
+
     .fos-ttl-select {
       background: var(--ag-surface2);
       border: 1px solid var(--ag-border);
@@ -414,7 +582,7 @@
     }
 
     /* Settings sits in the sidebar footer area but uses the same .fos-nav-btn
-       chrome as Home/Finance/Operations/Delivery — FR-10b "plain nav-style link". */
+       chrome as Home/Agreement Dashboard/Operations/Delivery — FR-10b "plain nav-style link". */
     .fos-nav-btn[role='button'] {
       text-decoration: none;
     }
@@ -586,7 +754,7 @@
           </div>
         </div>
 
-        <div id="panel-finance" class="d-none fos-agreement-root">
+        <div id="panel-agreement-dashboard" class="d-none fos-agreement-root">
           <div id="agreement-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
           <div class="fos-agreement-inner shadow-lg">
             <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
@@ -712,6 +880,27 @@
             </div>
 
             <div class="row g-3 mt-1">
+              <div class="col-12 col-xl-5">
+                <section class="fos-section-card h-100" aria-labelledby="customer-cards-heading">
+                  <h2 id="customer-cards-heading">Customer relationships</h2>
+                  <div id="customer-cards-list" class="fos-customer-list" aria-live="polite"></div>
+                  <p class="small mb-0 mt-2" id="customer-cards-empty" style="color: var(--ag-text-muted); display: none">
+                    No customer records to display.
+                  </p>
+                </section>
+              </div>
+              <div class="col-12 col-xl-7">
+                <section class="fos-section-card h-100" aria-labelledby="pipeline-heading">
+                  <h2 id="pipeline-heading">Forward revenue pipeline</h2>
+                  <div id="pipeline-list" class="fos-pipeline-list" aria-live="polite"></div>
+                  <p class="small mb-0 mt-2" id="pipeline-empty" style="color: var(--ag-text-muted); display: none">
+                    No forward pipeline data found.
+                  </p>
+                </section>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-1">
               <div class="col-12">
                 <section class="fos-section-card" aria-labelledby="financial-table-heading">
                   <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
@@ -741,6 +930,15 @@
                   <p class="small mb-0 mt-2" id="financial-empty" style="color: var(--ag-text-muted); display: none">
                     No agreements match this filter.
                   </p>
+                </section>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+              <div class="col-12">
+                <section class="fos-section-card" aria-labelledby="sankey-heading">
+                  <h2 id="sankey-heading">Revenue flow — status · customer · type</h2>
+                  <div id="sankey-wrap" class="fos-sankey-wrap" role="img" aria-label="Revenue flow Sankey diagram"></div>
                 </section>
               </div>
             </div>
@@ -788,9 +986,12 @@
       var SESSION_ID_KEY = 'fos_session_id_v1';
       var ACTIVITY_THROTTLE_MS = 250;
       var CHARTJS_URL = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';
+      var D3_URL = 'https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js';
+      var D3_SANKEY_URL = 'https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js';
       var activityLastSent = {}; // key `${eventType}|${route}` → epoch ms
       var cachedSessionId = null;
       var chartJsLoadingPromise = null;
+      var d3LoadingPromise = null;
       var chartInstances = { status: null, type: null, recognition: null, customer: null };
       var currentTablePayload = null;
       var currentTab = 'allActive';
@@ -873,10 +1074,10 @@
 
       /** Bootstrap Icons class suffix (without `bi ` prefix) per nav id. */
       var NAV_ICONS = {
-        home: 'bi-house-door-fill',
-        finance: 'bi-graph-up-arrow',
-        operations: 'bi-kanban-fill',
-        delivery: 'bi-truck',
+        'home': 'bi-house-door-fill',
+        'agreement-dashboard': 'bi-graph-up-arrow',
+        'operations': 'bi-kanban-fill',
+        'delivery': 'bi-truck',
       };
 
       function escapeHtml(text) {
@@ -898,7 +1099,7 @@
         navHint: document.getElementById('nav-hint'),
         errorBanner: document.getElementById('error-banner'),
         panelHome: document.getElementById('panel-home'),
-        panelFinance: document.getElementById('panel-finance'),
+        panelAgreementDashboard: document.getElementById('panel-agreement-dashboard'),
         agreementRefreshBtn: document.getElementById('agreement-refresh-btn'),
         agreementLastRefresh: document.getElementById('agreement-last-refresh'),
         agreementFetchError: document.getElementById('agreement-fetch-error'),
@@ -1052,6 +1253,17 @@
         }
       }
 
+      function injectScript_(url) {
+        return new Promise(function (resolve, reject) {
+          var s = document.createElement('script');
+          s.src = url;
+          s.async = true;
+          s.onload = function () { resolve(); };
+          s.onerror = function () { reject(new Error('Could not load ' + url)); };
+          document.head.appendChild(s);
+        });
+      }
+
       function loadChartJs() {
         if (typeof window.Chart !== 'undefined') {
           return Promise.resolve(window.Chart);
@@ -1059,24 +1271,40 @@
         if (chartJsLoadingPromise) {
           return chartJsLoadingPromise;
         }
-        chartJsLoadingPromise = new Promise(function (resolve, reject) {
-          var s = document.createElement('script');
-          s.src = CHARTJS_URL;
-          s.async = true;
-          s.onload = function () {
-            if (typeof window.Chart !== 'undefined') {
-              resolve(window.Chart);
-            } else {
-              reject(new Error('Chart.js loaded but Chart global is missing.'));
-            }
-          };
-          s.onerror = function () {
-            chartJsLoadingPromise = null;
-            reject(new Error('Could not load Chart.js from CDN.'));
-          };
-          document.head.appendChild(s);
+        chartJsLoadingPromise = injectScript_(CHARTJS_URL).then(function () {
+          if (typeof window.Chart === 'undefined') {
+            throw new Error('Chart.js loaded but Chart global is missing.');
+          }
+          return window.Chart;
+        }).catch(function (e) {
+          chartJsLoadingPromise = null;
+          throw e;
         });
         return chartJsLoadingPromise;
+      }
+
+      function loadD3Sankey() {
+        if (typeof window.d3 !== 'undefined' && typeof window.d3.sankey === 'function') {
+          return Promise.resolve(window.d3);
+        }
+        if (d3LoadingPromise) {
+          return d3LoadingPromise;
+        }
+        // d3 must be present before d3-sankey loads (d3-sankey extends d3).
+        var step1 = typeof window.d3 !== 'undefined' ? Promise.resolve() : injectScript_(D3_URL);
+        d3LoadingPromise = step1
+          .then(function () { return injectScript_(D3_SANKEY_URL); })
+          .then(function () {
+            if (typeof window.d3 === 'undefined' || typeof window.d3.sankey !== 'function') {
+              throw new Error('D3 / d3-sankey loaded but globals are missing.');
+            }
+            return window.d3;
+          })
+          .catch(function (e) {
+            d3LoadingPromise = null;
+            throw e;
+          });
+        return d3LoadingPromise;
       }
 
       function destroyChart(key) {
@@ -1289,6 +1517,202 @@
           });
       }
 
+      function renderCustomerCards(cards) {
+        var list = document.getElementById('customer-cards-list');
+        var empty = document.getElementById('customer-cards-empty');
+        if (!list) {
+          return;
+        }
+        list.innerHTML = '';
+        cards = Array.isArray(cards) ? cards : [];
+        if (!cards.length) {
+          if (empty) empty.style.display = 'block';
+          return;
+        }
+        if (empty) empty.style.display = 'none';
+        for (var i = 0; i < cards.length; i++) {
+          var c = cards[i];
+          var node = document.createElement('div');
+          node.className = 'fos-customer-card' + (c.isInternal ? ' is-internal' : '');
+          var tcv = c.isInternal
+            ? '<div class="tcv internal">Internal</div>'
+            : '<div class="tcv">' + formatMoneyCompact(c.totalContractValue) + '</div>';
+          var ndaHtml = c.ndaCompleted
+            ? '<span class="nda-ok"><i class="bi bi-check-circle-fill" aria-hidden="true"></i> NDA</span>'
+            : '<span>NDA: —</span>';
+          node.innerHTML =
+            '<div class="avatar" style="background:' + (c.color || '#A0AEC0') + '">' + escapeHtml(c.initials || '?') + '</div>' +
+            '<div class="meta">' +
+              '<div class="name" title="' + escapeHtml(c.name || '') + '">' + escapeHtml(c.name || '—') + '</div>' +
+              '<div class="row">' +
+                '<span>' + escapeHtml(String(c.agreementCount || 0)) + ' SOWs</span>' +
+                '<span>' + escapeHtml(c.funnelStage || '—') + '</span>' +
+                '<span>' + escapeHtml(c.segment || '—') + '</span>' +
+                ndaHtml +
+              '</div>' +
+            '</div>' +
+            tcv;
+          list.appendChild(node);
+        }
+      }
+
+      function renderForwardPipeline(pipeline) {
+        var list = document.getElementById('pipeline-list');
+        var empty = document.getElementById('pipeline-empty');
+        if (!list) {
+          return;
+        }
+        list.innerHTML = '';
+        var rows = (pipeline && Array.isArray(pipeline.rows)) ? pipeline.rows : [];
+        var maxRate = pipeline && pipeline.maxMonthlyRate ? Number(pipeline.maxMonthlyRate) : 0;
+        if (!rows.length) {
+          if (empty) empty.style.display = 'block';
+          return;
+        }
+        if (empty) empty.style.display = 'none';
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          var unscheduled = r.schedulingStatus === 'Not Scheduled' || r.schedulingStatus === 'No Pipeline Items';
+          var widthPct = 0;
+          if (maxRate > 0 && r.monthlyRate !== null && r.monthlyRate !== undefined) {
+            widthPct = Math.max(2, Math.min(100, (Number(r.monthlyRate) / maxRate) * 100));
+          }
+          var rateText = r.monthlyRate === null || r.monthlyRate === undefined
+            ? '—'
+            : formatMoneyCompact(r.monthlyRate) + '/mo';
+          var noteText = '';
+          if (r.schedulingStatus === 'Not Scheduled') {
+            noteText = '<span class="unsched-note">Not scheduled</span>';
+          } else if (r.schedulingStatus === 'No Pipeline Items') {
+            noteText = '<span class="unsched-note">No pipeline items</span>';
+          } else if (r.schedulingStatus === 'Partially Scheduled') {
+            noteText = '<span class="unsched-note">Partially scheduled</span>';
+          }
+          var row = document.createElement('div');
+          row.className = 'fos-pipeline-row' + (unscheduled ? ' unscheduled' : '');
+          row.innerHTML =
+            '<div class="name" title="' + escapeHtml(r.agreementName || '') + '">' +
+              escapeHtml(r.agreementName || '—') +
+              '<span class="customer">' + escapeHtml(r.customer || '—') + '</span>' +
+            '</div>' +
+            '<div class="bar-track">' +
+              '<div class="bar-fill" style="width:' + widthPct + '%; background:' + (r.color || '#A0AEC0') + '"></div>' +
+            '</div>' +
+            '<div class="rate">' + rateText + noteText + '</div>';
+          list.appendChild(row);
+        }
+      }
+
+      function renderSankey(model) {
+        var wrap = document.getElementById('sankey-wrap');
+        if (!wrap) {
+          return;
+        }
+        wrap.innerHTML = '';
+        if (!model || !Array.isArray(model.nodes) || !model.nodes.length || !Array.isArray(model.links) || !model.links.length) {
+          var emptyEl = document.createElement('div');
+          emptyEl.className = 'empty';
+          emptyEl.textContent = 'No revenue data available for Sankey visualisation.';
+          wrap.appendChild(emptyEl);
+          return;
+        }
+
+        loadD3Sankey()
+          .then(function (d3) {
+            drawSankey_(d3, wrap, model);
+          })
+          .catch(function (e) {
+            wrap.innerHTML = '';
+            var err = document.createElement('div');
+            err.className = 'empty';
+            err.textContent = e && e.message ? e.message : 'Could not load Sankey chart.';
+            wrap.appendChild(err);
+          });
+      }
+
+      function drawSankey_(d3, wrap, model) {
+        var width = wrap.clientWidth || 800;
+        var nodeCount = model.nodes.length;
+        var height = Math.max(400, Math.min(900, nodeCount * 28));
+        wrap.style.height = height + 'px';
+
+        // d3-sankey mutates the nodes/links arrays in place. Pass shallow
+        // copies so a re-render against the same payload still works.
+        var nodes = model.nodes.map(function (n) { return Object.assign({}, n); });
+        var links = model.links.map(function (l) { return Object.assign({}, l); });
+
+        var sankey = d3.sankey()
+          .nodeWidth(20)
+          .nodePadding(12)
+          .nodeId(function (d, i) { return i; })
+          .extent([[12, 12], [width - 12, height - 12]]);
+
+        var graph = sankey({ nodes: nodes, links: links });
+
+        var svg = d3.select(wrap).append('svg')
+          .attr('viewBox', '0 0 ' + width + ' ' + height)
+          .attr('preserveAspectRatio', 'xMidYMid meet');
+
+        var defs = svg.append('defs');
+
+        // Gradient per link (source color → target color) gives a cleaner flow
+        // than a flat source-only fill when types and customers share palette.
+        graph.links.forEach(function (link, i) {
+          var grad = defs.append('linearGradient')
+            .attr('id', 'sankey-link-' + i)
+            .attr('gradientUnits', 'userSpaceOnUse')
+            .attr('x1', link.source.x1)
+            .attr('x2', link.target.x0);
+          grad.append('stop').attr('offset', '0%').attr('stop-color', link.source.color || '#A0AEC0');
+          grad.append('stop').attr('offset', '100%').attr('stop-color', link.target.color || '#A0AEC0');
+        });
+
+        svg.append('g')
+          .attr('fill', 'none')
+          .selectAll('path')
+          .data(graph.links)
+          .enter()
+          .append('path')
+          .attr('d', d3.sankeyLinkHorizontal())
+          .attr('stroke', function (d, i) { return 'url(#sankey-link-' + i + ')'; })
+          .attr('stroke-width', function (d) { return Math.max(1, d.width); })
+          .attr('stroke-opacity', model.linkOpacity || 0.35)
+          .append('title')
+          .text(function (d) {
+            var pct = d.source.value > 0 ? Math.round((d.value / d.source.value) * 100) : 0;
+            return d.source.name + ' → ' + d.target.name + '\n' + formatMoneyCompact(d.value) + ' (' + pct + '% of ' + d.source.name + ')';
+          });
+
+        var nodeGroup = svg.append('g')
+          .selectAll('g')
+          .data(graph.nodes)
+          .enter()
+          .append('g');
+
+        nodeGroup.append('rect')
+          .attr('x', function (d) { return d.x0; })
+          .attr('y', function (d) { return d.y0; })
+          .attr('width', function (d) { return d.x1 - d.x0; })
+          .attr('height', function (d) { return Math.max(1, d.y1 - d.y0); })
+          .attr('rx', 4)
+          .attr('fill', function (d) { return d.color || '#A0AEC0'; })
+          .append('title')
+          .text(function (d) {
+            var pct = model.total > 0 ? Math.round((d.value / model.total) * 100) : 0;
+            return d.name + '\n' + formatMoneyCompact(d.value) + ' (' + pct + '% of portfolio)';
+          });
+
+        nodeGroup.append('text')
+          .attr('class', 'sankey-label')
+          .attr('x', function (d) {
+            return d.layer === 'type' ? d.x0 - 8 : d.x1 + 8;
+          })
+          .attr('y', function (d) { return (d.y0 + d.y1) / 2; })
+          .attr('dy', '0.35em')
+          .attr('text-anchor', function (d) { return d.layer === 'type' ? 'end' : 'start'; })
+          .text(function (d) { return d.name + ' · ' + formatMoneyCompact(d.value); });
+      }
+
       function renderAttention(alerts) {
         var list = document.getElementById('attention-list');
         if (!list) {
@@ -1444,6 +1868,9 @@
         currentTablePayload = data.financialTable || { tabs: { allActive: [], topCustomer: [], otherCustomers: [] } };
         renderFinancialTable(currentTab);
         renderAllCharts(data.charts);
+        renderCustomerCards(data.customerCards || []);
+        renderForwardPipeline(data.forwardPipeline || { rows: [], maxMonthlyRate: 0 });
+        renderSankey(data.sankey || { nodes: [], links: [], total: 0, linkOpacity: 0.35 });
 
         if (els.staleBadge) {
           var ttl = readTtlMinutes();
@@ -1489,7 +1916,7 @@
 
       if (els.agreementRefreshBtn) {
         els.agreementRefreshBtn.addEventListener('click', function () {
-          logActivity_('refresh', 'finance', '');
+          logActivity_('refresh', 'agreement-dashboard', '');
           fetchAgreementFromServer();
         });
       }
@@ -1503,7 +1930,7 @@
             n = DEFAULT_TTL_MINUTES;
           }
           writeTtlMinutes(n);
-          logActivity_('ttl_change', 'finance', String(n) + 'm');
+          logActivity_('ttl_change', 'agreement-dashboard', String(n) + 'm');
           var cached = readAgreementCache();
           if (cached) {
             if (els.staleBadge) {
@@ -1526,25 +1953,25 @@
               return;
             }
             setActiveTab(t);
-            logActivity_('finance_table_tab', 'finance', t);
+            logActivity_('agreement_table_tab', 'agreement-dashboard', t);
           });
         })(tabButtons[ti]);
       }
 
       function showHome() {
         els.panelHome.classList.remove('d-none');
-        if (els.panelFinance) {
-          els.panelFinance.classList.add('d-none');
+        if (els.panelAgreementDashboard) {
+          els.panelAgreementDashboard.classList.add('d-none');
         }
         els.topbarTitle.textContent = 'Home';
       }
 
-      function showFinance() {
+      function showAgreementDashboard() {
         els.panelHome.classList.add('d-none');
-        if (els.panelFinance) {
-          els.panelFinance.classList.remove('d-none');
+        if (els.panelAgreementDashboard) {
+          els.panelAgreementDashboard.classList.remove('d-none');
         }
-        els.topbarTitle.textContent = 'Finance';
+        els.topbarTitle.textContent = 'Agreement Dashboard';
         if (els.agreementFetchError) {
           els.agreementFetchError.classList.add('d-none');
         }
@@ -1565,6 +1992,9 @@
             alerts: [],
             charts: null,
             financialTable: { tabs: { allActive: [], topCustomer: [], otherCustomers: [] } },
+            customerCards: [],
+            forwardPipeline: { rows: [], maxMonthlyRate: 0 },
+            sankey: { nodes: [], links: [], total: 0, linkOpacity: 0.35 },
             warnings: [],
           });
           fetchAgreementFromServer();
@@ -1596,9 +2026,9 @@
             showHome();
             return;
           }
-          if (item.id === 'finance') {
-            setActiveNav('finance');
-            showFinance();
+          if (item.id === 'agreement-dashboard') {
+            setActiveNav('agreement-dashboard');
+            showAgreementDashboard();
             return;
           }
           showComingSoon('The "' + item.label + '" dashboard is not available yet.');

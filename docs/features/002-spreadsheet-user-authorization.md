@@ -1,6 +1,6 @@
 # Feature: Spreadsheet user authorization (users tab)
 
-> **PRD version 1.9.2** — keep in sync with `docs/FOS-Dashboard-PRD.md`.
+> **PRD version 1.11.0** — keep in sync with `docs/FOS-Dashboard-PRD.md`.
 
 ## Goal
 
@@ -94,6 +94,6 @@ Authorize FOS Dashboard users by **looking up their Google account email** in a 
 
 ### Follow-up (separate features)
 
-- **Nav and dashboards by role/team** (hide Finance for certain teams, etc.).
+- **Nav and dashboards by role/team** (hide Agreement Dashboard for certain teams, etc.).
 - **Caching** authorization results with invalidation strategy.
 - **Admin audit tab** append-only log of denied access attempts (PII-safe).

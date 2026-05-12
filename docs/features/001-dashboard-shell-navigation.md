@@ -1,10 +1,10 @@
 # Feature: Dashboard shell and navigation (FOS Web App)
 
-> **PRD version 1.9.2** — see `docs/FOS-Dashboard-PRD.md`.
+> **PRD version 1.11.0** — see `docs/FOS-Dashboard-PRD.md`.
 
 ## Goal
 
-Deliver a **responsive** Google Apps Script Web App shell: **left navigation** (including **Settings** rendered as a **plain navigation-style link** with a **gear** icon at the **bottom of the sidebar** — no outlined button, no pill chrome), **main content area**, with **Home** as the primary landing view. **Finance** is activated as the agreement dashboard shell (**`docs/features/003-agreement-dashboard-fibery-client-cache.md`**). **Operations**, **Delivery**, and **Settings** still show a **“Coming soon”** dialog until those pages are built. Visual chrome — sidebar, topbar, Home card, modals, scrollbars, not-authorized page, and Finance panel — draws from a single set of root CSS variables defined per **`docs/agreement-dashboard-prd-v2.md` §9.5 (Design System)**, **§9.6 (Brand Identity)**, and **§9.7 (Layout)** (FR-50, AC-18). Lay groundwork for **role-based menu visibility** without activating full RBAC yet.
+Deliver a **responsive** Google Apps Script Web App shell: **left navigation** (including **Settings** rendered as a **plain navigation-style link** with a **gear** icon at the **bottom of the sidebar** — no outlined button, no pill chrome), **main content area**, with **Home** as the primary landing view. The **Agreement Dashboard** entry (route id `agreement-dashboard`; legacy `finance` retired in v1.11.0, historical log rows still queryable) is activated as the agreement dashboard shell (**`docs/features/003-agreement-dashboard-fibery-client-cache.md`**). **Operations**, **Delivery**, and **Settings** still show a **“Coming soon”** dialog until those pages are built. Visual chrome — sidebar, topbar, Home card, modals, scrollbars, not-authorized page, and Agreement Dashboard panel — draws from a single set of root CSS variables defined per **`docs/agreement-dashboard-prd-v2.md` §9.5 (Design System)**, **§9.6 (Brand Identity)**, and **§9.7 (Layout)** (FR-50, AC-18). Lay groundwork for **role-based menu visibility** without activating full RBAC yet.
 
 ## User Stories
 
@@ -20,7 +20,7 @@ Deliver a **responsive** Google Apps Script Web App shell: **left navigation** (
 - [ ] **Given** the user clicks **Home**, **when** the click completes, **then** the main panel shows **home content** (placeholder welcome is acceptable) and **no** “coming soon” dialog for Home.
 - [ ] **Given** the user clicks any **non-activated dashboard** nav item, **when** the click completes, **then** a **modal or native dialog** appears with a **coming soon** message and a clear **dismiss** action.
 - [ ] **Given** the user clicks **Settings** at the bottom of the left nav, **when** the click completes, **then** the same **coming soon** pattern appears (not a navigation to a new URL). Settings is rendered as a navigation-style link (`<a>` element with the `.fos-nav-btn` class, gear icon + label, identical chrome to other nav entries) — **not** as an outlined or pill button.
-- [ ] **Given** any rendered surface (sidebar, topbar, Home card, “coming soon” modal, not-authorized page, Finance panel), **when** inspected, **then** every color and font value resolves through the root CSS variables defined per `agreement-dashboard-prd-v2.md` §9.5 (`--bg #061B30`, `--surface #092747`, `--accent #52C9E5`, `--text #FFFEFC`, `--border #1a4060`, …, **Inter** 14px base); the `.fos-agreement-root` scope aliases `--ag-*` to those globals rather than declaring a parallel palette.
+- [ ] **Given** any rendered surface (sidebar, topbar, Home card, “coming soon” modal, not-authorized page, Agreement Dashboard panel), **when** inspected, **then** every color and font value resolves through the root CSS variables defined per `agreement-dashboard-prd-v2.md` §9.5 (`--bg #061B30`, `--surface #092747`, `--accent #52C9E5`, `--text #FFFEFC`, `--border #1a4060`, …, **Inter** 14px base); the `.fos-agreement-root` scope aliases `--ag-*` to those globals rather than declaring a parallel palette.
 - [ ] **Given** the server builds the nav model, **when** the model is produced, **then** it contains **only** entries the user is allowed to see (v1 may use a **stub filter**; document the contract in code comments and this spec).
 
 ## UI Notes
@@ -55,7 +55,7 @@ Deliver a **responsive** Google Apps Script Web App shell: **left navigation** (
 2. Open the deployment URL in a browser (not only the editor preview).
 3. Resize to **mobile width** (~375px): open/close sidebar; confirm main content remains usable.
 4. Click **Home**: main panel updates or stays on home; **no** coming soon for Home.
-5. Click **Operations** and **Delivery**: **coming soon** dialog appears and dismisses cleanly. Click **Finance**: agreement dashboard panel appears (not the coming soon modal).
+5. Click **Operations** and **Delivery**: **coming soon** dialog appears and dismisses cleanly. Click **Agreement Dashboard**: agreement dashboard panel appears (not the coming soon modal).
 6. Click **Settings** (bottom of left nav, rendered as a gear-icon **link** styled like the other nav entries): **coming soon** modal appears; URL hash does **not** change (the click handler calls `preventDefault()`).
 
 ## Implementation Checklist
