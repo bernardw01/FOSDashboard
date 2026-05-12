@@ -1,5 +1,5 @@
 /**
- * PRD version 1.12.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.14.1 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard orchestrator (route id `operations`, panel
  * `#panel-operations`). Reads `Agreement Management/Labor Costs` from Fibery
@@ -22,6 +22,12 @@
  * Internal diagnostics (run from the Apps Script editor):
  *   _diag_pingUtilization()           — verifies host + token reach Fibery.
  *   _diag_sampleUtilizationPayload()  — fetches a tiny window + dumps shapes.
+ *   _diag_sampleUtilizationAlerts()   — fetches the configured default range
+ *                                       + dumps the per-rule alert breakdown.
+ *   _diag_sampleUtilizationPending()  — distribution of Approval +
+ *                                       Time Entry Status values; introduced
+ *                                       in v1.14.1 to verify the pending-
+ *                                       detection fix against live data.
  */
 
 /** @const {string} */
@@ -62,6 +68,7 @@ function getUtilizationCacheTtlMinutes() {
  *   dimensions: !Object,
  *   aggregates: !Object,
  *   pendingApprovals: !Array<!Object>,
+ *   alerts: !Array<!Object>,
  *   warnings?: !Array<string>,
  *   message?: string
  * }}
@@ -89,6 +96,7 @@ function getUtilizationDashboardData(rangeStart, rangeEnd) {
       dimensions: emptyUtilizationDimensions_(),
       aggregates: emptyUtilizationAggregates_(),
       pendingApprovals: [],
+      alerts: [],
       message: fetched.message || 'Could not load utilization data from Fibery.',
       warnings: ['Fibery error: ' + (fetched.reason || 'UNKNOWN')],
     };
@@ -98,7 +106,12 @@ function getUtilizationDashboardData(rangeStart, rangeEnd) {
   var kpis = computeUtilizationKpis_(rows);
   var dimensions = buildUtilizationDimensions_(rows, thresholds);
   var aggregates = buildUtilizationAggregates_(rows, thresholds);
+  // Phase C — per-person × per-week trajectory (capacity-scaled), feeds the
+  // heatmap surface and the under/over-utilized alert rules.
+  aggregates.byPersonWeek = buildByPersonWeek_(rows, range, thresholds);
   var pendingApprovals = collectPendingApprovals_(rows);
+  // Phase C — rule-based attention items (mirrors §6 on the Agreement Dashboard).
+  var alerts = buildUtilizationAlerts_(rows, aggregates.byPersonWeek, thresholds, range, now);
 
   var warnings = [];
   if (fetched.truncated) {
@@ -120,6 +133,7 @@ function getUtilizationDashboardData(rangeStart, rangeEnd) {
     dimensions: dimensions,
     aggregates: aggregates,
     pendingApprovals: pendingApprovals,
+    alerts: alerts,
   };
   if (warnings.length) {
     payload.warnings = warnings;
@@ -173,6 +187,92 @@ function _diag_sampleUtilizationPayload() {
     kpis: computeUtilizationKpis_(rows),
   };
   console.log('_diag_sampleUtilizationPayload →', JSON.stringify(summary).slice(0, 4000));
+  return summary;
+}
+
+/**
+ * Runs the full pipeline for the default range and prints the alert breakdown
+ * (count per `kind`, top 5 by severity). Use after schema or threshold tweaks
+ * to confirm the rules fire as expected against live data.
+ *
+ * @return {!Object}
+ */
+function _diag_sampleUtilizationAlerts() {
+  var now = new Date();
+  var thresholds = getUtilizationThresholds_();
+  var range = resolveRange_(null, null, now, thresholds);
+  var fetched = fetchAllLaborCosts_(range.start, range.end);
+  if (!fetched.ok) {
+    console.log('_diag_sampleUtilizationAlerts (fetch failed) →', JSON.stringify(fetched));
+    return fetched;
+  }
+  var rows = normalizeLaborRows_(fetched.rows, thresholds);
+  var byPersonWeek = buildByPersonWeek_(rows, range, thresholds);
+  var alerts = buildUtilizationAlerts_(rows, byPersonWeek, thresholds, range, now);
+  var counts = {};
+  for (var i = 0; i < alerts.length; i++) {
+    counts[alerts[i].kind] = (counts[alerts[i].kind] || 0) + 1;
+  }
+  var summary = {
+    ok: true,
+    range: range,
+    rowCount: rows.length,
+    byPersonWeekCount: byPersonWeek.length,
+    alertCount: alerts.length,
+    countsByKind: counts,
+    top5: alerts.slice(0, 5).map(function (a) {
+      return { severity: a.severity, kind: a.kind, title: a.title };
+    }),
+  };
+  console.log('_diag_sampleUtilizationAlerts →', JSON.stringify(summary).slice(0, 4000));
+  return summary;
+}
+
+/**
+ * Distribution probe (v1.14.1) — counts Approval + Time-Entry-Status values
+ * over the configured default range and reports how many rows the current
+ * `isPendingApproval_` predicate flags as pending. Use after a sync or
+ * approval workflow change to confirm the count matches expectation.
+ *
+ * @return {!Object}
+ */
+function _diag_sampleUtilizationPending() {
+  var now = new Date();
+  var thresholds = getUtilizationThresholds_();
+  var range = resolveRange_(null, null, now, thresholds);
+  var fetched = fetchAllLaborCosts_(range.start, range.end);
+  if (!fetched.ok) {
+    console.log('_diag_sampleUtilizationPending (fetch failed) →', JSON.stringify(fetched));
+    return fetched;
+  }
+  var rows = normalizeLaborRows_(fetched.rows, thresholds);
+  var approvalCounts = {};
+  var statusCounts = {};
+  var pendingCount = 0;
+  var matrix = {};
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    var a = String(r.approval == null ? '(null)' : r.approval).trim() || '(empty)';
+    var t = String(r.timeEntryStatus == null ? '(null)' : r.timeEntryStatus).trim() || '(empty)';
+    approvalCounts[a] = (approvalCounts[a] || 0) + 1;
+    statusCounts[t] = (statusCounts[t] || 0) + 1;
+    var k = a + ' × ' + t;
+    matrix[k] = (matrix[k] || 0) + 1;
+    if (r.isPending) {
+      pendingCount++;
+    }
+  }
+  var summary = {
+    ok: true,
+    range: range,
+    rowCount: rows.length,
+    pendingCount: pendingCount,
+    pendingPct: rows.length > 0 ? Math.round((pendingCount / rows.length) * 1000) / 10 : 0,
+    approvalCounts: approvalCounts,
+    timeEntryStatusCounts: statusCounts,
+    pairCounts: matrix,
+  };
+  console.log('_diag_sampleUtilizationPending →', JSON.stringify(summary).slice(0, 4000));
   return summary;
 }
 
@@ -657,6 +757,164 @@ function buildUtilizationAggregates_(rows, thresholds) {
 }
 
 /**
+ * Phase C — per-person × per-week aggregate that feeds the heatmap surface
+ * and the under/over-utilized alert rules. Each entry carries the raw hours
+ * (filterable downstream), the capacity-scaled utilization% for that week,
+ * and a `partial` flag for weeks that overlap a range edge.
+ *
+ * Partial-week capacity is pro-rated by `(daysInRangeInWeek / 7)` so the
+ * utilization% bucket stays honest (a 3-day week at 24 hrs reads as 100%,
+ * not 60%). The alert rules ignore partial weeks entirely.
+ *
+ * Roles are recorded as a comma-joined string of distinct role names that
+ * the person logged time under in that week — the client uses this to drive
+ * the heatmap-local Role filter without re-aggregating from `rows`.
+ *
+ * @param {!Array<!Object>} rows
+ * @param {!{start: string, end: string}} range
+ * @param {!Object} thresholds
+ * @return {!Array<!{
+ *   personKey: string, personName: string, personId: ?string,
+ *   week: string, weekStartIso: string, weekEndIso: string,
+ *   hours: number, billableHours: number,
+ *   capacityHours: number, utilizationPct: number,
+ *   partial: boolean, partialFraction: number,
+ *   isInternal: boolean,
+ *   roles: !Array<string>,
+ *   customers: !Array<string>
+ * }>}
+ * @private
+ */
+function buildByPersonWeek_(rows, range, thresholds) {
+  var rangeStartMs = parseIsoMs_(range.start);
+  var rangeEndMs = parseIsoMs_(range.end);
+  var bucketMap = {};
+
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    if (!r.week) {
+      continue;
+    }
+    var personKey = r.userId || r.userName || '(Unknown user)';
+    var bucketKey = personKey + '|' + r.week;
+    var b = bucketMap[bucketKey];
+    if (!b) {
+      var weekRange = isoWeekRange_(r.week);
+      b = {
+        personKey: personKey,
+        personName: r.userName || personKey,
+        personId: r.userId || null,
+        week: r.week,
+        weekStartIso: weekRange.startIso,
+        weekEndIso: weekRange.endIso,
+        hours: 0,
+        billableHours: 0,
+        capacityHours: thresholds.weeklyCapacityHours,
+        utilizationPct: 0,
+        partial: false,
+        partialFraction: 1,
+        // Flagged true if ANY contributing row was internal; the client
+        // honors the global Internal-labor toggle by inspecting per-row
+        // payloads, but we surface a hint here for tooltip use.
+        isInternal: false,
+        roleSet: {},
+        customerSet: {},
+      };
+      if (rangeStartMs !== null && rangeEndMs !== null) {
+        var ws = parseIsoMs_(weekRange.startIso);
+        var we = parseIsoMs_(weekRange.endIso);
+        if (ws !== null && we !== null) {
+          var overlapStart = Math.max(ws, rangeStartMs);
+          var overlapEnd = Math.min(we, rangeEndMs);
+          var overlapMs = Math.max(0, overlapEnd - overlapStart);
+          var weekMs = Math.max(1, we - ws);
+          var fraction = overlapMs / weekMs;
+          if (fraction < 0.999) {
+            b.partial = true;
+            b.partialFraction = fraction;
+            b.capacityHours = thresholds.weeklyCapacityHours * fraction;
+          }
+        }
+      }
+      bucketMap[bucketKey] = b;
+    }
+    b.hours += Number(r.hours || 0);
+    if (r.billable) {
+      b.billableHours += Number(r.hours || 0);
+    }
+    if (r.isInternal) {
+      b.isInternal = true;
+    }
+    var role = r.userRole || r.clockifyUserRole || '(No role)';
+    if (role) {
+      b.roleSet[role] = true;
+    }
+    if (r.customer) {
+      b.customerSet[r.customer] = true;
+    }
+  }
+
+  var out = [];
+  for (var k in bucketMap) {
+    if (!Object.prototype.hasOwnProperty.call(bucketMap, k)) {
+      continue;
+    }
+    var e = bucketMap[k];
+    e.utilizationPct = e.capacityHours > 0 ? (e.hours / e.capacityHours) * 100 : 0;
+    e.roles = Object.keys(e.roleSet);
+    e.customers = Object.keys(e.customerSet);
+    delete e.roleSet;
+    delete e.customerSet;
+    out.push(e);
+  }
+  out.sort(function (a, b2) {
+    if (a.personKey !== b2.personKey) {
+      return String(a.personKey).localeCompare(String(b2.personKey));
+    }
+    return String(a.week).localeCompare(String(b2.week));
+  });
+  return out;
+}
+
+/** @private */
+function parseIsoMs_(iso) {
+  if (!iso) {
+    return null;
+  }
+  try {
+    var d = new Date(iso);
+    var t = d.getTime();
+    return isFinite(t) ? t : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Returns the inclusive Monday-anchored ISO range for an ISO week key
+ * (e.g. '2026-W19' → start 2026-05-04T00:00:00Z, end 2026-05-11T00:00:00Z).
+ *
+ * @param {string} weekKey
+ * @return {!{startIso: string, endIso: string}}
+ * @private
+ */
+function isoWeekRange_(weekKey) {
+  var m = /^(\d{4})-W(\d{2})$/.exec(String(weekKey));
+  if (!m) {
+    return { startIso: '', endIso: '' };
+  }
+  var year = parseInt(m[1], 10);
+  var week = parseInt(m[2], 10);
+  // ISO 8601: week 1 contains Jan 4. Find that, snap to the Monday.
+  var jan4 = new Date(Date.UTC(year, 0, 4));
+  var jan4Day = jan4.getUTCDay() || 7;
+  var week1Monday = new Date(Date.UTC(year, 0, 4 - jan4Day + 1));
+  var weekStart = new Date(week1Monday.getTime() + (week - 1) * 7 * 86400000);
+  var weekEnd = new Date(weekStart.getTime() + 7 * 86400000);
+  return { startIso: weekStart.toISOString(), endIso: weekEnd.toISOString() };
+}
+
+/**
  * Collects rows where `isPending = true`, sorted by startDateTime desc.
  * Phase A only carries them in the payload for KPI math; Phase C surfaces
  * a dedicated widget. Caps at 500 entries to keep payload bounded.
@@ -806,14 +1064,39 @@ function isBillableText_(v) {
   return s === 'yes' || s === 'y' || s === 'true' || s === '1';
 }
 
-/** @private */
+/**
+ * §U.7 pending-approval predicate.
+ *
+ * As of v1.14.1 the rule is:
+ *   1. Explicit `approval = 'approved'`   → NEVER pending (regardless of
+ *      `timeEntryStatus`). This was the v1.14.0 false-positive bug — many
+ *      Clockify-synced rows are explicitly Approved but carry an empty
+ *      `Time Entry Status`, which the previous logic interpreted as pending.
+ *   2. Explicit `approval ∈ {unapproved, pending}` → pending.
+ *   3. When approval is missing / unknown, only consider the row pending if
+ *      `timeEntryStatus` *actively* says so (`not_submitted` or `pending`).
+ *      A blank timeEntryStatus alone is NO LONGER pending.
+ *
+ * Net effect: a row with `approval = "Approved"` is treated as approved even
+ * when the time-entry-status sync is incomplete; a row with no approval
+ * metadata at all is treated as approved (safe default — false negatives
+ * are visible in the Pending Approvals widget once Fibery flags them).
+ *
+ * @param {?string} approval
+ * @param {?string} timeEntryStatus
+ * @return {boolean}
+ * @private
+ */
 function isPendingApproval_(approval, timeEntryStatus) {
   var a = String(approval == null ? '' : approval).trim().toLowerCase();
   var t = String(timeEntryStatus == null ? '' : timeEntryStatus).trim().toLowerCase();
-  if (a === 'unapproved' || a === '' || a === 'pending') {
+  if (a === 'approved') {
+    return false;
+  }
+  if (a === 'unapproved' || a === 'pending') {
     return true;
   }
-  if (t === 'not_submitted' || t === 'pending' || t === '') {
+  if (t === 'not_submitted' || t === 'pending') {
     return true;
   }
   return false;
@@ -875,5 +1158,6 @@ function emptyUtilizationAggregates_() {
     byRole: [],
     byWeek: [],
     billableVsNonBillable: [],
+    byPersonWeek: [],
   };
 }

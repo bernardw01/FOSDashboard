@@ -1,6 +1,6 @@
 # Feature: Agreement Dashboard (Fibery + client cache)
 
-> **PRD version 1.12.0** — see `docs/FOS-Dashboard-PRD.md`.
+> **PRD version 1.14.1** — see `docs/FOS-Dashboard-PRD.md`.
 
 ## Status
 
@@ -9,6 +9,8 @@
 | **Phase A — live wiring** | KPI strip · Attention panel · Status donut · Type Mix donut · Recognition stacked bar · Customer Contract Value bar · Financial Performance table · configurable client-side TTL | **Delivered v1.8** (live-wiring corrections v1.9 / v1.9.2) |
 | **Phase B — relationship surfaces** | Customer Relationship Cards (§7.6) · Forward Revenue Pipeline (§7.8) | **Delivered v1.10.0** |
 | **Phase C — flow visualization** | Revenue Flow Sankey (§7.11) — D3 + d3-sankey from CDN | **Delivered v1.10.0** |
+| **Cosmetic (v1.13.0)** | Removed the duplicate in-panel harpin logo + `.agreement-logo-sep` divider from the panel header — the app sidebar (`.fos-brand-logo`) is now the single rendered brand mark. **Page heading + subtitle stay** in `#panel-agreement-dashboard` (panel structure unchanged). Cross-reference: shipped jointly with the Utilization Management Dashboard Phase B cleanup in `docs/features/005-utilization-management-dashboard.md`. | **Delivered v1.13.0** |
+| **UX polish (v1.13.1)** | (1) Semi-transparent **`.fos-loading-overlay`** added inside `#panel-agreement-dashboard .fos-agreement-inner` — toggled on at the start of every `fetchAgreementFromServer()` call and off in both handlers, covering initial load / Refresh / background stale-refresh. (2) **Sticky panel render** — navigating away and back no longer re-runs `applyAgreementPayload(cached)` when the cached payload's `fetchedAt` matches what the DOM already shows, preserving Chart.js + Sankey + Financial-Performance table state. Stale-detection + background fetch logic (FR-56b) still fires. See main PRD **FR-54**, **AC-27**. | **Delivered v1.13.1** |
 
 ## Goal
 
@@ -30,7 +32,7 @@ Deliver the **Agreement Management / revenue-style dashboard** in the FOS Web Ap
 | **§4** Queries | Server-side Fibery queries via **REST `/api/commands`** (batched `fibery.entity/query`); normalize to view models. |
 | **§5** Computed values | KPIs (5.2/5.3) computed in Apps Script; `Current Margin` (5.1) and `Total Customer Contract Value` (5.4) read directly as Fibery formulas; scheduling status (5.6) derived server-side from future revenue items. |
 | **§6** Alerts | Attention panel rules; severity ordering — implemented in `src/agreementAlerts.js`. |
-| **§7.1** Page header | Logo 32px, separator, title `Agreement Management Dashboard`, subtitle with counts/date. |
+| **§7.1** Page header | Title `Agreement Management Dashboard` + subtitle with counts/date. **No in-panel logo** as of v1.13.0 — the sidebar `.fos-brand-logo` is the single brand surface. (Phase A–C through v1.12.0 carried an in-panel 32px logo + 28px separator divider; both were removed in v1.13.0.) |
 | **§7.2** KPI summary bar | Six cards, tooltips, compact number formatting (4 digits rule). |
 | **§7.3–7.5, §7.7, §7.9, §7.10** | Phase A — Chart.js (CDN) renders donuts, stacked bar, customer bar; HTML/CSS for attention panel and financial table tabs. |
 | **§7.6, §7.8** | **Phase B — delivered v1.10.0.** Plain HTML/CSS rendering against the new `customerCards` and `forwardPipeline` view models. |
@@ -55,7 +57,7 @@ Copy **`agreement-dashboard-prd-v2.md` §9.5–§9.7** into the Agreement Dashbo
 - Surfaces: `--bg` `#061B30`, `--surface` `#092747`, borders `#1a4060`, text `#FFFEFC` / muted `#A0AEC0`.
 - Accents: `#52C9E5`, `#007FA7`, `#20B4C4`, `#43D6BA`; danger **`#fc5c65`** only for errors / negative margin / critical alerts.
 - **Inter** (Google Fonts) weights 400–800; base **14px** on dashboard body.
-- Logo: `https://harpin.ai/wp-content/uploads/logo.svg` at **32px** height in page header; `onerror` hide; **1px** separator `rgba(82,201,229,0.3)` **28px** tall between logo and title.
+- Brand mark: rendered **once** in the app sidebar as `.fos-brand-logo` (`https://harpin.ai/wp-content/uploads/logo.svg`). The Agreement Dashboard panel header (`#panel-agreement-dashboard`) intentionally has **no** in-panel logo as of v1.13.0; the prior 32px logo + 28px `.agreement-logo-sep` divider were removed for cross-dashboard consistency with the Utilization Management Dashboard.
 - Cards: **20px** padding, **12px** radius, **1px solid** border; grid collapses **≤900px**; scrollbar **4px** track `var(--border)`.
 
 ## Client cache contract

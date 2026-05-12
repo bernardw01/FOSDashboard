@@ -1,14 +1,16 @@
 # Feature: Utilization Management Dashboard (Fibery Labor Costs)
 
-> **PRD version 1.12.0** — see `docs/FOS-Dashboard-PRD.md`. Phase A was delivered in v1.12.0 (new FRs FR-70–FR-76 + AC-22 / AC-23 + new **§8 Utilization Management Dashboard** added to the main PRD).
+> **PRD version 1.14.1** — see `docs/FOS-Dashboard-PRD.md`. Phase A was delivered in v1.12.0 (new FRs FR-70–FR-76 + AC-22 / AC-23 + new **§8 Utilization Management Dashboard** added to the main PRD). Phase B was delivered in v1.13.0 (FR-77–FR-79 + AC-24 / AC-25 + AC-26). v1.13.1 is a UX-polish patch shared with the Agreement Dashboard (loading overlay + sticky panel render — see AC-27 in the main PRD). **Phase C was delivered in v1.14.0** (FR-80 / FR-81 / FR-82 + AC-28 / AC-29 / AC-30 / AC-31 / AC-32 / AC-33 / AC-34 / AC-35 in the main PRD — adds the Utilization Alerts panel, Person × Week heatmap with a heatmap-local Role filter (top 30 contributors), Pending Approvals widget, and row-detail drawer; bumps the client cache schema 1 → 2 to carry `aggregates.byPersonWeek` + `alerts[]`).
 
 ## Status
 
 | Phase | Scope | Target PRD | Status |
 | --- | --- | --- | --- |
 | **Phase A — Live wiring + core charts** | Operations panel activation · KPI strip · Hours-by-Customer · Hours-by-Project · Weekly trend · Billable vs Non-billable · Customer + Project filters · Billable + Internal-labor toggles · Date-range preset · `sessionStorage` cache + Auto-refresh selector | v1.12.0 | **Delivered v1.12.0** |
-| **Phase B — Cross-filter + drill-down + detail table** | Click-to-toggle on every chart (Role + Person added) · Role + Person + Billable filters · Filter chip bar · Detail table with sortable row-level entries · Persist filter state in `localStorage` | v1.13.0 | Backlog |
-| **Phase C — Heatmap + alerts + approval queue** | Person × Week utilization heatmap (custom SVG) · Pending approvals widget · Utilization alert panel (under-utilized / over-allocated / stale approvals) · `src/utilizationAlerts.js` | v1.14.0 | Backlog |
+| **Phase B — Cross-filter + drill-down + detail table** | Click-to-toggle on every chart (Role + Person added) · Role + Person + Billable filters · Filter chip bar · Detail table with sortable row-level entries · Persist filter state in `localStorage` · **Cosmetic: removed duplicate in-panel harpin logo from Agreement + Utilization dashboards (sidebar already brands the app)** | v1.13.0 | **Delivered v1.13.0** |
+| **UX polish (v1.13.1)** | (1) Semi-transparent **`.fos-loading-overlay`** added inside `#panel-operations .fos-agreement-inner` — toggled on at the start of every `fetchUtilizationFromServer()` call and off in both handlers, covering initial load / Refresh / range change / background stale-refresh. (2) **Sticky panel render** — navigating away and back no longer re-runs `applyUtilPayload(cached)` when the cached payload's `fetchedAt` matches what the DOM already shows, preserving Chart.js + Detail-Table state across panel toggles. `applyStoredFilters_()` moves inside the no-skip branch so a cross-tab filter change cannot desync state from DOM. Stale-detection + background fetch logic (FR-73) still fires. See main PRD **FR-73**, **AC-27**. | v1.13.1 | **Delivered v1.13.1** |
+| **Phase C — Heatmap + alerts + approval queue** | Person × Week utilization heatmap (custom SVG, top-30 contributors, **heatmap-local Role filter**, partial-week hatch overlay, click → pin Person + switch range) · Pending Approvals widget (cap 50, Show all toggle, age badges) · Utilization Alerts panel (`src/utilizationAlerts.js`: under-utilized / over-allocated / stale approvals) · Row-detail **drawer** (off-canvas right, Open in Fibery deep link, closable via button / backdrop / Escape) · Client cache schema bumped 1 → 2 to carry `aggregates.byPersonWeek` + `alerts[]` | v1.14.0 | **Delivered v1.14.0** |
+| **Phase C correctness patch (v1.14.1)** | `isPendingApproval_` no longer flags `Approval = Approved` rows whose `Time Entry Status` is blank as pending (was producing 7,000+ false-positive stale-approval alerts in the field). Stale-approval alerts are now capped at the 20 oldest individual cards in the Alerts panel — any remainder is consolidated into a single `stale_approval_rollup` Warning card whose click flips the Pending Approvals widget into Show-all mode and scrolls to it. New editor helper `_diag_sampleUtilizationPending()` dumps the Approval × Time-Entry-Status distribution + the count the predicate flags as pending, for verifying the fix against live data. See main PRD **FR-80**, **AC-28**. | v1.14.1 | **Delivered v1.14.1** |
 
 ## Goal
 
@@ -179,7 +181,7 @@ Fields read (paths verified via Fibery `describe_database` + a sample query on `
 
 | # | Component | Phase | Library | Drill behavior |
 | --- | --- | --- | --- | --- |
-| §N.1 | **Page header** — logo · separator · title "Utilization Management Dashboard" · subtitle "{N} hours · {M} entries · range {start}–{end}" | A | HTML | — |
+| §N.1 | **Page header** — title "Utilization Management Dashboard" · subtitle "{N} hours · {M} entries · range {start}–{end}". **No in-panel logo** as of v1.13.0 — the app sidebar (`.fos-brand-logo`) is the single source of brand. (Phase A through v1.12.0 carried a duplicate logo + `.agreement-logo-sep` divider; Phase B removes them.) | A · B (cleanup) | HTML | — |
 | §N.2 | **KPI strip** — six cards: Total Hours · Billable Hours · Utilization % · Total Cost · Effective Bill Rate · Pending Approvals | A | HTML | Click a KPI scrolls/focuses the most-relevant chart or table |
 | §N.3 | **Filter bar** — Date range preset (Last 30 / 90 / 6mo / YTD / Custom, default 90d) · Customer multi-select · Project multi-select · Billable toggle (All / Billable / Non-billable) · **Internal labor toggle** (Include / Exclude internal labor, default Include) · Active-filter chip row · "Clear filters" button | A | HTML | Chips have `×` to remove individual dimensions |
 | §N.4 | **Hours by Customer** — horizontal bar, top-N (default 20), customer palette | A | Chart.js v4 | Click bar → toggle Customer in filter set |
@@ -267,6 +269,7 @@ filters = {
 - [ ] Active filters render as removable chips; `×` removes individual dimensions; **Clear filters** resets all (range stays).
 - [ ] Detail Table renders below the charts with sortable columns and 100 rows/page; row count matches the filtered-row total.
 - [ ] Filter state persists across reloads via `localStorage` (`fos_utilization_filters_v1`); range does NOT persist.
+- [ ] **Cosmetic — duplicate brand logo removed.** The in-panel `<img src="…/logo.svg">` and adjacent `.agreement-logo-sep` divider are removed from BOTH `#panel-agreement-dashboard` AND `#panel-operations` panel headers. The sidebar `.fos-brand-logo` remains the single rendered harpin logo on the page. The dashboard headings (`Agreement Management Dashboard` / `Utilization Management Dashboard`) and subtitles remain unchanged, left-aligned, with the same `.fos-agreement-inner` container. The orphan `.fos-agreement-root .agreement-logo-sep` CSS rule is removed.
 
 ### Phase C
 
@@ -333,14 +336,17 @@ filters = {
 25. Render the active-filter **chip bar** beneath the filter row; each chip has an `×` button; "Clear filters" resets.
 26. Implement the **Detail Table** with sortable columns + pagination (100/page). Render below the charts. Always reflects the active filter.
 27. Persist filter state in `localStorage` (`fos_utilization_filters_v1`); excluding `range`.
-28. Acceptance tests for Phase B; bump PRD → 1.13.0.
+28. **Cosmetic header cleanup (cross-dashboard).** In `src/DashboardShell.html`, remove the duplicate harpin `<img>` + `.agreement-logo-sep` divider from BOTH panel headers — `#panel-agreement-dashboard` (≈ lines 937–946 as of v1.12.0) and `#panel-operations` (≈ lines 1128–1137 as of v1.12.0). After removal, the header row contains only the heading + subtitle wrapper (`<div class="flex-grow-1 min-w-0">`). Drop the now-unreferenced `.fos-agreement-root .agreement-logo-sep` rule. The sidebar `.fos-brand-logo` is unchanged and remains the single rendered harpin logo. Mirror the change in `docs/features/003-agreement-dashboard-fibery-client-cache.md` (cross-reference note that v1.13.0 dropped the Agreement Dashboard's in-panel logo) and bump its header to 1.13.0 alongside the rest.
+29. Acceptance tests for Phase B; bump PRD → 1.13.0.
 
-### Phase C — Heatmap + alerts + approval queue (target v1.14.0)
+### Phase C — Heatmap + alerts + approval queue (delivered v1.14.0)
 
-29. **`src/utilizationAlerts.js`** — implement under-utilized (`< UNDER_PERCENT` for ≥ 3 consecutive weeks), over-allocated (`> OVER_PERCENT` for ≥ 2 weeks), stale-approval (`isPending` AND `startDateTime > 7 days ago`) rule evaluators. Severity ordering matches `src/agreementAlerts.js`.
-30. **Heatmap (§N.10)** — custom SVG, person rows × week columns; cell click pins both filters; tooltips show person/week/hours/utilization.
-31. **Pending Approvals widget (§N.11)** — list view with virtualized scrolling for >100 rows.
-32. **Phase C ACs**, bump PRD → 1.14.0.
+30. **`src/utilizationAlerts.js`** — **[Delivered v1.14.0]** Under-utilized (Warning; mean util% across the last 3 complete weeks `< UNDER_PERCENT`, PTO-only persons excluded), over-allocated (Critical; any 2 consecutive complete weeks `> OVER_PERCENT`, first triggering pair per person only), stale-approval (Warning ≥ 7 days, Critical ≥ 14 days). Severity ordering matches `src/agreementAlerts.js`.
+31. **Heatmap (§N.10)** — **[Delivered v1.14.0]** SVG `(person × ISO week)` grid; row cap `UTILIZATION_HEATMAP_TOP_N_PERSONS` (default 30) — separate from `UTILIZATION_TOP_N_PERSONS`; **heatmap-local Role multi-select** scopes the heatmap independently from the global Role filter; partial weeks pro-rate capacity by `(daysInRangeInWeek / 7)` and render the bucket color overlaid with a diagonal-hatch `<pattern>`; cell click pins the global Person filter to that person + switches the active range to the clicked week (`weekStartIso` / `weekEndIso`) which triggers a server fetch; tooltips show person/week/hours/utilization + partial-week fraction.
+32. **Pending Approvals widget (§N.11)** — **[Delivered v1.14.0]** List view beside the heatmap; sorted by `startDateTime` desc; cap 50 visible rows with a Show all (N) toggle; amber / red age badges at the 7-day / 14-day cuts; click → row-detail drawer.
+33. **Row-detail drawer** — **[Delivered v1.14.0]** Off-canvas right (z-index 1100 + backdrop 1090), slide-in `0.22s ease` (suppressed under `prefers-reduced-motion: reduce`); definition-list of the full normalized row + **Open in Fibery** deep link by `publicId`; closable via button / backdrop / Escape; opened from the alerts panel, Pending Approvals widget, OR Detail Table (each `<tr>` carries `data-row-id`).
+34. **Cache schema bump 1 → 2** — **[Delivered v1.14.0]** `UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_` and the client constant both move to `2`; clients carrying a v1 payload silently drop their cache on next open.
+35. **Phase C ACs** — **[Delivered v1.14.0]** AC-28 (alerts panel) · AC-29 (heatmap with heatmap-local Role filter) · AC-30 (Pending Approvals) · AC-31 (drawer) · AC-32 (cache schema bump) · AC-33 (activity logging) · AC-34 (configurable thresholds) · AC-35 (editor diagnostics). PRD bumped to **1.14.0**.
 
 ## Confirmed decisions (2026-05-12)
 

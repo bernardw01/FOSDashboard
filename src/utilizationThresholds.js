@@ -1,5 +1,5 @@
 /**
- * PRD version 1.12.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.14.1 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard constants per
  * docs/features/005-utilization-management-dashboard.md:
@@ -22,6 +22,9 @@
  *   UTILIZATION_TOP_N_PERSONS             (default 20)
  *   UTILIZATION_TOP_N_PROJECTS            (default 20)
  *   UTILIZATION_TOP_N_CUSTOMERS           (default 20)
+ *   UTILIZATION_HEATMAP_TOP_N_PERSONS     (default 30 — Phase C heatmap row cap)
+ *   UTILIZATION_STALE_APPROVAL_WARN_DAYS  (default 7  — Phase C stale-approval rule)
+ *   UTILIZATION_STALE_APPROVAL_CRIT_DAYS  (default 14 — Phase C stale-approval rule)
  *
  * The agreement-dashboard module already defines the §8.5 customer palette
  * (CUSTOMER_PALETTE_), the parsePositiveNumber_ / parseCsvList_ helpers, and
@@ -30,8 +33,9 @@
  * Agreement panel.
  */
 
-/** @const {number} Bumped when the client cache shape changes. */
-var UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_ = 1;
+/** @const {number} Bumped when the client cache shape changes. v2 adds the
+ *  Phase C `aggregates.byPersonWeek` and `alerts[]` blocks (v1.14.0). */
+var UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_ = 2;
 
 /** @const {number} Default Fibery `q/limit` per labor-cost page. */
 var UTILIZATION_QUERY_PAGE_LIMIT_ = 1000;
@@ -90,6 +94,12 @@ var UTILIZATION_DEFAULTS_ = {
   TOP_N_PERSONS: 20,
   TOP_N_PROJECTS: 20,
   TOP_N_CUSTOMERS: 20,
+  // Phase C — heatmap row cap (separate from TOP_N_PERSONS so the donut/bar
+  // and the heatmap can scale independently).
+  HEATMAP_TOP_N_PERSONS: 30,
+  // Phase C — stale-approval bucket boundaries in days.
+  STALE_APPROVAL_WARN_DAYS: 7,
+  STALE_APPROVAL_CRIT_DAYS: 14,
   INTERNAL_COMPANY_NAMES: ['harpin.ai', 'Harpin'],
 };
 
@@ -160,11 +170,27 @@ function getUtilizationThresholds_() {
     props.getProperty('UTILIZATION_TOP_N_CUSTOMERS'),
     UTILIZATION_DEFAULTS_.TOP_N_CUSTOMERS
   );
+  var heatmapTopN = parsePositiveNumber_(
+    props.getProperty('UTILIZATION_HEATMAP_TOP_N_PERSONS'),
+    UTILIZATION_DEFAULTS_.HEATMAP_TOP_N_PERSONS
+  );
+  var staleWarnDays = parsePositiveNumber_(
+    props.getProperty('UTILIZATION_STALE_APPROVAL_WARN_DAYS'),
+    UTILIZATION_DEFAULTS_.STALE_APPROVAL_WARN_DAYS
+  );
+  var staleCritDays = parsePositiveNumber_(
+    props.getProperty('UTILIZATION_STALE_APPROVAL_CRIT_DAYS'),
+    UTILIZATION_DEFAULTS_.STALE_APPROVAL_CRIT_DAYS
+  );
 
   var internalNames = parseCsvList_(props.getProperty('UTILIZATION_INTERNAL_COMPANY_NAMES'));
   if (!internalNames.length) {
     internalNames = UTILIZATION_DEFAULTS_.INTERNAL_COMPANY_NAMES.slice();
   }
+
+  // Ensure WARN < CRIT so the stale-approval bucket math is monotonic.
+  var warnDaysClean = Math.max(1, Math.round(staleWarnDays));
+  var critDaysClean = Math.max(warnDaysClean + 1, Math.round(staleCritDays));
 
   return {
     cacheTtlMinutes: Math.max(1, Math.round(ttl)),
@@ -177,6 +203,9 @@ function getUtilizationThresholds_() {
     topNPersons: Math.max(1, Math.round(topNPersons)),
     topNProjects: Math.max(1, Math.round(topNProjects)),
     topNCustomers: Math.max(1, Math.round(topNCustomers)),
+    heatmapTopNPersons: Math.max(1, Math.round(heatmapTopN)),
+    staleApprovalWarnDays: warnDaysClean,
+    staleApprovalCritDays: critDaysClean,
     internalCompanyNames: internalNames,
     bucketColors: UTILIZATION_BUCKET_COLORS_,
     billableColors: UTILIZATION_BILLABLE_COLORS_,

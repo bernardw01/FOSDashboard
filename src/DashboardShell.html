@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 1.12.0 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 1.14.1 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -82,13 +82,55 @@
       border: 1px solid var(--ag-border);
       border-radius: 12px;
       padding: 20px;
+      position: relative; /* anchors .fos-loading-overlay inside the panel */
     }
 
-    .fos-agreement-root .agreement-logo-sep {
-      width: 1px;
-      height: 28px;
-      background: rgba(82, 201, 229, 0.3);
-      flex-shrink: 0;
+    /* Semi-transparent loading overlay (v1.13.1) — sits inside
+       .fos-agreement-inner so the sidebar/topbar stay interactive while a
+       server fetch is in flight. Toggled by setAgreementLoading() /
+       setUtilLoading(). */
+    .fos-loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(6, 27, 48, 0.55);
+      -webkit-backdrop-filter: blur(2px);
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+      border-radius: 12px;
+      z-index: 20;
+      pointer-events: all;
+    }
+    .fos-loading-overlay.d-none {
+      display: none !important;
+    }
+    .fos-loading-overlay .fos-loading-spinner {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 4px solid rgba(82, 201, 229, 0.18);
+      border-top-color: var(--accent);
+      animation: fos-spin 0.9s linear infinite;
+    }
+    .fos-loading-overlay .fos-loading-label {
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    @keyframes fos-spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .fos-loading-overlay .fos-loading-spinner {
+        animation: none;
+        border-top-color: rgba(82, 201, 229, 0.65);
+      }
     }
 
     .fos-agreement-kpi {
@@ -657,6 +699,391 @@
       box-shadow: inset 0 0 0 1px rgba(82, 201, 229, 0.35);
       border-radius: 8px;
     }
+    /* Phase B detail table (sortable, paginated 100/page). */
+    .fos-util-detail-wrap {
+      max-height: 480px;
+      overflow: auto;
+      border: 1px solid var(--ag-border);
+      border-radius: 10px;
+      background: var(--ag-surface2);
+    }
+    .fos-util-detail-table {
+      width: 100%;
+      font-size: 0.82rem;
+      color: var(--ag-text);
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+    .fos-util-detail-table thead th {
+      position: sticky;
+      top: 0;
+      background: var(--ag-surface2);
+      border-bottom: 1px solid var(--ag-border);
+      font-weight: 600;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--ag-text-muted);
+      padding: 8px 10px;
+      cursor: pointer;
+      white-space: nowrap;
+      text-align: left;
+      user-select: none;
+    }
+    .fos-util-detail-table thead th .sort-icon {
+      font-size: 0.7rem;
+      opacity: 0.55;
+      margin-left: 4px;
+    }
+    .fos-util-detail-table thead th.sort-active {
+      color: var(--ag-accent);
+    }
+    .fos-util-detail-table thead th.sort-active .sort-icon {
+      opacity: 1;
+      color: var(--ag-accent);
+    }
+    .fos-util-detail-table tbody tr {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .fos-util-detail-table tbody tr:hover {
+      background: rgba(82, 201, 229, 0.06);
+    }
+    .fos-util-detail-table td {
+      padding: 6px 10px;
+      vertical-align: middle;
+      white-space: nowrap;
+      max-width: 240px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .fos-util-detail-table .text-end { text-align: right; }
+    .fos-util-detail-table .fos-util-pill {
+      display: inline-block;
+      padding: 1px 8px;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+    .fos-util-detail-table .fos-util-pill-approved {
+      background: rgba(67, 214, 186, 0.12);
+      border-color: rgba(67, 214, 186, 0.4);
+      color: #43D6BA;
+    }
+    .fos-util-detail-table .fos-util-pill-pending {
+      background: rgba(249, 199, 79, 0.12);
+      border-color: rgba(249, 199, 79, 0.4);
+      color: #f9c74f;
+    }
+    .fos-util-detail-table .fos-util-pill-unapproved {
+      background: rgba(252, 92, 101, 0.12);
+      border-color: rgba(252, 92, 101, 0.4);
+      color: #fc5c65;
+    }
+    .fos-util-detail-table .fos-util-pill-unknown {
+      background: rgba(160, 174, 192, 0.12);
+      border-color: rgba(160, 174, 192, 0.4);
+      color: #A0AEC0;
+    }
+    .fos-util-detail-empty {
+      padding: 24px 12px;
+      text-align: center;
+      color: var(--ag-text-muted);
+      font-style: italic;
+    }
+    .fos-util-detail-pager .btn {
+      background: var(--ag-bg);
+      color: var(--ag-text-muted);
+      border: 1px solid var(--ag-border);
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 4px 14px;
+    }
+    .fos-util-detail-pager .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .fos-util-detail-pager .btn:not(:disabled):hover {
+      color: var(--ag-text);
+      border-color: var(--ag-accent);
+    }
+
+    /* ------------------------------------------------------------------- */
+    /* Phase C (v1.14.0) — Utilization heatmap + Pending Approvals + drawer. */
+    /* ------------------------------------------------------------------- */
+    .fos-util-heatmap-wrap {
+      position: relative;
+      overflow: auto;
+      max-height: 520px;
+      border: 1px solid var(--ag-border);
+      border-radius: 10px;
+      background: var(--ag-surface2);
+      padding: 8px;
+    }
+    #util-heatmap-svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+    .fos-util-heatmap-empty {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--ag-text-muted);
+      font-style: italic;
+      pointer-events: none;
+    }
+    .fos-util-heatmap-cell {
+      stroke: rgba(255, 255, 254, 0.08);
+      stroke-width: 1;
+      cursor: pointer;
+      transition: stroke 0.12s ease, stroke-width 0.12s ease;
+    }
+    .fos-util-heatmap-cell:hover {
+      stroke: var(--ag-accent);
+      stroke-width: 2;
+    }
+    .fos-util-heatmap-cell.empty {
+      cursor: default;
+    }
+    .fos-util-heatmap-cell.empty:hover {
+      stroke: rgba(255, 255, 254, 0.08);
+      stroke-width: 1;
+    }
+    .fos-util-heatmap-cell-label {
+      font-size: 0.7rem;
+      fill: rgba(6, 27, 48, 0.92);
+      pointer-events: none;
+      font-weight: 600;
+    }
+    .fos-util-heatmap-axis-label {
+      fill: var(--ag-text-muted);
+      font-size: 0.72rem;
+      pointer-events: none;
+    }
+    .fos-util-heatmap-person-label {
+      fill: var(--ag-text);
+      font-size: 0.78rem;
+      pointer-events: none;
+    }
+    .fos-util-heatmap-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      font-size: 0.74rem;
+      color: var(--ag-text-muted);
+      margin-bottom: 10px;
+    }
+    .fos-util-heatmap-legend-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: var(--ag-surface2);
+      border: 1px solid var(--ag-border);
+      letter-spacing: 0.02em;
+    }
+    .fos-util-heatmap-legend-chip .swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      display: inline-block;
+    }
+    .fos-util-heatmap-legend-chip.partial .swatch {
+      background-image: repeating-linear-gradient(
+        45deg,
+        rgba(255, 255, 254, 0.55) 0,
+        rgba(255, 255, 254, 0.55) 2px,
+        transparent 2px,
+        transparent 4px
+      );
+      background-color: rgba(160, 174, 192, 0.35);
+    }
+
+    /* SVG <pattern>-based hatch for partial-week cells (referenced as
+       url(#fos-util-heatmap-partial-hatch) in the generated heatmap). */
+    .fos-util-heatmap-cell-overlay-partial {
+      fill: url(#fos-util-heatmap-partial-hatch);
+      pointer-events: none;
+    }
+
+    /* Pending Approvals list ----------------------------------------------- */
+    .fos-util-pending-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 480px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .fos-util-pending-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: var(--ag-surface2);
+      border: 1px solid var(--ag-border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border-color 0.12s ease, transform 0.12s ease;
+    }
+    .fos-util-pending-item:hover {
+      border-color: var(--ag-accent);
+      transform: translateX(2px);
+    }
+    .fos-util-pending-item .age-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: rgba(249, 199, 79, 0.18);
+      color: #f9c74f;
+      border: 1px solid rgba(249, 199, 79, 0.4);
+      text-transform: uppercase;
+    }
+    .fos-util-pending-item .age-badge.stale-crit {
+      background: rgba(252, 92, 101, 0.18);
+      color: #fc5c65;
+      border-color: rgba(252, 92, 101, 0.4);
+    }
+    .fos-util-pending-item .title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--ag-text);
+      line-height: 1.2;
+    }
+    .fos-util-pending-item .meta {
+      font-size: 0.74rem;
+      color: var(--ag-text-muted);
+      margin-top: 2px;
+    }
+    .fos-util-pending-item .hours {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--ag-text);
+    }
+    .fos-util-pending-empty {
+      padding: 20px 12px;
+      text-align: center;
+      color: var(--ag-text-muted);
+      font-style: italic;
+    }
+
+    /* Row-detail drawer ---------------------------------------------------- */
+    .fos-util-drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(6, 27, 48, 0.55);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      z-index: 1090;
+    }
+    .fos-util-drawer-backdrop.d-none {
+      display: none !important;
+    }
+    .fos-util-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: min(420px, 100%);
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      box-shadow: -20px 0 40px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      z-index: 1100;
+      transform: translateX(100%);
+      transition: transform 0.22s ease;
+    }
+    .fos-util-drawer.open {
+      transform: translateX(0);
+    }
+    .fos-util-drawer.d-none {
+      display: none !important;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .fos-util-drawer {
+        transition: none;
+      }
+    }
+    .fos-util-drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    .fos-util-drawer-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.6rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0 4px;
+    }
+    .fos-util-drawer-close:hover {
+      color: var(--accent);
+    }
+    .fos-util-drawer-body {
+      padding: 16px 20px;
+      overflow-y: auto;
+      flex: 1;
+      font-size: 0.85rem;
+      color: var(--text);
+    }
+    .fos-util-drawer-body dl {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 6px 12px;
+      margin: 0;
+    }
+    .fos-util-drawer-body dt {
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-size: 0.7rem;
+    }
+    .fos-util-drawer-body dd {
+      margin: 0;
+      color: var(--text);
+      word-break: break-word;
+    }
+    .fos-util-drawer-body dd.numeric {
+      font-variant-numeric: tabular-nums;
+    }
+    .fos-util-drawer-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+    .fos-util-drawer-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.84rem;
+    }
+    .fos-util-drawer-link:hover {
+      color: var(--text);
+      text-decoration: underline;
+    }
+    .fos-util-drawer-link.disabled {
+      pointer-events: none;
+      opacity: 0.4;
+    }
+
     /* Coming-soon stub now repurposed for the dashboard error state. */
     .fos-util-fetch-error {
       background: rgba(252, 92, 101, 0.1);
@@ -933,17 +1360,11 @@
         <div id="panel-agreement-dashboard" class="d-none fos-agreement-root">
           <div id="agreement-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
           <div class="fos-agreement-inner shadow-lg">
+            <div class="fos-loading-overlay d-none" id="agreement-loading" role="status" aria-live="polite" aria-hidden="true">
+              <div class="fos-loading-spinner" aria-hidden="true"></div>
+              <span class="fos-loading-label">Loading data…</span>
+            </div>
             <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
-              <img
-                src="https://harpin.ai/wp-content/uploads/logo.svg"
-                width="120"
-                height="32"
-                alt=""
-                decoding="async"
-                style="height: 32px; width: auto"
-                onerror="this.style.display='none'"
-              />
-              <div class="agreement-logo-sep" aria-hidden="true"></div>
               <div class="flex-grow-1 min-w-0">
                 <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Agreement Management Dashboard</h1>
                 <p class="small mb-0" id="agreement-subtitle" style="color: var(--ag-text-muted)">
@@ -1124,17 +1545,11 @@
         <div id="panel-operations" class="d-none fos-agreement-root">
           <div id="util-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
           <div class="fos-agreement-inner shadow-lg">
+            <div class="fos-loading-overlay d-none" id="util-loading" role="status" aria-live="polite" aria-hidden="true">
+              <div class="fos-loading-spinner" aria-hidden="true"></div>
+              <span class="fos-loading-label">Loading data…</span>
+            </div>
             <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
-              <img
-                src="https://harpin.ai/wp-content/uploads/logo.svg"
-                width="120"
-                height="32"
-                alt=""
-                decoding="async"
-                style="height: 32px; width: auto"
-                onerror="this.style.display='none'"
-              />
-              <div class="agreement-logo-sep" aria-hidden="true"></div>
               <div class="flex-grow-1 min-w-0">
                 <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Utilization Management Dashboard</h1>
                 <p class="small mb-0" id="util-subtitle" style="color: var(--ag-text-muted)">
@@ -1200,6 +1615,20 @@
                   </button>
                   <ul class="dropdown-menu" id="util-project-menu" aria-label="Project filter"></ul>
                 </div>
+                <div class="fos-util-multi">
+                  <label class="field-label">Persons</label>
+                  <button type="button" class="multi-trigger" id="util-person-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    All persons
+                  </button>
+                  <ul class="dropdown-menu" id="util-person-menu" aria-label="Person filter"></ul>
+                </div>
+                <div class="fos-util-multi">
+                  <label class="field-label">Roles</label>
+                  <button type="button" class="multi-trigger" id="util-role-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    All roles
+                  </button>
+                  <ul class="dropdown-menu" id="util-role-menu" aria-label="Role filter"></ul>
+                </div>
                 <div>
                   <label class="field-label">Billable</label>
                   <div class="btn-group" role="group" id="util-billable-group" aria-label="Billable filter">
@@ -1218,6 +1647,17 @@
                 <button type="button" class="fos-util-clear-btn ms-auto" id="util-clear-btn">Clear filters</button>
               </div>
               <div class="fos-util-chip-row mt-2" id="util-chip-row" aria-live="polite"></div>
+            </section>
+
+            <!-- Utilization Alerts (Phase C) — under-utilized / over-allocated /
+                 stale-approval items, mirrors the Agreement Dashboard's
+                 Attention Items pattern. -->
+            <section class="fos-section-card mb-3" aria-labelledby="util-attention-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="util-attention-heading" class="mb-0">Utilization alerts</h2>
+                <span class="small" style="color: var(--ag-text-muted)" id="util-attention-count">0 alerts</span>
+              </div>
+              <div id="util-attention-list" aria-live="polite"></div>
             </section>
 
             <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
@@ -1294,11 +1734,111 @@
                 </section>
               </div>
             </div>
+
+            <div class="row g-3 mt-1">
+              <div class="col-12 col-xl-5">
+                <section class="fos-section-card h-100" aria-labelledby="util-role-heading">
+                  <h2 id="util-role-heading">Hours by role</h2>
+                  <div class="fos-chart-wrap fos-util-chart-wrap" id="util-role-wrap"><canvas id="util-role-donut"></canvas></div>
+                </section>
+              </div>
+              <div class="col-12 col-xl-7">
+                <section class="fos-section-card h-100" aria-labelledby="util-person-heading">
+                  <h2 id="util-person-heading">Hours by person</h2>
+                  <div class="fos-chart-wrap fos-util-chart-wrap tall" id="util-person-wrap"><canvas id="util-person-bar"></canvas></div>
+                </section>
+              </div>
+            </div>
+
+            <!-- Heatmap + Pending Approvals (Phase C) -->
+            <div class="row g-3 mt-1">
+              <div class="col-12 col-xl-8">
+                <section class="fos-section-card h-100" aria-labelledby="util-heatmap-heading">
+                  <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <h2 id="util-heatmap-heading" class="mb-0">Utilization heatmap</h2>
+                    <span class="small" style="color: var(--ag-text-muted)" id="util-heatmap-meta">— · —</span>
+                    <div class="fos-util-multi ms-auto">
+                      <label class="field-label" style="display: block; line-height: 1; margin-bottom: 2px">Heatmap role</label>
+                      <button type="button" class="multi-trigger" id="util-heatmap-role-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                        All roles
+                      </button>
+                      <ul class="dropdown-menu" id="util-heatmap-role-menu" aria-label="Heatmap role filter"></ul>
+                    </div>
+                  </div>
+                  <div class="fos-util-heatmap-legend" id="util-heatmap-legend" aria-hidden="true"></div>
+                  <div class="fos-util-heatmap-wrap" id="util-heatmap-wrap">
+                    <svg id="util-heatmap-svg" role="img" aria-label="Per-person weekly utilization heatmap"></svg>
+                    <div class="fos-util-heatmap-empty d-none" id="util-heatmap-empty">No contributors match the current filter.</div>
+                  </div>
+                </section>
+              </div>
+              <div class="col-12 col-xl-4">
+                <section class="fos-section-card h-100" aria-labelledby="util-pending-heading">
+                  <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <h2 id="util-pending-heading" class="mb-0">Pending approvals</h2>
+                    <span class="small" style="color: var(--ag-text-muted)" id="util-pending-count">0 rows</span>
+                    <button type="button" class="fos-util-clear-btn ms-auto d-none" id="util-pending-show-all">Show all</button>
+                  </div>
+                  <div class="fos-util-pending-list" id="util-pending-list" aria-live="polite"></div>
+                  <div class="fos-util-pending-empty d-none" id="util-pending-empty">No pending rows match the current filter.</div>
+                </section>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+              <div class="col-12">
+                <section class="fos-section-card" aria-labelledby="util-detail-heading">
+                  <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <h2 id="util-detail-heading" class="mb-0">Detail entries</h2>
+                    <span class="small" style="color: var(--ag-text-muted)" id="util-detail-count">0 rows</span>
+                  </div>
+                  <div class="fos-util-detail-wrap">
+                    <table class="fos-util-detail-table">
+                      <thead>
+                        <tr>
+                          <th data-sort-key="day">Date <span class="sort-icon">↕</span></th>
+                          <th data-sort-key="userName">Person <span class="sort-icon">↕</span></th>
+                          <th data-sort-key="customer">Customer <span class="sort-icon">↕</span></th>
+                          <th data-sort-key="projectName">Project <span class="sort-icon">↕</span></th>
+                          <th data-sort-key="role">Role <span class="sort-icon">↕</span></th>
+                          <th data-sort-key="hours" class="text-end">Hours <span class="sort-icon">↕</span></th>
+                          <th data-sort-key="cost" class="text-end">Cost <span class="sort-icon">↕</span></th>
+                          <th data-sort-key="userRoleBillRate" class="text-end">Bill rate <span class="sort-icon">↕</span></th>
+                          <th data-sort-key="approval">Approval <span class="sort-icon">↕</span></th>
+                        </tr>
+                      </thead>
+                      <tbody id="util-detail-tbody"></tbody>
+                    </table>
+                  </div>
+                  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-2 fos-util-detail-pager">
+                    <span class="small" style="color: var(--ag-text-muted)" id="util-detail-page-info">—</span>
+                    <div class="btn-group" role="group" aria-label="Detail pagination">
+                      <button type="button" class="btn btn-sm" id="util-detail-prev">Prev</button>
+                      <button type="button" class="btn btn-sm" id="util-detail-next">Next</button>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </div>
           </div>
         </div>
       </main>
     </div>
   </div>
+
+  <!-- Phase C — Row-detail drawer (off-canvas right). Opened from the Detail
+       Table or the Pending Approvals widget; populated by openDetailDrawer(). -->
+  <div class="fos-util-drawer-backdrop d-none" id="util-drawer-backdrop" aria-hidden="true"></div>
+  <aside id="util-detail-drawer" class="fos-util-drawer d-none" role="dialog" aria-modal="true" aria-labelledby="util-drawer-title" aria-hidden="true" tabindex="-1">
+    <div class="fos-util-drawer-header">
+      <h2 id="util-drawer-title" class="h6 mb-0 fw-bold">Labor entry</h2>
+      <button type="button" class="fos-util-drawer-close" id="util-drawer-close" aria-label="Close drawer">×</button>
+    </div>
+    <div class="fos-util-drawer-body" id="util-drawer-body"></div>
+    <div class="fos-util-drawer-footer">
+      <a id="util-drawer-fibery-link" class="fos-util-drawer-link" target="_blank" rel="noopener" href="#">Open in Fibery →</a>
+    </div>
+  </aside>
 
   <div
     class="modal fade fos-modal"
@@ -1335,8 +1875,14 @@
       var AGREEMENT_CACHE_SCHEMA_VERSION = 2;
       var AGREEMENT_TTL_PREF_KEY = 'fos_agreement_dashboard_ttl_minutes_v1';
       var UTIL_CACHE_KEY = 'fos_utilization_dashboard_v1';
-      var UTIL_CACHE_SCHEMA_VERSION = 1;
+      // v2 (PRD 1.14.0) adds aggregates.byPersonWeek + alerts[]. Clients
+      // carrying a v1 payload from a prior session will silently drop their
+      // cache and refetch on first open.
+      var UTIL_CACHE_SCHEMA_VERSION = 2;
       var UTIL_TTL_PREF_KEY = 'fos_utilization_dashboard_ttl_minutes_v1';
+      var UTIL_FILTERS_PREF_KEY = 'fos_utilization_filters_v1';
+      var UTIL_FILTERS_SCHEMA_VERSION = 1;
+      var UTIL_DETAIL_PAGE_SIZE = 100;
       var DEFAULT_TTL_MINUTES = 10;
       var SESSION_ID_KEY = 'fos_session_id_v1';
       var ACTIVITY_THROTTLE_MS = 250;
@@ -1350,21 +1896,46 @@
       var chartInstances = {
         status: null, type: null, recognition: null, customer: null,
         utilCustomer: null, utilProject: null, utilWeekly: null, utilBillable: null,
+        utilRole: null, utilPerson: null,
       };
       var currentTablePayload = null;
       var currentTab = 'allActive';
 
-      // Utilization dashboard client state (Phase A).
+      // Utilization dashboard client state (Phase A + Phase B).
       var utilState = {
         payload: null,         // last server payload (rows + KPIs + dimensions + aggregates)
         filters: {
           customers: {},       // Set as {name: true}
           projects: {},        // Set as {projectKey: true} where projectKey = id || 'name::' + name
+          persons: {},         // Phase B — Set as {personKey: true} where personKey = userId || userName || '(Unknown user)'
+          roles: {},           // Phase B — Set as {roleName: true}
           billable: 'all',     // 'all' | 'billable' | 'non-billable'
           internalLabor: 'include', // 'include' | 'exclude'
           rangeDays: 90,       // preset value or null when custom
           rangeStartIso: null, // populated for 'custom' preset
           rangeEndIso: null,
+        },
+        // Phase B — Detail table sort + pagination state.
+        detail: {
+          sortKey: 'day',         // server-normalized row column key
+          sortDir: 'desc',        // 'asc' | 'desc'
+          page: 0,                // 0-indexed page
+          pageSize: UTIL_DETAIL_PAGE_SIZE,
+        },
+        // Phase C — heatmap-local Role multi-select (distinct from the global
+        // Role filter; lets the user scope the heatmap to engineering / data
+        // science / etc. without disturbing the rest of the dashboard).
+        heatmap: {
+          roleFilter: {},         // {roleName: true}
+        },
+        // Phase C — Pending Approvals widget state.
+        pending: {
+          showAll: false,         // default cap = 50 rows
+        },
+        // Phase C — Row-detail drawer state.
+        detailDrawer: {
+          open: false,
+          rowId: null,
         },
       };
 
@@ -1477,6 +2048,7 @@
         agreementFetchError: document.getElementById('agreement-fetch-error'),
         agreementSubtitle: document.getElementById('agreement-subtitle'),
         agreementWarn: document.getElementById('agreement-warn'),
+        agreementLoading: document.getElementById('agreement-loading'),
         kpiMarginCard: document.getElementById('kpi-margin-card'),
         ttlSelect: document.getElementById('agreement-ttl-select'),
         staleBadge: document.getElementById('agreement-stale-badge'),
@@ -1486,6 +2058,7 @@
         utilFetchError: document.getElementById('util-fetch-error'),
         utilSubtitle: document.getElementById('util-subtitle'),
         utilWarn: document.getElementById('util-warn'),
+        utilLoading: document.getElementById('util-loading'),
         utilTtlSelect: document.getElementById('util-ttl-select'),
         utilStaleBadge: document.getElementById('util-stale-badge'),
         utilRangePreset: document.getElementById('util-range-preset'),
@@ -1497,10 +2070,37 @@
         utilCustomerTrigger: document.getElementById('util-customer-trigger'),
         utilProjectMenu: document.getElementById('util-project-menu'),
         utilProjectTrigger: document.getElementById('util-project-trigger'),
+        utilPersonMenu: document.getElementById('util-person-menu'),
+        utilPersonTrigger: document.getElementById('util-person-trigger'),
+        utilRoleMenu: document.getElementById('util-role-menu'),
+        utilRoleTrigger: document.getElementById('util-role-trigger'),
         utilBillableGroup: document.getElementById('util-billable-group'),
         utilInternalGroup: document.getElementById('util-internal-group'),
         utilClearBtn: document.getElementById('util-clear-btn'),
         utilChipRow: document.getElementById('util-chip-row'),
+        utilDetailTbody: document.getElementById('util-detail-tbody'),
+        utilDetailCount: document.getElementById('util-detail-count'),
+        utilDetailPageInfo: document.getElementById('util-detail-page-info'),
+        utilDetailPrev: document.getElementById('util-detail-prev'),
+        utilDetailNext: document.getElementById('util-detail-next'),
+        // Phase C — Alerts / Heatmap / Pending Approvals / Drawer.
+        utilAttentionList: document.getElementById('util-attention-list'),
+        utilAttentionCount: document.getElementById('util-attention-count'),
+        utilHeatmapSvg: document.getElementById('util-heatmap-svg'),
+        utilHeatmapLegend: document.getElementById('util-heatmap-legend'),
+        utilHeatmapMeta: document.getElementById('util-heatmap-meta'),
+        utilHeatmapEmpty: document.getElementById('util-heatmap-empty'),
+        utilHeatmapRoleMenu: document.getElementById('util-heatmap-role-menu'),
+        utilHeatmapRoleTrigger: document.getElementById('util-heatmap-role-trigger'),
+        utilPendingList: document.getElementById('util-pending-list'),
+        utilPendingCount: document.getElementById('util-pending-count'),
+        utilPendingShowAll: document.getElementById('util-pending-show-all'),
+        utilPendingEmpty: document.getElementById('util-pending-empty'),
+        utilDrawer: document.getElementById('util-detail-drawer'),
+        utilDrawerBackdrop: document.getElementById('util-drawer-backdrop'),
+        utilDrawerBody: document.getElementById('util-drawer-body'),
+        utilDrawerClose: document.getElementById('util-drawer-close'),
+        utilDrawerFiberyLink: document.getElementById('util-drawer-fibery-link'),
         settingsLink: document.getElementById('settings-link'),
         comingSoonModal: document.getElementById('comingSoonModal'),
         csBody: document.getElementById('cs-body'),
@@ -1607,6 +2207,39 @@
           return Date.now() - fetched > ttlMinutes * 60 * 1000;
         } catch (e) {
           return false;
+        }
+      }
+
+      // Tracks the fetchedAt timestamp that each dashboard's DOM currently
+      // reflects. Used by showAgreementDashboard() / showOperations() to skip
+      // a full re-render when the user just toggles back to a panel whose
+      // cached payload is identical to what's already on screen. v1.13.1.
+      var agreementRenderState = { lastRenderedFetchedAt: null };
+      var utilRenderState = { lastRenderedFetchedAt: null };
+
+      function setAgreementLoading(on) {
+        if (!els.agreementLoading) {
+          return;
+        }
+        if (on) {
+          els.agreementLoading.classList.remove('d-none');
+          els.agreementLoading.setAttribute('aria-hidden', 'false');
+        } else {
+          els.agreementLoading.classList.add('d-none');
+          els.agreementLoading.setAttribute('aria-hidden', 'true');
+        }
+      }
+
+      function setUtilLoading(on) {
+        if (!els.utilLoading) {
+          return;
+        }
+        if (on) {
+          els.utilLoading.classList.remove('d-none');
+          els.utilLoading.setAttribute('aria-hidden', 'false');
+        } else {
+          els.utilLoading.classList.add('d-none');
+          els.utilLoading.setAttribute('aria-hidden', 'true');
         }
       }
 
@@ -2273,6 +2906,10 @@
             els.staleBadge.classList.add('d-none');
           }
         }
+
+        // Remember which payload the DOM now reflects so subsequent panel
+        // switches can skip a redundant re-render (v1.13.1).
+        agreementRenderState.lastRenderedFetchedAt = data.fetchedAt || null;
       }
 
       function fetchAgreementFromServer() {
@@ -2280,8 +2917,10 @@
           els.agreementRefreshBtn.disabled = true;
         }
         els.agreementFetchError.classList.add('d-none');
+        setAgreementLoading(true);
         google.script.run
           .withSuccessHandler(function (data) {
+            setAgreementLoading(false);
             if (els.agreementRefreshBtn) {
               els.agreementRefreshBtn.disabled = false;
             }
@@ -2294,6 +2933,7 @@
             applyAgreementPayload(data);
           })
           .withFailureHandler(function (err) {
+            setAgreementLoading(false);
             if (els.agreementRefreshBtn) {
               els.agreementRefreshBtn.disabled = false;
             }
@@ -2377,7 +3017,16 @@
         var cached = readAgreementCache();
         var ttlMinutes = readTtlMinutes();
         if (cached) {
-          applyAgreementPayload(cached);
+          // Skip the re-render when the cached payload is identical to what
+          // the DOM already shows. Prevents Chart.js / Sankey churn when the
+          // user toggles back to the Agreement Dashboard tab. v1.13.1.
+          var alreadyRendered =
+            agreementRenderState.lastRenderedFetchedAt &&
+            cached.fetchedAt &&
+            agreementRenderState.lastRenderedFetchedAt === cached.fetchedAt;
+          if (!alreadyRendered) {
+            applyAgreementPayload(cached);
+          }
           if (ttlMinutes > 0 && isCacheStale(cached, ttlMinutes)) {
             // Render the stale data immediately, then quietly refresh in the background.
             fetchAgreementFromServer();
@@ -2465,22 +3114,36 @@
         var f = utilState.filters;
         if (setFromKeys(f.customers).length) return true;
         if (setFromKeys(f.projects).length) return true;
+        if (setFromKeys(f.persons).length) return true;
+        if (setFromKeys(f.roles).length) return true;
         if (f.billable !== 'all') return true;
         if (f.internalLabor !== 'include') return true;
         return false;
+      }
+      function personKeyForRow_(r) {
+        return r.userId || r.userName || '(Unknown user)';
+      }
+      function roleKeyForRow_(r) {
+        return r.userRole || r.clockifyUserRole || '(No role)';
       }
       function applyFilters(rows) {
         var f = utilState.filters;
         var customers = f.customers;
         var projects = f.projects;
+        var persons = f.persons;
+        var roles = f.roles;
         var hasCustomerFilter = setFromKeys(customers).length > 0;
         var hasProjectFilter = setFromKeys(projects).length > 0;
+        var hasPersonFilter = setFromKeys(persons).length > 0;
+        var hasRoleFilter = setFromKeys(roles).length > 0;
         var out = [];
         for (var i = 0; i < rows.length; i++) {
           var r = rows[i];
           if (hasCustomerFilter && !customers[r.customer]) continue;
           var projectKey = r.projectId ? r.projectId : ('name::' + r.projectName);
           if (hasProjectFilter && !projects[projectKey]) continue;
+          if (hasPersonFilter && !persons[personKeyForRow_(r)]) continue;
+          if (hasRoleFilter && !roles[roleKeyForRow_(r)]) continue;
           if (f.billable === 'billable' && !r.billable) continue;
           if (f.billable === 'non-billable' && r.billable) continue;
           if (f.internalLabor === 'exclude' && r.isInternal) continue;
@@ -2577,8 +3240,24 @@
           function (item) { return item.name + ' · ' + (item.customer || '—'); },
           utilState.filters.projects
         );
+        populateMultiMenu(
+          els.utilPersonMenu,
+          (dimensions && dimensions.persons) || [],
+          function (item) { return item.id || item.name || '(Unknown user)'; },
+          function (item) { return (item.name || '(Unknown user)') + ' · ' + formatHours(item.hours || 0) + 'h'; },
+          utilState.filters.persons
+        );
+        populateMultiMenu(
+          els.utilRoleMenu,
+          (dimensions && dimensions.roles) || [],
+          function (item) { return item.name; },
+          function (item) { return item.name + ' · ' + formatHours(item.hours || 0) + 'h'; },
+          utilState.filters.roles
+        );
         updateMultiTriggerLabel(els.utilCustomerTrigger, 'All customers', 'customer', utilState.filters.customers);
         updateMultiTriggerLabel(els.utilProjectTrigger, 'All projects', 'project', utilState.filters.projects);
+        updateMultiTriggerLabel(els.utilPersonTrigger, 'All persons', 'person', utilState.filters.persons);
+        updateMultiTriggerLabel(els.utilRoleTrigger, 'All roles', 'role', utilState.filters.roles);
       }
 
       function populateMultiMenu(menu, items, keyFn, labelFn, selectedMap) {
@@ -2664,6 +3343,30 @@
             });
           })(projKeys[j]);
         }
+        var personKeys = setFromKeys(f.persons);
+        var personIndex = buildPersonKeyIndex_();
+        for (var pi = 0; pi < personKeys.length; pi++) {
+          (function (k) {
+            var displayName = personIndex[k] || k;
+            addChip('Person: ' + displayName, function () {
+              delete f.persons[k];
+              populateFilterDropdowns(utilState.payload ? utilState.payload.dimensions : null);
+              renderUtilDashboard();
+              logActivity_('util_filter', 'operations', 'remove_person');
+            });
+          })(personKeys[pi]);
+        }
+        var roleKeys = setFromKeys(f.roles);
+        for (var ri = 0; ri < roleKeys.length; ri++) {
+          (function (k) {
+            addChip('Role: ' + k, function () {
+              delete f.roles[k];
+              populateFilterDropdowns(utilState.payload ? utilState.payload.dimensions : null);
+              renderUtilDashboard();
+              logActivity_('util_filter', 'operations', 'remove_role');
+            });
+          })(roleKeys[ri]);
+        }
         if (f.billable !== 'all') {
           (function () {
             var lbl = f.billable === 'billable' ? 'Billable only' : 'Non-billable only';
@@ -2693,6 +3396,27 @@
           var p = projs[i];
           var k = p.id ? p.id : ('name::' + p.name);
           idx[k] = p.name;
+        }
+        return idx;
+      }
+      function buildPersonKeyIndex_() {
+        var idx = {};
+        if (!utilState.payload || !utilState.payload.dimensions) return idx;
+        var persons = utilState.payload.dimensions.persons || [];
+        for (var i = 0; i < persons.length; i++) {
+          var p = persons[i];
+          var k = p.id || p.name || '(Unknown user)';
+          idx[k] = p.name || k;
+        }
+        return idx;
+      }
+      function buildRoleColorIndex_() {
+        var idx = {};
+        if (!utilState.payload || !utilState.payload.dimensions) return idx;
+        var roles = utilState.payload.dimensions.roles || [];
+        for (var i = 0; i < roles.length; i++) {
+          var r = roles[i];
+          if (r && r.name) idx[r.name] = r.color || '#52C9E5';
         }
         return idx;
       }
@@ -2922,6 +3646,131 @@
         });
       }
 
+      function renderUtilRoleDonut(rows, dimensions) {
+        var Chart = window.Chart;
+        if (!Chart) return;
+        destroyUtilChart('utilRole');
+        var ctx = document.getElementById('util-role-donut');
+        if (!ctx) return;
+        var roleColors = buildRoleColorIndex_();
+        var agg = groupHoursBy(rows, function (r) {
+          return r.userRole || r.clockifyUserRole || '(No role)';
+        });
+        if (!agg.length) {
+          // Render an empty donut placeholder so the canvas doesn't collapse.
+          chartInstances.utilRole = new Chart(ctx, {
+            type: 'doughnut',
+            data: { labels: ['No data'], datasets: [{ data: [1], backgroundColor: ['#1a4060'], borderColor: 'transparent' }] },
+            options: chartCommonOptions(),
+          });
+          return;
+        }
+        var labels = agg.map(function (a) { return a.name; });
+        var values = agg.map(function (a) { return a.hours; });
+        var colors = agg.map(function (a) { return roleColors[a.name] || '#52C9E5'; });
+        var selected = utilState.filters.roles;
+        var borderWidths = agg.map(function (a) { return selected[a.name] ? 3 : 1; });
+        var borderColors = agg.map(function (a) { return selected[a.name] ? '#FFFEFC' : 'rgba(255,255,255,0.06)'; });
+        var opts = chartCommonOptions();
+        opts.cutout = '60%';
+        opts.plugins.legend.position = 'right';
+        opts.plugins.legend.labels = { color: '#a0aec0', boxWidth: 12, font: { size: 11 } };
+        opts.plugins.tooltip.callbacks = {
+          label: function (c) {
+            var total = values.reduce(function (s, v) { return s + Number(v || 0); }, 0);
+            var pct = total > 0 ? Math.round((Number(c.parsed || 0) / total) * 100) : 0;
+            return c.label + ': ' + formatHours(c.parsed) + 'h · ' + pct + '%';
+          },
+        };
+        opts.onClick = function (evt, elsArr) {
+          if (!elsArr || !elsArr.length) return;
+          var idx = elsArr[0].index;
+          toggleRoleFilter(labels[idx]);
+        };
+        chartInstances.utilRole = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: values,
+              backgroundColor: colors,
+              borderWidth: borderWidths,
+              borderColor: borderColors,
+              hoverOffset: 6,
+            }],
+          },
+          options: opts,
+        });
+      }
+
+      function renderUtilPersonBar(rows, dimensions) {
+        var Chart = window.Chart;
+        if (!Chart) return;
+        destroyUtilChart('utilPerson');
+        var ctx = document.getElementById('util-person-bar');
+        if (!ctx) return;
+        var roleColors = buildRoleColorIndex_();
+        var agg = groupHoursBy(rows, function (r) {
+          return personKeyForRow_(r);
+        }, function (r, key) {
+          return {
+            key: key,
+            name: r.userName || key,
+            id: r.userId || null,
+            role: r.userRole || r.clockifyUserRole || '(No role)',
+            hours: 0,
+            billableHours: 0,
+          };
+        }).slice(0, 20);
+        var labels = agg.map(function (a) { return a.name; });
+        var values = agg.map(function (a) { return a.hours; });
+        var colors = agg.map(function (a) { return roleColors[a.role] || '#52C9E5'; });
+        var selected = utilState.filters.persons;
+        var opts = chartCommonOptions();
+        opts.indexAxis = 'y';
+        opts.plugins.legend.display = false;
+        opts.scales = {
+          x: { ticks: { color: '#a0aec0', callback: function (v) { return formatHours(v); } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          y: { ticks: { color: '#a0aec0', autoSkip: false }, grid: { display: false } },
+        };
+        opts.plugins.tooltip.callbacks = {
+          title: function (items) {
+            if (!items || !items.length) return '';
+            var i = items[0].dataIndex;
+            return agg[i].name;
+          },
+          label: function (c) {
+            var i = c.dataIndex;
+            var billable = agg[i].billableHours || 0;
+            var total = agg[i].hours || 0;
+            var pct = total > 0 ? Math.round((billable / total) * 100) : 0;
+            return [
+              formatHours(total) + ' hours',
+              'Billable: ' + formatHours(billable) + 'h · ' + pct + '%',
+              'Role: ' + (agg[i].role || '—'),
+            ];
+          },
+        };
+        opts.onClick = function (evt, elsArr) {
+          if (!elsArr || !elsArr.length) return;
+          var i = elsArr[0].index;
+          togglePersonFilter(agg[i].key, agg[i].name);
+        };
+        chartInstances.utilPerson = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: values,
+              backgroundColor: colors,
+              borderWidth: agg.map(function (a) { return selected[a.key] ? 2 : 0; }),
+              borderColor: '#FFFEFC',
+            }],
+          },
+          options: opts,
+        });
+      }
+
       // Drill / toggle helpers ----------------------------------------------
       function toggleCustomerFilter(name) {
         if (!name) return;
@@ -2941,6 +3790,24 @@
         renderUtilDashboard();
         logActivity_('util_drill', 'operations', 'project=' + String(label || key).slice(0, 80));
       }
+      function togglePersonFilter(key, label) {
+        if (!key) return;
+        var f = utilState.filters.persons;
+        if (f[key]) delete f[key];
+        else f[key] = true;
+        populateFilterDropdowns(utilState.payload ? utilState.payload.dimensions : null);
+        renderUtilDashboard();
+        logActivity_('util_drill', 'operations', 'person=' + String(label || key).slice(0, 80));
+      }
+      function toggleRoleFilter(name) {
+        if (!name) return;
+        var f = utilState.filters.roles;
+        if (f[name]) delete f[name];
+        else f[name] = true;
+        populateFilterDropdowns(utilState.payload ? utilState.payload.dimensions : null);
+        renderUtilDashboard();
+        logActivity_('util_drill', 'operations', 'role=' + name.slice(0, 80));
+      }
       function toggleBillableFromChart(value) {
         var f = utilState.filters;
         f.billable = (f.billable === value) ? 'all' : value;
@@ -2959,21 +3826,792 @@
         renderChipBar();
         updateMultiTriggerLabel(els.utilCustomerTrigger, 'All customers', 'customer', utilState.filters.customers);
         updateMultiTriggerLabel(els.utilProjectTrigger, 'All projects', 'project', utilState.filters.projects);
+        updateMultiTriggerLabel(els.utilPersonTrigger, 'All persons', 'person', utilState.filters.persons);
+        updateMultiTriggerLabel(els.utilRoleTrigger, 'All roles', 'role', utilState.filters.roles);
         var subtitle =
           formatHours(kpis.totalHours) + ' hours · ' + kpis.rowCount + ' entries · range ' +
           rangeLabel(p.range);
         if (els.utilSubtitle) els.utilSubtitle.textContent = subtitle;
+        renderUtilDetailTable(rows);
+        // Phase C — Alerts panel (uses server-precomputed alerts from the
+        // payload; doesn't depend on the active filter set), Heatmap (honors
+        // global filters + heatmap-local Role filter), Pending Approvals
+        // widget (honors active filter set).
+        renderUtilizationAlerts(p.alerts || []);
+        renderUtilHeatmap();
+        renderPendingApprovals(rows);
         loadChartJs()
           .then(function () {
             renderUtilCustomerBar(rows, p.dimensions);
             renderUtilProjectBar(rows, p.dimensions);
             renderUtilWeeklyLine(rows);
             renderUtilBillableStack(rows);
+            renderUtilRoleDonut(rows, p.dimensions);
+            renderUtilPersonBar(rows, p.dimensions);
           })
           .catch(function (e) {
             els.utilFetchError.textContent = e && e.message ? e.message : 'Could not load charts.';
             els.utilFetchError.classList.remove('d-none');
           });
+        persistUtilFilters_();
+      }
+
+      // Detail Table (Phase B §N.12) ---------------------------------------
+      function detailRowValue_(row, key) {
+        switch (key) {
+          case 'day':
+            return row.day || row.startDateTime || '';
+          case 'role':
+            return row.userRole || row.clockifyUserRole || '';
+          case 'approval':
+            return row.approval || row.timeEntryStatus || '';
+          case 'hours':
+          case 'cost':
+            return Number(row[key] || 0);
+          case 'userRoleBillRate':
+            // null values sort to the bottom on desc by treating them as -Infinity.
+            return row.userRoleBillRate === null || row.userRoleBillRate === undefined
+              ? null
+              : Number(row.userRoleBillRate);
+          default:
+            return row[key] == null ? '' : row[key];
+        }
+      }
+      function compareDetail_(a, b, key, dir) {
+        var av = detailRowValue_(a, key);
+        var bv = detailRowValue_(b, key);
+        var dirMul = dir === 'asc' ? 1 : -1;
+        var aMissing = av === null || av === undefined || av === '';
+        var bMissing = bv === null || bv === undefined || bv === '';
+        if (aMissing && bMissing) return 0;
+        if (aMissing) return 1; // missing always sorts to the bottom regardless of dir
+        if (bMissing) return -1;
+        if (typeof av === 'number' && typeof bv === 'number') {
+          return (av - bv) * dirMul;
+        }
+        return String(av).localeCompare(String(bv)) * dirMul;
+      }
+      function approvalPillHtml_(row) {
+        var label = row.approval || row.timeEntryStatus || '—';
+        var cls = 'fos-util-pill fos-util-pill-unknown';
+        var norm = String(label).toLowerCase();
+        if (norm === 'approved') cls = 'fos-util-pill fos-util-pill-approved';
+        else if (norm === 'pending' || norm === 'not_submitted' || row.isPending) cls = 'fos-util-pill fos-util-pill-pending';
+        else if (norm === 'unapproved') cls = 'fos-util-pill fos-util-pill-unapproved';
+        return '<span class="' + cls + '">' + escapeHtml(label) + '</span>';
+      }
+      function renderUtilDetailTable(rows) {
+        var tbody = els.utilDetailTbody;
+        if (!tbody) return;
+        var s = utilState.detail;
+
+        // Update header sort indicators.
+        var thead = tbody.parentNode ? tbody.parentNode.querySelector('thead') : null;
+        if (thead) {
+          var ths = thead.querySelectorAll('th[data-sort-key]');
+          for (var ti = 0; ti < ths.length; ti++) {
+            var th = ths[ti];
+            var icon = th.querySelector('.sort-icon');
+            if (th.getAttribute('data-sort-key') === s.sortKey) {
+              th.classList.add('sort-active');
+              if (icon) icon.textContent = s.sortDir === 'asc' ? '▲' : '▼';
+            } else {
+              th.classList.remove('sort-active');
+              if (icon) icon.textContent = '↕';
+            }
+          }
+        }
+
+        var sortedRows = rows.slice();
+        var sortKey = s.sortKey;
+        var sortDir = s.sortDir;
+        sortedRows.sort(function (a, b) { return compareDetail_(a, b, sortKey, sortDir); });
+
+        var total = sortedRows.length;
+        var pageSize = s.pageSize > 0 ? s.pageSize : UTIL_DETAIL_PAGE_SIZE;
+        var pageCount = Math.max(1, Math.ceil(total / pageSize));
+        if (s.page >= pageCount) s.page = pageCount - 1;
+        if (s.page < 0) s.page = 0;
+        var startIdx = s.page * pageSize;
+        var endIdx = Math.min(startIdx + pageSize, total);
+
+        // Render rows.
+        var html = '';
+        if (!total) {
+          html = '<tr><td colspan="9" class="fos-util-detail-empty">No rows match the current filters.</td></tr>';
+        } else {
+          for (var i = startIdx; i < endIdx; i++) {
+            var r = sortedRows[i];
+            var day = r.day || (r.startDateTime ? String(r.startDateTime).slice(0, 10) : '—');
+            var role = r.userRole || r.clockifyUserRole || '—';
+            var billRate = (r.userRoleBillRate === null || r.userRoleBillRate === undefined)
+              ? '—'
+              : formatRate(r.userRoleBillRate);
+            // data-row-id wires the Phase C drawer click (handled at the
+            // tbody level; rows render with cursor:pointer via CSS hint).
+            html +=
+              '<tr data-row-id="' + escapeHtml(r.id || '') + '" style="cursor: pointer">' +
+                '<td>' + escapeHtml(day) + '</td>' +
+                '<td>' + escapeHtml(r.userName || '—') + '</td>' +
+                '<td>' + escapeHtml(r.customer || '(Unassigned)') + '</td>' +
+                '<td>' + escapeHtml(r.projectName || '—') + '</td>' +
+                '<td>' + escapeHtml(role) + '</td>' +
+                '<td class="text-end">' + escapeHtml(formatHours(r.hours)) + '</td>' +
+                '<td class="text-end">' + escapeHtml(formatMoneyCompact(r.cost || 0)) + '</td>' +
+                '<td class="text-end">' + escapeHtml(billRate) + '</td>' +
+                '<td>' + approvalPillHtml_(r) + '</td>' +
+              '</tr>';
+          }
+        }
+        tbody.innerHTML = html;
+
+        if (els.utilDetailCount) {
+          els.utilDetailCount.textContent = total + (total === 1 ? ' row' : ' rows');
+        }
+        if (els.utilDetailPageInfo) {
+          if (!total) {
+            els.utilDetailPageInfo.textContent = '—';
+          } else {
+            els.utilDetailPageInfo.textContent =
+              (startIdx + 1) + '–' + endIdx + ' of ' + total +
+              ' · page ' + (s.page + 1) + ' of ' + pageCount;
+          }
+        }
+        if (els.utilDetailPrev) els.utilDetailPrev.disabled = s.page <= 0;
+        if (els.utilDetailNext) els.utilDetailNext.disabled = s.page >= pageCount - 1;
+      }
+
+      /* ====================================================================
+         Phase C (v1.14.0) — Alerts panel · Utilization heatmap · Pending
+         Approvals widget · Row-detail drawer.
+         ==================================================================== */
+
+      // Phase C — Default visible pending-approvals cap; "Show all" expands.
+      var UTIL_PENDING_DEFAULT_LIMIT = 50;
+      // Phase C — Heatmap row cap (default Script Property
+      // UTILIZATION_HEATMAP_TOP_N_PERSONS = 30). Defined here so the client
+      // doesn't have to round-trip the server config.
+      var UTIL_HEATMAP_TOP_N_PERSONS = 30;
+      // Phase C — Approximate week width when computing the heatmap viewBox.
+      var UTIL_HEATMAP_CELL_W = 28;
+      var UTIL_HEATMAP_CELL_H = 22;
+      var UTIL_HEATMAP_GUTTER = 2;
+      var UTIL_HEATMAP_LABEL_W = 160;
+      var UTIL_HEATMAP_HEADER_H = 26;
+
+      // Phase C — Alerts panel ----------------------------------------------
+      function renderUtilizationAlerts(alerts) {
+        var list = els.utilAttentionList;
+        if (!list) return;
+        list.innerHTML = '';
+        alerts = alerts || [];
+        if (els.utilAttentionCount) {
+          els.utilAttentionCount.textContent =
+            alerts.length + (alerts.length === 1 ? ' alert' : ' alerts');
+        }
+        for (var i = 0; i < alerts.length; i++) {
+          var a = alerts[i];
+          var item = document.createElement('div');
+          item.className = 'fos-attention-item sev-' + (a.severity || 'info');
+          var icon = a.severity === 'critical' ? '🔴' : a.severity === 'warning' ? '🟡' : '🟢';
+          item.innerHTML =
+            '<span class="sev-icon" aria-hidden="true">' + icon + '</span>' +
+            '<div class="flex-grow-1 min-w-0">' +
+              '<div class="title">' + escapeHtml(a.title || '') + '</div>' +
+              '<div class="body">' + escapeHtml(a.body || '') + '</div>' +
+            '</div>';
+          (function (alert) {
+            item.addEventListener('click', function () {
+              handleUtilAlertClick_(alert);
+            });
+            // Hover style is already supplied by `.fos-attention-item.sev-*`;
+            // pointer affordance is added here.
+            item.style.cursor = 'pointer';
+          })(a);
+          list.appendChild(item);
+        }
+      }
+      function handleUtilAlertClick_(alert) {
+        if (!alert) return;
+        logActivity_(
+          'util_alert_click',
+          'operations',
+          'severity=' + (alert.severity || '?') + ' · kind=' + (alert.kind || '?')
+        );
+        // v1.14.1 — stale-approval rollup card scrolls the user to the
+        // Pending Approvals widget and expands its Show all toggle so the
+        // long tail is immediately reachable.
+        if (alert.kind === 'stale_approval_rollup') {
+          utilState.pending.showAll = true;
+          var p = utilState.payload;
+          if (p) renderPendingApprovals(applyFilters(p.rows || []));
+          var heading = document.getElementById('util-pending-heading');
+          if (heading && heading.scrollIntoView) {
+            heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+          return;
+        }
+        if (alert.target && alert.target.rowId) {
+          openDetailDrawer(alert.target.rowId, 'alert');
+          return;
+        }
+        if (alert.target && alert.target.person) {
+          // Pin the global Person filter so the rest of the dashboard re-aggregates
+          // to that person; same UX as clicking their bar in §N.7.
+          var personKey = alert.target.person;
+          utilState.filters.persons[personKey] = true;
+          populateFilterDropdowns(utilState.payload ? utilState.payload.dimensions : null);
+          renderUtilDashboard();
+        }
+      }
+
+      // Phase C — Heatmap-local Role filter ---------------------------------
+      function populateHeatmapRoleMenu(roleDimensions) {
+        var menu = els.utilHeatmapRoleMenu;
+        if (!menu) return;
+        var items = (roleDimensions || []).slice().sort(function (a, b) {
+          return Number(b.hours || 0) - Number(a.hours || 0);
+        });
+        populateMultiMenu(
+          menu,
+          items,
+          function (r) { return r.name; },
+          function (r) { return r.name + ' · ' + formatHours(r.hours) + ' hrs'; },
+          utilState.heatmap.roleFilter
+        );
+        updateMultiTriggerLabel(els.utilHeatmapRoleTrigger, 'All roles', 'role', utilState.heatmap.roleFilter);
+        // populateMultiMenu wires checkbox change → renderUtilDashboard(), which
+        // will re-render the rest of the panel needlessly. Override the change
+        // listeners here so the heatmap role filter only repaints the heatmap.
+        var inputs = menu.querySelectorAll('input[type="checkbox"]');
+        for (var i = 0; i < inputs.length; i++) {
+          (function (input, key) {
+            // Replace populateMultiMenu's listener with a heatmap-scoped one.
+            var fresh = input.cloneNode(true);
+            input.parentNode.replaceChild(fresh, input);
+            fresh.addEventListener('change', function () {
+              if (fresh.checked) utilState.heatmap.roleFilter[key] = true;
+              else delete utilState.heatmap.roleFilter[key];
+              updateMultiTriggerLabel(els.utilHeatmapRoleTrigger, 'All roles', 'role', utilState.heatmap.roleFilter);
+              renderUtilHeatmap();
+              logActivity_('util_heatmap_role', 'operations',
+                (fresh.checked ? 'add ' : 'remove ') + key);
+            });
+          })(inputs[i], items[i] ? items[i].name : '');
+        }
+      }
+
+      // Phase C — Heatmap renderer ------------------------------------------
+      function renderUtilHeatmap() {
+        var p = utilState.payload;
+        if (!p || !els.utilHeatmapSvg) return;
+        var byPersonWeek = (p.aggregates && p.aggregates.byPersonWeek) || [];
+        var heatmapRoles = setFromKeys(utilState.heatmap.roleFilter);
+        var hasHeatmapRoleFilter = heatmapRoles.length > 0;
+        var heatmapRoleSet = {};
+        for (var hi = 0; hi < heatmapRoles.length; hi++) {
+          heatmapRoleSet[heatmapRoles[hi]] = true;
+        }
+        // Apply the global Customer / Person / Internal-labor / Billable
+        // filters to byPersonWeek by re-aggregating from rows when any of the
+        // row-level filters is active. byPersonWeek already reflects the full
+        // (unfiltered) dataset, so when no filters are set we use it directly.
+        var workingSet = byPersonWeek;
+        var rowLevelFiltersActive =
+          isAnyFilterActive() ||
+          hasHeatmapRoleFilter;
+        if (rowLevelFiltersActive) {
+          var filteredRows = applyFilters(p.rows || []);
+          if (hasHeatmapRoleFilter) {
+            filteredRows = filteredRows.filter(function (r) {
+              return heatmapRoleSet[r.userRole || r.clockifyUserRole || '(No role)'];
+            });
+          }
+          workingSet = recomputeByPersonWeek_(filteredRows, byPersonWeek);
+        }
+
+        // Group by personKey → trajectory; rank persons by total hours desc;
+        // cap at UTIL_HEATMAP_TOP_N_PERSONS rows.
+        var personTotals = {};
+        var personMeta = {};
+        var weekSet = {};
+        for (var i = 0; i < workingSet.length; i++) {
+          var e = workingSet[i];
+          if (!personTotals[e.personKey]) {
+            personTotals[e.personKey] = 0;
+            personMeta[e.personKey] = e.personName || e.personKey;
+          }
+          personTotals[e.personKey] += Number(e.hours || 0);
+          if (e.week) weekSet[e.week] = true;
+        }
+        var personKeys = Object.keys(personTotals).sort(function (a, b) {
+          return personTotals[b] - personTotals[a];
+        });
+        var hiddenPersonCount = Math.max(0, personKeys.length - UTIL_HEATMAP_TOP_N_PERSONS);
+        personKeys = personKeys.slice(0, UTIL_HEATMAP_TOP_N_PERSONS);
+        var weeks = Object.keys(weekSet).sort();
+
+        if (els.utilHeatmapMeta) {
+          var meta =
+            personKeys.length + (personKeys.length === 1 ? ' person · ' : ' people · ') +
+            weeks.length + (weeks.length === 1 ? ' week' : ' weeks');
+          if (hiddenPersonCount > 0) {
+            meta += ' · ' + hiddenPersonCount + ' more hidden (cap ' + UTIL_HEATMAP_TOP_N_PERSONS + ')';
+          }
+          els.utilHeatmapMeta.textContent = meta;
+        }
+
+        if (!personKeys.length || !weeks.length) {
+          if (els.utilHeatmapEmpty) els.utilHeatmapEmpty.classList.remove('d-none');
+          els.utilHeatmapSvg.innerHTML = '';
+          renderHeatmapLegend_();
+          return;
+        }
+        if (els.utilHeatmapEmpty) els.utilHeatmapEmpty.classList.add('d-none');
+
+        // Index entries by (person, week) for O(1) lookup.
+        var idx = {};
+        for (var j = 0; j < workingSet.length; j++) {
+          var w = workingSet[j];
+          idx[w.personKey + '|' + w.week] = w;
+        }
+
+        // Build SVG.
+        var svgNS = 'http://www.w3.org/2000/svg';
+        var svg = els.utilHeatmapSvg;
+        svg.setAttribute('xmlns', svgNS);
+        var cellW = UTIL_HEATMAP_CELL_W;
+        var cellH = UTIL_HEATMAP_CELL_H;
+        var gutter = UTIL_HEATMAP_GUTTER;
+        var labelW = UTIL_HEATMAP_LABEL_W;
+        var headerH = UTIL_HEATMAP_HEADER_H;
+        var totalW = labelW + weeks.length * (cellW + gutter);
+        var totalH = headerH + personKeys.length * (cellH + gutter);
+        svg.setAttribute('viewBox', '0 0 ' + totalW + ' ' + totalH);
+        svg.setAttribute('width', totalW);
+        svg.setAttribute('height', totalH);
+        svg.innerHTML = '';
+
+        // <defs> with the diagonal hatch pattern used for partial-week cells.
+        var defs = document.createElementNS(svgNS, 'defs');
+        defs.innerHTML =
+          '<pattern id="fos-util-heatmap-partial-hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">' +
+            '<rect x="0" y="0" width="6" height="6" fill="rgba(0,0,0,0)"/>' +
+            '<rect x="0" y="0" width="2" height="6" fill="rgba(255,255,254,0.5)"/>' +
+          '</pattern>';
+        svg.appendChild(defs);
+
+        // Week headers across the top.
+        for (var wi = 0; wi < weeks.length; wi++) {
+          var t = document.createElementNS(svgNS, 'text');
+          t.setAttribute('class', 'fos-util-heatmap-axis-label');
+          t.setAttribute('x', labelW + wi * (cellW + gutter) + cellW / 2);
+          t.setAttribute('y', headerH - 8);
+          t.setAttribute('text-anchor', 'middle');
+          // Render the week portion only (e.g. 'W19') to keep the header tight.
+          t.textContent = (weeks[wi] || '').split('-W')[1] ? 'W' + weeks[wi].split('-W')[1] : weeks[wi];
+          svg.appendChild(t);
+        }
+
+        // Body — one row per person.
+        for (var pIdx = 0; pIdx < personKeys.length; pIdx++) {
+          var personKey = personKeys[pIdx];
+          var rowY = headerH + pIdx * (cellH + gutter);
+
+          // Person label (left).
+          var label = document.createElementNS(svgNS, 'text');
+          label.setAttribute('class', 'fos-util-heatmap-person-label');
+          label.setAttribute('x', labelW - 8);
+          label.setAttribute('y', rowY + cellH / 2 + 4);
+          label.setAttribute('text-anchor', 'end');
+          var fullName = personMeta[personKey] || personKey;
+          label.textContent = fullName.length > 22 ? fullName.slice(0, 21) + '…' : fullName;
+          var labelTitle = document.createElementNS(svgNS, 'title');
+          labelTitle.textContent = fullName + ' · ' + formatHours(personTotals[personKey]) + ' hrs total in range';
+          label.appendChild(labelTitle);
+          svg.appendChild(label);
+
+          for (var w2 = 0; w2 < weeks.length; w2++) {
+            var week = weeks[w2];
+            var cellX = labelW + w2 * (cellW + gutter);
+            var entry = idx[personKey + '|' + week];
+            var fill = '#0d2e4a'; // empty cell
+            var pct = null;
+            var hours = 0;
+            var partial = false;
+            if (entry) {
+              pct = entry.utilizationPct;
+              hours = entry.hours;
+              partial = entry.partial;
+              fill = utilizationBucketColorClient_(pct);
+            }
+            var rect = document.createElementNS(svgNS, 'rect');
+            rect.setAttribute('class', 'fos-util-heatmap-cell' + (entry ? '' : ' empty'));
+            rect.setAttribute('x', cellX);
+            rect.setAttribute('y', rowY);
+            rect.setAttribute('width', cellW);
+            rect.setAttribute('height', cellH);
+            rect.setAttribute('rx', '3');
+            rect.setAttribute('fill', fill);
+            var title = document.createElementNS(svgNS, 'title');
+            if (entry) {
+              title.textContent =
+                fullName + ' · ' + week +
+                ' · ' + formatHours(hours) + ' hrs · ' +
+                (pct != null ? Math.round(pct) + '% utilization' : 'no data') +
+                (partial ? ' · partial week (' + Math.round(entry.partialFraction * 100) + '% in range)' : '');
+            } else {
+              title.textContent = fullName + ' · ' + week + ' · no logged time';
+            }
+            rect.appendChild(title);
+            if (entry) {
+              (function (e) {
+                rect.addEventListener('click', function () {
+                  handleHeatmapCellClick_(e);
+                });
+              })(entry);
+            }
+            svg.appendChild(rect);
+            if (partial) {
+              var overlay = document.createElementNS(svgNS, 'rect');
+              overlay.setAttribute('class', 'fos-util-heatmap-cell-overlay-partial');
+              overlay.setAttribute('x', cellX);
+              overlay.setAttribute('y', rowY);
+              overlay.setAttribute('width', cellW);
+              overlay.setAttribute('height', cellH);
+              overlay.setAttribute('rx', '3');
+              svg.appendChild(overlay);
+            }
+          }
+        }
+
+        renderHeatmapLegend_();
+      }
+      function renderHeatmapLegend_() {
+        var legend = els.utilHeatmapLegend;
+        if (!legend) return;
+        legend.innerHTML = '';
+        var chips = [
+          { label: '< 60% under', color: '#fc5c65' },
+          { label: '60–85% building', color: '#f9c74f' },
+          { label: '85–110% target', color: '#43D6BA' },
+          { label: '> 110% over', color: '#f78c1f' },
+          { label: 'no data', color: '#0d2e4a' },
+        ];
+        for (var i = 0; i < chips.length; i++) {
+          var chip = document.createElement('span');
+          chip.className = 'fos-util-heatmap-legend-chip';
+          chip.innerHTML =
+            '<span class="swatch" style="background:' + chips[i].color + '"></span>' +
+            escapeHtml(chips[i].label);
+          legend.appendChild(chip);
+        }
+        var partial = document.createElement('span');
+        partial.className = 'fos-util-heatmap-legend-chip partial';
+        partial.innerHTML = '<span class="swatch"></span>partial week';
+        legend.appendChild(partial);
+      }
+      function utilizationBucketColorClient_(pct) {
+        if (pct === null || pct === undefined || isNaN(pct)) return '#A0AEC0';
+        if (pct < 60) return '#fc5c65';
+        if (pct < 85) return '#f9c74f';
+        if (pct <= 110) return '#43D6BA';
+        return '#f78c1f';
+      }
+      function recomputeByPersonWeek_(filteredRows, baseline) {
+        // Use the baseline's capacityHours per (personKey, week) so partial-week
+        // pro-rating stays consistent with the server-side computation.
+        var capacityByCell = {};
+        var partialByCell = {};
+        var partialFractionByCell = {};
+        var personNameByKey = {};
+        for (var i = 0; i < baseline.length; i++) {
+          var b = baseline[i];
+          var key = b.personKey + '|' + b.week;
+          capacityByCell[key] = b.capacityHours;
+          partialByCell[key] = b.partial;
+          partialFractionByCell[key] = b.partialFraction;
+          personNameByKey[b.personKey] = b.personName;
+        }
+        var bucketMap = {};
+        for (var r = 0; r < filteredRows.length; r++) {
+          var row = filteredRows[r];
+          if (!row.week) continue;
+          var personKey = row.userId || row.userName || '(Unknown user)';
+          var ck = personKey + '|' + row.week;
+          if (!bucketMap[ck]) {
+            bucketMap[ck] = {
+              personKey: personKey,
+              personName: personNameByKey[personKey] || row.userName || personKey,
+              week: row.week,
+              hours: 0,
+              billableHours: 0,
+              capacityHours: capacityByCell[ck] || (utilState.payload && utilState.payload.range
+                ? 40 : 40),
+              utilizationPct: 0,
+              partial: !!partialByCell[ck],
+              partialFraction: partialFractionByCell[ck] || 1,
+            };
+          }
+          bucketMap[ck].hours += Number(row.hours || 0);
+          if (row.billable) bucketMap[ck].billableHours += Number(row.hours || 0);
+        }
+        var out = [];
+        for (var k in bucketMap) {
+          if (!Object.prototype.hasOwnProperty.call(bucketMap, k)) continue;
+          var c = bucketMap[k];
+          c.utilizationPct = c.capacityHours > 0 ? (c.hours / c.capacityHours) * 100 : 0;
+          out.push(c);
+        }
+        return out;
+      }
+      function handleHeatmapCellClick_(entry) {
+        if (!entry) return;
+        logActivity_(
+          'util_heatmap_drill',
+          'operations',
+          'person=' + entry.personKey + ' · week=' + entry.week
+        );
+        // Pin the global Person filter to this person.
+        utilState.filters.persons[entry.personKey] = true;
+        // Change the range to the clicked week (this WILL invalidate the cache
+        // and trigger a fresh server fetch, per FR-73).
+        var rangeStart = entry.weekStartIso;
+        var rangeEnd = entry.weekEndIso;
+        if (els.utilRangePreset) {
+          els.utilRangePreset.value = 'custom';
+        }
+        if (els.utilCustomRange) {
+          els.utilCustomRange.classList.remove('d-none');
+        }
+        if (els.utilRangeStart && rangeStart) {
+          els.utilRangeStart.value = (rangeStart || '').slice(0, 10);
+        }
+        if (els.utilRangeEnd && rangeEnd) {
+          // weekEndIso is exclusive (next Monday); show the Sunday in the UI.
+          var endShifted = new Date(new Date(rangeEnd).getTime() - 86400000);
+          els.utilRangeEnd.value = endShifted.toISOString().slice(0, 10);
+        }
+        utilState.filters.rangeStartIso = rangeStart;
+        utilState.filters.rangeEndIso = rangeEnd;
+        utilState.filters.rangeDays = null;
+        renderChipBar();
+        fetchUtilizationFromServer(rangeStart, rangeEnd);
+      }
+
+      // Phase C — Pending Approvals widget ----------------------------------
+      function renderPendingApprovals(filteredRows) {
+        var list = els.utilPendingList;
+        if (!list) return;
+        list.innerHTML = '';
+        var pending = [];
+        for (var i = 0; i < filteredRows.length; i++) {
+          if (filteredRows[i].isPending) pending.push(filteredRows[i]);
+        }
+        pending.sort(function (a, b) {
+          var aIso = a.startDateTime || '';
+          var bIso = b.startDateTime || '';
+          if (aIso === bIso) return 0;
+          return aIso < bIso ? 1 : -1;
+        });
+        if (els.utilPendingCount) {
+          els.utilPendingCount.textContent =
+            pending.length + (pending.length === 1 ? ' row' : ' rows');
+        }
+        if (els.utilPendingEmpty) {
+          els.utilPendingEmpty.classList.toggle('d-none', pending.length > 0);
+        }
+        if (els.utilPendingShowAll) {
+          if (pending.length > UTIL_PENDING_DEFAULT_LIMIT) {
+            els.utilPendingShowAll.classList.remove('d-none');
+            els.utilPendingShowAll.textContent = utilState.pending.showAll
+              ? 'Show top ' + UTIL_PENDING_DEFAULT_LIMIT
+              : 'Show all (' + pending.length + ')';
+          } else {
+            els.utilPendingShowAll.classList.add('d-none');
+          }
+        }
+        var visible = utilState.pending.showAll
+          ? pending
+          : pending.slice(0, UTIL_PENDING_DEFAULT_LIMIT);
+        var nowMs = Date.now();
+        for (var v = 0; v < visible.length; v++) {
+          var row = visible[v];
+          var startMs = row.startDateTime ? new Date(row.startDateTime).getTime() : null;
+          var ageDays = startMs ? Math.max(0, (nowMs - startMs) / 86400000) : 0;
+          var badgeClass = ageDays >= 14 ? 'age-badge stale-crit' : 'age-badge';
+          var ageText = Math.round(ageDays) + 'd';
+          var item = document.createElement('div');
+          item.className = 'fos-util-pending-item';
+          item.innerHTML =
+            '<span class="' + badgeClass + '">' + escapeHtml(ageText) + '</span>' +
+            '<div class="min-w-0">' +
+              '<div class="title">' + escapeHtml(row.userName || '(Unknown user)') + ' · ' + escapeHtml(row.day || row.startDateTime || '—') + '</div>' +
+              '<div class="meta">' + escapeHtml(row.customer || '(Unassigned)') + ' · ' + escapeHtml(row.projectName || '(No project)') + '</div>' +
+            '</div>' +
+            '<div class="hours">' + escapeHtml(formatHours(row.hours)) + ' h</div>';
+          (function (r) {
+            item.addEventListener('click', function () {
+              openDetailDrawer(r.id, 'pending');
+            });
+          })(row);
+          list.appendChild(item);
+        }
+      }
+
+      // Phase C — Row-detail drawer -----------------------------------------
+      function openDetailDrawer(rowId, source) {
+        if (!rowId || !els.utilDrawer) return;
+        var row = findRowById_(rowId);
+        if (!row) return;
+        utilState.detailDrawer.open = true;
+        utilState.detailDrawer.rowId = rowId;
+        renderDrawerBody_(row);
+        els.utilDrawer.classList.remove('d-none');
+        els.utilDrawer.setAttribute('aria-hidden', 'false');
+        if (els.utilDrawerBackdrop) {
+          els.utilDrawerBackdrop.classList.remove('d-none');
+        }
+        // Trigger the slide-in transition on the next frame so the off-canvas
+        // transform animates from translateX(100%).
+        requestAnimationFrame(function () {
+          els.utilDrawer.classList.add('open');
+        });
+        try { els.utilDrawer.focus(); } catch (_) { /* ignore */ }
+        logActivity_('util_drawer_open', 'operations', 'source=' + (source || 'unknown') + ' · rowId=' + rowId);
+      }
+      function closeDetailDrawer() {
+        if (!els.utilDrawer) return;
+        utilState.detailDrawer.open = false;
+        utilState.detailDrawer.rowId = null;
+        els.utilDrawer.classList.remove('open');
+        els.utilDrawer.setAttribute('aria-hidden', 'true');
+        // After the transition completes hide it from the layout entirely.
+        setTimeout(function () {
+          if (!utilState.detailDrawer.open && els.utilDrawer) {
+            els.utilDrawer.classList.add('d-none');
+          }
+        }, 220);
+        if (els.utilDrawerBackdrop) {
+          els.utilDrawerBackdrop.classList.add('d-none');
+        }
+      }
+      function findRowById_(rowId) {
+        var p = utilState.payload;
+        if (!p || !p.rows || !rowId) return null;
+        for (var i = 0; i < p.rows.length; i++) {
+          if (p.rows[i].id === rowId) return p.rows[i];
+        }
+        return null;
+      }
+      function renderDrawerBody_(row) {
+        if (!els.utilDrawerBody) return;
+        var pct = row.userRoleBillRate != null
+          ? '$' + Number(row.userRoleBillRate).toFixed(2) + '/hr'
+          : '—';
+        var costRate = row.userRoleCostRate != null
+          ? '$' + Number(row.userRoleCostRate).toFixed(2) + '/hr'
+          : '—';
+        var margin = row.marginPerHour != null
+          ? '$' + Number(row.marginPerHour).toFixed(2) + '/hr'
+          : '—';
+        els.utilDrawerBody.innerHTML =
+          '<dl>' +
+            row_(row.day || row.startDateTime, 'Date') +
+            row_(row.userName, 'Person') +
+            row_(row.userRole || row.clockifyUserRole, 'Role') +
+            row_(row.customer, 'Customer') +
+            row_(row.projectName, 'Project') +
+            row_(row.task, 'Task') +
+            row_(formatHours(row.hours) + ' hrs', 'Hours', true) +
+            row_('$' + Number(row.cost || 0).toFixed(2), 'Cost', true) +
+            row_(pct, 'Bill rate', true) +
+            row_(costRate, 'Cost rate', true) +
+            row_(margin, 'Margin per hr', true) +
+            row_(row.billableLabel || (row.billable ? 'Yes' : 'No'), 'Billable') +
+            row_(row.approval || '—', 'Approval') +
+            row_(row.timeEntryStatus || '—', 'Time entry status') +
+            row_(row.dateOfCreation || '—', 'Created') +
+            row_(row.dateOfApproval || '—', 'Approved at') +
+            row_(row.agreementName || '—', 'Agreement') +
+            row_(row.agreementState || '—', 'Agreement state') +
+            row_(row.agreementType || '—', 'Agreement type') +
+            row_(row.id || '—', 'Fibery id') +
+          '</dl>';
+        // Fibery deep link — composed from the public-id when present, else
+        // suppressed. The host comes from the agreement-dashboard FIBERY_HOST
+        // setting; we don't have it client-side, so the link uses the
+        // standard Fibery URL pattern with `harpinai` (the known workspace).
+        var link = els.utilDrawerFiberyLink;
+        if (link) {
+          if (row.publicId) {
+            // Workspace host is hard-coded here (matches FIBERY_HOST). If the
+            // workspace name changes, update both places.
+            link.href = 'https://harpinai.fibery.io/Agreement-Management/Labor-Cost-' + row.publicId;
+            link.classList.remove('disabled');
+          } else {
+            link.href = '#';
+            link.classList.add('disabled');
+          }
+        }
+      }
+      function row_(value, label, numeric) {
+        var v = (value == null || value === '') ? '—' : String(value);
+        var dd = '<dd' + (numeric ? ' class="numeric"' : '') + '>' + escapeHtml(v) + '</dd>';
+        return '<dt>' + escapeHtml(label) + '</dt>' + dd;
+      }
+
+      // Filter persistence (Phase B) — localStorage key `fos_utilization_filters_v1`.
+      // Range is intentionally NOT persisted (per feature 005 §"Filter state semantics").
+      function readUtilFilters_() {
+        try {
+          var raw = localStorage.getItem(UTIL_FILTERS_PREF_KEY);
+          if (!raw) return null;
+          var o = JSON.parse(raw);
+          if (!o || o.schemaVersion !== UTIL_FILTERS_SCHEMA_VERSION) return null;
+          return o;
+        } catch (e) {
+          return null;
+        }
+      }
+      function writeUtilFilters_(payload) {
+        try {
+          localStorage.setItem(UTIL_FILTERS_PREF_KEY, JSON.stringify(payload));
+        } catch (e) { /* quota / private mode */ }
+      }
+      function persistUtilFilters_() {
+        var f = utilState.filters;
+        var payload = {
+          schemaVersion: UTIL_FILTERS_SCHEMA_VERSION,
+          customers: setFromKeys(f.customers),
+          projects: setFromKeys(f.projects),
+          persons: setFromKeys(f.persons),
+          roles: setFromKeys(f.roles),
+          billable: f.billable,
+          internalLabor: f.internalLabor,
+        };
+        writeUtilFilters_(payload);
+      }
+      function applyStoredFilters_() {
+        var stored = readUtilFilters_();
+        if (!stored) return;
+        var f = utilState.filters;
+        f.customers = {};
+        f.projects = {};
+        f.persons = {};
+        f.roles = {};
+        if (Array.isArray(stored.customers)) { for (var ci = 0; ci < stored.customers.length; ci++) f.customers[stored.customers[ci]] = true; }
+        if (Array.isArray(stored.projects))  { for (var pi = 0; pi < stored.projects.length;  pi++) f.projects[stored.projects[pi]]  = true; }
+        if (Array.isArray(stored.persons))   { for (var pe = 0; pe < stored.persons.length;   pe++) f.persons[stored.persons[pe]]    = true; }
+        if (Array.isArray(stored.roles))     { for (var ri = 0; ri < stored.roles.length;     ri++) f.roles[stored.roles[ri]]        = true; }
+        if (stored.billable === 'billable' || stored.billable === 'non-billable' || stored.billable === 'all') {
+          f.billable = stored.billable;
+        }
+        if (stored.internalLabor === 'include' || stored.internalLabor === 'exclude') {
+          f.internalLabor = stored.internalLabor;
+        }
+        syncBillableButtons();
+        syncInternalButtons();
       }
 
       function rangeLabel(range) {
@@ -2991,6 +4629,10 @@
         utilState.payload = data;
         var dim = data && data.dimensions;
         populateFilterDropdowns(dim);
+        // Phase C — heatmap-local Role dropdown (separate from the global
+        // Role multi-select; scopes the heatmap without disturbing the rest
+        // of the dashboard).
+        populateHeatmapRoleMenu(dim && dim.roles ? dim.roles : []);
         els.utilLastRefresh.textContent = formatLastRefresh(data && data.fetchedAt);
         if (data && data.warnings && data.warnings.length) {
           els.utilWarn.textContent = data.warnings.join(' ');
@@ -3004,13 +4646,19 @@
           if (ttl > 0 && isCacheStale(data, ttl)) els.utilStaleBadge.classList.remove('d-none');
           else els.utilStaleBadge.classList.add('d-none');
         }
+
+        // Remember which payload the DOM now reflects so subsequent panel
+        // switches can skip a redundant re-render (v1.13.1).
+        utilRenderState.lastRenderedFetchedAt = (data && data.fetchedAt) || null;
       }
 
       function fetchUtilizationFromServer(rangeStartIso, rangeEndIso) {
         if (els.utilRefreshBtn) els.utilRefreshBtn.disabled = true;
         els.utilFetchError.classList.add('d-none');
+        setUtilLoading(true);
         google.script.run
           .withSuccessHandler(function (data) {
+            setUtilLoading(false);
             if (els.utilRefreshBtn) els.utilRefreshBtn.disabled = false;
             if (!data || data.ok === false) {
               els.utilFetchError.textContent = (data && data.message) || 'Could not load utilization data.';
@@ -3021,6 +4669,7 @@
             applyUtilPayload(data);
           })
           .withFailureHandler(function (err) {
+            setUtilLoading(false);
             if (els.utilRefreshBtn) els.utilRefreshBtn.disabled = false;
             var msg = err && err.message ? err.message : 'Refresh failed.';
             if (msg === 'NOT_AUTHORIZED') msg = 'Your session is not authorized. Reload the page.';
@@ -3133,15 +4782,97 @@
         els.utilClearBtn.addEventListener('click', function () {
           utilState.filters.customers = {};
           utilState.filters.projects = {};
+          utilState.filters.persons = {};
+          utilState.filters.roles = {};
           utilState.filters.billable = 'all';
           utilState.filters.internalLabor = 'include';
+          utilState.detail.page = 0;
+          // Phase C — also clear the heatmap-local Role filter and the
+          // Pending Approvals "Show all" state on a global Clear so the user
+          // gets the panel back to a clean default.
+          utilState.heatmap.roleFilter = {};
+          utilState.pending.showAll = false;
           syncBillableButtons();
           syncInternalButtons();
           populateFilterDropdowns(utilState.payload ? utilState.payload.dimensions : null);
+          populateHeatmapRoleMenu(utilState.payload && utilState.payload.dimensions ? utilState.payload.dimensions.roles : []);
           renderUtilDashboard();
           logActivity_('util_filter', 'operations', 'clear_all');
         });
       }
+
+      // Phase C — Pending Approvals "Show all" toggle.
+      if (els.utilPendingShowAll) {
+        els.utilPendingShowAll.addEventListener('click', function () {
+          utilState.pending.showAll = !utilState.pending.showAll;
+          var p = utilState.payload;
+          if (!p) return;
+          renderPendingApprovals(applyFilters(p.rows || []));
+          logActivity_('util_pending_toggle', 'operations',
+            utilState.pending.showAll ? 'show_all' : 'show_top');
+        });
+      }
+
+      // Phase C — Drawer close affordances.
+      if (els.utilDrawerClose) {
+        els.utilDrawerClose.addEventListener('click', closeDetailDrawer);
+      }
+      if (els.utilDrawerBackdrop) {
+        els.utilDrawerBackdrop.addEventListener('click', closeDetailDrawer);
+      }
+      document.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Escape' && utilState.detailDrawer.open) {
+          closeDetailDrawer();
+        }
+      });
+      // Detail Table row click → drawer.
+      var detailTbody = document.getElementById('util-detail-tbody');
+      if (detailTbody) {
+        detailTbody.addEventListener('click', function (ev) {
+          var tr = ev.target.closest('tr[data-row-id]');
+          if (!tr) return;
+          var rowId = tr.getAttribute('data-row-id');
+          if (!rowId) return;
+          openDetailDrawer(rowId, 'detail_table');
+        });
+      }
+
+      // Detail Table interactions (Phase B).
+      (function wireDetailTable_() {
+        var headerRow = document.querySelector('.fos-util-detail-table thead');
+        if (headerRow) {
+          headerRow.addEventListener('click', function (ev) {
+            var th = ev.target.closest('th[data-sort-key]');
+            if (!th) return;
+            var key = th.getAttribute('data-sort-key');
+            if (!key) return;
+            if (utilState.detail.sortKey === key) {
+              utilState.detail.sortDir = utilState.detail.sortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+              utilState.detail.sortKey = key;
+              utilState.detail.sortDir = (key === 'day' || key === 'hours' || key === 'cost' || key === 'userRoleBillRate') ? 'desc' : 'asc';
+            }
+            utilState.detail.page = 0;
+            renderUtilDashboard();
+            logActivity_('util_detail', 'operations', 'sort=' + key + ':' + utilState.detail.sortDir);
+          });
+        }
+        if (els.utilDetailPrev) {
+          els.utilDetailPrev.addEventListener('click', function () {
+            if (utilState.detail.page <= 0) return;
+            utilState.detail.page -= 1;
+            renderUtilDashboard();
+            logActivity_('util_detail', 'operations', 'page_prev');
+          });
+        }
+        if (els.utilDetailNext) {
+          els.utilDetailNext.addEventListener('click', function () {
+            utilState.detail.page += 1;
+            renderUtilDashboard();
+            logActivity_('util_detail', 'operations', 'page_next');
+          });
+        }
+      })();
 
       function showOperations() {
         els.panelHome.classList.add('d-none');
@@ -3152,12 +4883,24 @@
         var cached = readUtilizationCache();
         var ttlMinutes = readUtilTtlMinutes();
         if (cached && cached.ok !== false) {
-          applyUtilPayload(cached);
+          // Skip the re-render (and the localStorage filter restore) when
+          // the cached payload is identical to what the DOM already shows.
+          // Prevents Chart.js / Detail Table churn when the user toggles
+          // back to the Operations tab. v1.13.1.
+          var alreadyRendered =
+            utilRenderState.lastRenderedFetchedAt &&
+            cached.fetchedAt &&
+            utilRenderState.lastRenderedFetchedAt === cached.fetchedAt;
+          if (!alreadyRendered) {
+            applyStoredFilters_();
+            applyUtilPayload(cached);
+          }
           if (ttlMinutes > 0 && isCacheStale(cached, ttlMinutes)) {
             var rRefresh = resolveRangeFromPreset();
             fetchUtilizationFromServer(rRefresh.startIso, rRefresh.endIso);
           }
         } else {
+          applyStoredFilters_();
           applyUtilPayload({
             ok: true,
             fetchedAt: null,
