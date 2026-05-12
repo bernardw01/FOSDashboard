@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 1.6 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 1.9.2 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -18,21 +18,35 @@
     crossorigin="anonymous"
   />
   <style>
+    /* §9.5–§9.7 brand tokens shared with DashboardShell.html (FR-50, AC-18). */
     :root {
-      --harpin-navy: #050a18;
-      --harpin-teal: #5eead4;
+      --bg: #061b30;
+      --surface: #092747;
+      --border: #1a4060;
+      --accent: #52c9e5;
+      --text: #fffefc;
+      --text-muted: #a0aec0;
     }
     body {
-      font-family: 'Inter', system-ui, sans-serif;
-      background: var(--harpin-navy);
-      color: #f1f5f9;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
       min-height: 100vh;
     }
     .fos-card {
-      background: #0f1f3d;
-      border: 1px solid rgba(94, 234, 212, 0.2);
-      border-radius: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
       max-width: 520px;
+    }
+    .fos-card .text-secondary {
+      color: var(--text-muted) !important;
+    }
+    .fos-card .text-white,
+    .fos-card strong.text-white {
+      color: var(--text) !important;
     }
   </style>
 </head>

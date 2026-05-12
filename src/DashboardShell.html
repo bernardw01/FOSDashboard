@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 1.6 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 1.9.2 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -23,40 +23,50 @@
     crossorigin="anonymous"
   />
   <style>
+    /* Global brand tokens — agreement-dashboard-prd-v2.md §9.5–§9.7 (FR-50). */
     :root,
     [data-bs-theme='dark'] {
-      --harpin-navy: #050a18;
-      --harpin-navy-mid: #0a1428;
-      --harpin-navy-elevated: #0f1f3d;
-      --harpin-teal: #5eead4;
-      --harpin-teal-hover: #7ff5e1;
-      --harpin-teal-muted: rgba(94, 234, 212, 0.14);
-      --bs-body-bg: var(--harpin-navy);
-      --bs-body-color: #f1f5f9;
-      --bs-primary: var(--harpin-teal);
-      --bs-primary-rgb: 94, 234, 212;
-      --bs-border-color: rgba(148, 163, 184, 0.18);
-      --bs-secondary-color: rgba(241, 245, 249, 0.62);
-      --bs-tertiary-bg: var(--harpin-navy-elevated);
+      --bg: #061b30;
+      --surface: #092747;
+      --surface2: #0d2e4a;
+      --border: #1a4060;
+      --accent: #52c9e5;
+      --accent2: #007fa7;
+      --accent3: #20b4c4;
+      --accent4: #43d6ba;
+      --text: #fffefc;
+      --text-muted: #a0aec0;
+      --text-dim: #2a5a7a;
+      --danger: #fc5c65;
+      --warn: #fd9644;
+
+      --bs-body-bg: var(--bg);
+      --bs-body-color: var(--text);
+      --bs-primary: var(--accent);
+      --bs-primary-rgb: 82, 201, 229;
+      --bs-border-color: var(--border);
+      --bs-secondary-color: var(--text-muted);
+      --bs-tertiary-bg: var(--surface2);
     }
 
-    /* Agreement dashboard tokens — agreement-dashboard-prd-v2.md §9.5–§9.7 */
+    /* Agreement dashboard scope — aliases keep existing var(--ag-*) references
+       working while resolving to the single global palette (AC-18). */
     .fos-agreement-root {
-      --ag-bg: #061b30;
-      --ag-surface: #092747;
-      --ag-surface2: #0d2e4a;
-      --ag-border: #1a4060;
-      --ag-accent: #52c9e5;
-      --ag-accent2: #007fa7;
-      --ag-accent3: #20b4c4;
-      --ag-accent4: #43d6ba;
-      --ag-text: #fffefc;
-      --ag-text-muted: #a0aec0;
-      --ag-text-dim: #2a5a7a;
-      --ag-danger: #fc5c65;
-      --ag-warn: #fd9644;
+      --ag-bg: var(--bg);
+      --ag-surface: var(--surface);
+      --ag-surface2: var(--surface2);
+      --ag-border: var(--border);
+      --ag-accent: var(--accent);
+      --ag-accent2: var(--accent2);
+      --ag-accent3: var(--accent3);
+      --ag-accent4: var(--accent4);
+      --ag-text: var(--text);
+      --ag-text-muted: var(--text-muted);
+      --ag-text-dim: var(--text-dim);
+      --ag-danger: var(--danger);
+      --ag-warn: var(--warn);
       font-size: 14px;
-      color: var(--ag-text);
+      color: var(--text);
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
 
@@ -127,21 +137,211 @@
       --ag-kpi-accent: var(--ag-warn);
     }
 
-    .fos-agreement-root ::-webkit-scrollbar {
+    /* Section card used by attention panel, charts, and financial table. */
+    .fos-section-card {
+      background: var(--ag-surface2);
+      border: 1px solid var(--ag-border);
+      border-radius: 12px;
+      padding: 16px 18px;
+    }
+
+    .fos-section-card h2 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--ag-text);
+      margin: 0 0 12px;
+    }
+
+    .fos-attention-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.02);
+      border-left: 3px solid var(--ag-text-muted);
+    }
+    .fos-attention-item + .fos-attention-item {
+      margin-top: 8px;
+    }
+    .fos-attention-item.sev-critical {
+      border-left-color: var(--ag-danger);
+    }
+    .fos-attention-item.sev-warning {
+      border-left-color: var(--ag-warn);
+    }
+    .fos-attention-item.sev-info {
+      border-left-color: var(--ag-accent4);
+    }
+    .fos-attention-item .sev-icon {
+      font-size: 1rem;
+      line-height: 1.2;
+      flex-shrink: 0;
+    }
+    .fos-attention-item .title {
+      font-weight: 600;
+      color: var(--ag-text);
+      font-size: 0.85rem;
+      line-height: 1.3;
+    }
+    .fos-attention-item .body {
+      font-size: 0.8rem;
+      color: var(--ag-text-muted);
+      line-height: 1.4;
+      margin-top: 2px;
+    }
+
+    .fos-chart-wrap {
+      position: relative;
+      width: 100%;
+      height: 280px;
+    }
+    .fos-chart-wrap.tall {
+      height: 360px;
+    }
+
+    .fos-table-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+    .fos-table-tabs .tab {
+      background: transparent;
+      border: 1px solid var(--ag-border);
+      color: var(--ag-text-muted);
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    }
+    .fos-table-tabs .tab:hover {
+      color: var(--ag-text);
+      border-color: var(--ag-accent);
+    }
+    .fos-table-tabs .tab.active {
+      background: var(--ag-accent);
+      color: #061b30;
+      border-color: var(--ag-accent);
+    }
+
+    .fos-financial-scroll {
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid var(--ag-border);
+      border-radius: 8px;
+    }
+    .fos-financial-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+      color: var(--ag-text);
+    }
+    .fos-financial-table thead th {
+      position: sticky;
+      top: 0;
+      background: var(--ag-surface);
+      color: var(--ag-text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-size: 0.68rem;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--ag-border);
+      text-align: left;
+      white-space: nowrap;
+    }
+    .fos-financial-table tbody td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--ag-border);
+      vertical-align: middle;
+    }
+    .fos-financial-table tbody tr:last-child td {
+      border-bottom: 0;
+    }
+    .fos-financial-table .num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .fos-financial-table .name-cell {
+      font-weight: 600;
+      max-width: 220px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .fos-financial-table .badge-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #061b30;
+      white-space: nowrap;
+    }
+    .fos-financial-table .margin-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 110px;
+    }
+    .fos-financial-table .margin-bar-track {
+      flex: 1;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .fos-financial-table .margin-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+    }
+    .fos-financial-table .margin-bar-value {
+      min-width: 38px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: var(--ag-text-muted);
+    }
+
+    .fos-ttl-select {
+      background: var(--ag-surface2);
+      border: 1px solid var(--ag-border);
+      color: var(--ag-text);
+      font-size: 0.78rem;
+      border-radius: 9999px;
+      padding: 3px 28px 3px 10px;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: linear-gradient(45deg, transparent 50%, var(--ag-text-muted) 50%),
+        linear-gradient(135deg, var(--ag-text-muted) 50%, transparent 50%);
+      background-position: calc(100% - 14px) 50%, calc(100% - 10px) 50%;
+      background-size: 4px 4px, 4px 4px;
+      background-repeat: no-repeat;
+    }
+
+    /* Custom scrollbar — §9.7 (4px, border-color track, accent2 thumb).
+       Promoted from the agreement scope so the whole app uses the same chrome. */
+    ::-webkit-scrollbar {
       width: 4px;
+      height: 4px;
     }
-    .fos-agreement-root ::-webkit-scrollbar-track {
-      background: var(--ag-border);
+    ::-webkit-scrollbar-track {
+      background: var(--border);
     }
-    .fos-agreement-root ::-webkit-scrollbar-thumb {
-      background: var(--ag-accent2);
+    ::-webkit-scrollbar-thumb {
+      background: var(--accent2);
       border-radius: 4px;
     }
 
     body {
       font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-      background-color: var(--harpin-navy);
-      color: var(--bs-body-color);
+      background-color: var(--bg);
+      color: var(--text);
+      font-size: 14px;
     }
 
     #fosSidebar.offcanvas-md {
@@ -163,8 +363,8 @@
     }
 
     .fos-sidebar {
-      background: linear-gradient(180deg, var(--harpin-navy-mid) 0%, var(--harpin-navy) 100%);
-      border-color: rgba(94, 234, 212, 0.12) !important;
+      background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+      border-color: rgba(82, 201, 229, 0.18) !important;
     }
 
     .fos-brand-logo {
@@ -178,27 +378,27 @@
       font-size: 0.9rem;
       font-weight: 600;
       letter-spacing: 0.02em;
-      color: #f8fafc;
+      color: var(--text);
       line-height: 1.3;
     }
 
     .fos-nav-btn {
       text-align: left;
-      color: rgba(255, 255, 255, 0.78);
+      color: rgba(255, 254, 252, 0.78);
       background-color: transparent;
       transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
     }
 
     .fos-nav-btn:hover {
-      color: #fff;
-      background-color: var(--harpin-teal-muted);
+      color: var(--text);
+      background-color: rgba(82, 201, 229, 0.14);
     }
 
     .fos-nav-btn.active {
-      color: var(--harpin-teal);
-      background-color: rgba(94, 234, 212, 0.12);
+      color: var(--accent);
+      background-color: rgba(82, 201, 229, 0.12);
       font-weight: 600;
-      box-shadow: inset 3px 0 0 var(--harpin-teal);
+      box-shadow: inset 3px 0 0 var(--accent);
     }
 
     .fos-nav-btn .bi {
@@ -210,58 +410,46 @@
 
     .fos-nav-btn.active .bi {
       opacity: 1;
-      color: var(--harpin-teal);
+      color: var(--accent);
+    }
+
+    /* Settings sits in the sidebar footer area but uses the same .fos-nav-btn
+       chrome as Home/Finance/Operations/Delivery — FR-10b "plain nav-style link". */
+    .fos-nav-btn[role='button'] {
+      text-decoration: none;
     }
 
     .fos-topbar {
-      background: rgba(5, 10, 24, 0.92);
+      background: rgba(6, 27, 48, 0.92);
       backdrop-filter: blur(10px);
-      border-color: rgba(94, 234, 212, 0.1) !important;
+      border-color: rgba(82, 201, 229, 0.18) !important;
     }
 
     .fos-topbar-title {
-      color: #f8fafc !important;
+      color: var(--text) !important;
     }
 
     .btn-menu-mobile {
-      border-color: rgba(94, 234, 212, 0.35);
-      color: var(--harpin-teal);
+      border-color: rgba(82, 201, 229, 0.35);
+      color: var(--accent);
     }
 
     .btn-menu-mobile:hover {
-      border-color: var(--harpin-teal);
-      color: var(--harpin-teal-hover);
-      background-color: var(--harpin-teal-muted);
+      border-color: var(--accent);
+      color: var(--bg);
+      background-color: var(--accent);
     }
 
     .btn-fos-primary {
-      --bs-btn-color: var(--harpin-navy);
-      --bs-btn-bg: var(--harpin-teal);
-      --bs-btn-border-color: var(--harpin-teal);
-      --bs-btn-hover-color: var(--harpin-navy);
-      --bs-btn-hover-bg: var(--harpin-teal-hover);
-      --bs-btn-hover-border-color: var(--harpin-teal-hover);
-      --bs-btn-focus-shadow-rgb: 94, 234, 212;
+      --bs-btn-color: var(--bg);
+      --bs-btn-bg: var(--accent);
+      --bs-btn-border-color: var(--accent);
+      --bs-btn-hover-color: var(--bg);
+      --bs-btn-hover-bg: var(--accent3);
+      --bs-btn-hover-border-color: var(--accent3);
+      --bs-btn-focus-shadow-rgb: 82, 201, 229;
       font-weight: 600;
       border-radius: 9999px;
-    }
-
-    .btn-fos-sidebar-footer {
-      border-radius: 9999px;
-      font-weight: 600;
-      border-width: 2px;
-      color: var(--harpin-teal);
-      border-color: rgba(94, 234, 212, 0.45);
-    }
-
-    .btn-fos-sidebar-footer:hover {
-      color: var(--harpin-navy);
-      background-color: var(--harpin-teal);
-      border-color: var(--harpin-teal);
-    }
-
-    .btn-fos-sidebar-footer .bi {
-      font-size: 1.15rem;
     }
 
     #main-panel {
@@ -271,25 +459,32 @@
       width: 100%;
     }
 
+    /* Home / generic content card — §9.7 (20px padding, 12px radius, 1px var(--border)). */
     .fos-card {
-      background-color: var(--harpin-navy-elevated);
-      border: 1px solid rgba(148, 163, 184, 0.15);
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
       box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
     }
 
     .fos-card .text-muted {
-      color: rgba(203, 213, 225, 0.85) !important;
+      color: var(--text-muted) !important;
     }
 
     .fos-modal .modal-content {
-      background-color: var(--harpin-navy-mid);
-      border: 1px solid rgba(94, 234, 212, 0.2);
-      color: #f1f5f9;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
     }
 
     .fos-modal .modal-header,
     .fos-modal .modal-footer {
-      border-color: rgba(148, 163, 184, 0.2);
+      border-color: var(--border);
+    }
+
+    .fos-modal #cs-body {
+      color: var(--text-muted);
     }
 
     .fos-modal .btn-close {
@@ -331,18 +526,21 @@
           <nav id="nav-list" class="nav flex-column gap-1 px-2" aria-label="Dashboards"></nav>
         </div>
 
-        <div class="mt-auto border-top border-secondary border-opacity-25 flex-shrink-0">
-          <p class="small text-secondary px-3 pt-2 mb-1" style="font-size: 0.65rem; opacity: 0.85">PRD v<?!= prdVersion ?></p>
-          <div class="p-3 pt-0">
-            <button
-              type="button"
-              class="btn btn-fos-sidebar-footer w-100 py-2 d-flex align-items-center justify-content-center gap-2"
+        <div class="mt-auto flex-shrink-0">
+          <div class="px-2 pt-2 pb-2 border-top" style="border-color: var(--border) !important">
+            <a
+              href="#"
+              role="button"
               id="settings-link"
+              class="btn fos-nav-btn w-100 border-0 rounded-3 py-2 d-flex align-items-center gap-2 text-start"
             >
               <i class="bi bi-gear-fill" aria-hidden="true"></i>
-              <span>Settings</span>
-            </button>
+              <span class="flex-grow-1">Settings</span>
+            </a>
           </div>
+          <p class="small px-3 pb-2 mb-0" style="font-size: 0.65rem; color: var(--text-muted); opacity: 0.85">
+            PRD v<?!= prdVersion ?>
+          </p>
         </div>
       </div>
     </aside>
@@ -415,6 +613,16 @@
                 Refresh
               </button>
               <span class="small" id="agreement-last-refresh" style="color: var(--ag-text-muted)">Last refreshed: —</span>
+              <span class="d-none small" id="agreement-stale-badge" style="color: var(--ag-warn); font-weight: 600">Stale</span>
+              <label class="small d-flex align-items-center gap-1" for="agreement-ttl-select" style="color: var(--ag-text-muted)">
+                Auto-refresh
+                <select id="agreement-ttl-select" class="fos-ttl-select" aria-label="Auto-refresh interval">
+                  <option value="5">5 min</option>
+                  <option value="10" selected>10 min</option>
+                  <option value="30">30 min</option>
+                  <option value="0">Off</option>
+                </select>
+              </label>
               <span class="small d-none text-danger" id="agreement-fetch-error" role="alert"></span>
             </div>
 
@@ -463,10 +671,79 @@
               </div>
             </div>
 
-            <p class="small mt-4 mb-0" style="color: var(--ag-text-muted)">
-              Charts and tables (agreement PRD §7.3–§7.11) ship in a follow-up; KPI strip and Fibery wiring are tracked in
-              <code>docs/features/003-agreement-dashboard-fibery-client-cache.md</code>.
-            </p>
+            <div class="row g-3 mt-1">
+              <div class="col-12 col-xl-7">
+                <section class="fos-section-card h-100" aria-labelledby="attention-heading">
+                  <h2 id="attention-heading">Attention items</h2>
+                  <div id="attention-list" aria-live="polite"></div>
+                </section>
+              </div>
+              <div class="col-12 col-xl-5">
+                <div class="row g-3 h-100">
+                  <div class="col-12 col-md-6 col-xl-12">
+                    <section class="fos-section-card h-100" aria-labelledby="status-donut-heading">
+                      <h2 id="status-donut-heading">Agreement status</h2>
+                      <div class="fos-chart-wrap"><canvas id="chart-status-donut"></canvas></div>
+                    </section>
+                  </div>
+                  <div class="col-12 col-md-6 col-xl-12">
+                    <section class="fos-section-card h-100" aria-labelledby="type-donut-heading">
+                      <h2 id="type-donut-heading">Agreement type mix</h2>
+                      <div class="fos-chart-wrap"><canvas id="chart-type-donut"></canvas></div>
+                    </section>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+              <div class="col-12 col-xl-7">
+                <section class="fos-section-card h-100" aria-labelledby="recognition-heading">
+                  <h2 id="recognition-heading">Revenue recognition progress</h2>
+                  <div class="fos-chart-wrap tall"><canvas id="chart-recognition-stack"></canvas></div>
+                </section>
+              </div>
+              <div class="col-12 col-xl-5">
+                <section class="fos-section-card h-100" aria-labelledby="customer-bar-heading">
+                  <h2 id="customer-bar-heading">Customer contract value</h2>
+                  <div class="fos-chart-wrap tall"><canvas id="chart-customer-bar"></canvas></div>
+                </section>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+              <div class="col-12">
+                <section class="fos-section-card" aria-labelledby="financial-table-heading">
+                  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                    <h2 id="financial-table-heading" class="mb-0">Financial performance</h2>
+                    <div class="fos-table-tabs" role="tablist" aria-label="Financial performance filters">
+                      <button type="button" class="tab active" data-tab="allActive" role="tab" aria-selected="true">All active</button>
+                      <button type="button" class="tab" data-tab="topCustomer" role="tab" aria-selected="false">Top customer</button>
+                      <button type="button" class="tab" data-tab="otherCustomers" role="tab" aria-selected="false">Other customers</button>
+                    </div>
+                  </div>
+                  <div class="fos-financial-scroll">
+                    <table class="fos-financial-table" aria-describedby="financial-table-heading">
+                      <thead>
+                        <tr>
+                          <th scope="col">Agreement</th>
+                          <th scope="col" id="financial-customer-th">Customer</th>
+                          <th scope="col">Type</th>
+                          <th scope="col">Status</th>
+                          <th scope="col" class="num">Planned</th>
+                          <th scope="col" class="num">Recognized</th>
+                          <th scope="col">Margin</th>
+                        </tr>
+                      </thead>
+                      <tbody id="financial-table-body"></tbody>
+                    </table>
+                  </div>
+                  <p class="small mb-0 mt-2" id="financial-empty" style="color: var(--ag-text-muted); display: none">
+                    No agreements match this filter.
+                  </p>
+                </section>
+              </div>
+            </div>
           </div>
         </div>
       </main>
@@ -504,11 +781,19 @@
   <script>
     (function () {
       var navState = { items: [], userLabel: '' };
-      var AGREEMENT_CACHE_KEY = 'fos_agreement_dashboard_v1';
+      var AGREEMENT_CACHE_KEY = 'fos_agreement_dashboard_v2';
+      var AGREEMENT_CACHE_SCHEMA_VERSION = 2;
+      var AGREEMENT_TTL_PREF_KEY = 'fos_agreement_dashboard_ttl_minutes_v1';
+      var DEFAULT_TTL_MINUTES = 10;
       var SESSION_ID_KEY = 'fos_session_id_v1';
       var ACTIVITY_THROTTLE_MS = 250;
+      var CHARTJS_URL = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';
       var activityLastSent = {}; // key `${eventType}|${route}` → epoch ms
       var cachedSessionId = null;
+      var chartJsLoadingPromise = null;
+      var chartInstances = { status: null, type: null, recognition: null, customer: null };
+      var currentTablePayload = null;
+      var currentTab = 'allActive';
 
       function noop() {}
 
@@ -620,6 +905,8 @@
         agreementSubtitle: document.getElementById('agreement-subtitle'),
         agreementWarn: document.getElementById('agreement-warn'),
         kpiMarginCard: document.getElementById('kpi-margin-card'),
+        ttlSelect: document.getElementById('agreement-ttl-select'),
+        staleBadge: document.getElementById('agreement-stale-badge'),
         settingsLink: document.getElementById('settings-link'),
         comingSoonModal: document.getElementById('comingSoonModal'),
         csBody: document.getElementById('cs-body'),
@@ -661,7 +948,8 @@
         modal.show();
       }
 
-      els.settingsLink.addEventListener('click', function () {
+      els.settingsLink.addEventListener('click', function (event) {
+        event.preventDefault();
         showComingSoon('Settings is not available yet.');
       });
 
@@ -672,7 +960,7 @@
             return null;
           }
           var o = JSON.parse(raw);
-          if (!o || o.cacheSchemaVersion !== 1) {
+          if (!o || o.cacheSchemaVersion !== AGREEMENT_CACHE_SCHEMA_VERSION) {
             return null;
           }
           return o;
@@ -686,6 +974,45 @@
           sessionStorage.setItem(AGREEMENT_CACHE_KEY, JSON.stringify(data));
         } catch (e) {
           /* ignore quota / private mode */
+        }
+      }
+
+      function readTtlMinutes() {
+        try {
+          var raw = localStorage.getItem(AGREEMENT_TTL_PREF_KEY);
+          if (raw === null || raw === undefined) {
+            return DEFAULT_TTL_MINUTES;
+          }
+          var n = parseInt(raw, 10);
+          if (!isFinite(n) || n < 0) {
+            return DEFAULT_TTL_MINUTES;
+          }
+          return n;
+        } catch (e) {
+          return DEFAULT_TTL_MINUTES;
+        }
+      }
+
+      function writeTtlMinutes(n) {
+        try {
+          localStorage.setItem(AGREEMENT_TTL_PREF_KEY, String(n));
+        } catch (e) {
+          /* ignore quota / private mode */
+        }
+      }
+
+      function isCacheStale(cache, ttlMinutes) {
+        if (!cache || !cache.fetchedAt || !ttlMinutes) {
+          return false;
+        }
+        try {
+          var fetched = new Date(cache.fetchedAt).getTime();
+          if (!isFinite(fetched)) {
+            return false;
+          }
+          return Date.now() - fetched > ttlMinutes * 60 * 1000;
+        } catch (e) {
+          return false;
         }
       }
 
@@ -723,6 +1050,335 @@
         } catch (e) {
           return 'Last refreshed: —';
         }
+      }
+
+      function loadChartJs() {
+        if (typeof window.Chart !== 'undefined') {
+          return Promise.resolve(window.Chart);
+        }
+        if (chartJsLoadingPromise) {
+          return chartJsLoadingPromise;
+        }
+        chartJsLoadingPromise = new Promise(function (resolve, reject) {
+          var s = document.createElement('script');
+          s.src = CHARTJS_URL;
+          s.async = true;
+          s.onload = function () {
+            if (typeof window.Chart !== 'undefined') {
+              resolve(window.Chart);
+            } else {
+              reject(new Error('Chart.js loaded but Chart global is missing.'));
+            }
+          };
+          s.onerror = function () {
+            chartJsLoadingPromise = null;
+            reject(new Error('Could not load Chart.js from CDN.'));
+          };
+          document.head.appendChild(s);
+        });
+        return chartJsLoadingPromise;
+      }
+
+      function destroyChart(key) {
+        if (chartInstances[key]) {
+          try {
+            chartInstances[key].destroy();
+          } catch (e) {
+            /* ignore */
+          }
+          chartInstances[key] = null;
+        }
+      }
+
+      function chartCommonOptions() {
+        return {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: '#a0aec0',
+                font: { family: 'Inter, system-ui, sans-serif', size: 11 },
+                boxWidth: 12,
+              },
+            },
+            tooltip: {
+              backgroundColor: 'rgba(9, 39, 71, 0.96)',
+              borderColor: '#1a4060',
+              borderWidth: 1,
+              titleColor: '#fffefc',
+              bodyColor: '#fffefc',
+              titleFont: { family: 'Inter, system-ui, sans-serif', weight: '600' },
+              bodyFont: { family: 'Inter, system-ui, sans-serif' },
+            },
+          },
+        };
+      }
+
+      function renderStatusDonut(model) {
+        var Chart = window.Chart;
+        if (!Chart) {
+          return;
+        }
+        destroyChart('status');
+        var ctx = document.getElementById('chart-status-donut');
+        if (!ctx) {
+          return;
+        }
+        var opts = chartCommonOptions();
+        opts.cutout = '60%';
+        opts.plugins.legend.position = 'bottom';
+        chartInstances.status = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: model.labels || [],
+            datasets: [
+              {
+                data: model.values || [],
+                backgroundColor: model.colors || [],
+                borderColor: '#061b30',
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: opts,
+        });
+      }
+
+      function renderTypeDonut(model) {
+        var Chart = window.Chart;
+        if (!Chart) {
+          return;
+        }
+        destroyChart('type');
+        var ctx = document.getElementById('chart-type-donut');
+        if (!ctx) {
+          return;
+        }
+        var opts = chartCommonOptions();
+        opts.cutout = '60%';
+        opts.plugins.legend.position = 'bottom';
+        chartInstances.type = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: model.labels || [],
+            datasets: [
+              {
+                data: model.values || [],
+                backgroundColor: model.colors || [],
+                borderColor: '#061b30',
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: opts,
+        });
+      }
+
+      function renderRecognitionStack(model) {
+        var Chart = window.Chart;
+        if (!Chart) {
+          return;
+        }
+        destroyChart('recognition');
+        var ctx = document.getElementById('chart-recognition-stack');
+        if (!ctx) {
+          return;
+        }
+        var opts = chartCommonOptions();
+        opts.indexAxis = 'y';
+        opts.plugins.legend.position = 'bottom';
+        opts.scales = {
+          x: {
+            stacked: true,
+            ticks: { color: '#a0aec0', callback: function (v) { return formatMoneyCompact(v); } },
+            grid: { color: 'rgba(255,255,255,0.04)' },
+          },
+          y: {
+            stacked: true,
+            ticks: { color: '#a0aec0' },
+            grid: { display: false },
+          },
+        };
+        opts.plugins.tooltip.callbacks = {
+          label: function (ctx2) {
+            return ctx2.dataset.label + ': ' + formatMoneyCompact(ctx2.parsed.x);
+          },
+        };
+        chartInstances.recognition = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: model.agreementNames || [],
+            datasets: [
+              {
+                label: 'Recognized',
+                data: model.recognized || [],
+                backgroundColor: model.recognizedColor || '#43d6ba',
+                borderWidth: 0,
+              },
+              {
+                label: 'Remaining',
+                data: model.remaining || [],
+                backgroundColor: model.remainingColor || '#1a4060',
+                borderWidth: 0,
+              },
+            ],
+          },
+          options: opts,
+        });
+      }
+
+      function renderCustomerBar(model) {
+        var Chart = window.Chart;
+        if (!Chart) {
+          return;
+        }
+        destroyChart('customer');
+        var ctx = document.getElementById('chart-customer-bar');
+        if (!ctx) {
+          return;
+        }
+        var opts = chartCommonOptions();
+        opts.indexAxis = 'y';
+        opts.plugins.legend.display = false;
+        opts.scales = {
+          x: {
+            ticks: { color: '#a0aec0', callback: function (v) { return formatMoneyCompact(v); } },
+            grid: { color: 'rgba(255,255,255,0.04)' },
+          },
+          y: {
+            ticks: { color: '#a0aec0', autoSkip: false },
+            grid: { display: false },
+          },
+        };
+        opts.plugins.tooltip.callbacks = {
+          label: function (ctx2) {
+            return formatMoneyCompact(ctx2.parsed.x);
+          },
+        };
+        chartInstances.customer = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: model.customerNames || [],
+            datasets: [
+              {
+                data: model.values || [],
+                backgroundColor: model.colors || [],
+                borderWidth: 0,
+              },
+            ],
+          },
+          options: opts,
+        });
+      }
+
+      function renderAllCharts(charts) {
+        if (!charts) {
+          return;
+        }
+        loadChartJs()
+          .then(function () {
+            renderStatusDonut(charts.statusDonut || { labels: [], values: [], colors: [] });
+            renderTypeDonut(charts.typeDonut || { labels: [], values: [], colors: [] });
+            renderRecognitionStack(charts.recognitionStack || { agreementNames: [], recognized: [], remaining: [] });
+            renderCustomerBar(charts.customerBar || { customerNames: [], values: [], colors: [] });
+          })
+          .catch(function (e) {
+            els.agreementFetchError.textContent = e && e.message ? e.message : 'Could not load charts.';
+            els.agreementFetchError.classList.remove('d-none');
+          });
+      }
+
+      function renderAttention(alerts) {
+        var list = document.getElementById('attention-list');
+        if (!list) {
+          return;
+        }
+        list.innerHTML = '';
+        alerts = alerts || [];
+        for (var i = 0; i < alerts.length; i++) {
+          var a = alerts[i];
+          var item = document.createElement('div');
+          item.className = 'fos-attention-item sev-' + (a.severity || 'info');
+          var icon = a.severity === 'critical' ? '🔴' : a.severity === 'warning' ? '🟡' : '🟢';
+          item.innerHTML =
+            '<span class="sev-icon" aria-hidden="true">' + icon + '</span>' +
+            '<div class="flex-grow-1 min-w-0">' +
+              '<div class="title">' + escapeHtml(a.title || '') + '</div>' +
+              '<div class="body">' + escapeHtml(a.body || '') + '</div>' +
+            '</div>';
+          list.appendChild(item);
+        }
+      }
+
+      function formatMarginPct(n) {
+        if (n === null || n === undefined || isNaN(n)) {
+          return '—';
+        }
+        return (Math.round(Number(n) * 10) / 10).toFixed(1) + '%';
+      }
+
+      function renderFinancialTable(tab) {
+        var body = document.getElementById('financial-table-body');
+        var empty = document.getElementById('financial-empty');
+        if (!body || !currentTablePayload || !currentTablePayload.tabs) {
+          return;
+        }
+        var rows = currentTablePayload.tabs[tab] || [];
+        body.innerHTML = '';
+        if (!rows.length) {
+          if (empty) empty.style.display = 'block';
+          return;
+        }
+        if (empty) empty.style.display = 'none';
+
+        var hideCustomer = tab === 'topCustomer';
+        var customerTh = document.getElementById('financial-customer-th');
+        if (customerTh) {
+          customerTh.style.display = hideCustomer ? 'none' : '';
+        }
+
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          var marginPct = r.margin === null || r.margin === undefined ? null : Number(r.margin);
+          var widthPct = marginPct === null || isNaN(marginPct) ? 0 : Math.min(100, Math.max(0, marginPct));
+          var tr = document.createElement('tr');
+          var customerCell = hideCustomer ? '' :
+            '<td>' + escapeHtml(r.customer || '—') + '</td>';
+          tr.innerHTML =
+            '<td class="name-cell" title="' + escapeHtml(r.name || '') + '">' + escapeHtml(r.name || '') + '</td>' +
+            customerCell +
+            '<td><span class="badge-pill" style="background:' + (r.typeColor || '#A0AEC0') + '">' + escapeHtml(r.type || '—') + '</span></td>' +
+            '<td><span class="badge-pill" style="background:' + (r.stateColor || '#A0AEC0') + '">' + escapeHtml(r.state || '—') + '</span></td>' +
+            '<td class="num">' + formatMoneyCompact(r.planned) + '</td>' +
+            '<td class="num">' + formatMoneyCompact(r.recognized) + '</td>' +
+            '<td>' +
+              '<div class="margin-bar-wrap">' +
+                '<div class="margin-bar-track">' +
+                  '<div class="margin-bar-fill" style="width:' + widthPct + '%; background:' + (r.marginColor || '#A0AEC0') + '"></div>' +
+                '</div>' +
+                '<div class="margin-bar-value">' + formatMarginPct(marginPct) + '</div>' +
+              '</div>' +
+            '</td>';
+          body.appendChild(tr);
+        }
+      }
+
+      function setActiveTab(tab) {
+        currentTab = tab;
+        var tabs = document.querySelectorAll('.fos-table-tabs .tab');
+        for (var i = 0; i < tabs.length; i++) {
+          var t = tabs[i];
+          var isActive = t.getAttribute('data-tab') === tab;
+          if (isActive) {
+            t.classList.add('active');
+            t.setAttribute('aria-selected', 'true');
+          } else {
+            t.classList.remove('active');
+            t.setAttribute('aria-selected', 'false');
+          }
+        }
+        renderFinancialTable(tab);
       }
 
       function applyAgreementPayload(data) {
@@ -783,6 +1439,20 @@
             els.kpiMarginCard.classList.add('kpi-margin-low');
           }
         }
+
+        renderAttention(data.alerts || []);
+        currentTablePayload = data.financialTable || { tabs: { allActive: [], topCustomer: [], otherCustomers: [] } };
+        renderFinancialTable(currentTab);
+        renderAllCharts(data.charts);
+
+        if (els.staleBadge) {
+          var ttl = readTtlMinutes();
+          if (ttl > 0 && isCacheStale(data, ttl)) {
+            els.staleBadge.classList.remove('d-none');
+          } else {
+            els.staleBadge.classList.add('d-none');
+          }
+        }
       }
 
       function fetchAgreementFromServer() {
@@ -824,6 +1494,43 @@
         });
       }
 
+      if (els.ttlSelect) {
+        var initialTtl = readTtlMinutes();
+        els.ttlSelect.value = String(initialTtl);
+        els.ttlSelect.addEventListener('change', function () {
+          var n = parseInt(els.ttlSelect.value, 10);
+          if (!isFinite(n) || n < 0) {
+            n = DEFAULT_TTL_MINUTES;
+          }
+          writeTtlMinutes(n);
+          logActivity_('ttl_change', 'finance', String(n) + 'm');
+          var cached = readAgreementCache();
+          if (cached) {
+            if (els.staleBadge) {
+              if (n > 0 && isCacheStale(cached, n)) {
+                els.staleBadge.classList.remove('d-none');
+              } else {
+                els.staleBadge.classList.add('d-none');
+              }
+            }
+          }
+        });
+      }
+
+      var tabButtons = document.querySelectorAll('.fos-table-tabs .tab');
+      for (var ti = 0; ti < tabButtons.length; ti++) {
+        (function (btn) {
+          btn.addEventListener('click', function () {
+            var t = btn.getAttribute('data-tab');
+            if (!t) {
+              return;
+            }
+            setActiveTab(t);
+            logActivity_('finance_table_tab', 'finance', t);
+          });
+        })(tabButtons[ti]);
+      }
+
       function showHome() {
         els.panelHome.classList.remove('d-none');
         if (els.panelFinance) {
@@ -842,14 +1549,22 @@
           els.agreementFetchError.classList.add('d-none');
         }
         var cached = readAgreementCache();
+        var ttlMinutes = readTtlMinutes();
         if (cached) {
           applyAgreementPayload(cached);
+          if (ttlMinutes > 0 && isCacheStale(cached, ttlMinutes)) {
+            // Render the stale data immediately, then quietly refresh in the background.
+            fetchAgreementFromServer();
+          }
         } else {
           applyAgreementPayload({
             agreements: [],
             companies: [],
             fetchedAt: null,
             kpis: {},
+            alerts: [],
+            charts: null,
+            financialTable: { tabs: { allActive: [], topCustomer: [], otherCustomers: [] } },
             warnings: [],
           });
           fetchAgreementFromServer();

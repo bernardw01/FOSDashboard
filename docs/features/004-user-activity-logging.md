@@ -1,6 +1,6 @@
 # Feature: User activity logging (User Activity tab)
 
-> **PRD version 1.6** — see `docs/FOS-Dashboard-PRD.md` (`§3.8`, **FR-60–FR-66**, **NFR-08**, **AC-15–AC-17**).
+> **PRD version 1.9.2** — see `docs/FOS-Dashboard-PRD.md` (`§3.8`, **FR-60–FR-66**, **NFR-08**, **AC-15–AC-17**).
 
 ## Goal
 
@@ -92,7 +92,7 @@ Constraints on this payload:
 
 ### Actions
 
-- **Append row**: build a `Array` aligned to the resolved header order; call `sheet.appendRow(values)` inside a `LockService.getDocumentLock()` `tryLock(2000)` block. Release the lock in `finally`. On lock-acquisition failure: `console.warn` and drop the event (FR-65).
+- **Append row**: build a `Array` aligned to the resolved header order; call `sheet.appendRow(values)` inside a `LockService.getScriptLock()` `tryLock(2000)` block. Release the lock in `finally`. On lock-acquisition failure: `console.warn` and drop the event (FR-65). **Do not** use `LockService.getDocumentLock()` — the FOS Dashboard is a standalone Apps Script project (not bound to the Users spreadsheet), so `getDocumentLock()` returns `null` and any `tryLock` call on it throws a `TypeError` that surfaces as a spurious "lock timeout, dropping page_load/doGet" warning on the very first row.
 - **No batching** in v1. If quota issues appear later, introduce an in-memory queue + `CacheService` buffer flushed by a time-driven trigger (deferred follow-up).
 
 ### `doGet` hook

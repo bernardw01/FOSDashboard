@@ -1,5 +1,5 @@
 /**
- * PRD version 1.6 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.9.2 — sync with docs/FOS-Dashboard-PRD.md
  *
  * User activity logging — append-only event rows to the "User Activity" tab
  * in the Users spreadsheet (AUTH_SPREADSHEET_ID). Implements §3.8 / FR-60–FR-66.
@@ -56,7 +56,7 @@ var ACTIVITY_MAX_UA_ = 200;
 /** @const {number} */
 var ACTIVITY_MAX_SESSION_ID_ = 64;
 
-/** @const {number} Lock acquisition wait per FR-65. */
+/** @const {number} Script-lock acquisition wait per FR-65. */
 var ACTIVITY_LOCK_WAIT_MS_ = 2000;
 
 /** @const {number} Route length cap; matches feature doc sanitization rule. */
@@ -181,11 +181,19 @@ function writeActivityRow_(fields) {
     row[c] = Object.prototype.hasOwnProperty.call(byName, name) ? byName[name] : '';
   }
 
-  var lock = LockService.getDocumentLock();
+  // Standalone Web App: use getScriptLock(). getDocumentLock() returns null
+  // for non–container-bound scripts, which previously surfaced as a spurious
+  // "lock timeout" warning on the very first page_load row.
+  var lock = LockService.getScriptLock();
+  if (!lock) {
+    activityWarn_('User Activity: getScriptLock returned null', null);
+    return { ok: false, reason: 'LOCK_UNAVAILABLE' };
+  }
   var acquired = false;
   try {
     acquired = lock.tryLock(ACTIVITY_LOCK_WAIT_MS_);
   } catch (e) {
+    activityWarn_('User Activity: tryLock threw', e);
     acquired = false;
   }
   if (!acquired) {

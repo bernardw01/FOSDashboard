@@ -62,15 +62,33 @@ Follow these standards when generating or changing code in this repository.
 
 ### PRD version in file headers (clasp / Apps Script)
 
-**FOS Dashboard (`FOSDashboard` repo):** The product PRD is **`docs/FOS-Dashboard-PRD.md`**. Whenever its **version number** (header line `Version X.Y`) changes:
+**FOS Dashboard (`FOSDashboard` repo):** The product PRD is **`docs/FOS-Dashboard-PRD.md`**. Whenever its **version number** (header line `Version X.Y` or `Version X.Y.Z`) changes:
 
 1. Bump **`FOS_PRD_VERSION`** in `src/Code.js` to match **exactly**.
 2. Update the **PRD version line** at the top of **every** clasp-pushed file under `src/` (**all** `.js` and `.html`; **exclude** `appsscript.json`):
-   - **JavaScript:** first line inside the top `/**` block: ` * PRD version X.Y — sync with docs/FOS-Dashboard-PRD.md` (example: **1.5**).
-   - **HTML:** immediately after `<!DOCTYPE html>`: `<!-- PRD version X.Y — sync with docs/FOS-Dashboard-PRD.md -->` (same **X.Y** as the PRD file).
+   - **JavaScript:** first line inside the top `/**` block: ` * PRD version X.Y[.Z] — sync with docs/FOS-Dashboard-PRD.md` (examples: **1.5**, **1.9.1**).
+   - **HTML:** immediately after `<!DOCTYPE html>`: `<!-- PRD version X.Y[.Z] — sync with docs/FOS-Dashboard-PRD.md -->` (same **X.Y[.Z]** as the PRD file).
 3. Include these header updates in the **same** change as the PRD version bump and changelog row.
 
-**Other harpin Apps Script projects** (e.g. Clockify–Fibery sync): may follow `docs/PRD.md` and `APP_METADATA_.PRD_VERSION` per that project’s rules; apply the same “every pushed `src` file” header discipline using **that** repo’s PRD path.
+### Version-number rules (semver-style, applied to a PRD)
+
+Use a **three-segment `MAJOR.MINOR.PATCH`** scheme for `docs/FOS-Dashboard-PRD.md`. The same number drives `FOS_PRD_VERSION`, the `src/*` headers, and the `docs/features/*` headers.
+
+| Segment | Bump when… | Examples |
+| --- | --- | --- |
+| **MAJOR** (`X.0.0`) | A breaking contract change for the product or its consumers — e.g. the auth model is replaced, the dashboard is split into multiple deployments, or a published `google.script.run` signature changes in a way that breaks clients. **Rare**; ask the user before doing this. | `2.0.0` |
+| **MINOR** (`X.Y.0`) | New functionality, a new FR / AC, a new feature spec under `docs/features/`, a new server module, or a meaningful expansion of an existing surface. This is the **default** for everything that ships user-visible behavior. | `1.7` → `1.8`, `1.9` → `1.10` |
+| **PATCH** (`X.Y.Z`) | A correctness fix, schema-path correction, copy fix, lint cleanup, or other change that **does not** add or remove documented behavior. Use this for follow-on commits to the same release once the MINOR has already shipped. | `1.9` → `1.9.1` → `1.9.2` |
+
+Conventions:
+
+- **Two-segment back-compat**: existing `X.Y` versions (no patch segment) are treated as `X.Y.0`. You do **not** need to retroactively rewrite older two-segment versions in the changelog table.
+- **Always add a Changelog row** for any version bump, MAJOR / MINOR / PATCH. Patch rows can be terse (one or two sentences).
+- **Patch-only changes still touch every header.** Even a one-line `q/order-by` fix gets the full header sync — `FOS_PRD_VERSION`, every `src/*` and `docs/features/*` PRD-version line.
+- **Don't combine a MINOR and a PATCH in the same bump.** If you're already shipping new behavior, that's a MINOR; subsequent corrections are patches against that MINOR.
+- **No leading `v`**: write `1.9.1`, not `v1.9.1`.
+
+**Other harpin Apps Script projects** (e.g. Clockify–Fibery sync): may follow `docs/PRD.md` and `APP_METADATA_.PRD_VERSION` per that project's rules; apply the same “every pushed `src` file” header discipline using **that** repo's PRD path, and the same MAJOR / MINOR / PATCH discipline.
 
 ## Feature Spec Template Compliance
 
