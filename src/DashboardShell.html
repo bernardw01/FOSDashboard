@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 1.11.0 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 1.12.0 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -70,7 +70,8 @@
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
 
-    #panel-agreement-dashboard.fos-agreement-root {
+    #panel-agreement-dashboard.fos-agreement-root,
+    #panel-operations.fos-agreement-root {
       background: var(--ag-bg);
       border-radius: 12px;
       padding: 4px 0 8px;
@@ -489,6 +490,181 @@
       background-position: calc(100% - 14px) 50%, calc(100% - 10px) 50%;
       background-size: 4px 4px, 4px 4px;
       background-repeat: no-repeat;
+    }
+
+    /* ---------------------------------------------------------------------
+       Utilization Management Dashboard (Operations panel) — Phase A.
+       Reuses .fos-agreement-root alias scope so the global brand tokens
+       (--ag-*) resolve here verbatim.
+       ------------------------------------------------------------------ */
+    .fos-util-filter-bar {
+      background: var(--ag-surface2);
+      border: 1px solid var(--ag-border);
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+    .fos-util-filter-bar label.field-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ag-text-muted);
+      font-weight: 600;
+      margin-bottom: 2px;
+      display: block;
+    }
+    .fos-util-filter-bar select,
+    .fos-util-filter-bar input[type='date'] {
+      background: var(--ag-bg);
+      color: var(--ag-text);
+      border: 1px solid var(--ag-border);
+      border-radius: 8px;
+      font-size: 0.82rem;
+      padding: 5px 10px;
+      min-width: 120px;
+      max-width: 100%;
+    }
+    .fos-util-filter-bar .btn-group .btn {
+      background: var(--ag-bg);
+      color: var(--ag-text-muted);
+      border-color: var(--ag-border);
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 5px 12px;
+    }
+    .fos-util-filter-bar .btn-group .btn.active {
+      background: var(--ag-accent);
+      color: #061b30;
+      border-color: var(--ag-accent);
+    }
+    .fos-util-multi {
+      position: relative;
+    }
+    .fos-util-multi .dropdown-menu {
+      background: var(--ag-surface);
+      border: 1px solid var(--ag-border);
+      max-height: 260px;
+      overflow-y: auto;
+      min-width: 260px;
+      padding: 8px 4px;
+    }
+    .fos-util-multi .dropdown-menu .form-check {
+      padding: 4px 12px 4px 36px;
+      font-size: 0.82rem;
+      color: var(--ag-text);
+    }
+    .fos-util-multi .dropdown-menu .form-check input {
+      margin-left: -22px;
+    }
+    .fos-util-multi .dropdown-menu .form-check:hover {
+      background: rgba(82, 201, 229, 0.08);
+    }
+    .fos-util-multi .dropdown-menu .empty {
+      font-size: 0.78rem;
+      color: var(--ag-text-muted);
+      padding: 8px 12px;
+    }
+    .fos-util-multi .multi-trigger {
+      background: var(--ag-bg);
+      color: var(--ag-text);
+      border: 1px solid var(--ag-border);
+      border-radius: 8px;
+      font-size: 0.82rem;
+      padding: 5px 10px;
+      min-width: 180px;
+      text-align: left;
+      cursor: pointer;
+      position: relative;
+    }
+    .fos-util-multi .multi-trigger::after {
+      content: '';
+      display: inline-block;
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-25%);
+      width: 0;
+      height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid var(--ag-text-muted);
+    }
+    .fos-util-multi .multi-trigger .count-badge {
+      display: inline-block;
+      background: var(--ag-accent);
+      color: #061b30;
+      font-weight: 700;
+      border-radius: 9999px;
+      padding: 1px 7px;
+      font-size: 0.72rem;
+      margin-left: 6px;
+    }
+    .fos-util-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-height: 6px;
+    }
+    .fos-util-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 6px 3px 10px;
+      border-radius: 9999px;
+      background: rgba(82, 201, 229, 0.12);
+      border: 1px solid rgba(82, 201, 229, 0.35);
+      color: var(--ag-text);
+      font-size: 0.74rem;
+      font-weight: 500;
+    }
+    .fos-util-chip button {
+      background: transparent;
+      border: 0;
+      color: var(--ag-text-muted);
+      font-size: 0.85rem;
+      line-height: 1;
+      padding: 0 4px;
+      cursor: pointer;
+    }
+    .fos-util-chip button:hover {
+      color: var(--ag-text);
+    }
+    .fos-util-clear-btn {
+      background: transparent;
+      border: 1px solid var(--ag-border);
+      color: var(--ag-text-muted);
+      font-size: 0.74rem;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      cursor: pointer;
+    }
+    .fos-util-clear-btn:hover {
+      color: var(--ag-text);
+      border-color: var(--ag-accent);
+    }
+    .fos-util-kpi-coverage {
+      display: inline-block;
+      margin-left: 6px;
+      font-size: 0.7rem;
+      color: var(--ag-text-muted);
+      font-weight: 500;
+      vertical-align: middle;
+    }
+    /* Highlight the chart bar / segment that's been clicked + added to a
+       filter — Chart.js paints a border on the active element via dataset
+       options; this just keeps the canvas wrapper visually noticeable. */
+    .fos-util-chart-wrap.has-selection {
+      box-shadow: inset 0 0 0 1px rgba(82, 201, 229, 0.35);
+      border-radius: 8px;
+    }
+    /* Coming-soon stub now repurposed for the dashboard error state. */
+    .fos-util-fetch-error {
+      background: rgba(252, 92, 101, 0.1);
+      border: 1px solid rgba(252, 92, 101, 0.35);
+      color: var(--ag-danger);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 0.82rem;
     }
 
     /* Custom scrollbar — §9.7 (4px, border-color track, accent2 thumb).
@@ -944,6 +1120,182 @@
             </div>
           </div>
         </div>
+
+        <div id="panel-operations" class="d-none fos-agreement-root">
+          <div id="util-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
+          <div class="fos-agreement-inner shadow-lg">
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <img
+                src="https://harpin.ai/wp-content/uploads/logo.svg"
+                width="120"
+                height="32"
+                alt=""
+                decoding="async"
+                style="height: 32px; width: auto"
+                onerror="this.style.display='none'"
+              />
+              <div class="agreement-logo-sep" aria-hidden="true"></div>
+              <div class="flex-grow-1 min-w-0">
+                <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Utilization Management Dashboard</h1>
+                <p class="small mb-0" id="util-subtitle" style="color: var(--ag-text-muted)">
+                  Labor utilization for …
+                </p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 mb-3 pb-3 border-bottom" style="border-color: var(--ag-border) !important">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="util-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
+                Refresh
+              </button>
+              <span class="small" id="util-last-refresh" style="color: var(--ag-text-muted)">Last refreshed: —</span>
+              <span class="d-none small" id="util-stale-badge" style="color: var(--ag-warn); font-weight: 600">Stale</span>
+              <label class="small d-flex align-items-center gap-1" for="util-ttl-select" style="color: var(--ag-text-muted)">
+                Auto-refresh
+                <select id="util-ttl-select" class="fos-ttl-select" aria-label="Auto-refresh interval">
+                  <option value="5">5 min</option>
+                  <option value="10" selected>10 min</option>
+                  <option value="30">30 min</option>
+                  <option value="0">Off</option>
+                </select>
+              </label>
+              <span class="small d-none text-danger" id="util-fetch-error" role="alert"></span>
+            </div>
+
+            <section class="fos-util-filter-bar mb-3" aria-label="Utilization filters">
+              <div class="d-flex flex-wrap align-items-end gap-3">
+                <div>
+                  <label class="field-label" for="util-range-preset">Date range</label>
+                  <select id="util-range-preset" aria-label="Date range preset">
+                    <option value="30">Last 30 days</option>
+                    <option value="90" selected>Last 90 days</option>
+                    <option value="180">Last 6 months</option>
+                    <option value="ytd">Year to date</option>
+                    <option value="custom">Custom…</option>
+                  </select>
+                </div>
+                <div id="util-custom-range" class="d-none d-flex gap-2 align-items-end">
+                  <div>
+                    <label class="field-label" for="util-range-start">Start</label>
+                    <input type="date" id="util-range-start" />
+                  </div>
+                  <div>
+                    <label class="field-label" for="util-range-end">End</label>
+                    <input type="date" id="util-range-end" />
+                  </div>
+                  <button type="button" class="btn btn-sm" id="util-range-apply" style="background: var(--ag-accent); color: #061b30; border: none; align-self: end">
+                    Apply
+                  </button>
+                </div>
+                <div class="fos-util-multi">
+                  <label class="field-label">Customers</label>
+                  <button type="button" class="multi-trigger" id="util-customer-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    All customers
+                  </button>
+                  <ul class="dropdown-menu" id="util-customer-menu" aria-label="Customer filter"></ul>
+                </div>
+                <div class="fos-util-multi">
+                  <label class="field-label">Projects</label>
+                  <button type="button" class="multi-trigger" id="util-project-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    All projects
+                  </button>
+                  <ul class="dropdown-menu" id="util-project-menu" aria-label="Project filter"></ul>
+                </div>
+                <div>
+                  <label class="field-label">Billable</label>
+                  <div class="btn-group" role="group" id="util-billable-group" aria-label="Billable filter">
+                    <button type="button" class="btn btn-sm active" data-value="all">All</button>
+                    <button type="button" class="btn btn-sm" data-value="billable">Billable</button>
+                    <button type="button" class="btn btn-sm" data-value="non-billable">Non-billable</button>
+                  </div>
+                </div>
+                <div>
+                  <label class="field-label">Internal labor</label>
+                  <div class="btn-group" role="group" id="util-internal-group" aria-label="Internal labor filter">
+                    <button type="button" class="btn btn-sm active" data-value="include">Include</button>
+                    <button type="button" class="btn btn-sm" data-value="exclude">Exclude</button>
+                  </div>
+                </div>
+                <button type="button" class="fos-util-clear-btn ms-auto" id="util-clear-btn">Clear filters</button>
+              </div>
+              <div class="fos-util-chip-row mt-2" id="util-chip-row" aria-live="polite"></div>
+            </section>
+
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-blue h-100" title="Total hours logged in the filtered window.">
+                  <div class="label">Total hours</div>
+                  <div class="value" id="util-kpi-total-hours">0</div>
+                  <div class="sub" id="util-kpi-total-hours-sub">0 entries</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-teal h-100" title="Billable hours (Billable = Yes) in the filter set.">
+                  <div class="label">Billable hours</div>
+                  <div class="value" id="util-kpi-billable-hours">0</div>
+                  <div class="sub" id="util-kpi-non-billable-sub">0 non-billable</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-green h-100" title="Billable hours divided by total hours.">
+                  <div class="label">Utilization</div>
+                  <div class="value" id="util-kpi-utilization">0%</div>
+                  <div class="sub" id="util-kpi-utilization-sub">— vs target</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-yellow h-100" title="Sum of precomputed Cost field across the filter set.">
+                  <div class="label">Total cost</div>
+                  <div class="value" id="util-kpi-total-cost">$0</div>
+                  <div class="sub" id="util-kpi-cost-sub">$0/hr effective</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-blue h-100" title="Weighted average User Role Bill Rate for rows with a known rate; coverage shows what fraction of hours those rows represent.">
+                  <div class="label">Effective bill rate</div>
+                  <div class="value" id="util-kpi-bill-rate">—</div>
+                  <div class="sub" id="util-kpi-bill-rate-sub">0% coverage</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-margin-low h-100" id="util-kpi-pending-card" title="Rows where Approval = Unapproved OR Time Entry Status ∈ {NOT_SUBMITTED, PENDING}.">
+                  <div class="label">Pending approvals</div>
+                  <div class="value" id="util-kpi-pending">0</div>
+                  <div class="sub" id="util-kpi-pending-sub">0 distinct people</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+              <div class="col-12 col-xl-6">
+                <section class="fos-section-card h-100" aria-labelledby="util-customer-heading">
+                  <h2 id="util-customer-heading">Hours by customer</h2>
+                  <div class="fos-chart-wrap fos-util-chart-wrap tall" id="util-customer-bar-wrap"><canvas id="util-customer-bar"></canvas></div>
+                </section>
+              </div>
+              <div class="col-12 col-xl-6">
+                <section class="fos-section-card h-100" aria-labelledby="util-project-heading">
+                  <h2 id="util-project-heading">Hours by project</h2>
+                  <div class="fos-chart-wrap fos-util-chart-wrap tall" id="util-project-bar-wrap"><canvas id="util-project-bar"></canvas></div>
+                </section>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+              <div class="col-12 col-xl-7">
+                <section class="fos-section-card h-100" aria-labelledby="util-weekly-heading">
+                  <h2 id="util-weekly-heading">Weekly trend (total vs billable)</h2>
+                  <div class="fos-chart-wrap fos-util-chart-wrap" id="util-weekly-wrap"><canvas id="util-weekly-line"></canvas></div>
+                </section>
+              </div>
+              <div class="col-12 col-xl-5">
+                <section class="fos-section-card h-100" aria-labelledby="util-billable-heading">
+                  <h2 id="util-billable-heading">Billable vs non-billable</h2>
+                  <div class="fos-chart-wrap fos-util-chart-wrap" id="util-billable-wrap"><canvas id="util-billable-stack"></canvas></div>
+                </section>
+              </div>
+            </div>
+          </div>
+        </div>
       </main>
     </div>
   </div>
@@ -982,6 +1334,9 @@
       var AGREEMENT_CACHE_KEY = 'fos_agreement_dashboard_v2';
       var AGREEMENT_CACHE_SCHEMA_VERSION = 2;
       var AGREEMENT_TTL_PREF_KEY = 'fos_agreement_dashboard_ttl_minutes_v1';
+      var UTIL_CACHE_KEY = 'fos_utilization_dashboard_v1';
+      var UTIL_CACHE_SCHEMA_VERSION = 1;
+      var UTIL_TTL_PREF_KEY = 'fos_utilization_dashboard_ttl_minutes_v1';
       var DEFAULT_TTL_MINUTES = 10;
       var SESSION_ID_KEY = 'fos_session_id_v1';
       var ACTIVITY_THROTTLE_MS = 250;
@@ -992,9 +1347,26 @@
       var cachedSessionId = null;
       var chartJsLoadingPromise = null;
       var d3LoadingPromise = null;
-      var chartInstances = { status: null, type: null, recognition: null, customer: null };
+      var chartInstances = {
+        status: null, type: null, recognition: null, customer: null,
+        utilCustomer: null, utilProject: null, utilWeekly: null, utilBillable: null,
+      };
       var currentTablePayload = null;
       var currentTab = 'allActive';
+
+      // Utilization dashboard client state (Phase A).
+      var utilState = {
+        payload: null,         // last server payload (rows + KPIs + dimensions + aggregates)
+        filters: {
+          customers: {},       // Set as {name: true}
+          projects: {},        // Set as {projectKey: true} where projectKey = id || 'name::' + name
+          billable: 'all',     // 'all' | 'billable' | 'non-billable'
+          internalLabor: 'include', // 'include' | 'exclude'
+          rangeDays: 90,       // preset value or null when custom
+          rangeStartIso: null, // populated for 'custom' preset
+          rangeEndIso: null,
+        },
+      };
 
       function noop() {}
 
@@ -1108,6 +1480,27 @@
         kpiMarginCard: document.getElementById('kpi-margin-card'),
         ttlSelect: document.getElementById('agreement-ttl-select'),
         staleBadge: document.getElementById('agreement-stale-badge'),
+        panelOperations: document.getElementById('panel-operations'),
+        utilRefreshBtn: document.getElementById('util-refresh-btn'),
+        utilLastRefresh: document.getElementById('util-last-refresh'),
+        utilFetchError: document.getElementById('util-fetch-error'),
+        utilSubtitle: document.getElementById('util-subtitle'),
+        utilWarn: document.getElementById('util-warn'),
+        utilTtlSelect: document.getElementById('util-ttl-select'),
+        utilStaleBadge: document.getElementById('util-stale-badge'),
+        utilRangePreset: document.getElementById('util-range-preset'),
+        utilCustomRange: document.getElementById('util-custom-range'),
+        utilRangeStart: document.getElementById('util-range-start'),
+        utilRangeEnd: document.getElementById('util-range-end'),
+        utilRangeApply: document.getElementById('util-range-apply'),
+        utilCustomerMenu: document.getElementById('util-customer-menu'),
+        utilCustomerTrigger: document.getElementById('util-customer-trigger'),
+        utilProjectMenu: document.getElementById('util-project-menu'),
+        utilProjectTrigger: document.getElementById('util-project-trigger'),
+        utilBillableGroup: document.getElementById('util-billable-group'),
+        utilInternalGroup: document.getElementById('util-internal-group'),
+        utilClearBtn: document.getElementById('util-clear-btn'),
+        utilChipRow: document.getElementById('util-chip-row'),
         settingsLink: document.getElementById('settings-link'),
         comingSoonModal: document.getElementById('comingSoonModal'),
         csBody: document.getElementById('cs-body'),
@@ -1963,11 +2356,17 @@
         if (els.panelAgreementDashboard) {
           els.panelAgreementDashboard.classList.add('d-none');
         }
+        if (els.panelOperations) {
+          els.panelOperations.classList.add('d-none');
+        }
         els.topbarTitle.textContent = 'Home';
       }
 
       function showAgreementDashboard() {
         els.panelHome.classList.add('d-none');
+        if (els.panelOperations) {
+          els.panelOperations.classList.add('d-none');
+        }
         if (els.panelAgreementDashboard) {
           els.panelAgreementDashboard.classList.remove('d-none');
         }
@@ -2001,6 +2400,779 @@
         }
       }
 
+      /* =====================================================================
+         Utilization Management Dashboard (Operations panel) — Phase A.
+         Fetches Agreement Management/Labor Costs through
+         getUtilizationDashboardData(), caches the payload in sessionStorage,
+         and renders KPIs + four Chart.js surfaces. Filters re-aggregate in
+         memory; only a date-range change re-fetches.
+         ================================================================== */
+
+      function readUtilizationCache() {
+        try {
+          var raw = sessionStorage.getItem(UTIL_CACHE_KEY);
+          if (!raw) return null;
+          var o = JSON.parse(raw);
+          if (!o || o.cacheSchemaVersion !== UTIL_CACHE_SCHEMA_VERSION) return null;
+          return o;
+        } catch (e) {
+          return null;
+        }
+      }
+      function writeUtilizationCache(data) {
+        try {
+          sessionStorage.setItem(UTIL_CACHE_KEY, JSON.stringify(data));
+        } catch (e) { /* quota / private mode */ }
+      }
+      function readUtilTtlMinutes() {
+        try {
+          var raw = localStorage.getItem(UTIL_TTL_PREF_KEY);
+          if (raw === null || raw === undefined) return DEFAULT_TTL_MINUTES;
+          var n = parseInt(raw, 10);
+          if (!isFinite(n) || n < 0) return DEFAULT_TTL_MINUTES;
+          return n;
+        } catch (e) {
+          return DEFAULT_TTL_MINUTES;
+        }
+      }
+      function writeUtilTtlMinutes(n) {
+        try {
+          localStorage.setItem(UTIL_TTL_PREF_KEY, String(n));
+        } catch (e) { /* ignore */ }
+      }
+
+      function formatHours(n) {
+        var x = Number(n);
+        if (!isFinite(x) || !x) return '0';
+        if (x >= 1000) return (x / 1000).toFixed(1) + 'k';
+        if (x % 1 === 0) return String(x);
+        return x.toFixed(1);
+      }
+      function formatPctRaw(n) {
+        var x = Number(n);
+        if (!isFinite(x)) return '0';
+        return (Math.round(x * 10) / 10).toString();
+      }
+      function formatRate(n) {
+        var x = Number(n);
+        if (!isFinite(x)) return '—';
+        return '$' + Math.round(x);
+      }
+
+      // Filter-state helpers --------------------------------------------------
+      function setFromKeys(o) { var a = []; for (var k in o) if (Object.prototype.hasOwnProperty.call(o,k)) a.push(k); return a; }
+      function isAnyFilterActive() {
+        var f = utilState.filters;
+        if (setFromKeys(f.customers).length) return true;
+        if (setFromKeys(f.projects).length) return true;
+        if (f.billable !== 'all') return true;
+        if (f.internalLabor !== 'include') return true;
+        return false;
+      }
+      function applyFilters(rows) {
+        var f = utilState.filters;
+        var customers = f.customers;
+        var projects = f.projects;
+        var hasCustomerFilter = setFromKeys(customers).length > 0;
+        var hasProjectFilter = setFromKeys(projects).length > 0;
+        var out = [];
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          if (hasCustomerFilter && !customers[r.customer]) continue;
+          var projectKey = r.projectId ? r.projectId : ('name::' + r.projectName);
+          if (hasProjectFilter && !projects[projectKey]) continue;
+          if (f.billable === 'billable' && !r.billable) continue;
+          if (f.billable === 'non-billable' && r.billable) continue;
+          if (f.internalLabor === 'exclude' && r.isInternal) continue;
+          out.push(r);
+        }
+        return out;
+      }
+
+      // Aggregation helpers (mirror server logic so unfiltered + filtered
+      // views are computed the same way) ------------------------------------
+      function computeKpisClient(rows) {
+        var totalHours = 0, billableHours = 0, totalCost = 0;
+        var billRateNum = 0, billRateDen = 0;
+        var pending = 0, personSet = {}, projectSet = {}, customerSet = {};
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          totalHours += r.hours;
+          totalCost += r.cost;
+          if (r.billable) billableHours += r.hours;
+          if (r.userRoleBillRate !== null && r.userRoleBillRate !== undefined) {
+            billRateNum += r.hours * r.userRoleBillRate;
+            billRateDen += r.hours;
+          }
+          if (r.isPending) pending++;
+          var pkey = r.userId || r.userName || '(Unknown user)';
+          personSet[pkey] = true;
+          var prjKey = r.projectId || ('name::' + r.projectName);
+          projectSet[prjKey] = true;
+          customerSet[r.customer] = true;
+        }
+        return {
+          totalHours: totalHours,
+          billableHours: billableHours,
+          nonBillableHours: Math.max(0, totalHours - billableHours),
+          utilizationPct: totalHours > 0 ? (billableHours / totalHours) * 100 : 0,
+          totalCost: totalCost,
+          effectiveCostRate: totalHours > 0 ? totalCost / totalHours : 0,
+          effectiveBillRate: billRateDen > 0 ? billRateNum / billRateDen : null,
+          effectiveBillRateCoverage: totalHours > 0 ? billRateDen / totalHours : 0,
+          pendingApprovalsCount: pending,
+          distinctPersons: setFromKeys(personSet).length,
+          distinctProjects: setFromKeys(projectSet).length,
+          distinctCustomers: setFromKeys(customerSet).length,
+          rowCount: rows.length,
+        };
+      }
+
+      function groupHoursBy(rows, keyFn, extraInitFn) {
+        var map = {};
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          var key = keyFn(r);
+          if (!map[key]) {
+            map[key] = extraInitFn ? extraInitFn(r, key) : { name: key, hours: 0, billableHours: 0 };
+          }
+          map[key].hours += r.hours;
+          if (r.billable) map[key].billableHours += r.hours;
+        }
+        var arr = [];
+        for (var k in map) if (Object.prototype.hasOwnProperty.call(map, k)) arr.push(map[k]);
+        arr.sort(function (a, b) { return Number(b.hours || 0) - Number(a.hours || 0); });
+        return arr;
+      }
+
+      function aggregateByWeek(rows) {
+        var map = {};
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          if (!r.week) continue;
+          if (!map[r.week]) map[r.week] = { week: r.week, hours: 0, billableHours: 0, nonBillableHours: 0 };
+          map[r.week].hours += r.hours;
+          if (r.billable) map[r.week].billableHours += r.hours;
+          else map[r.week].nonBillableHours += r.hours;
+        }
+        var arr = [];
+        for (var k in map) if (Object.prototype.hasOwnProperty.call(map, k)) arr.push(map[k]);
+        arr.sort(function (a, b) { return String(a.week).localeCompare(String(b.week)); });
+        return arr;
+      }
+
+      // Filter bar population + dropdown wiring -----------------------------
+      function populateFilterDropdowns(dimensions) {
+        populateMultiMenu(
+          els.utilCustomerMenu,
+          (dimensions && dimensions.customers) || [],
+          function (item) { return item.name; },
+          function (item) { return item.name; },
+          utilState.filters.customers
+        );
+        populateMultiMenu(
+          els.utilProjectMenu,
+          (dimensions && dimensions.projects) || [],
+          function (item) { return item.id ? item.id : ('name::' + item.name); },
+          function (item) { return item.name + ' · ' + (item.customer || '—'); },
+          utilState.filters.projects
+        );
+        updateMultiTriggerLabel(els.utilCustomerTrigger, 'All customers', 'customer', utilState.filters.customers);
+        updateMultiTriggerLabel(els.utilProjectTrigger, 'All projects', 'project', utilState.filters.projects);
+      }
+
+      function populateMultiMenu(menu, items, keyFn, labelFn, selectedMap) {
+        if (!menu) return;
+        menu.innerHTML = '';
+        if (!items || !items.length) {
+          var li = document.createElement('li');
+          li.className = 'empty';
+          li.textContent = 'No data in range.';
+          menu.appendChild(li);
+          return;
+        }
+        for (var i = 0; i < items.length; i++) {
+          var it = items[i];
+          var key = keyFn(it);
+          var label = labelFn(it);
+          var li2 = document.createElement('li');
+          var checkId = 'util-multi-' + Math.random().toString(36).slice(2, 8);
+          var checked = selectedMap[key] ? ' checked' : '';
+          li2.innerHTML =
+            '<div class="form-check">' +
+              '<input class="form-check-input" type="checkbox" id="' + checkId + '"' + checked + ' />' +
+              '<label class="form-check-label" for="' + checkId + '">' + escapeHtml(label) + '</label>' +
+            '</div>';
+          (function (input, k, sm) {
+            input.addEventListener('change', function () {
+              if (input.checked) sm[k] = true;
+              else delete sm[k];
+              renderUtilDashboard();
+            });
+          })(li2.querySelector('input'), key, selectedMap);
+          menu.appendChild(li2);
+        }
+      }
+
+      function updateMultiTriggerLabel(trigger, defaultLabel, dimLabel, selectedMap) {
+        if (!trigger) return;
+        var n = setFromKeys(selectedMap).length;
+        if (n === 0) {
+          trigger.textContent = defaultLabel;
+          return;
+        }
+        trigger.innerHTML = (n === 1 ? '1 ' + dimLabel : n + ' ' + dimLabel + 's') +
+          ' <span class="count-badge">' + n + '</span>';
+      }
+
+      function renderChipBar() {
+        var row = els.utilChipRow;
+        if (!row) return;
+        row.innerHTML = '';
+        var f = utilState.filters;
+        var addChip = function (text, onRemove) {
+          var chip = document.createElement('span');
+          chip.className = 'fos-util-chip';
+          chip.innerHTML = escapeHtml(text) + ' <button type="button" aria-label="Remove">×</button>';
+          chip.querySelector('button').addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            onRemove();
+          });
+          row.appendChild(chip);
+        };
+        var custKeys = setFromKeys(f.customers);
+        for (var i = 0; i < custKeys.length; i++) {
+          (function (k) {
+            addChip('Customer: ' + k, function () {
+              delete f.customers[k];
+              populateFilterDropdowns(utilState.payload ? utilState.payload.dimensions : null);
+              renderUtilDashboard();
+              logActivity_('util_filter', 'operations', 'remove_customer');
+            });
+          })(custKeys[i]);
+        }
+        var projKeys = setFromKeys(f.projects);
+        var projectIndex = buildProjectKeyIndex_();
+        for (var j = 0; j < projKeys.length; j++) {
+          (function (k) {
+            var displayName = projectIndex[k] || k;
+            addChip('Project: ' + displayName, function () {
+              delete f.projects[k];
+              populateFilterDropdowns(utilState.payload ? utilState.payload.dimensions : null);
+              renderUtilDashboard();
+              logActivity_('util_filter', 'operations', 'remove_project');
+            });
+          })(projKeys[j]);
+        }
+        if (f.billable !== 'all') {
+          (function () {
+            var lbl = f.billable === 'billable' ? 'Billable only' : 'Non-billable only';
+            addChip(lbl, function () {
+              f.billable = 'all';
+              syncBillableButtons();
+              renderUtilDashboard();
+              logActivity_('util_filter', 'operations', 'clear_billable');
+            });
+          })();
+        }
+        if (f.internalLabor === 'exclude') {
+          addChip('Excluding internal labor', function () {
+            f.internalLabor = 'include';
+            syncInternalButtons();
+            renderUtilDashboard();
+            logActivity_('util_filter', 'operations', 'clear_internal');
+          });
+        }
+      }
+
+      function buildProjectKeyIndex_() {
+        var idx = {};
+        if (!utilState.payload || !utilState.payload.dimensions) return idx;
+        var projs = utilState.payload.dimensions.projects || [];
+        for (var i = 0; i < projs.length; i++) {
+          var p = projs[i];
+          var k = p.id ? p.id : ('name::' + p.name);
+          idx[k] = p.name;
+        }
+        return idx;
+      }
+
+      function syncBillableButtons() {
+        if (!els.utilBillableGroup) return;
+        var btns = els.utilBillableGroup.querySelectorAll('button');
+        for (var i = 0; i < btns.length; i++) {
+          if (btns[i].getAttribute('data-value') === utilState.filters.billable) btns[i].classList.add('active');
+          else btns[i].classList.remove('active');
+        }
+      }
+      function syncInternalButtons() {
+        if (!els.utilInternalGroup) return;
+        var btns = els.utilInternalGroup.querySelectorAll('button');
+        for (var i = 0; i < btns.length; i++) {
+          if (btns[i].getAttribute('data-value') === utilState.filters.internalLabor) btns[i].classList.add('active');
+          else btns[i].classList.remove('active');
+        }
+      }
+
+      // KPI + chart renderers ----------------------------------------------
+      function renderUtilKpis(kpis) {
+        document.getElementById('util-kpi-total-hours').textContent = formatHours(kpis.totalHours);
+        document.getElementById('util-kpi-total-hours-sub').textContent =
+          (kpis.rowCount || 0) + ' ' + ((kpis.rowCount === 1) ? 'entry' : 'entries');
+        document.getElementById('util-kpi-billable-hours').textContent = formatHours(kpis.billableHours);
+        document.getElementById('util-kpi-non-billable-sub').textContent =
+          formatHours(kpis.nonBillableHours) + ' non-billable';
+        document.getElementById('util-kpi-utilization').textContent = formatPctRaw(kpis.utilizationPct) + '%';
+        document.getElementById('util-kpi-utilization-sub').textContent =
+          kpis.distinctPersons + ' people · ' + kpis.distinctCustomers + ' customers';
+        document.getElementById('util-kpi-total-cost').textContent = formatMoneyCompact(kpis.totalCost);
+        document.getElementById('util-kpi-cost-sub').textContent =
+          formatRate(kpis.effectiveCostRate) + '/hr effective';
+        var brateEl = document.getElementById('util-kpi-bill-rate');
+        var brateSub = document.getElementById('util-kpi-bill-rate-sub');
+        if (kpis.effectiveBillRate === null || kpis.effectiveBillRate === undefined) {
+          brateEl.textContent = '—';
+          brateSub.textContent = '0% coverage';
+        } else {
+          brateEl.textContent = formatRate(kpis.effectiveBillRate) + '/hr';
+          brateSub.textContent = Math.round(((kpis.effectiveBillRateCoverage || 0) * 100)) + '% coverage';
+        }
+        document.getElementById('util-kpi-pending').textContent = String(kpis.pendingApprovalsCount || 0);
+        document.getElementById('util-kpi-pending-sub').textContent = String(kpis.distinctProjects || 0) + ' projects';
+      }
+
+      function destroyUtilChart(key) {
+        if (chartInstances[key]) {
+          try { chartInstances[key].destroy(); } catch (e) { /* ignore */ }
+          chartInstances[key] = null;
+        }
+      }
+
+      function renderUtilCustomerBar(rows, dimensions) {
+        var Chart = window.Chart;
+        if (!Chart) return;
+        destroyUtilChart('utilCustomer');
+        var ctx = document.getElementById('util-customer-bar');
+        if (!ctx) return;
+        var agg = groupHoursBy(rows, function (r) { return r.customer; }).slice(0, 20);
+        var customerColors = {};
+        if (dimensions && dimensions.customers) {
+          for (var ci = 0; ci < dimensions.customers.length; ci++) {
+            customerColors[dimensions.customers[ci].name] = dimensions.customers[ci].color;
+          }
+        }
+        var labels = agg.map(function (a) { return a.name; });
+        var values = agg.map(function (a) { return a.hours; });
+        var colors = agg.map(function (a) { return customerColors[a.name] || '#52C9E5'; });
+        var opts = chartCommonOptions();
+        opts.indexAxis = 'y';
+        opts.plugins.legend.display = false;
+        opts.scales = {
+          x: { ticks: { color: '#a0aec0', callback: function (v) { return formatHours(v); } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          y: { ticks: { color: '#a0aec0', autoSkip: false }, grid: { display: false } },
+        };
+        opts.plugins.tooltip.callbacks = {
+          label: function (c) { return formatHours(c.parsed.x) + ' hours'; },
+        };
+        opts.onClick = function (evt, elsArr) {
+          if (!elsArr || !elsArr.length) return;
+          var idx = elsArr[0].index;
+          var name = labels[idx];
+          toggleCustomerFilter(name);
+        };
+        chartInstances.utilCustomer = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: values,
+              backgroundColor: colors,
+              borderWidth: agg.map(function (a) { return utilState.filters.customers[a.name] ? 2 : 0; }),
+              borderColor: '#FFFEFC',
+            }],
+          },
+          options: opts,
+        });
+      }
+
+      function renderUtilProjectBar(rows, dimensions) {
+        var Chart = window.Chart;
+        if (!Chart) return;
+        destroyUtilChart('utilProject');
+        var ctx = document.getElementById('util-project-bar');
+        if (!ctx) return;
+        var customerColors = {};
+        if (dimensions && dimensions.customers) {
+          for (var ci = 0; ci < dimensions.customers.length; ci++) {
+            customerColors[dimensions.customers[ci].name] = dimensions.customers[ci].color;
+          }
+        }
+        var agg = groupHoursBy(rows, function (r) {
+          return r.projectId ? r.projectId : ('name::' + r.projectName);
+        }, function (r, key) {
+          return { key: key, name: r.projectName, id: r.projectId, customer: r.customer, hours: 0, billableHours: 0 };
+        }).slice(0, 20);
+        var labels = agg.map(function (a) { return a.name; });
+        var values = agg.map(function (a) { return a.hours; });
+        var colors = agg.map(function (a) { return customerColors[a.customer] || '#52C9E5'; });
+        var opts = chartCommonOptions();
+        opts.indexAxis = 'y';
+        opts.plugins.legend.display = false;
+        opts.scales = {
+          x: { ticks: { color: '#a0aec0', callback: function (v) { return formatHours(v); } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          y: { ticks: { color: '#a0aec0', autoSkip: false }, grid: { display: false } },
+        };
+        opts.plugins.tooltip.callbacks = {
+          title: function (items) {
+            if (!items || !items.length) return '';
+            var i = items[0].dataIndex;
+            return agg[i].name;
+          },
+          label: function (c) {
+            var i = c.dataIndex;
+            return [formatHours(c.parsed.x) + ' hours', 'Customer: ' + (agg[i].customer || '—')];
+          },
+        };
+        opts.onClick = function (evt, elsArr) {
+          if (!elsArr || !elsArr.length) return;
+          var i = elsArr[0].index;
+          toggleProjectFilter(agg[i].key, agg[i].name);
+        };
+        chartInstances.utilProject = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: values,
+              backgroundColor: colors,
+              borderWidth: agg.map(function (a) { return utilState.filters.projects[a.key] ? 2 : 0; }),
+              borderColor: '#FFFEFC',
+            }],
+          },
+          options: opts,
+        });
+      }
+
+      function renderUtilWeeklyLine(rows) {
+        var Chart = window.Chart;
+        if (!Chart) return;
+        destroyUtilChart('utilWeekly');
+        var ctx = document.getElementById('util-weekly-line');
+        if (!ctx) return;
+        var weeks = aggregateByWeek(rows);
+        var labels = weeks.map(function (w) { return w.week; });
+        var totals = weeks.map(function (w) { return w.hours; });
+        var billable = weeks.map(function (w) { return w.billableHours; });
+        var opts = chartCommonOptions();
+        opts.plugins.legend.position = 'bottom';
+        opts.scales = {
+          x: { ticks: { color: '#a0aec0', maxRotation: 0, autoSkip: true }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          y: { ticks: { color: '#a0aec0', callback: function (v) { return formatHours(v); } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        };
+        opts.plugins.tooltip.callbacks = {
+          label: function (c) { return c.dataset.label + ': ' + formatHours(c.parsed.y); },
+        };
+        chartInstances.utilWeekly = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              { label: 'Total hours', data: totals, borderColor: '#52C9E5', backgroundColor: 'rgba(82,201,229,0.15)', tension: 0.3, fill: true, borderWidth: 2 },
+              { label: 'Billable hours', data: billable, borderColor: '#43D6BA', backgroundColor: 'rgba(67,214,186,0.12)', tension: 0.3, fill: false, borderWidth: 2, borderDash: [5, 4] },
+            ],
+          },
+          options: opts,
+        });
+      }
+
+      function renderUtilBillableStack(rows) {
+        var Chart = window.Chart;
+        if (!Chart) return;
+        destroyUtilChart('utilBillable');
+        var ctx = document.getElementById('util-billable-stack');
+        if (!ctx) return;
+        var weeks = aggregateByWeek(rows);
+        var labels = weeks.map(function (w) { return w.week; });
+        var bill = weeks.map(function (w) { return w.billableHours; });
+        var nonBill = weeks.map(function (w) { return w.nonBillableHours; });
+        var opts = chartCommonOptions();
+        opts.plugins.legend.position = 'bottom';
+        opts.scales = {
+          x: { stacked: true, ticks: { color: '#a0aec0', maxRotation: 0, autoSkip: true }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          y: { stacked: true, ticks: { color: '#a0aec0', callback: function (v) { return formatHours(v); } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        };
+        opts.plugins.tooltip.callbacks = {
+          label: function (c) { return c.dataset.label + ': ' + formatHours(c.parsed.y); },
+        };
+        opts.onClick = function (evt, elsArr) {
+          if (!elsArr || !elsArr.length) return;
+          var dsIdx = elsArr[0].datasetIndex;
+          toggleBillableFromChart(dsIdx === 0 ? 'billable' : 'non-billable');
+        };
+        chartInstances.utilBillable = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              { label: 'Billable', data: bill, backgroundColor: '#43D6BA' },
+              { label: 'Non-billable', data: nonBill, backgroundColor: '#A0AEC0' },
+            ],
+          },
+          options: opts,
+        });
+      }
+
+      // Drill / toggle helpers ----------------------------------------------
+      function toggleCustomerFilter(name) {
+        if (!name) return;
+        var f = utilState.filters.customers;
+        if (f[name]) delete f[name];
+        else f[name] = true;
+        populateFilterDropdowns(utilState.payload ? utilState.payload.dimensions : null);
+        renderUtilDashboard();
+        logActivity_('util_drill', 'operations', 'customer=' + name.slice(0, 80));
+      }
+      function toggleProjectFilter(key, label) {
+        if (!key) return;
+        var f = utilState.filters.projects;
+        if (f[key]) delete f[key];
+        else f[key] = true;
+        populateFilterDropdowns(utilState.payload ? utilState.payload.dimensions : null);
+        renderUtilDashboard();
+        logActivity_('util_drill', 'operations', 'project=' + String(label || key).slice(0, 80));
+      }
+      function toggleBillableFromChart(value) {
+        var f = utilState.filters;
+        f.billable = (f.billable === value) ? 'all' : value;
+        syncBillableButtons();
+        renderUtilDashboard();
+        logActivity_('util_drill', 'operations', 'billable=' + f.billable);
+      }
+
+      // Master render --------------------------------------------------------
+      function renderUtilDashboard() {
+        var p = utilState.payload;
+        if (!p) return;
+        var rows = applyFilters(p.rows || []);
+        var kpis = computeKpisClient(rows);
+        renderUtilKpis(kpis);
+        renderChipBar();
+        updateMultiTriggerLabel(els.utilCustomerTrigger, 'All customers', 'customer', utilState.filters.customers);
+        updateMultiTriggerLabel(els.utilProjectTrigger, 'All projects', 'project', utilState.filters.projects);
+        var subtitle =
+          formatHours(kpis.totalHours) + ' hours · ' + kpis.rowCount + ' entries · range ' +
+          rangeLabel(p.range);
+        if (els.utilSubtitle) els.utilSubtitle.textContent = subtitle;
+        loadChartJs()
+          .then(function () {
+            renderUtilCustomerBar(rows, p.dimensions);
+            renderUtilProjectBar(rows, p.dimensions);
+            renderUtilWeeklyLine(rows);
+            renderUtilBillableStack(rows);
+          })
+          .catch(function (e) {
+            els.utilFetchError.textContent = e && e.message ? e.message : 'Could not load charts.';
+            els.utilFetchError.classList.remove('d-none');
+          });
+      }
+
+      function rangeLabel(range) {
+        if (!range) return '—';
+        try {
+          var s = new Date(range.start).toLocaleDateString(undefined, { dateStyle: 'medium' });
+          var e = new Date(range.end).toLocaleDateString(undefined, { dateStyle: 'medium' });
+          return s + ' → ' + e;
+        } catch (err) {
+          return '—';
+        }
+      }
+
+      function applyUtilPayload(data) {
+        utilState.payload = data;
+        var dim = data && data.dimensions;
+        populateFilterDropdowns(dim);
+        els.utilLastRefresh.textContent = formatLastRefresh(data && data.fetchedAt);
+        if (data && data.warnings && data.warnings.length) {
+          els.utilWarn.textContent = data.warnings.join(' ');
+          els.utilWarn.classList.remove('d-none');
+        } else {
+          els.utilWarn.classList.add('d-none');
+        }
+        renderUtilDashboard();
+        if (els.utilStaleBadge) {
+          var ttl = readUtilTtlMinutes();
+          if (ttl > 0 && isCacheStale(data, ttl)) els.utilStaleBadge.classList.remove('d-none');
+          else els.utilStaleBadge.classList.add('d-none');
+        }
+      }
+
+      function fetchUtilizationFromServer(rangeStartIso, rangeEndIso) {
+        if (els.utilRefreshBtn) els.utilRefreshBtn.disabled = true;
+        els.utilFetchError.classList.add('d-none');
+        google.script.run
+          .withSuccessHandler(function (data) {
+            if (els.utilRefreshBtn) els.utilRefreshBtn.disabled = false;
+            if (!data || data.ok === false) {
+              els.utilFetchError.textContent = (data && data.message) || 'Could not load utilization data.';
+              els.utilFetchError.classList.remove('d-none');
+              return;
+            }
+            writeUtilizationCache(data);
+            applyUtilPayload(data);
+          })
+          .withFailureHandler(function (err) {
+            if (els.utilRefreshBtn) els.utilRefreshBtn.disabled = false;
+            var msg = err && err.message ? err.message : 'Refresh failed.';
+            if (msg === 'NOT_AUTHORIZED') msg = 'Your session is not authorized. Reload the page.';
+            els.utilFetchError.textContent = msg;
+            els.utilFetchError.classList.remove('d-none');
+          })
+          .getUtilizationDashboardData(rangeStartIso || null, rangeEndIso || null);
+      }
+
+      // Date range helpers --------------------------------------------------
+      function resolveRangeFromPreset() {
+        var preset = els.utilRangePreset ? els.utilRangePreset.value : '90';
+        var now = new Date();
+        var end = new Date(now);
+        var start;
+        if (preset === 'ytd') {
+          start = new Date(now.getUTCFullYear(), 0, 1);
+        } else if (preset === 'custom') {
+          var s = els.utilRangeStart && els.utilRangeStart.value ? els.utilRangeStart.value : null;
+          var e = els.utilRangeEnd && els.utilRangeEnd.value ? els.utilRangeEnd.value : null;
+          return {
+            startIso: s ? new Date(s + 'T00:00:00Z').toISOString() : null,
+            endIso: e ? new Date(e + 'T23:59:59Z').toISOString() : null,
+          };
+        } else {
+          var days = parseInt(preset, 10);
+          if (!isFinite(days) || days <= 0) days = 90;
+          start = new Date(now.getTime() - days * 86400000);
+        }
+        return { startIso: start.toISOString(), endIso: end.toISOString() };
+      }
+
+      // Wire up controls ---------------------------------------------------
+      if (els.utilRefreshBtn) {
+        els.utilRefreshBtn.addEventListener('click', function () {
+          var r = resolveRangeFromPreset();
+          logActivity_('refresh', 'operations', '');
+          fetchUtilizationFromServer(r.startIso, r.endIso);
+        });
+      }
+      if (els.utilTtlSelect) {
+        var initialUtilTtl = readUtilTtlMinutes();
+        els.utilTtlSelect.value = String(initialUtilTtl);
+        els.utilTtlSelect.addEventListener('change', function () {
+          var n = parseInt(els.utilTtlSelect.value, 10);
+          if (!isFinite(n) || n < 0) n = DEFAULT_TTL_MINUTES;
+          writeUtilTtlMinutes(n);
+          logActivity_('ttl_change', 'operations', String(n) + 'm');
+          var cached = readUtilizationCache();
+          if (cached && els.utilStaleBadge) {
+            if (n > 0 && isCacheStale(cached, n)) els.utilStaleBadge.classList.remove('d-none');
+            else els.utilStaleBadge.classList.add('d-none');
+          }
+        });
+      }
+      if (els.utilRangePreset) {
+        els.utilRangePreset.addEventListener('change', function () {
+          var v = els.utilRangePreset.value;
+          if (v === 'custom') {
+            els.utilCustomRange.classList.remove('d-none');
+            els.utilCustomRange.classList.add('d-flex');
+            return;
+          }
+          els.utilCustomRange.classList.add('d-none');
+          els.utilCustomRange.classList.remove('d-flex');
+          var r = resolveRangeFromPreset();
+          logActivity_('util_range_change', 'operations', v);
+          fetchUtilizationFromServer(r.startIso, r.endIso);
+        });
+      }
+      if (els.utilRangeApply) {
+        els.utilRangeApply.addEventListener('click', function () {
+          var r = resolveRangeFromPreset();
+          if (!r.startIso || !r.endIso) {
+            els.utilFetchError.textContent = 'Pick both a start and end date.';
+            els.utilFetchError.classList.remove('d-none');
+            return;
+          }
+          logActivity_('util_range_change', 'operations', 'custom');
+          fetchUtilizationFromServer(r.startIso, r.endIso);
+        });
+      }
+      if (els.utilBillableGroup) {
+        var billBtns = els.utilBillableGroup.querySelectorAll('button');
+        for (var bi = 0; bi < billBtns.length; bi++) {
+          (function (btn) {
+            btn.addEventListener('click', function () {
+              utilState.filters.billable = btn.getAttribute('data-value') || 'all';
+              syncBillableButtons();
+              renderUtilDashboard();
+              logActivity_('util_filter', 'operations', 'billable=' + utilState.filters.billable);
+            });
+          })(billBtns[bi]);
+        }
+      }
+      if (els.utilInternalGroup) {
+        var intBtns = els.utilInternalGroup.querySelectorAll('button');
+        for (var ii = 0; ii < intBtns.length; ii++) {
+          (function (btn) {
+            btn.addEventListener('click', function () {
+              utilState.filters.internalLabor = btn.getAttribute('data-value') || 'include';
+              syncInternalButtons();
+              renderUtilDashboard();
+              logActivity_('util_filter', 'operations', 'internal=' + utilState.filters.internalLabor);
+            });
+          })(intBtns[ii]);
+        }
+      }
+      if (els.utilClearBtn) {
+        els.utilClearBtn.addEventListener('click', function () {
+          utilState.filters.customers = {};
+          utilState.filters.projects = {};
+          utilState.filters.billable = 'all';
+          utilState.filters.internalLabor = 'include';
+          syncBillableButtons();
+          syncInternalButtons();
+          populateFilterDropdowns(utilState.payload ? utilState.payload.dimensions : null);
+          renderUtilDashboard();
+          logActivity_('util_filter', 'operations', 'clear_all');
+        });
+      }
+
+      function showOperations() {
+        els.panelHome.classList.add('d-none');
+        if (els.panelAgreementDashboard) els.panelAgreementDashboard.classList.add('d-none');
+        if (els.panelOperations) els.panelOperations.classList.remove('d-none');
+        els.topbarTitle.textContent = 'Operations';
+        if (els.utilFetchError) els.utilFetchError.classList.add('d-none');
+        var cached = readUtilizationCache();
+        var ttlMinutes = readUtilTtlMinutes();
+        if (cached && cached.ok !== false) {
+          applyUtilPayload(cached);
+          if (ttlMinutes > 0 && isCacheStale(cached, ttlMinutes)) {
+            var rRefresh = resolveRangeFromPreset();
+            fetchUtilizationFromServer(rRefresh.startIso, rRefresh.endIso);
+          }
+        } else {
+          applyUtilPayload({
+            ok: true,
+            fetchedAt: null,
+            range: { start: null, end: null, defaulted: true, clamped: false },
+            rows: [],
+            kpis: { totalHours: 0, billableHours: 0, nonBillableHours: 0, utilizationPct: 0, totalCost: 0, effectiveCostRate: 0, effectiveBillRate: null, effectiveBillRateCoverage: 0, pendingApprovalsCount: 0, distinctPersons: 0, distinctProjects: 0, distinctCustomers: 0, rowCount: 0 },
+            dimensions: { customers: [], projects: [], persons: [], roles: [] },
+            aggregates: { byCustomer: [], byProject: [], byPerson: [], byRole: [], byWeek: [], billableVsNonBillable: [] },
+            warnings: [],
+          });
+          var r0 = resolveRangeFromPreset();
+          fetchUtilizationFromServer(r0.startIso, r0.endIso);
+        }
+      }
+
       function setActiveNav(id) {
         var buttons = els.navList.querySelectorAll('.fos-nav-btn');
         for (var i = 0; i < buttons.length; i++) {
@@ -2029,6 +3201,11 @@
           if (item.id === 'agreement-dashboard') {
             setActiveNav('agreement-dashboard');
             showAgreementDashboard();
+            return;
+          }
+          if (item.id === 'operations') {
+            setActiveNav('operations');
+            showOperations();
             return;
           }
           showComingSoon('The "' + item.label + '" dashboard is not available yet.');

@@ -1,6 +1,6 @@
 # Feature: Spreadsheet user authorization (users tab)
 
-> **PRD version 1.11.0** — keep in sync with `docs/FOS-Dashboard-PRD.md`.
+> **PRD version 1.12.0** — keep in sync with `docs/FOS-Dashboard-PRD.md`.
 
 ## Goal
 

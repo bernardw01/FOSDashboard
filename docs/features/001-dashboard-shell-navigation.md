@@ -1,10 +1,10 @@
 # Feature: Dashboard shell and navigation (FOS Web App)
 
-> **PRD version 1.11.0** — see `docs/FOS-Dashboard-PRD.md`.
+> **PRD version 1.12.0** — see `docs/FOS-Dashboard-PRD.md`.
 
 ## Goal
 
-Deliver a **responsive** Google Apps Script Web App shell: **left navigation** (including **Settings** rendered as a **plain navigation-style link** with a **gear** icon at the **bottom of the sidebar** — no outlined button, no pill chrome), **main content area**, with **Home** as the primary landing view. The **Agreement Dashboard** entry (route id `agreement-dashboard`; legacy `finance` retired in v1.11.0, historical log rows still queryable) is activated as the agreement dashboard shell (**`docs/features/003-agreement-dashboard-fibery-client-cache.md`**). **Operations**, **Delivery**, and **Settings** still show a **“Coming soon”** dialog until those pages are built. Visual chrome — sidebar, topbar, Home card, modals, scrollbars, not-authorized page, and Agreement Dashboard panel — draws from a single set of root CSS variables defined per **`docs/agreement-dashboard-prd-v2.md` §9.5 (Design System)**, **§9.6 (Brand Identity)**, and **§9.7 (Layout)** (FR-50, AC-18). Lay groundwork for **role-based menu visibility** without activating full RBAC yet.
+Deliver a **responsive** Google Apps Script Web App shell: **left navigation** (including **Settings** rendered as a **plain navigation-style link** with a **gear** icon at the **bottom of the sidebar** — no outlined button, no pill chrome), **main content area**, with **Home** as the primary landing view. The **Agreement Dashboard** entry (route id `agreement-dashboard`; legacy `finance` retired in v1.11.0, historical log rows still queryable) is activated as the agreement dashboard shell (**`docs/features/003-agreement-dashboard-fibery-client-cache.md`**). The **Operations** entry (route id `operations`) is activated as of v1.12.0 as the **Utilization Management Dashboard** (**`docs/features/005-utilization-management-dashboard.md`**). **Delivery** and **Settings** still show a **“Coming soon”** dialog until those pages are built. Visual chrome — sidebar, topbar, Home card, modals, scrollbars, not-authorized page, Agreement Dashboard panel, and Operations panel — draws from a single set of root CSS variables defined per **`docs/agreement-dashboard-prd-v2.md` §9.5 (Design System)**, **§9.6 (Brand Identity)**, and **§9.7 (Layout)** (FR-50, AC-18). Lay groundwork for **role-based menu visibility** without activating full RBAC yet.
 
 ## User Stories
 
@@ -55,7 +55,7 @@ Deliver a **responsive** Google Apps Script Web App shell: **left navigation** (
 2. Open the deployment URL in a browser (not only the editor preview).
 3. Resize to **mobile width** (~375px): open/close sidebar; confirm main content remains usable.
 4. Click **Home**: main panel updates or stays on home; **no** coming soon for Home.
-5. Click **Operations** and **Delivery**: **coming soon** dialog appears and dismisses cleanly. Click **Agreement Dashboard**: agreement dashboard panel appears (not the coming soon modal).
+5. Click **Delivery**: **coming soon** dialog appears and dismisses cleanly. Click **Agreement Dashboard**: agreement dashboard panel appears (not the coming soon modal). Click **Operations**: the **Utilization Management Dashboard** panel appears (`#panel-operations`, activated in v1.12.0 — see **`docs/features/005-utilization-management-dashboard.md`**), not the coming soon modal.
 6. Click **Settings** (bottom of left nav, rendered as a gear-icon **link** styled like the other nav entries): **coming soon** modal appears; URL hash does **not** change (the click handler calls `preventDefault()`).
 
 ## Implementation Checklist
