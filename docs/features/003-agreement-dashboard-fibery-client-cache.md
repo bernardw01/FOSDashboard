@@ -1,6 +1,6 @@
 # Feature: Agreement Dashboard (Fibery + client cache)
 
-> **PRD version 1.18.0** — see `docs/FOS-Dashboard-PRD.md`.
+> **PRD version 1.19.0** — see `docs/FOS-Dashboard-PRD.md`.
 
 ## Status
 

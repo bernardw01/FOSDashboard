@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 1.18.0 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 1.19.0 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -71,7 +71,8 @@
     }
 
     #panel-agreement-dashboard.fos-agreement-root,
-    #panel-operations.fos-agreement-root {
+    #panel-operations.fos-agreement-root,
+    #panel-delivery.fos-agreement-root {
       background: var(--ag-bg);
       border-radius: 12px;
       padding: 4px 0 8px;
@@ -487,6 +488,207 @@
     .fos-financial-table tbody tr.fos-clickable:focus-visible {
       outline: 2px solid rgba(67, 214, 186, 0.45);
       outline-offset: -2px;
+    }
+
+    /* v1.19.0 — Delivery Dashboard. Active Projects table reuses
+       `.fos-financial-table` styling; the additions below cover the
+       sort affordance on the header, the selected-row treatment, the
+       Progress bar column, the KPI strip on the P&L card, the monthly
+       P&L grid, the scoped loading overlay, and the §M.9 reconciliation
+       caption. */
+    .fos-delivery-table thead th.fos-delivery-sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+    .fos-delivery-table thead th.fos-delivery-sortable:hover {
+      color: var(--ag-text);
+    }
+    .fos-delivery-table thead th.fos-delivery-sortable .sort-icon {
+      display: inline-block;
+      margin-left: 4px;
+      opacity: 0.55;
+      font-size: 0.78em;
+    }
+    .fos-delivery-table thead th.fos-delivery-sortable.is-active-sort .sort-icon {
+      opacity: 1;
+      color: var(--ag-accent);
+    }
+    .fos-delivery-table tbody tr.fos-clickable {
+      cursor: pointer;
+    }
+    .fos-delivery-table tbody tr.fos-clickable:hover td,
+    .fos-delivery-table tbody tr.fos-clickable:focus-visible td {
+      background: rgba(67, 214, 186, 0.06);
+    }
+    .fos-delivery-table tbody tr.is-selected td {
+      background: rgba(67, 214, 186, 0.12) !important;
+      border-bottom-color: rgba(67, 214, 186, 0.35) !important;
+    }
+    .fos-delivery-table tbody tr.is-selected td:first-child {
+      box-shadow: inset 3px 0 0 var(--ag-accent);
+    }
+    .fos-delivery-progress-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 140px;
+    }
+    .fos-delivery-progress-track {
+      flex: 1;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .fos-delivery-progress-fill {
+      height: 100%;
+      border-radius: 4px;
+    }
+    .fos-delivery-progress-value {
+      min-width: 44px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: var(--ag-text-muted);
+    }
+    .fos-delivery-margin-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    /* P&L card --------------------------------------------------------- */
+    .fos-delivery-pnl h2 {
+      font-size: 0.95rem;
+      margin: 0;
+    }
+    .fos-delivery-pnl-kpi-chip {
+      background: var(--ag-surface);
+      border: 1px solid var(--ag-border);
+      border-radius: 10px;
+      padding: 8px 12px;
+      min-width: 132px;
+    }
+    .fos-delivery-pnl-kpi-chip .label {
+      font-size: 0.66rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ag-text-muted);
+      font-weight: 600;
+    }
+    .fos-delivery-pnl-kpi-chip .value {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--ag-text);
+      line-height: 1.2;
+    }
+    .fos-delivery-pnl-kpi-chip .sub {
+      font-size: 0.72rem;
+      color: var(--ag-text-muted);
+    }
+    .fos-delivery-pnl-kpi-chip.is-negative .value {
+      color: var(--ag-danger);
+    }
+    .fos-delivery-monthly-wrap {
+      max-height: 480px;
+    }
+    .fos-delivery-monthly thead th {
+      background: var(--ag-surface);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .fos-delivery-monthly tbody td.is-negative {
+      color: var(--ag-danger);
+    }
+    .fos-delivery-monthly tbody tr.is-oor .month-label {
+      font-style: italic;
+      color: var(--ag-text-muted);
+    }
+    .fos-delivery-monthly tbody tr.is-zero td {
+      color: var(--ag-text-muted);
+    }
+    .fos-delivery-monthly tbody td.margin-cell {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+    .fos-delivery-monthly tbody td.margin-cell.bucket-green {
+      background: rgba(67, 214, 186, 0.14);
+      color: #cffaf2;
+    }
+    .fos-delivery-monthly tbody td.margin-cell.bucket-amber {
+      background: rgba(249, 199, 79, 0.18);
+      color: #ffeaa7;
+    }
+    .fos-delivery-monthly tbody td.margin-cell.bucket-red {
+      background: rgba(252, 92, 101, 0.18);
+      color: #ffc1c6;
+    }
+    .fos-delivery-monthly tbody td.margin-cell.bucket-neutral {
+      color: var(--ag-text-muted);
+    }
+    .fos-delivery-monthly tfoot tr.is-total td {
+      border-top: 2px solid var(--ag-border);
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .fos-delivery-reconcile {
+      color: var(--ag-text-muted);
+    }
+    .fos-delivery-partial-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: rgba(249, 199, 79, 0.18);
+      color: #ffeaa7;
+      border: 1px solid rgba(249, 199, 79, 0.4);
+      margin-bottom: 8px;
+    }
+    /* Scoped loading overlay for the monthly grid only. Distinct from the
+       full-panel `.fos-loading-overlay`; this one stays in-flow inside the
+       P&L card so the KPI strip and header remain visible/interactive. */
+    .fos-delivery-pnl-loading {
+      position: absolute;
+      inset: 0;
+      background: rgba(6, 27, 48, 0.55);
+      -webkit-backdrop-filter: blur(1px);
+      backdrop-filter: blur(1px);
+      border-radius: 8px;
+      z-index: 5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      min-height: 200px;
+    }
+    .fos-delivery-pnl-loading.d-none {
+      display: none !important;
+    }
+    .fos-delivery-pnl-spinner {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: 5px solid rgba(82, 201, 229, 0.18);
+      border-top-color: var(--accent);
+      animation: fos-spin 0.9s linear infinite;
+    }
+    .fos-delivery-pnl-loading-label {
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text);
+      font-weight: 700;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .fos-delivery-pnl-spinner {
+        animation: none;
+        border-top-color: rgba(82, 201, 229, 0.65);
+      }
     }
 
     /* Customer Relationship Cards (§7.6) */
@@ -1966,6 +2168,110 @@
             </div>
           </div>
         </div>
+
+        <!-- v1.19.0 — FR-89..93. Delivery Dashboard panel. Active Projects
+             table at the top, per-project monthly P&L below on selection. -->
+        <div id="panel-delivery" class="d-none fos-agreement-root">
+          <div id="delivery-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
+          <div class="fos-agreement-inner shadow-lg">
+            <div class="fos-loading-overlay d-none" id="delivery-loading" role="status" aria-live="polite" aria-hidden="true">
+              <div class="fos-loading-spinner" aria-hidden="true"></div>
+              <span class="fos-loading-label">Loading data…</span>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <div class="flex-grow-1 min-w-0">
+                <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Delivery Dashboard</h1>
+                <p class="small mb-0" id="delivery-subtitle" style="color: var(--ag-text-muted)">
+                  Active projects …
+                </p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 mb-4 pb-3 border-bottom" style="border-color: var(--ag-border) !important">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="delivery-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
+                Refresh
+              </button>
+              <span class="small" id="delivery-last-refresh" style="color: var(--ag-text-muted)">Last refreshed: —</span>
+              <span class="d-none small" id="delivery-stale-badge" style="color: var(--ag-warn); font-weight: 600">Stale</span>
+              <label class="small d-flex align-items-center gap-1" for="delivery-ttl-select" style="color: var(--ag-text-muted)">
+                Auto-refresh
+                <select id="delivery-ttl-select" class="fos-ttl-select" aria-label="Auto-refresh interval">
+                  <option value="5">5 min</option>
+                  <option value="10" selected>10 min</option>
+                  <option value="30">30 min</option>
+                  <option value="0">Off</option>
+                </select>
+              </label>
+              <span class="small d-none text-danger" id="delivery-fetch-error" role="alert"></span>
+            </div>
+
+            <section class="fos-section-card mb-3" aria-labelledby="delivery-projects-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="delivery-projects-heading" class="mb-0">Active projects</h2>
+                <span class="small" style="color: var(--ag-text-muted)" id="delivery-projects-count">0 active projects</span>
+              </div>
+              <div class="fos-financial-scroll">
+                <table class="fos-financial-table fos-delivery-table" aria-describedby="delivery-projects-heading">
+                  <thead>
+                    <tr>
+                      <th scope="col" data-sort-key="name" class="fos-delivery-sortable">Project <span class="sort-icon">↕</span></th>
+                      <th scope="col" data-sort-key="customer" class="fos-delivery-sortable">Customer <span class="sort-icon">↕</span></th>
+                      <th scope="col" data-sort-key="type" class="fos-delivery-sortable">Type <span class="sort-icon">↕</span></th>
+                      <th scope="col" data-sort-key="state" class="fos-delivery-sortable">Status <span class="sort-icon">↕</span></th>
+                      <th scope="col" data-sort-key="contractValue" class="num fos-delivery-sortable">Contract value <span class="sort-icon">↕</span></th>
+                      <th scope="col" data-sort-key="revenueRecognized" class="num fos-delivery-sortable">Recognized <span class="sort-icon">↕</span></th>
+                      <th scope="col" data-sort-key="completionPct" class="fos-delivery-sortable">% Complete <span class="sort-icon">↕</span></th>
+                      <th scope="col" data-sort-key="marginPct" class="num fos-delivery-sortable">Margin <span class="sort-icon">↕</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="delivery-projects-body"></tbody>
+                </table>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="delivery-projects-empty" style="color: var(--ag-text-muted)">
+                No active projects in the current cache. Refresh to check Fibery.
+              </p>
+            </section>
+
+            <section class="fos-section-card fos-delivery-pnl" aria-labelledby="delivery-pnl-heading">
+              <div class="d-flex flex-wrap align-items-start gap-3 mb-2">
+                <div class="flex-grow-1 min-w-0">
+                  <h2 id="delivery-pnl-heading" class="mb-1">Profit &amp; Loss</h2>
+                  <div class="small" style="color: var(--ag-text-muted)" id="delivery-pnl-subtitle">Select a project above to see its monthly P&amp;L.</div>
+                </div>
+                <div class="d-none d-flex flex-wrap gap-2" id="delivery-pnl-kpi-strip" aria-label="Profit &amp; Loss summary"></div>
+              </div>
+              <div class="d-none" id="delivery-pnl-partial-badge"></div>
+              <div class="position-relative">
+                <div class="fos-delivery-pnl-loading d-none" id="delivery-pnl-loading" role="status" aria-live="polite" aria-hidden="true">
+                  <div class="fos-delivery-pnl-spinner" aria-hidden="true"></div>
+                  <span class="fos-delivery-pnl-loading-label">Fetching monthly P&amp;L…</span>
+                </div>
+                <div class="fos-financial-scroll fos-delivery-monthly-wrap d-none" id="delivery-pnl-grid-wrap">
+                  <table class="fos-financial-table fos-delivery-monthly" aria-describedby="delivery-pnl-heading">
+                    <thead>
+                      <tr>
+                        <th scope="col">Month</th>
+                        <th scope="col" class="num">Revenue</th>
+                        <th scope="col" class="num">Labor</th>
+                        <th scope="col" class="num">Expenses</th>
+                        <th scope="col" class="num">Total cost</th>
+                        <th scope="col" class="num">Margin $</th>
+                        <th scope="col" class="num">Margin %</th>
+                      </tr>
+                    </thead>
+                    <tbody id="delivery-pnl-grid-body"></tbody>
+                    <tfoot id="delivery-pnl-grid-foot"></tfoot>
+                  </table>
+                </div>
+                <p class="small mb-0 mt-2 d-none" id="delivery-pnl-empty" style="color: var(--ag-text-muted)">
+                  No monthly activity for this project yet.
+                </p>
+                <p class="small mb-0 mt-2 d-none" id="delivery-pnl-error" style="color: var(--ag-danger)" role="alert"></p>
+                <p class="small mb-0 mt-2 d-none fos-delivery-reconcile" id="delivery-pnl-reconcile"></p>
+              </div>
+            </section>
+          </div>
+        </div>
       </main>
     </div>
   </div>
@@ -2122,6 +2428,18 @@
       var UTIL_FILTERS_PREF_KEY = 'fos_utilization_filters_v1';
       var UTIL_FILTERS_SCHEMA_VERSION = 1;
       var UTIL_DETAIL_PAGE_SIZE = 100;
+      // v1.19.0 — Delivery Dashboard. Projects list and per-project monthly
+      // P&L share the same TTL knob. The per-project P&Ls use a key prefix
+      // so we can iterate sessionStorage to invalidate them in one pass on
+      // Refresh.
+      var DELIVERY_CACHE_KEY = 'fos_delivery_dashboard_v1';
+      var DELIVERY_CACHE_SCHEMA_VERSION = 1;
+      var DELIVERY_PNL_KEY_PREFIX = 'fos_delivery_pnl_';
+      var DELIVERY_PNL_KEY_SUFFIX = '_v1';
+      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 1;
+      var DELIVERY_TTL_PREF_KEY = 'fos_delivery_dashboard_ttl_minutes_v1';
+      var DELIVERY_FILTERS_PREF_KEY = 'fos_delivery_filters_v1';
+      var DELIVERY_FILTERS_SCHEMA_VERSION = 1;
       var DEFAULT_TTL_MINUTES = 10;
       var SESSION_ID_KEY = 'fos_session_id_v1';
       var ACTIVITY_THROTTLE_MS = 250;
@@ -2351,6 +2669,29 @@
         utilDrawerBody: document.getElementById('util-drawer-body'),
         utilDrawerClose: document.getElementById('util-drawer-close'),
         utilDrawerFiberyLink: document.getElementById('util-drawer-fibery-link'),
+        // v1.19.0 — Delivery Dashboard.
+        panelDelivery: document.getElementById('panel-delivery'),
+        deliveryRefreshBtn: document.getElementById('delivery-refresh-btn'),
+        deliveryLastRefresh: document.getElementById('delivery-last-refresh'),
+        deliveryFetchError: document.getElementById('delivery-fetch-error'),
+        deliverySubtitle: document.getElementById('delivery-subtitle'),
+        deliveryWarn: document.getElementById('delivery-warn'),
+        deliveryLoading: document.getElementById('delivery-loading'),
+        deliveryTtlSelect: document.getElementById('delivery-ttl-select'),
+        deliveryStaleBadge: document.getElementById('delivery-stale-badge'),
+        deliveryProjectsBody: document.getElementById('delivery-projects-body'),
+        deliveryProjectsCount: document.getElementById('delivery-projects-count'),
+        deliveryProjectsEmpty: document.getElementById('delivery-projects-empty'),
+        deliveryPnlSubtitle: document.getElementById('delivery-pnl-subtitle'),
+        deliveryPnlKpiStrip: document.getElementById('delivery-pnl-kpi-strip'),
+        deliveryPnlPartialBadge: document.getElementById('delivery-pnl-partial-badge'),
+        deliveryPnlLoading: document.getElementById('delivery-pnl-loading'),
+        deliveryPnlGridWrap: document.getElementById('delivery-pnl-grid-wrap'),
+        deliveryPnlGridBody: document.getElementById('delivery-pnl-grid-body'),
+        deliveryPnlGridFoot: document.getElementById('delivery-pnl-grid-foot'),
+        deliveryPnlEmpty: document.getElementById('delivery-pnl-empty'),
+        deliveryPnlError: document.getElementById('delivery-pnl-error'),
+        deliveryPnlReconcile: document.getElementById('delivery-pnl-reconcile'),
         settingsLink: document.getElementById('settings-link'),
         comingSoonModal: document.getElementById('comingSoonModal'),
         csBody: document.getElementById('cs-body'),
@@ -3373,6 +3714,9 @@
         if (els.panelOperations) {
           els.panelOperations.classList.add('d-none');
         }
+        if (els.panelDelivery) {
+          els.panelDelivery.classList.add('d-none');
+        }
         els.topbarTitle.textContent = 'Home';
       }
 
@@ -3380,6 +3724,9 @@
         els.panelHome.classList.add('d-none');
         if (els.panelOperations) {
           els.panelOperations.classList.add('d-none');
+        }
+        if (els.panelDelivery) {
+          els.panelDelivery.classList.add('d-none');
         }
         if (els.panelAgreementDashboard) {
           els.panelAgreementDashboard.classList.remove('d-none');
@@ -5651,6 +5998,7 @@
       function showOperations() {
         els.panelHome.classList.add('d-none');
         if (els.panelAgreementDashboard) els.panelAgreementDashboard.classList.add('d-none');
+        if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
         if (els.panelOperations) els.panelOperations.classList.remove('d-none');
         els.topbarTitle.textContent = 'Operations';
         if (els.utilFetchError) els.utilFetchError.classList.add('d-none');
@@ -5690,6 +6038,721 @@
         }
       }
 
+      /* =====================================================================
+         Delivery Dashboard (Delivery panel) — Phase A.
+         FR-89..93, AC-43..AC-48. Active Projects table at the top; clicking a
+         row reveals a monthly P&L card below (lifetime-of-project, one row
+         per calendar month with Revenue / Labor / Expenses / Total cost /
+         Margin $ / Margin %). The projects list reuses the Agreement
+         Dashboard payload (no extra Fibery query); the per-project P&L is
+         fetched lazily through `getDeliveryProjectMonthlyPnL(<id>)` and
+         cached client-side under one key per project. v1.19.0.
+         ================================================================== */
+      var deliveryState = {
+        sort: { column: 'contractValue', dir: 'desc' },
+        selectedId: null,
+        projectsByIndex: {},
+        lastRenderedFetchedAt: null,
+        lastRenderedSelectedId: null,
+        pendingPnlAgreementId: null,
+      };
+      var deliveryRenderState = { lastRenderedFetchedAt: null };
+
+      function readDeliveryCache() {
+        try {
+          var raw = sessionStorage.getItem(DELIVERY_CACHE_KEY);
+          if (!raw) return null;
+          var o = JSON.parse(raw);
+          if (!o || o.cacheSchemaVersion !== DELIVERY_CACHE_SCHEMA_VERSION) return null;
+          return o;
+        } catch (e) {
+          return null;
+        }
+      }
+      function writeDeliveryCache(data) {
+        try {
+          sessionStorage.setItem(DELIVERY_CACHE_KEY, JSON.stringify(data));
+        } catch (e) { /* quota / private mode */ }
+      }
+      function readDeliveryTtlMinutes() {
+        try {
+          var raw = localStorage.getItem(DELIVERY_TTL_PREF_KEY);
+          if (raw === null || raw === undefined) return DEFAULT_TTL_MINUTES;
+          var n = parseInt(raw, 10);
+          if (!isFinite(n) || n < 0) return DEFAULT_TTL_MINUTES;
+          return n;
+        } catch (e) {
+          return DEFAULT_TTL_MINUTES;
+        }
+      }
+      function writeDeliveryTtlMinutes(n) {
+        try {
+          localStorage.setItem(DELIVERY_TTL_PREF_KEY, String(n));
+        } catch (e) { /* ignore */ }
+      }
+      function pnlCacheKeyForAgreement_(agreementId) {
+        return DELIVERY_PNL_KEY_PREFIX + String(agreementId) + DELIVERY_PNL_KEY_SUFFIX;
+      }
+      function readDeliveryPnlCache(agreementId) {
+        if (!agreementId) return null;
+        try {
+          var raw = sessionStorage.getItem(pnlCacheKeyForAgreement_(agreementId));
+          if (!raw) return null;
+          var o = JSON.parse(raw);
+          if (!o || o.cacheSchemaVersion !== DELIVERY_PNL_CACHE_SCHEMA_VERSION) return null;
+          return o;
+        } catch (e) {
+          return null;
+        }
+      }
+      function writeDeliveryPnlCache(agreementId, data) {
+        if (!agreementId) return;
+        try {
+          sessionStorage.setItem(pnlCacheKeyForAgreement_(agreementId), JSON.stringify(data));
+        } catch (e) { /* quota / private mode */ }
+      }
+      function invalidateAllDeliveryPnlCaches() {
+        try {
+          var keys = [];
+          for (var i = 0; i < sessionStorage.length; i++) {
+            var k = sessionStorage.key(i);
+            if (k && k.indexOf(DELIVERY_PNL_KEY_PREFIX) === 0
+                && k.lastIndexOf(DELIVERY_PNL_KEY_SUFFIX) === k.length - DELIVERY_PNL_KEY_SUFFIX.length) {
+              keys.push(k);
+            }
+          }
+          for (var j = 0; j < keys.length; j++) {
+            sessionStorage.removeItem(keys[j]);
+          }
+        } catch (e) { /* ignore */ }
+      }
+      function readDeliveryFiltersStored() {
+        try {
+          var raw = localStorage.getItem(DELIVERY_FILTERS_PREF_KEY);
+          if (!raw) return null;
+          var o = JSON.parse(raw);
+          if (!o || o.schemaVersion !== DELIVERY_FILTERS_SCHEMA_VERSION) return null;
+          return o;
+        } catch (e) {
+          return null;
+        }
+      }
+      function writeDeliveryFiltersStored() {
+        try {
+          var payload = {
+            schemaVersion: DELIVERY_FILTERS_SCHEMA_VERSION,
+            sort: { column: deliveryState.sort.column, dir: deliveryState.sort.dir },
+            selectedId: deliveryState.selectedId,
+          };
+          localStorage.setItem(DELIVERY_FILTERS_PREF_KEY, JSON.stringify(payload));
+        } catch (e) { /* ignore */ }
+      }
+      function applyDeliveryStoredFilters_() {
+        var stored = readDeliveryFiltersStored();
+        if (!stored) return;
+        if (stored.sort && stored.sort.column) {
+          deliveryState.sort.column = String(stored.sort.column);
+          deliveryState.sort.dir = stored.sort.dir === 'asc' ? 'asc' : 'desc';
+        }
+        if (typeof stored.selectedId === 'string' || stored.selectedId === null) {
+          deliveryState.selectedId = stored.selectedId || null;
+        }
+      }
+
+      function setDeliveryLoading(on) {
+        if (!els.deliveryLoading) return;
+        if (on) {
+          els.deliveryLoading.classList.remove('d-none');
+          els.deliveryLoading.setAttribute('aria-hidden', 'false');
+        } else {
+          els.deliveryLoading.classList.add('d-none');
+          els.deliveryLoading.setAttribute('aria-hidden', 'true');
+        }
+      }
+      function setDeliveryPnLLoading(on) {
+        if (!els.deliveryPnlLoading) return;
+        if (on) {
+          els.deliveryPnlLoading.classList.remove('d-none');
+          els.deliveryPnlLoading.setAttribute('aria-hidden', 'false');
+        } else {
+          els.deliveryPnlLoading.classList.add('d-none');
+          els.deliveryPnlLoading.setAttribute('aria-hidden', 'true');
+        }
+      }
+
+      function formatLastRefresh(fetchedAtIso) {
+        if (!fetchedAtIso) return 'Last refreshed: —';
+        try {
+          var d = new Date(fetchedAtIso);
+          if (!isFinite(d.getTime())) return 'Last refreshed: —';
+          return 'Last refreshed: ' + d.toLocaleString();
+        } catch (e) {
+          return 'Last refreshed: —';
+        }
+      }
+      function formatProjectDuration_(p) {
+        var start = p.durStart ? String(p.durStart).slice(0, 10) : (p.executionDate ? String(p.executionDate).slice(0, 10) : '');
+        var end = p.durEnd ? String(p.durEnd).slice(0, 10) : '';
+        if (start && end) return start + ' → ' + end;
+        if (start) return start + ' →';
+        if (end) return '→ ' + end;
+        return 'No duration';
+      }
+      function formatMoneyParenIfNegative_(n) {
+        var x = Number(n);
+        if (!isFinite(x)) return '—';
+        if (x < 0) return '(' + formatMoneyCompact(Math.abs(x)) + ')';
+        return formatMoneyCompact(x);
+      }
+      function formatExpense_(n) {
+        // Render expense / labor / total cost lines as parenthesized
+        // positives — the underlying number from the server is positive
+        // because these represent costs, but they read as "($N)" in the
+        // ledger sense.
+        var x = Number(n);
+        if (!isFinite(x) || x === 0) return '$0';
+        return '(' + formatMoneyCompact(Math.abs(x)) + ')';
+      }
+
+      function showDelivery() {
+        els.panelHome.classList.add('d-none');
+        if (els.panelAgreementDashboard) els.panelAgreementDashboard.classList.add('d-none');
+        if (els.panelOperations) els.panelOperations.classList.add('d-none');
+        if (els.panelDelivery) els.panelDelivery.classList.remove('d-none');
+        els.topbarTitle.textContent = 'Delivery';
+        if (els.deliveryFetchError) els.deliveryFetchError.classList.add('d-none');
+        logActivity_('delivery_panel_open', 'delivery', '');
+        var cached = readDeliveryCache();
+        var ttlMinutes = readDeliveryTtlMinutes();
+        if (cached && cached.ok !== false) {
+          var alreadyRendered =
+            deliveryRenderState.lastRenderedFetchedAt &&
+            cached.fetchedAt &&
+            deliveryRenderState.lastRenderedFetchedAt === cached.fetchedAt;
+          if (!alreadyRendered) {
+            applyDeliveryStoredFilters_();
+            applyDeliveryPayload(cached);
+          }
+          if (ttlMinutes > 0 && isCacheStale(cached, ttlMinutes)) {
+            fetchDeliveryFromServer({ manual: false });
+          }
+        } else {
+          applyDeliveryStoredFilters_();
+          applyDeliveryPayload({ ok: true, fetchedAt: null, projects: [], warnings: [] });
+          fetchDeliveryFromServer({ manual: false });
+        }
+      }
+
+      function fetchDeliveryFromServer(opts) {
+        opts = opts || {};
+        if (els.deliveryRefreshBtn) els.deliveryRefreshBtn.disabled = true;
+        if (els.deliveryFetchError) els.deliveryFetchError.classList.add('d-none');
+        setDeliveryLoading(true);
+        google.script.run
+          .withSuccessHandler(function (data) {
+            setDeliveryLoading(false);
+            if (els.deliveryRefreshBtn) els.deliveryRefreshBtn.disabled = false;
+            if (!data || data.ok === false) {
+              if (els.deliveryFetchError) {
+                els.deliveryFetchError.textContent = (data && data.message) || 'Could not load delivery data.';
+                els.deliveryFetchError.classList.remove('d-none');
+              }
+              return;
+            }
+            writeDeliveryCache(data);
+            applyDeliveryPayload(data);
+          })
+          .withFailureHandler(function (err) {
+            setDeliveryLoading(false);
+            if (els.deliveryRefreshBtn) els.deliveryRefreshBtn.disabled = false;
+            var msg = err && err.message ? err.message : 'Refresh failed.';
+            if (msg === 'NOT_AUTHORIZED') {
+              msg = 'Your session is not authorized. Reload the page.';
+            }
+            if (els.deliveryFetchError) {
+              els.deliveryFetchError.textContent = msg;
+              els.deliveryFetchError.classList.remove('d-none');
+            }
+          })
+          .getDeliveryDashboardData();
+      }
+
+      function applyDeliveryPayload(data) {
+        var projects = (data && data.projects) || [];
+        deliveryRenderState.lastRenderedFetchedAt = data && data.fetchedAt ? data.fetchedAt : null;
+        if (els.deliveryLastRefresh) {
+          els.deliveryLastRefresh.textContent = formatLastRefresh(data && data.fetchedAt);
+        }
+        if (els.deliverySubtitle) {
+          var ts = data && data.fetchedAt ? new Date(data.fetchedAt).toLocaleString() : '—';
+          els.deliverySubtitle.textContent = projects.length + ' active project' +
+            (projects.length === 1 ? '' : 's') + ' · last refreshed ' + ts;
+        }
+        if (els.deliveryProjectsCount) {
+          els.deliveryProjectsCount.textContent = projects.length + ' active project' +
+            (projects.length === 1 ? '' : 's');
+        }
+        var ttl = readDeliveryTtlMinutes();
+        if (els.deliveryStaleBadge) {
+          if (ttl > 0 && isCacheStale(data, ttl)) els.deliveryStaleBadge.classList.remove('d-none');
+          else els.deliveryStaleBadge.classList.add('d-none');
+        }
+        renderDeliveryTable(projects);
+        // Restore prior selection if the same project still exists.
+        if (deliveryState.selectedId) {
+          var hit = null;
+          for (var i = 0; i < projects.length; i++) {
+            if (projects[i].id === deliveryState.selectedId) { hit = projects[i]; break; }
+          }
+          if (hit) {
+            renderDeliveryPnlHeader(hit);
+            loadDeliveryPnLForProject_(hit, { source: 'restore' });
+            markDeliveryRowSelected_(deliveryState.selectedId);
+          } else {
+            deliveryState.selectedId = null;
+            clearDeliveryPnL();
+          }
+        } else {
+          clearDeliveryPnL();
+        }
+      }
+
+      function sortDeliveryRows_(rows) {
+        var col = deliveryState.sort.column;
+        var dir = deliveryState.sort.dir === 'asc' ? 1 : -1;
+        var sorted = rows.slice();
+        sorted.sort(function (a, b) {
+          var av = a == null ? null : a[col];
+          var bv = b == null ? null : b[col];
+          if (av === null || av === undefined || (typeof av === 'number' && !isFinite(av))) av = null;
+          if (bv === null || bv === undefined || (typeof bv === 'number' && !isFinite(bv))) bv = null;
+          if (av === null && bv === null) return 0;
+          if (av === null) return 1;   // nulls last regardless of direction
+          if (bv === null) return -1;
+          if (typeof av === 'number' && typeof bv === 'number') {
+            return (av - bv) * dir;
+          }
+          var as = String(av).toLowerCase();
+          var bs = String(bv).toLowerCase();
+          if (as < bs) return -1 * dir;
+          if (as > bs) return 1 * dir;
+          return 0;
+        });
+        return sorted;
+      }
+
+      function renderDeliveryTable(projects) {
+        if (!els.deliveryProjectsBody) return;
+        var rows = sortDeliveryRows_(projects || []);
+        deliveryState.projectsByIndex = {};
+        for (var i = 0; i < rows.length; i++) {
+          deliveryState.projectsByIndex[rows[i].id] = rows[i];
+        }
+        var body = els.deliveryProjectsBody;
+        body.innerHTML = '';
+        if (!rows.length) {
+          if (els.deliveryProjectsEmpty) els.deliveryProjectsEmpty.classList.remove('d-none');
+          updateDeliverySortIndicators_();
+          return;
+        }
+        if (els.deliveryProjectsEmpty) els.deliveryProjectsEmpty.classList.add('d-none');
+
+        for (var r = 0; r < rows.length; r++) {
+          var p = rows[r];
+          var marginPct = (p.marginPct === null || p.marginPct === undefined || isNaN(p.marginPct))
+            ? null : Number(p.marginPct);
+          var completionPct = (p.completionPct === null || p.completionPct === undefined || isNaN(p.completionPct))
+            ? null : Number(p.completionPct);
+          var progressWidth = completionPct === null ? 0 : Math.max(0, Math.min(100, completionPct));
+          var marginDotColor = p.marginVarianceColor || '#A0AEC0';
+          var tr = document.createElement('tr');
+          tr.className = 'fos-clickable';
+          tr.setAttribute('role', 'button');
+          tr.setAttribute('tabindex', '0');
+          tr.setAttribute('data-agreement-id', p.id || '');
+          tr.setAttribute('aria-label', 'Select project ' + (p.name || ''));
+          if (deliveryState.selectedId && p.id === deliveryState.selectedId) {
+            tr.classList.add('is-selected');
+          }
+          tr.innerHTML =
+            '<td class="name-cell" title="' + escapeHtml(p.name || '') + '">' + escapeHtml(p.name || '—') + '</td>' +
+            '<td>' + escapeHtml(p.customer || '—') + '</td>' +
+            '<td><span class="badge-pill" style="background:' + (p.typeColor || '#A0AEC0') + '">' + escapeHtml(p.type || '—') + '</span></td>' +
+            '<td><span class="badge-pill" style="background:' + (p.stateColor || '#A0AEC0') + '">' + escapeHtml(p.state || '—') + '</span></td>' +
+            '<td class="num">' + formatMoneyCompact(p.contractValue) + '</td>' +
+            '<td class="num">' + formatMoneyCompact(p.revenueRecognized) + '</td>' +
+            '<td>' +
+              '<div class="fos-delivery-progress-wrap">' +
+                '<div class="fos-delivery-progress-track">' +
+                  '<div class="fos-delivery-progress-fill" style="width:' + progressWidth + '%; background:' + (p.completionColor || '#A0AEC0') + '"></div>' +
+                '</div>' +
+                '<div class="fos-delivery-progress-value">' + (completionPct === null ? '—' : formatPct(completionPct) + '%') + '</div>' +
+              '</div>' +
+            '</td>' +
+            '<td class="num">' +
+              '<span class="fos-delivery-margin-dot" style="background:' + marginDotColor + '" aria-hidden="true"></span>' +
+              formatMarginPct(marginPct) +
+            '</td>';
+          body.appendChild(tr);
+        }
+        updateDeliverySortIndicators_();
+      }
+      function updateDeliverySortIndicators_() {
+        var ths = (els.panelDelivery || document).querySelectorAll('.fos-delivery-table thead th.fos-delivery-sortable');
+        for (var i = 0; i < ths.length; i++) {
+          var th = ths[i];
+          var col = th.getAttribute('data-sort-key');
+          var icon = th.querySelector('.sort-icon');
+          if (col === deliveryState.sort.column) {
+            th.classList.add('is-active-sort');
+            if (icon) icon.textContent = deliveryState.sort.dir === 'asc' ? '↑' : '↓';
+          } else {
+            th.classList.remove('is-active-sort');
+            if (icon) icon.textContent = '↕';
+          }
+        }
+      }
+      function markDeliveryRowSelected_(agreementId) {
+        if (!els.deliveryProjectsBody) return;
+        var trs = els.deliveryProjectsBody.querySelectorAll('tr');
+        for (var i = 0; i < trs.length; i++) {
+          var tr = trs[i];
+          if (agreementId && tr.getAttribute('data-agreement-id') === agreementId) {
+            tr.classList.add('is-selected');
+          } else {
+            tr.classList.remove('is-selected');
+          }
+        }
+      }
+      function handleDeliveryRowActivate_(target) {
+        var tr = target;
+        while (tr && tr.nodeType === 1 && tr.tagName !== 'TR') {
+          tr = tr.parentNode;
+        }
+        if (!tr || !tr.classList || !tr.classList.contains('fos-clickable')) return;
+        var agreementId = tr.getAttribute('data-agreement-id') || '';
+        if (!agreementId) return;
+        var project = deliveryState.projectsByIndex[agreementId] || null;
+        if (!project) return;
+        if (deliveryState.selectedId === agreementId) {
+          // Click again → deselect.
+          deliveryState.selectedId = null;
+          markDeliveryRowSelected_(null);
+          clearDeliveryPnL();
+          logActivity_('delivery_project_deselect', 'delivery', 'agreementId=' + agreementId);
+          writeDeliveryFiltersStored();
+          return;
+        }
+        deliveryState.selectedId = agreementId;
+        markDeliveryRowSelected_(agreementId);
+        var name = project.name || '';
+        var truncatedName = name.length > 80 ? name.slice(0, 77) + '…' : name;
+        logActivity_('delivery_project_select', 'delivery', 'agreementId=' + agreementId + ' · name=' + truncatedName);
+        writeDeliveryFiltersStored();
+        renderDeliveryPnlHeader(project);
+        loadDeliveryPnLForProject_(project, { source: 'click' });
+      }
+      function clearDeliveryPnL() {
+        if (els.deliveryPnlSubtitle) els.deliveryPnlSubtitle.textContent = 'Select a project above to see its monthly P&L.';
+        if (els.deliveryPnlKpiStrip) {
+          els.deliveryPnlKpiStrip.classList.add('d-none');
+          els.deliveryPnlKpiStrip.innerHTML = '';
+        }
+        if (els.deliveryPnlPartialBadge) {
+          els.deliveryPnlPartialBadge.classList.add('d-none');
+          els.deliveryPnlPartialBadge.innerHTML = '';
+        }
+        if (els.deliveryPnlGridWrap) els.deliveryPnlGridWrap.classList.add('d-none');
+        if (els.deliveryPnlGridBody) els.deliveryPnlGridBody.innerHTML = '';
+        if (els.deliveryPnlGridFoot) els.deliveryPnlGridFoot.innerHTML = '';
+        if (els.deliveryPnlEmpty) els.deliveryPnlEmpty.classList.add('d-none');
+        if (els.deliveryPnlError) {
+          els.deliveryPnlError.classList.add('d-none');
+          els.deliveryPnlError.textContent = '';
+        }
+        if (els.deliveryPnlReconcile) {
+          els.deliveryPnlReconcile.classList.add('d-none');
+          els.deliveryPnlReconcile.textContent = '';
+        }
+        setDeliveryPnLLoading(false);
+        deliveryState.pendingPnlAgreementId = null;
+      }
+      function renderDeliveryPnlHeader(project) {
+        if (!project) return;
+        // Subtitle line: "<customer> · <type> · <state> · <duration>"
+        var parts = [];
+        if (project.customer) parts.push(project.customer);
+        if (project.type) parts.push(project.type);
+        if (project.state) parts.push(project.state);
+        parts.push(formatProjectDuration_(project));
+        if (els.deliveryPnlSubtitle) {
+          els.deliveryPnlSubtitle.textContent = (project.name || '—') + ' — ' + parts.join(' · ');
+        }
+        if (!els.deliveryPnlKpiStrip) return;
+        // KPI strip: render synchronously from the agreement payload so the
+        // user gets immediate feedback while the monthly grid is fetched.
+        var marginPct = (project.marginPct === null || project.marginPct === undefined) ? null : Number(project.marginPct);
+        var targetPct = (project.targetMarginPct === null || project.targetMarginPct === undefined) ? null : Number(project.targetMarginPct);
+        var totalCost = Number(project.totalCost || 0);
+        var grossProfit = Number(project.revenueRecognized || 0) - totalCost;
+        var marginChipClass = (marginPct !== null && marginPct < 0) ? ' is-negative' : '';
+        var grossChipClass = grossProfit < 0 ? ' is-negative' : '';
+        els.deliveryPnlKpiStrip.classList.remove('d-none');
+        els.deliveryPnlKpiStrip.classList.add('d-flex');
+        els.deliveryPnlKpiStrip.innerHTML =
+          '<div class="fos-delivery-pnl-kpi-chip">' +
+            '<div class="label">Contract value</div>' +
+            '<div class="value">' + formatMoneyCompact(project.contractValue) + '</div>' +
+            '<div class="sub">Lifetime planned</div>' +
+          '</div>' +
+          '<div class="fos-delivery-pnl-kpi-chip">' +
+            '<div class="label">Revenue recognized</div>' +
+            '<div class="value">' + formatMoneyCompact(project.revenueRecognized) + '</div>' +
+            '<div class="sub">' + (project.completionPct === null ? '—' : formatPct(project.completionPct) + '% complete') + '</div>' +
+          '</div>' +
+          '<div class="fos-delivery-pnl-kpi-chip">' +
+            '<div class="label">Total cost</div>' +
+            '<div class="value">' + formatExpense_(totalCost) + '</div>' +
+            '<div class="sub">Labor + Materials &amp; ODC</div>' +
+          '</div>' +
+          '<div class="fos-delivery-pnl-kpi-chip' + grossChipClass + '">' +
+            '<div class="label">Gross profit</div>' +
+            '<div class="value">' + formatMoneyParenIfNegative_(grossProfit) + '</div>' +
+            '<div class="sub">Recognized basis</div>' +
+          '</div>' +
+          '<div class="fos-delivery-pnl-kpi-chip' + marginChipClass + '">' +
+            '<div class="label">Margin</div>' +
+            '<div class="value">' + formatMarginPct(marginPct) + '</div>' +
+            '<div class="sub">' + (targetPct === null ? 'No target' : 'tgt ' + formatMarginPct(targetPct)) + '</div>' +
+          '</div>';
+      }
+
+      function loadDeliveryPnLForProject_(project, opts) {
+        if (!project || !project.id) return;
+        opts = opts || {};
+        var agreementId = project.id;
+        deliveryState.pendingPnlAgreementId = agreementId;
+        if (els.deliveryPnlError) {
+          els.deliveryPnlError.classList.add('d-none');
+          els.deliveryPnlError.textContent = '';
+        }
+        var cached = readDeliveryPnlCache(agreementId);
+        var ttlMinutes = readDeliveryTtlMinutes();
+        if (cached && cached.ok !== false) {
+          // Render from cache immediately.
+          renderDeliveryMonthlyPnL_(cached, project);
+          if (ttlMinutes > 0 && isCacheStale(cached, ttlMinutes)) {
+            fetchDeliveryPnlFromServer_(project);
+          }
+        } else {
+          fetchDeliveryPnlFromServer_(project);
+        }
+      }
+      function fetchDeliveryPnlFromServer_(project) {
+        if (!project || !project.id) return;
+        var agreementId = project.id;
+        setDeliveryPnLLoading(true);
+        if (els.deliveryPnlGridWrap) els.deliveryPnlGridWrap.classList.add('d-none');
+        if (els.deliveryPnlEmpty) els.deliveryPnlEmpty.classList.add('d-none');
+        if (els.deliveryPnlError) els.deliveryPnlError.classList.add('d-none');
+        var t0 = Date.now();
+        logActivity_('delivery_pnl_fetch_start', 'delivery', 'agreementId=' + agreementId);
+        google.script.run
+          .withSuccessHandler(function (data) {
+            // Stale-response guard: if the user selected a different
+            // project while this fetch was in flight, ignore the result.
+            if (deliveryState.pendingPnlAgreementId !== agreementId) return;
+            setDeliveryPnLLoading(false);
+            if (!data || data.ok === false) {
+              var msg = (data && data.message) || 'Could not load monthly P&L.';
+              if (els.deliveryPnlError) {
+                els.deliveryPnlError.textContent = msg;
+                els.deliveryPnlError.classList.remove('d-none');
+              }
+              logActivity_('delivery_pnl_fetch_error', 'delivery',
+                'agreementId=' + agreementId + ' · code=' + ((data && data.warnings && data.warnings[0]) || 'UNKNOWN'));
+              return;
+            }
+            writeDeliveryPnlCache(agreementId, data);
+            renderDeliveryMonthlyPnL_(data, project);
+            var elapsed = Date.now() - t0;
+            logActivity_('delivery_pnl_fetch_done', 'delivery',
+              'agreementId=' + agreementId + ' · monthCount=' + ((data.months || []).length) + ' · ms=' + elapsed);
+          })
+          .withFailureHandler(function (err) {
+            if (deliveryState.pendingPnlAgreementId !== agreementId) return;
+            setDeliveryPnLLoading(false);
+            var msg = err && err.message ? err.message : 'Refresh failed.';
+            if (msg === 'NOT_AUTHORIZED') {
+              msg = 'Your session is not authorized. Reload the page.';
+            }
+            if (els.deliveryPnlError) {
+              els.deliveryPnlError.textContent = msg;
+              els.deliveryPnlError.classList.remove('d-none');
+            }
+            logActivity_('delivery_pnl_fetch_error', 'delivery',
+              'agreementId=' + agreementId + ' · code=EXCEPTION');
+          })
+          .getDeliveryProjectMonthlyPnL(agreementId);
+      }
+      function renderDeliveryMonthlyPnL_(payload, project) {
+        if (!els.deliveryPnlGridBody) return;
+        setDeliveryPnLLoading(false);
+        var months = (payload && payload.months) || [];
+        var lifetime = (payload && payload.lifetime) || null;
+        if (els.deliveryPnlGridBody) els.deliveryPnlGridBody.innerHTML = '';
+        if (els.deliveryPnlGridFoot) els.deliveryPnlGridFoot.innerHTML = '';
+        if (!months.length) {
+          if (els.deliveryPnlGridWrap) els.deliveryPnlGridWrap.classList.add('d-none');
+          if (els.deliveryPnlEmpty) els.deliveryPnlEmpty.classList.remove('d-none');
+        } else {
+          if (els.deliveryPnlEmpty) els.deliveryPnlEmpty.classList.add('d-none');
+          if (els.deliveryPnlGridWrap) els.deliveryPnlGridWrap.classList.remove('d-none');
+          for (var i = 0; i < months.length; i++) {
+            var m = months[i];
+            var tr = document.createElement('tr');
+            var classes = [];
+            if (m.outOfRange) classes.push('is-oor');
+            if (!m.hasActivity) classes.push('is-zero');
+            if (classes.length) tr.className = classes.join(' ');
+            var bucket = m.marginBucket || 'neutral';
+            var labelHtml = '<span class="month-label">' + escapeHtml(m.label || m.key || '—') + '</span>';
+            if (m.outOfRange) {
+              labelHtml = '<span class="month-label" title="Activity outside the project Duration window">' +
+                escapeHtml(m.label || m.key || '—') + ' (OOR)</span>';
+            }
+            var grossNegativeClass = (Number(m.grossProfit || 0) < 0) ? ' is-negative' : '';
+            tr.innerHTML =
+              '<td>' + labelHtml + '</td>' +
+              '<td class="num">' + (Number(m.revenue || 0) === 0 ? '$0' : formatMoneyCompact(m.revenue)) + '</td>' +
+              '<td class="num is-negative">' + formatExpense_(m.labor) + '</td>' +
+              '<td class="num is-negative">' + formatExpense_(m.expenses) + '</td>' +
+              '<td class="num is-negative">' + formatExpense_(m.totalCost) + '</td>' +
+              '<td class="num' + grossNegativeClass + '">' + formatMoneyParenIfNegative_(m.grossProfit) + '</td>' +
+              '<td class="num margin-cell bucket-' + bucket + '">' + formatMarginPct(m.marginPct) + '</td>';
+            els.deliveryPnlGridBody.appendChild(tr);
+          }
+          if (lifetime && els.deliveryPnlGridFoot) {
+            var totalGrossNegClass = Number(lifetime.grossProfit || 0) < 0 ? ' is-negative' : '';
+            var totalRow = document.createElement('tr');
+            totalRow.className = 'is-total';
+            totalRow.innerHTML =
+              '<td><strong>Lifetime total</strong></td>' +
+              '<td class="num">' + formatMoneyCompact(lifetime.revenue) + '</td>' +
+              '<td class="num is-negative">' + formatExpense_(lifetime.labor) + '</td>' +
+              '<td class="num is-negative">' + formatExpense_(lifetime.expenses) + '</td>' +
+              '<td class="num is-negative">' + formatExpense_(lifetime.totalCost) + '</td>' +
+              '<td class="num' + totalGrossNegClass + '">' + formatMoneyParenIfNegative_(lifetime.grossProfit) + '</td>' +
+              '<td class="num">' + formatMarginPct(lifetime.marginPctDerived) + '</td>';
+            els.deliveryPnlGridFoot.appendChild(totalRow);
+          }
+        }
+        // Partial-data badge.
+        if (els.deliveryPnlPartialBadge) {
+          if (payload && payload.partial) {
+            var capCount = (payload.capCounts && payload.capCounts.laborRowsRead) || 0;
+            els.deliveryPnlPartialBadge.classList.remove('d-none');
+            els.deliveryPnlPartialBadge.innerHTML =
+              '<span class="fos-delivery-partial-badge" title="Server hit the configured Labor Cost row cap; older months may be incomplete.">' +
+              'Partial data — capped at ' + capCount + ' rows</span>';
+          } else {
+            els.deliveryPnlPartialBadge.classList.add('d-none');
+            els.deliveryPnlPartialBadge.innerHTML = '';
+          }
+        }
+        // Reconciliation caption (§M.9, 5% tolerance per decision M.5).
+        if (els.deliveryPnlReconcile) {
+          var dc = payload && payload.discrepancyCheck;
+          if (dc && (dc.hasLaborDelta || dc.hasExpensesDelta || dc.hasMarginDelta)) {
+            var parts = [];
+            if (dc.hasLaborDelta) {
+              parts.push('labor ' + formatMoneyCompact(dc.summedLabor) + ' vs lifetime ' +
+                formatMoneyCompact(dc.lifetimeLabor) + ' (Δ ' + (dc.laborDeltaPct === null ? '—' : dc.laborDeltaPct + '%') + ')');
+            }
+            if (dc.hasExpensesDelta) {
+              parts.push('expenses ' + formatMoneyCompact(dc.summedExpenses) + ' vs lifetime ' +
+                formatMoneyCompact(dc.lifetimeExpenses) + ' (Δ ' + (dc.expensesDeltaPct === null ? '—' : dc.expensesDeltaPct + '%') + ')');
+            }
+            if (dc.hasMarginDelta) {
+              parts.push('margin ' + formatMarginPct(dc.summedMarginPct) + ' vs lifetime ' +
+                formatMarginPct(dc.lifetimeMarginPct) + ' (Δ ' + dc.marginPtsDelta + 'pts)');
+            }
+            els.deliveryPnlReconcile.classList.remove('d-none');
+            els.deliveryPnlReconcile.textContent = 'ⓘ Reconciliation — ' + parts.join(' · ');
+          } else {
+            els.deliveryPnlReconcile.classList.add('d-none');
+            els.deliveryPnlReconcile.textContent = '';
+          }
+        }
+        // Make sure the header is in sync with the project that was just rendered.
+        if (project) renderDeliveryPnlHeader(project);
+      }
+
+      // Delegated row activation + sort header click on the Active Projects
+      // table. Wired once on initial load.
+      if (els.deliveryProjectsBody) {
+        els.deliveryProjectsBody.addEventListener('click', function (e) {
+          handleDeliveryRowActivate_(e.target);
+        });
+        els.deliveryProjectsBody.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ' || e.code === 'Space') {
+            var t = e.target;
+            while (t && t.nodeType === 1 && t.tagName !== 'TR') t = t.parentNode;
+            if (t && t.classList && t.classList.contains('fos-clickable')) {
+              e.preventDefault();
+              handleDeliveryRowActivate_(t);
+            }
+          }
+        });
+      }
+      (function wireDeliverySortHeaders() {
+        var ths = document.querySelectorAll('#panel-delivery .fos-delivery-table thead th.fos-delivery-sortable');
+        for (var i = 0; i < ths.length; i++) {
+          (function (th) {
+            th.addEventListener('click', function () {
+              var col = th.getAttribute('data-sort-key');
+              if (!col) return;
+              if (deliveryState.sort.column === col) {
+                deliveryState.sort.dir = deliveryState.sort.dir === 'asc' ? 'desc' : 'asc';
+              } else {
+                deliveryState.sort.column = col;
+                deliveryState.sort.dir = (col === 'contractValue' || col === 'revenueRecognized'
+                  || col === 'completionPct' || col === 'marginPct') ? 'desc' : 'asc';
+              }
+              writeDeliveryFiltersStored();
+              logActivity_('delivery_table_sort', 'delivery', 'column=' + col + ' · direction=' + deliveryState.sort.dir);
+              var cached = readDeliveryCache();
+              renderDeliveryTable((cached && cached.projects) || []);
+              if (deliveryState.selectedId) markDeliveryRowSelected_(deliveryState.selectedId);
+            });
+          })(ths[i]);
+        }
+      })();
+
+      if (els.deliveryRefreshBtn) {
+        els.deliveryRefreshBtn.addEventListener('click', function () {
+          logActivity_('delivery_refresh', 'delivery', 'manual=true');
+          invalidateAllDeliveryPnlCaches();
+          deliveryRenderState.lastRenderedFetchedAt = null;
+          fetchDeliveryFromServer({ manual: true });
+        });
+      }
+      if (els.deliveryTtlSelect) {
+        var initialDeliveryTtl = readDeliveryTtlMinutes();
+        els.deliveryTtlSelect.value = String(initialDeliveryTtl);
+        els.deliveryTtlSelect.addEventListener('change', function () {
+          var n = parseInt(els.deliveryTtlSelect.value, 10);
+          if (!isFinite(n) || n < 0) n = DEFAULT_TTL_MINUTES;
+          writeDeliveryTtlMinutes(n);
+          logActivity_('ttl_change', 'delivery', String(n) + 'm');
+          var cached = readDeliveryCache();
+          if (cached && els.deliveryStaleBadge) {
+            if (n > 0 && isCacheStale(cached, n)) els.deliveryStaleBadge.classList.remove('d-none');
+            else els.deliveryStaleBadge.classList.add('d-none');
+          }
+        });
+      }
+
       function setActiveNav(id) {
         var buttons = els.navList.querySelectorAll('.fos-nav-btn');
         for (var i = 0; i < buttons.length; i++) {
@@ -5723,6 +6786,11 @@
           if (item.id === 'operations') {
             setActiveNav('operations');
             showOperations();
+            return;
+          }
+          if (item.id === 'delivery') {
+            setActiveNav('delivery');
+            showDelivery();
             return;
           }
           showComingSoon('The "' + item.label + '" dashboard is not available yet.');

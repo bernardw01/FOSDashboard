@@ -1,5 +1,5 @@
 /**
- * PRD version 1.18.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.19.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement-dashboard constants per agreement-dashboard-prd-v2.md §8:
  *   - §8.1 Alert thresholds (with optional Script Property overrides).
@@ -8,6 +8,12 @@
  *   - §8.4 Margin color thresholds (derived from LOW_MARGIN_THRESHOLD).
  *   - §8.5 Customer color palette (deterministic cycling).
  *   - §8.6 Internal company identification rules.
+ *
+ * v1.19.0 — Delivery Dashboard helpers:
+ *   - §D.11 Completion bucket map (4-tier).
+ *   - §D.10 Margin variance bucket map (3-tier).
+ *   - Monthly P&L margin coloring reuses the §D.10 variance buckets relative
+ *     to the agreement's Target Margin.
  *
  * Defaults live in code. Optional Script Properties (overlaid by
  * getAgreementThresholds_) allow ops tuning without a code change:
@@ -18,6 +24,12 @@
  *   AGREEMENT_INTERNAL_COMPANY_NAMES   (comma-separated)
  *   AGREEMENT_SANKEY_LINK_OPACITY      (0–1, default 0.35)
  *   AGREEMENT_SANKEY_INCLUDE_INTERNAL  (boolean, default false)
+ *
+ * v1.19.0 Delivery Dashboard Script Properties (all optional):
+ *   DELIVERY_COMPLETION_UNDER_PCT      (default 25)
+ *   DELIVERY_COMPLETION_BUILDING_PCT   (default 75)
+ *   DELIVERY_COMPLETION_OVER_PCT       (default 100)
+ *   DELIVERY_MARGIN_VARIANCE_AMBER_PTS (default 5  — within N pts BELOW target)
  */
 
 /** @const {!Object} §8.2 workflow state → hex color (harpin.ai palette). */
@@ -61,6 +73,30 @@ var CUSTOMER_PALETTE_ = [
 /** @const {!Array<string>} §8.6 default internal-company names. */
 var INTERNAL_COMPANY_NAMES_DEFAULT_ = ['harpin.ai'];
 
+/**
+ * §D.11 Delivery Dashboard completion-percent buckets. Drives the
+ * Active Projects table's `% Complete` progress-bar fill color.
+ *   under     0% ≤ pct < 25%   blue
+ *   building  25% ≤ pct < 75%  teal
+ *   on-track  75% ≤ pct ≤ 100% green
+ *   over      pct > 100%       orange
+ * @const {!Object}
+ */
+var COMPLETION_COLOR_ = {
+  under: '#52C9E5',
+  building: '#20B4C4',
+  'on-track': '#43D6BA',
+  over: '#fd9644',
+};
+
+/** @const {!Object} §D.10 Delivery margin-variance bucket colors. */
+var MARGIN_VARIANCE_COLOR_ = {
+  green: '#43D6BA',
+  amber: '#f9c74f',
+  red: '#fc5c65',
+  neutral: '#A0AEC0',
+};
+
 /** @const {!Object} §8.1 defaults (used when no Script Property override). */
 var THRESHOLD_DEFAULTS_ = {
   LOW_MARGIN_THRESHOLD: 35,
@@ -69,6 +105,10 @@ var THRESHOLD_DEFAULTS_ = {
   TOP_N_RECOGNITION_BARS: 10,
   SANKEY_LINK_OPACITY: 0.35,
   SANKEY_INCLUDE_INTERNAL: false,
+  DELIVERY_COMPLETION_UNDER_PCT: 25,
+  DELIVERY_COMPLETION_BUILDING_PCT: 75,
+  DELIVERY_COMPLETION_OVER_PCT: 100,
+  DELIVERY_MARGIN_VARIANCE_AMBER_PTS: 5,
 };
 
 /**
@@ -130,6 +170,23 @@ function getAgreementThresholds_() {
     THRESHOLD_DEFAULTS_.SANKEY_INCLUDE_INTERNAL
   );
 
+  var completionUnder = parsePositiveNumber_(
+    props.getProperty('DELIVERY_COMPLETION_UNDER_PCT'),
+    THRESHOLD_DEFAULTS_.DELIVERY_COMPLETION_UNDER_PCT
+  );
+  var completionBuilding = parsePositiveNumber_(
+    props.getProperty('DELIVERY_COMPLETION_BUILDING_PCT'),
+    THRESHOLD_DEFAULTS_.DELIVERY_COMPLETION_BUILDING_PCT
+  );
+  var completionOver = parsePositiveNumber_(
+    props.getProperty('DELIVERY_COMPLETION_OVER_PCT'),
+    THRESHOLD_DEFAULTS_.DELIVERY_COMPLETION_OVER_PCT
+  );
+  var marginVarianceAmber = parsePositiveNumber_(
+    props.getProperty('DELIVERY_MARGIN_VARIANCE_AMBER_PTS'),
+    THRESHOLD_DEFAULTS_.DELIVERY_MARGIN_VARIANCE_AMBER_PTS
+  );
+
   return {
     lowMargin: lowMargin,
     internalLabor: internalLabor,
@@ -143,7 +200,71 @@ function getAgreementThresholds_() {
     agreementTypeColor: AGREEMENT_TYPE_COLOR_,
     agreementTypeColorFallback: AGREEMENT_TYPE_COLOR_FALLBACK_,
     customerPalette: CUSTOMER_PALETTE_.slice(),
+    completion: {
+      underMax: completionUnder,
+      buildingMax: completionBuilding,
+      overMin: completionOver,
+      color: COMPLETION_COLOR_,
+    },
+    marginVariance: {
+      amberPts: marginVarianceAmber,
+      color: MARGIN_VARIANCE_COLOR_,
+    },
   };
+}
+
+/**
+ * §D.11 Returns one of `under` / `building` / `on-track` / `over` for a
+ * completion percent. Null inputs map to `neutral` and the caller should
+ * use the muted-gray color.
+ *
+ * @param {?number} pct  Completion percent (0–100; > 100 is over).
+ * @param {!{ underMax: number, buildingMax: number, overMin: number }} cfg
+ * @return {string}
+ */
+function completionBucket_(pct, cfg) {
+  if (pct === null || pct === undefined || isNaN(pct)) {
+    return 'neutral';
+  }
+  var n = Number(pct);
+  if (n > cfg.overMin) {
+    return 'over';
+  }
+  if (n >= cfg.buildingMax) {
+    return 'on-track';
+  }
+  if (n >= cfg.underMax) {
+    return 'building';
+  }
+  return 'under';
+}
+
+/**
+ * §D.10 / §M.7 Margin variance bucket — used for both the Active Projects
+ * Margin column dot and the per-month Margin % cell coloring in the
+ * Delivery P&L grid.
+ *
+ *   variance ≥ 0                          → green
+ *   −amberPts ≤ variance < 0              → amber
+ *   variance < −amberPts                  → red
+ *   null margin / null target / NaN       → neutral
+ *
+ * @param {?number} actualPct    Actual margin (0–100, may be negative).
+ * @param {?number} targetPct    Target margin (0–100).
+ * @param {!{ amberPts: number }} cfg
+ * @return {string}
+ */
+function marginVarianceBucket_(actualPct, targetPct, cfg) {
+  if (actualPct === null || actualPct === undefined || isNaN(actualPct)) {
+    return 'neutral';
+  }
+  if (targetPct === null || targetPct === undefined || isNaN(targetPct)) {
+    return 'neutral';
+  }
+  var v = Number(actualPct) - Number(targetPct);
+  if (v >= 0) return 'green';
+  if (v >= -Number(cfg.amberPts || 0)) return 'amber';
+  return 'red';
 }
 
 /**
