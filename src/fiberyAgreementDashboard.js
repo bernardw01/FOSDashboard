@@ -1,5 +1,5 @@
 /**
- * PRD version 1.17.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.18.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement Dashboard orchestrator (route id `agreement-dashboard`, panel
  * `#panel-agreement-dashboard`). No persistent server-side cache
@@ -115,6 +115,7 @@ function getAgreementDashboardData() {
   var agreements = normalizeAgreements_(rawAgreements);
 
   enrichAgreementsWithRevenueItems_(agreements, futureRevenueItems, historicalRevenueItems);
+  var revenueItemsByAgreement = groupRevenueItemsByAgreement_(historicalRevenueItems, futureRevenueItems);
 
   var companyByName = indexByLowercaseName_(companies);
   var customerOrder = buildCustomerOrder_(companies, thresholds);
@@ -138,6 +139,7 @@ function getAgreementDashboardData() {
     companies: companies,
     futureRevenueItems: futureRevenueItems,
     historicalRevenueItems: historicalRevenueItems,
+    revenueItemsByAgreement: revenueItemsByAgreement,
     kpis: kpis,
     alerts: alerts,
     charts: charts,
@@ -456,6 +458,56 @@ function enrichAgreementsWithRevenueItems_(agreements, futureItems, historicalIt
     a.revenueItemCount = totalByAgreementId[a.id] || 0;
     a.schedulingStatus = deriveSchedulingStatus_(a, futures);
   }
+}
+
+/**
+ * Re-keys the historical + future revenue items by agreementId so the client
+ * can show an agreement's milestones in a dialog without re-fetching from
+ * Fibery (FR-86, v1.18.0). Items without an agreementId are dropped because
+ * they cannot be attributed to a row in the Financial Performance table.
+ * Within each agreement the items are sorted by targetDate ascending; rows
+ * with a null targetDate sort last so they don't visually crowd the top of
+ * the milestones table.
+ *
+ * @param {!Array<!Object>} historicalItems Normalized historical items.
+ * @param {!Array<!Object>} futureItems Normalized future items.
+ * @return {!Object<string, !Array<!Object>>}
+ * @private
+ */
+function groupRevenueItemsByAgreement_(historicalItems, futureItems) {
+  var byId = {};
+  function push(item) {
+    if (!item || !item.agreementId) return;
+    var bucket = byId[item.agreementId];
+    if (!bucket) {
+      bucket = [];
+      byId[item.agreementId] = bucket;
+    }
+    bucket.push({
+      id: item.id,
+      name: item.name,
+      targetAmount: item.targetAmount,
+      actualAmount: item.actualAmount,
+      targetDate: item.targetDate,
+      recognized: item.recognized === true,
+      state: item.state,
+    });
+  }
+  for (var i = 0; i < historicalItems.length; i++) push(historicalItems[i]);
+  for (var j = 0; j < futureItems.length; j++) push(futureItems[j]);
+
+  var keys = Object.keys(byId);
+  for (var k = 0; k < keys.length; k++) {
+    byId[keys[k]].sort(function (a, b) {
+      var ad = a.targetDate || '';
+      var bd = b.targetDate || '';
+      if (!ad && !bd) return 0;
+      if (!ad) return 1;
+      if (!bd) return -1;
+      return ad < bd ? -1 : (ad > bd ? 1 : 0);
+    });
+  }
+  return byId;
 }
 
 /**

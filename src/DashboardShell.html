@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 1.17.0 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 1.18.0 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -473,6 +473,20 @@
       text-align: right;
       font-variant-numeric: tabular-nums;
       color: var(--ag-text-muted);
+    }
+    /* v1.18.0 — FR-86. The Financial performance table now opens a
+       milestones modal on row click; the visual affordance is a subtle hover
+       row + cursor. Keyboard users get the same affordance via focus-visible. */
+    .fos-financial-table tbody tr.fos-clickable {
+      cursor: pointer;
+    }
+    .fos-financial-table tbody tr.fos-clickable:hover td,
+    .fos-financial-table tbody tr.fos-clickable:focus-visible td {
+      background: rgba(67, 214, 186, 0.06);
+    }
+    .fos-financial-table tbody tr.fos-clickable:focus-visible {
+      outline: 2px solid rgba(67, 214, 186, 0.45);
+      outline-offset: -2px;
     }
 
     /* Customer Relationship Cards (§7.6) */
@@ -1993,6 +2007,101 @@
     </div>
   </div>
 
+  <!-- v1.18.0 — FR-85. Opens when a heatmap cell is clicked; lists the labor
+       entries (after all current dashboard filters) that contributed to that
+       (person, week) cell. Replaces the prior pin-Person + change-range drill. -->
+  <div
+    class="modal fade fos-modal"
+    id="utilHeatmapCellModal"
+    tabindex="-1"
+    aria-labelledby="utilHeatmapCellTitle"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+      <div class="modal-content rounded-4">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title fw-semibold" id="utilHeatmapCellTitle">Labor entries</h5>
+            <div class="small text-secondary" id="utilHeatmapCellSubtitle">—</div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="fos-financial-scroll">
+            <table class="fos-financial-table" aria-describedby="utilHeatmapCellTitle">
+              <thead>
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col">Customer</th>
+                  <th scope="col">Agreement</th>
+                  <th scope="col">Project</th>
+                  <th scope="col">Task</th>
+                  <th scope="col" class="num">Hours</th>
+                  <th scope="col" class="num">Cost</th>
+                  <th scope="col">Approval</th>
+                </tr>
+              </thead>
+              <tbody id="utilHeatmapCellBody"></tbody>
+            </table>
+          </div>
+          <p class="small mb-0 mt-2" id="utilHeatmapCellEmpty" style="color: var(--ag-text-muted); display: none">
+            No labor entries match this cell.
+          </p>
+        </div>
+        <div class="modal-footer border-0 pt-0 d-flex justify-content-between">
+          <span class="small text-secondary" id="utilHeatmapCellTotals">—</span>
+          <button type="button" class="btn btn-fos-primary px-4" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- v1.18.0 — FR-86. Opens when a row in the Agreement Dashboard's Financial
+       performance table is clicked; lists the agreement's Revenue Items
+       ("milestones"). Data comes from the precomputed
+       payload.revenueItemsByAgreement map (no extra Fibery fetch). -->
+  <div
+    class="modal fade fos-modal"
+    id="finAgreementModal"
+    tabindex="-1"
+    aria-labelledby="finAgreementModalTitle"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+      <div class="modal-content rounded-4">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title fw-semibold" id="finAgreementModalTitle">Agreement milestones</h5>
+            <div class="small text-secondary" id="finAgreementModalSubtitle">—</div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="fos-financial-scroll">
+            <table class="fos-financial-table" aria-describedby="finAgreementModalTitle">
+              <thead>
+                <tr>
+                  <th scope="col">Milestone</th>
+                  <th scope="col" class="num">Target amount</th>
+                  <th scope="col">Target date</th>
+                  <th scope="col">Invoice status</th>
+                </tr>
+              </thead>
+              <tbody id="finAgreementModalBody"></tbody>
+            </table>
+          </div>
+          <p class="small mb-0 mt-2" id="finAgreementModalEmpty" style="color: var(--ag-text-muted); display: none">
+            No milestones found for this agreement.
+          </p>
+        </div>
+        <div class="modal-footer border-0 pt-0 d-flex justify-content-between">
+          <span class="small text-secondary" id="finAgreementModalTotals">—</span>
+          <button type="button" class="btn btn-fos-primary px-4" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script
     src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
@@ -2030,6 +2139,9 @@
       };
       var currentTablePayload = null;
       var currentTab = 'allActive';
+      // FR-86, v1.18.0 — map of agreementId → revenue items, used by the
+      // milestones modal. Populated from data.revenueItemsByAgreement.
+      var revenueItemsByAgreement = {};
 
       // Utilization dashboard client state (Phase A + Phase B).
       var utilState = {
@@ -2931,6 +3043,16 @@
           var marginPct = r.margin === null || r.margin === undefined ? null : Number(r.margin);
           var widthPct = marginPct === null || isNaN(marginPct) ? 0 : Math.min(100, Math.max(0, marginPct));
           var tr = document.createElement('tr');
+          // FR-86, v1.18.0 — each row opens a milestones modal. Marking the
+          // row clickable in the DOM (class + role + tabindex + data-id) is
+          // enough; a single delegated listener on the tbody (wired below)
+          // handles click + Enter + Space.
+          tr.className = 'fos-clickable';
+          tr.setAttribute('role', 'button');
+          tr.setAttribute('tabindex', '0');
+          tr.setAttribute('data-agreement-id', r.id || '');
+          tr.setAttribute('data-agreement-name', r.name || '');
+          tr.setAttribute('aria-label', 'View milestones for ' + (r.name || 'agreement'));
           var customerCell = hideCustomer ? '' :
             '<td>' + escapeHtml(r.customer || '—') + '</td>';
           tr.innerHTML =
@@ -2950,6 +3072,96 @@
             '</td>';
           body.appendChild(tr);
         }
+      }
+      // FR-86, v1.18.0 — delegated row handler for the Financial performance
+      // table. Click or Enter / Space on a row opens the agreement-milestones
+      // modal seeded from `revenueItemsByAgreement`.
+      function handleFinTableRowActivate_(target) {
+        var tr = target;
+        while (tr && tr.nodeType === 1 && tr.tagName !== 'TR') {
+          tr = tr.parentNode;
+        }
+        if (!tr || !tr.classList || !tr.classList.contains('fos-clickable')) return;
+        var agreementId = tr.getAttribute('data-agreement-id') || '';
+        var agreementName = tr.getAttribute('data-agreement-name') || 'Agreement';
+        openAgreementMilestonesModal_(agreementId, agreementName);
+      }
+      function openAgreementMilestonesModal_(agreementId, agreementName) {
+        var items = (agreementId && revenueItemsByAgreement[agreementId]) || [];
+        logActivity_('agreement_milestones_open', 'agreement-dashboard',
+          'agreementId=' + agreementId + ' · items=' + items.length);
+
+        var modalEl = document.getElementById('finAgreementModal');
+        if (!modalEl) return;
+        var titleEl = document.getElementById('finAgreementModalTitle');
+        var subtitleEl = document.getElementById('finAgreementModalSubtitle');
+        var body = document.getElementById('finAgreementModalBody');
+        var emptyEl = document.getElementById('finAgreementModalEmpty');
+        var totalsEl = document.getElementById('finAgreementModalTotals');
+
+        if (titleEl) titleEl.textContent = agreementName;
+        if (subtitleEl) {
+          subtitleEl.textContent = items.length
+            ? items.length + (items.length === 1 ? ' milestone' : ' milestones')
+            : 'No milestones';
+        }
+        if (body) {
+          body.innerHTML = '';
+          for (var i = 0; i < items.length; i++) {
+            var m = items[i];
+            var statusLabel = m.state || (m.recognized ? 'Recognized' : '—');
+            var statusColor = milestoneStatusColor_(m.state, m.recognized);
+            var amount = (m.targetAmount != null && Number(m.targetAmount) !== 0)
+              ? formatMoneyCompact(m.targetAmount)
+              : (m.actualAmount != null ? formatMoneyCompact(m.actualAmount) : '—');
+            var dateLabel = m.targetDate ? String(m.targetDate).slice(0, 10) : '—';
+            var tr = document.createElement('tr');
+            tr.innerHTML =
+              '<td class="name-cell" title="' + escapeHtml(m.name || '') + '">' + escapeHtml(m.name || '—') + '</td>' +
+              '<td class="num">' + escapeHtml(amount) + '</td>' +
+              '<td>' + escapeHtml(dateLabel) + '</td>' +
+              '<td><span class="badge-pill" style="background:' + statusColor + '">' +
+                escapeHtml(statusLabel) + '</span></td>';
+            body.appendChild(tr);
+          }
+        }
+        if (emptyEl) {
+          emptyEl.style.display = items.length ? 'none' : '';
+        }
+        if (totalsEl) {
+          var totalAmt = 0;
+          for (var j = 0; j < items.length; j++) {
+            var v = Number(items[j].targetAmount || 0);
+            if (!v) v = Number(items[j].actualAmount || 0);
+            totalAmt += v;
+          }
+          totalsEl.textContent = items.length
+            ? 'Total target value: ' + formatMoneyCompact(totalAmt)
+            : '—';
+        }
+
+        try {
+          var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+          modal.show();
+        } catch (e) {
+          modalEl.classList.add('show');
+          modalEl.style.display = 'block';
+        }
+      }
+      // Maps a Fibery workflow state (or fallback boolean) onto a pill color.
+      // Lowercase substring match keeps the palette working across workspace
+      // re-namings (e.g. "Invoiced (manual)" still resolves to the invoiced
+      // color).
+      function milestoneStatusColor_(state, recognized) {
+        var s = String(state == null ? '' : state).toLowerCase();
+        if (s.indexOf('paid') >= 0) return '#43D6BA';
+        if (s.indexOf('invoic') >= 0) return '#43D6BA';
+        if (s.indexOf('recogn') >= 0) return '#43D6BA';
+        if (s.indexOf('schedul') >= 0) return '#f9c74f';
+        if (s.indexOf('plan') >= 0) return '#f9c74f';
+        if (s.indexOf('pending') >= 0) return '#f78c1f';
+        if (s.indexOf('cancel') >= 0 || s.indexOf('void') >= 0) return '#fc5c65';
+        return recognized ? '#43D6BA' : '#A0AEC0';
       }
 
       function setActiveTab(tab) {
@@ -3030,6 +3242,7 @@
 
         renderAttention(data.alerts || []);
         currentTablePayload = data.financialTable || { tabs: { allActive: [], topCustomer: [], otherCustomers: [] } };
+        revenueItemsByAgreement = data.revenueItemsByAgreement || {};
         renderFinancialTable(currentTab);
         renderAllCharts(data.charts);
         renderCustomerCards(data.customerCards || []);
@@ -3127,6 +3340,29 @@
             logActivity_('agreement_table_tab', 'agreement-dashboard', t);
           });
         })(tabButtons[ti]);
+      }
+
+      // FR-86, v1.18.0 — delegated click + keyboard handler for the Financial
+      // performance table body. Wired once at init time (rows are re-rendered
+      // per tab switch, so a delegated listener is the right shape).
+      var finBody = document.getElementById('financial-table-body');
+      if (finBody) {
+        finBody.addEventListener('click', function (e) {
+          handleFinTableRowActivate_(e.target);
+        });
+        finBody.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+            // Resolve the focused row; if focus is on a nested element, walk up.
+            var t = e.target;
+            while (t && t.nodeType === 1 && t.tagName !== 'TR') {
+              t = t.parentNode;
+            }
+            if (t && t.classList && t.classList.contains('fos-clickable')) {
+              e.preventDefault();
+              handleFinTableRowActivate_(t);
+            }
+          }
+        });
       }
 
       function showHome() {
@@ -3378,9 +3614,19 @@
           function (item) { return item.name + ' · ' + (item.customer || '—'); },
           utilState.filters.projects
         );
+        // Persons dropdown is alpha-sorted (FR-87, v1.18.0). The server hands
+        // us `dimensions.persons` sorted by hours desc (top-contributors
+        // first), which is useful for the heatmap but unhelpful when you're
+        // looking for a specific teammate by name. Clone before sort so we
+        // don't mutate the cached payload object.
+        var personsForMenu = ((dimensions && dimensions.persons) || []).slice().sort(function (a, b) {
+          var an = String((a && a.name) || '(Unknown user)').toLowerCase();
+          var bn = String((b && b.name) || '(Unknown user)').toLowerCase();
+          return an.localeCompare(bn);
+        });
         populateMultiMenu(
           els.utilPersonMenu,
-          (dimensions && dimensions.persons) || [],
+          personsForMenu,
           function (item) { return item.id || item.name || '(Unknown user)'; },
           function (item) { return (item.name || '(Unknown user)') + ' · ' + formatHours(item.hours || 0) + 'h'; },
           utilState.filters.persons
@@ -4758,38 +5004,108 @@
         }
         return out;
       }
+      // FR-85, v1.18.0 — Heatmap cell click opens a modal listing the labor
+      // entries that contributed to that (person, week) cell. Replaces the
+      // prior v1.14.0 behavior (pin Person filter + switch range), which
+      // invalidated cache and forced a server fetch every click. The new flow
+      // is read-only against `utilState.payload.rows` and applies all current
+      // dashboard filters so the count in the modal matches what the heatmap
+      // cell already shows.
       function handleHeatmapCellClick_(entry) {
         if (!entry) return;
+        var rows = collectRowsForHeatmapCell_(entry);
         logActivity_(
-          'util_heatmap_drill',
+          'util_heatmap_cell_click',
           'operations',
-          'person=' + entry.personKey + ' · week=' + entry.week
+          'person=' + (entry.personName || entry.personKey) +
+            ' · week=' + entry.week + ' · rows=' + rows.length
         );
-        // Pin the global Person filter to this person.
-        utilState.filters.persons[entry.personKey] = true;
-        // Change the range to the clicked week (this WILL invalidate the cache
-        // and trigger a fresh server fetch, per FR-73).
-        var rangeStart = entry.weekStartIso;
-        var rangeEnd = entry.weekEndIso;
-        if (els.utilRangePreset) {
-          els.utilRangePreset.value = 'custom';
+        openHeatmapCellModal_(entry, rows);
+      }
+
+      function collectRowsForHeatmapCell_(entry) {
+        var payload = utilState.payload;
+        if (!payload || !payload.rows) return [];
+        var filtered = applyFilters(payload.rows);
+        var out = [];
+        for (var i = 0; i < filtered.length; i++) {
+          var r = filtered[i];
+          if (!r.week || r.week !== entry.week) continue;
+          if (personKeyForRow_(r) !== entry.personKey) continue;
+          out.push(r);
         }
-        if (els.utilCustomRange) {
-          els.utilCustomRange.classList.remove('d-none');
+        out.sort(function (a, b) {
+          var aIso = a.startDateTime || '';
+          var bIso = b.startDateTime || '';
+          if (aIso === bIso) return 0;
+          return aIso < bIso ? -1 : 1;
+        });
+        return out;
+      }
+
+      function openHeatmapCellModal_(entry, rows) {
+        var modalEl = document.getElementById('utilHeatmapCellModal');
+        if (!modalEl) return;
+        var titleEl = document.getElementById('utilHeatmapCellTitle');
+        var subtitleEl = document.getElementById('utilHeatmapCellSubtitle');
+        var body = document.getElementById('utilHeatmapCellBody');
+        var emptyEl = document.getElementById('utilHeatmapCellEmpty');
+        var totalsEl = document.getElementById('utilHeatmapCellTotals');
+
+        if (titleEl) {
+          titleEl.textContent = (entry.personName || entry.personKey || 'Unknown user');
         }
-        if (els.utilRangeStart && rangeStart) {
-          els.utilRangeStart.value = (rangeStart || '').slice(0, 10);
+        if (subtitleEl) {
+          var sub = 'Week of ' + entry.week;
+          if (entry.utilizationPct != null && !isNaN(entry.utilizationPct)) {
+            sub += ' · ' + Math.round(entry.utilizationPct) + '% utilization';
+          }
+          if (entry.partial) {
+            sub += ' · partial week';
+          }
+          subtitleEl.textContent = sub;
         }
-        if (els.utilRangeEnd && rangeEnd) {
-          // weekEndIso is exclusive (next Monday); show the Sunday in the UI.
-          var endShifted = new Date(new Date(rangeEnd).getTime() - 86400000);
-          els.utilRangeEnd.value = endShifted.toISOString().slice(0, 10);
+        if (body) {
+          body.innerHTML = '';
+          for (var i = 0; i < rows.length; i++) {
+            var r = rows[i];
+            var datePart = (r.startDateTime || '').slice(0, 10) || '—';
+            var approvalLabel = r.isPending ? 'Pending' : (r.approval || '—');
+            var approvalColor = r.isPending ? '#f78c1f' : '#43D6BA';
+            var tr = document.createElement('tr');
+            tr.innerHTML =
+              '<td>' + escapeHtml(datePart) + '</td>' +
+              '<td>' + escapeHtml(r.customer || '—') + '</td>' +
+              '<td>' + escapeHtml(r.agreementName || '—') + '</td>' +
+              '<td>' + escapeHtml(r.projectName || '—') + '</td>' +
+              '<td>' + escapeHtml(r.task || '—') + '</td>' +
+              '<td class="num">' + escapeHtml(formatHours(r.hours || 0)) + '</td>' +
+              '<td class="num">' + escapeHtml(formatMoneyCompact(r.cost || 0)) + '</td>' +
+              '<td><span class="badge-pill" style="background:' + approvalColor + '">' +
+                escapeHtml(approvalLabel) + '</span></td>';
+            body.appendChild(tr);
+          }
         }
-        utilState.filters.rangeStartIso = rangeStart;
-        utilState.filters.rangeEndIso = rangeEnd;
-        utilState.filters.rangeDays = null;
-        renderChipBar();
-        fetchUtilizationFromServer(rangeStart, rangeEnd);
+        if (emptyEl) {
+          emptyEl.style.display = rows.length ? 'none' : '';
+        }
+        if (totalsEl) {
+          var totalHours = 0, totalCost = 0;
+          for (var j = 0; j < rows.length; j++) {
+            totalHours += Number(rows[j].hours || 0);
+            totalCost += Number(rows[j].cost || 0);
+          }
+          totalsEl.textContent = rows.length + (rows.length === 1 ? ' entry' : ' entries') +
+            ' · ' + formatHours(totalHours) + ' h · ' + formatMoneyCompact(totalCost);
+        }
+
+        try {
+          var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+          modal.show();
+        } catch (e) {
+          modalEl.classList.add('show');
+          modalEl.style.display = 'block';
+        }
       }
 
       // Phase C — Pending Approvals widget ----------------------------------
@@ -4960,11 +5276,32 @@
       // user lacks Fibery access OR the deep-link config / row data is
       // incomplete. The slug rule (each whitespace → `-`, no collapse)
       // matches Fibery's public-URL convention; see fiberyDeepLinks.js.
+      //
+      // When we return `''` we also log a one-line `[FOS]` warning so an
+      // operator can pop devtools and see *why* the "Open in Fibery →" link
+      // is hidden. The link suppresses silently in production but every
+      // empty-URL branch leaves a trace here (FR-88 diagnostic, v1.18.0).
       function getFiberyLaborCostUrl_(row) {
-        if (!row || !row.publicId || !row.name) return '';
-        if (!navState || navState.fiberyAccess !== true) return '';
+        var why = '';
+        if (!row) {
+          why = 'no row';
+        } else if (!row.publicId) {
+          why = 'row.publicId missing — Fibery entity has no public-id';
+        } else if (!row.name) {
+          why = 'row.name missing';
+        } else if (!navState || navState.fiberyAccess !== true) {
+          why = 'navState.fiberyAccess !== true — check the fibery_access cell for ' +
+            ((navState && navState.userEmail) || 'this user');
+        } else if (!navState.fibery) {
+          why = 'navState.fibery missing — FIBERY_HOST is not configured server-side';
+        } else if (!navState.fibery.host || !navState.fibery.laborCostPathTemplate) {
+          why = 'navState.fibery is incomplete (host/template missing)';
+        }
+        if (why) {
+          try { console.warn('[FOS] Open-in-Fibery hidden: ' + why); } catch (_) { /* ignore */ }
+          return '';
+        }
         var cfg = navState.fibery;
-        if (!cfg || !cfg.host || !cfg.laborCostPathTemplate) return '';
         var slug = String(row.name).trim().replace(/\s/g, '-');
         var path = cfg.laborCostPathTemplate
           .split('{slug}').join(slug)

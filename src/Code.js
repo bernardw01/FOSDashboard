@@ -1,11 +1,11 @@
 /**
- * PRD version 1.17.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.18.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard — Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '1.17.0';
+var FOS_PRD_VERSION = '1.18.0';
 
 /**
  * @return {string}

@@ -1,5 +1,5 @@
 /**
- * PRD version 1.17.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.18.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Composes public Fibery deep-link URLs (e.g. for the Operations dashboard's
  * row-detail drawer "Open in Fibery →" anchor). Lives server-side so the
@@ -46,6 +46,15 @@ function getFiberyDeepLinkConfig_() {
   if (!host) {
     host = (props.getProperty('FIBERY_HOST') || '').trim();
   }
+  if (!host) {
+    return null;
+  }
+  // Defensive: strip scheme / trailing slash / accidental path the same way
+  // fiberyClient.js does, so the URL we hand to the browser is never a
+  // double-scheme string like `https://https://harpin-ai.fibery.io/...`. This
+  // is what surfaced as "Open in Fibery link not showing up" when operators
+  // pasted the workspace URL into FIBERY_HOST verbatim (FR-88, v1.18.0).
+  host = host.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
   if (!host) {
     return null;
   }
@@ -109,4 +118,69 @@ function _diag_fiberyDeepLinkSample() {
   var url = buildLaborCostDeepLinkUrl_('2026-03-20 - Alex Anakin - 0.5 hrs', '167141');
   console.log('sample url: ' + url);
   return { config: cfg, sample: url };
+}
+
+/**
+ * Operator self-service helper for "Open in Fibery link is not showing up".
+ * Run from the Apps Script editor as the affected user — returns whether the
+ * gate is open and whether the deep-link config is complete. Used to triage
+ * FR-88 reports without needing to dig through Cloud Logs.
+ *
+ * @return {{
+ *   email: string,
+ *   authOk: boolean,
+ *   fiberyAccess: boolean,
+ *   deepLinkConfig: ?{scheme: string, host: string, laborCostPathTemplate: string},
+ *   sampleUrl: string,
+ *   notes: !Array<string>
+ * }}
+ * @private
+ */
+function _diag_fiberyAccess() {
+  var notes = [];
+  var email = '';
+  try {
+    email = Session.getActiveUser().getEmail() || '';
+  } catch (_) { /* ignore */ }
+
+  var auth = null;
+  try {
+    auth = getAuthorizationForActiveUser_();
+  } catch (e) {
+    notes.push('auth threw: ' + (e && e.message ? e.message : e));
+  }
+  var authOk = !!(auth && auth.ok);
+  var fiberyAccess = !!(auth && auth.ok && auth.fiberyAccess);
+  if (auth && !auth.ok) {
+    notes.push('auth not ok: ' + auth.reason);
+  }
+  if (authOk && !fiberyAccess) {
+    notes.push('user is authorized but fibery_access did not resolve to TRUE — check that cell');
+  }
+
+  var cfg = null;
+  try {
+    cfg = getFiberyDeepLinkConfig_();
+  } catch (e) {
+    notes.push('deep-link config threw: ' + (e && e.message ? e.message : e));
+  }
+  if (!cfg) {
+    notes.push('deep-link config is null — set FIBERY_HOST (and optionally FIBERY_DEEP_LINK_HOST) in Script Properties');
+  } else if (/^https?:\/\//i.test(cfg.host)) {
+    notes.push('deep-link host still contains a scheme prefix after scrub: ' + cfg.host);
+  }
+
+  var sampleUrl = '';
+  try {
+    sampleUrl = buildLaborCostDeepLinkUrl_('2026-03-20 - Alex Anakin - 0.5 hrs', '167141');
+  } catch (_) { /* ignore */ }
+
+  return {
+    email: email,
+    authOk: authOk,
+    fiberyAccess: fiberyAccess,
+    deepLinkConfig: cfg,
+    sampleUrl: sampleUrl,
+    notes: notes,
+  };
 }

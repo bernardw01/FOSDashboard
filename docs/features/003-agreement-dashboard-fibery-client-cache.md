@@ -1,6 +1,6 @@
 # Feature: Agreement Dashboard (Fibery + client cache)
 
-> **PRD version 1.17.0** — see `docs/FOS-Dashboard-PRD.md`.
+> **PRD version 1.18.0** — see `docs/FOS-Dashboard-PRD.md`.
 
 ## Status
 
@@ -11,6 +11,7 @@
 | **Phase C — flow visualization** | Revenue Flow Sankey (§7.11) — D3 + d3-sankey from CDN | **Delivered v1.10.0** |
 | **Cosmetic (v1.13.0)** | Removed the duplicate in-panel harpin logo + `.agreement-logo-sep` divider from the panel header — the app sidebar (`.fos-brand-logo`) is now the single rendered brand mark. **Page heading + subtitle stay** in `#panel-agreement-dashboard` (panel structure unchanged). Cross-reference: shipped jointly with the Utilization Management Dashboard Phase B cleanup in `docs/features/005-utilization-management-dashboard.md`. | **Delivered v1.13.0** |
 | **UX polish (v1.13.1)** | (1) Semi-transparent **`.fos-loading-overlay`** added inside `#panel-agreement-dashboard .fos-agreement-inner` — toggled on at the start of every `fetchAgreementFromServer()` call and off in both handlers, covering initial load / Refresh / background stale-refresh. (2) **Sticky panel render** — navigating away and back no longer re-runs `applyAgreementPayload(cached)` when the cached payload's `fetchedAt` matches what the DOM already shows, preserving Chart.js + Sankey + Financial-Performance table state. Stale-detection + background fetch logic (FR-56b) still fires. See main PRD **FR-54**, **AC-27**. | **Delivered v1.13.1** |
+| **Agreement milestones modal (v1.18.0)** | Every row in the Financial performance table (across all three tabs) is now a focusable button (`role="button"`, `tabindex="0"`); click + Enter / Space open `#finAgreementModal` listing the agreement's Revenue Items as **Milestone · Target amount · Target date · Invoice status**. Backed by a new server-supplied `payload.revenueItemsByAgreement` map built by re-keying the existing historical + future revenue-item arrays — **no new Fibery queries**. Within each agreement, items are sorted by `targetDate` ascending (null-date items pushed to the bottom). The Invoice-status pill color is keyed off the Revenue Item's workflow `state` via substring match (paid / invoiced / recognized → green, scheduled / planned → amber, pending → orange, cancelled / void → red, fallback → gray). The modal emits an `agreement_milestones_open` activity-log event on every open. See main PRD **FR-86**, **AC-41**. | **Delivered v1.18.0** |
 
 ## Goal
 

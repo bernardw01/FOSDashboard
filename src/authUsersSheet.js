@@ -1,5 +1,5 @@
 /**
- * PRD version 1.17.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.18.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Spreadsheet-backed user authorization (Users tab).
  * Script Properties: AUTH_SPREADSHEET_ID (required), AUTH_USERS_SHEET_NAME (default Users),
@@ -116,22 +116,38 @@ function normalizeEmail_(s) {
 }
 
 /**
+ * Locates a column by title. Matching is intentionally forgiving:
+ *
+ *   1. Exact case-insensitive match (after trim) — `Email` ↔ `email`.
+ *   2. Loose match: lowercase + strip non-alphanumeric — `Fibery Access`,
+ *      `Fibery_Access`, `fibery-access`, `fiberyAccess` all match
+ *      `fibery_access`.
+ *
+ * The loose pass is a defensive fallback. Operators editing the Users sheet
+ * by hand frequently retitle columns with different separators, and the
+ * deny-by-default behavior of the `fibery_access` gate meant a typo there
+ * silently broke the "Open in Fibery" link for everyone (FR-88, v1.18.0).
+ *
  * @param {Array} headers First sheet row.
- * @param {string} name Expected column title (case-insensitive).
+ * @param {string} name Expected column title.
  * @return {number} Zero-based column index or -1.
  */
 function findHeaderIndex_(headers, name) {
-  var target = String(name || '')
-    .trim()
-    .toLowerCase();
+  var raw = String(name || '');
+  var target = raw.trim().toLowerCase();
+  var targetLoose = target.replace(/[^a-z0-9]/g, '');
+  var looseHit = -1;
   for (var c = 0; c < headers.length; c++) {
     var h = headers[c];
     var label = h === null || h === undefined ? '' : String(h).trim().toLowerCase();
     if (label === target) {
       return c;
     }
+    if (looseHit < 0 && targetLoose && label.replace(/[^a-z0-9]/g, '') === targetLoose) {
+      looseHit = c;
+    }
   }
-  return -1;
+  return looseHit;
 }
 
 /**
