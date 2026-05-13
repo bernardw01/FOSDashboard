@@ -1,11 +1,11 @@
 /**
- * PRD version 1.14.1 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.17.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard — Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '1.14.1';
+var FOS_PRD_VERSION = '1.17.0';
 
 /**
  * @return {string}
@@ -59,6 +59,8 @@ function doGet() {
  *   userLabel: string,
  *   role: string,
  *   team: string,
+ *   fiberyAccess: boolean,
+ *   fibery?: { scheme: string, host: string, laborCostPathTemplate: string },
  *   items: Array<{ id: string, label: string, active: boolean }>
  * }}
  */
@@ -68,12 +70,14 @@ function getDashboardNavigation() {
 }
 
 /**
- * @param {{ email: string, role: string, team: string }} auth
+ * @param {{ email: string, role: string, team: string, fiberyAccess?: boolean }} auth
  * @return {{
  *   userEmail: string,
  *   userLabel: string,
  *   role: string,
  *   team: string,
+ *   fiberyAccess: boolean,
+ *   fibery?: { scheme: string, host: string, laborCostPathTemplate: string },
  *   items: Array<{ id: string, label: string, active: boolean }>
  * }}
  * @private
@@ -88,11 +92,37 @@ function buildNavigationModel_(auth) {
     { id: 'delivery', label: 'Delivery', active: false },
   ];
 
-  return {
+  var fiberyAccess = !!(auth && auth.fiberyAccess);
+  var model = {
     userEmail: auth.email,
     userLabel: label,
     role: auth.role,
     team: auth.team,
+    fiberyAccess: fiberyAccess,
     items: allItems.slice(),
   };
+
+  // Only attach the public Fibery deep-link config when the signed-in user
+  // is explicitly cleared via the `fibery_access` column. Users without the
+  // flag never receive the host or path template — defense in depth so
+  // browser devtools / view-source can't surface a workspace URL.
+  if (fiberyAccess) {
+    var deepLinkCfg = null;
+    try {
+      deepLinkCfg = getFiberyDeepLinkConfig_();
+    } catch (e) {
+      try {
+        console.warn('buildNavigationModel_: getFiberyDeepLinkConfig_ threw: ' +
+          (e && e.message ? e.message : e));
+      } catch (_) {
+        /* ignore */
+      }
+      deepLinkCfg = null;
+    }
+    if (deepLinkCfg) {
+      model.fibery = deepLinkCfg;
+    }
+  }
+
+  return model;
 }

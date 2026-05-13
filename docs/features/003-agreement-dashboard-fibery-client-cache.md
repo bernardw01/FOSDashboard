@@ -1,6 +1,6 @@
 # Feature: Agreement Dashboard (Fibery + client cache)
 
-> **PRD version 1.14.1** — see `docs/FOS-Dashboard-PRD.md`.
+> **PRD version 1.17.0** — see `docs/FOS-Dashboard-PRD.md`.
 
 ## Status
 
@@ -77,7 +77,7 @@ Copy **`agreement-dashboard-prd-v2.md` §9.5–§9.7** into the Agreement Dashbo
 
 | Key | Purpose | Default |
 | --- | --- | --- |
-| `FIBERY_HOST` | Fibery workspace host (no scheme, e.g. `harpinai.fibery.io`) | — (required) |
+| `FIBERY_HOST` | Fibery workspace host (no scheme, e.g. `harpin-ai.fibery.io`) | — (required) |
 | `FIBERY_API_TOKEN` | Fibery API token; never returned to the client | — (required) |
 | `AGREEMENT_CACHE_TTL_MINUTES` | Default seed TTL for the client selector | `10` |
 | `AGREEMENT_THRESHOLD_LOW_MARGIN` | §6.2 warning threshold (%) | `35` |

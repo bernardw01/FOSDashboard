@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 1.14.1 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 1.17.0 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -85,21 +85,25 @@
       position: relative; /* anchors .fos-loading-overlay inside the panel */
     }
 
-    /* Semi-transparent loading overlay (v1.13.1) — sits inside
+    /* Semi-transparent loading overlay (v1.13.1) — backdrop sits inside
        .fos-agreement-inner so the sidebar/topbar stay interactive while a
        server fetch is in flight. Toggled by setAgreementLoading() /
-       setUtilLoading(). */
+       setUtilLoading().
+
+       v1.14.2: the spinner + label are pulled out of the overlay's flow
+       and pinned to the VIEWPORT center via `position: fixed` so they
+       remain visible no matter how far the user has scrolled down the
+       panel (the previous overlay-relative centering parked them at the
+       panel's vertical mid-point, which was often above the fold on a
+       long Operations / Agreement Dashboard view). The spinner doubles
+       from 48px → 96px (+ 4px → 8px border) for legibility at viewport
+       scale. */
     .fos-loading-overlay {
       position: absolute;
       inset: 0;
       background: rgba(6, 27, 48, 0.55);
       -webkit-backdrop-filter: blur(2px);
       backdrop-filter: blur(2px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 12px;
       border-radius: 12px;
       z-index: 20;
       pointer-events: all;
@@ -107,20 +111,37 @@
     .fos-loading-overlay.d-none {
       display: none !important;
     }
+    /* Fixed-position child: offset by half the spinner size from each axis
+       so the box stays viewport-centered. Using calc() offsets instead of
+       `transform: translate(-50%, -50%)` keeps the `transform` channel
+       free for the rotate animation below. */
     .fos-loading-overlay .fos-loading-spinner {
-      width: 48px;
-      height: 48px;
+      position: fixed;
+      top: calc(50% - 48px);
+      left: calc(50% - 48px);
+      width: 96px;
+      height: 96px;
       border-radius: 50%;
-      border: 4px solid rgba(82, 201, 229, 0.18);
+      border: 8px solid rgba(82, 201, 229, 0.18);
       border-top-color: var(--accent);
       animation: fos-spin 0.9s linear infinite;
+      z-index: 21;
+      pointer-events: none;
     }
     .fos-loading-overlay .fos-loading-label {
-      font-size: 0.78rem;
+      position: fixed;
+      top: calc(50% + 64px); /* spinner half-height (48) + 16px gap */
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.82rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: var(--text-muted);
-      font-weight: 600;
+      color: var(--text);
+      font-weight: 700;
+      z-index: 21;
+      pointer-events: none;
+      white-space: nowrap;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     }
     @keyframes fos-spin {
       from { transform: rotate(0deg); }
@@ -233,6 +254,110 @@
       color: var(--ag-text-muted);
       line-height: 1.4;
       margin-top: 2px;
+    }
+
+    /* v1.16.0 — Person-grouped Utilization Alerts. The outer container reuses
+       the `.sev-*` border-left palette from `.fos-attention-item` so a group's
+       worst severity reads at a glance, and the children inside drop their
+       own border-left so the group's strip is the dominant signal. */
+    .fos-attention-group {
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 8px;
+      border-left: 3px solid var(--ag-text-muted);
+      overflow: hidden;
+    }
+    .fos-attention-group + .fos-attention-group,
+    .fos-attention-item + .fos-attention-group,
+    .fos-attention-group + .fos-attention-item {
+      margin-top: 8px;
+    }
+    .fos-attention-group.sev-critical {
+      border-left-color: var(--ag-danger);
+    }
+    .fos-attention-group.sev-warning {
+      border-left-color: var(--ag-warn);
+    }
+    .fos-attention-group.sev-info {
+      border-left-color: var(--ag-accent4);
+    }
+    .fos-attention-group-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 120ms ease;
+    }
+    .fos-attention-group-header:hover,
+    .fos-attention-group-header:focus-visible {
+      background: rgba(255, 255, 255, 0.04);
+      outline: none;
+    }
+    .fos-attention-group-header:focus-visible {
+      box-shadow: inset 0 0 0 2px var(--ag-accent4);
+    }
+    .fos-attention-group-chevron {
+      display: inline-block;
+      width: 14px;
+      flex-shrink: 0;
+      text-align: center;
+      color: var(--ag-text-muted);
+      font-size: 0.75rem;
+      transition: transform 150ms ease;
+      transform: rotate(0deg);
+    }
+    .fos-attention-group.is-open .fos-attention-group-chevron {
+      transform: rotate(90deg);
+    }
+    .fos-attention-group-name {
+      font-weight: 600;
+      color: var(--ag-text);
+      font-size: 0.88rem;
+      line-height: 1.2;
+      flex-grow: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .fos-attention-group-count {
+      font-size: 0.75rem;
+      color: var(--ag-text-muted);
+      flex-shrink: 0;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .fos-attention-group-sev-icon {
+      font-size: 1rem;
+      line-height: 1.2;
+      flex-shrink: 0;
+    }
+    .fos-attention-group-children {
+      padding: 0 10px 10px 32px; /* left indent mirrors the chevron + icon width */
+      display: none;
+    }
+    .fos-attention-group.is-open .fos-attention-group-children {
+      display: block;
+    }
+    /* Children inside a group lose the heavy left border so the group's
+       severity strip remains the visual anchor. */
+    .fos-attention-group-children .fos-attention-item {
+      border-left-width: 0;
+      background: transparent;
+      padding: 6px 0;
+    }
+    .fos-attention-group-children .fos-attention-item + .fos-attention-item {
+      margin-top: 4px;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      padding-top: 8px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .fos-attention-group-chevron,
+      .fos-attention-group-header {
+        transition: none;
+      }
     }
 
     .fos-chart-wrap {
@@ -1651,11 +1776,16 @@
 
             <!-- Utilization Alerts (Phase C) — under-utilized / over-allocated /
                  stale-approval items, mirrors the Agreement Dashboard's
-                 Attention Items pattern. -->
+                 Attention Items pattern. As of v1.17.0 the items are grouped
+                 by alert kind with a Collapse all affordance. -->
             <section class="fos-section-card mb-3" aria-labelledby="util-attention-heading">
               <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                 <h2 id="util-attention-heading" class="mb-0">Utilization alerts</h2>
                 <span class="small" style="color: var(--ag-text-muted)" id="util-attention-count">0 alerts</span>
+                <button type="button"
+                        class="fos-util-clear-btn ms-auto"
+                        id="util-attention-collapse-all"
+                        hidden>Collapse all</button>
               </div>
               <div id="util-attention-list" aria-live="polite"></div>
             </section>
@@ -1932,6 +2062,13 @@
         pending: {
           showAll: false,         // default cap = 50 rows
         },
+        // v1.16.0 — Person-grouped Utilization Alerts. `expanded` is keyed by
+        // personKey; set to `true` when the user (or the auto-default) has
+        // opened a group. We reset the map inside `applyUtilPayload` so each
+        // new payload starts with the smart defaults (see renderUtilizationAlerts).
+        alerts: {
+          expanded: {},
+        },
         // Phase C — Row-detail drawer state.
         detailDrawer: {
           open: false,
@@ -2086,6 +2223,7 @@
         // Phase C — Alerts / Heatmap / Pending Approvals / Drawer.
         utilAttentionList: document.getElementById('util-attention-list'),
         utilAttentionCount: document.getElementById('util-attention-count'),
+        utilAttentionCollapseAll: document.getElementById('util-attention-collapse-all'),
         utilHeatmapSvg: document.getElementById('util-heatmap-svg'),
         utilHeatmapLegend: document.getElementById('util-heatmap-legend'),
         utilHeatmapMeta: document.getElementById('util-heatmap-meta'),
@@ -4000,6 +4138,25 @@
       var UTIL_HEATMAP_HEADER_H = 26;
 
       // Phase C — Alerts panel ----------------------------------------------
+      // v1.17.0 — Renders the Utilization Alerts panel as a list grouped by
+      // alert **kind** (Under-utilized, Over-allocated, Stale approvals).
+      // Replaces the v1.16.0 by-person grouping based on operator feedback:
+      // managers want to triage a class of issue at a time, not a person at
+      // a time. Panel-level cards (`stale_approval_rollup`, `all_clear`)
+      // remain as standalone flat cards above the grouped section.
+      //
+      // Default expand state per group:
+      //   - Contains at least one Critical alert  → expanded
+      //   - Contains exactly one alert            → expanded (collapsing is
+      //                                              pointless when there's
+      //                                              only one item to show)
+      //   - Otherwise                             → collapsed
+      //
+      // The user's manual toggle state (utilState.alerts.expanded — keyed on
+      // alert `kind` as of v1.17.0) is respected when re-rendering on filter
+      // changes, and is cleared in applyUtilPayload() so each new payload
+      // starts with the smart defaults. The Collapse all button at the top
+      // of the panel can force every group closed in one click.
       function renderUtilizationAlerts(alerts) {
         var list = els.utilAttentionList;
         if (!list) return;
@@ -4009,27 +4166,263 @@
           els.utilAttentionCount.textContent =
             alerts.length + (alerts.length === 1 ? ' alert' : ' alerts');
         }
+
+        var standalone = [];
+        var groupsByKey = {};
+        var groupOrder = [];
         for (var i = 0; i < alerts.length; i++) {
           var a = alerts[i];
-          var item = document.createElement('div');
-          item.className = 'fos-attention-item sev-' + (a.severity || 'info');
-          var icon = a.severity === 'critical' ? '🔴' : a.severity === 'warning' ? '🟡' : '🟢';
-          item.innerHTML =
-            '<span class="sev-icon" aria-hidden="true">' + icon + '</span>' +
-            '<div class="flex-grow-1 min-w-0">' +
-              '<div class="title">' + escapeHtml(a.title || '') + '</div>' +
-              '<div class="body">' + escapeHtml(a.body || '') + '</div>' +
-            '</div>';
-          (function (alert) {
-            item.addEventListener('click', function () {
-              handleUtilAlertClick_(alert);
-            });
-            // Hover style is already supplied by `.fos-attention-item.sev-*`;
-            // pointer affordance is added here.
-            item.style.cursor = 'pointer';
-          })(a);
-          list.appendChild(item);
+          if (isStandaloneAlertKind_(a && a.kind)) {
+            standalone.push(a);
+            continue;
+          }
+          var groupKey = a && a.kind ? a.kind : 'other';
+          if (!groupsByKey[groupKey]) {
+            groupsByKey[groupKey] = {
+              kind: groupKey,
+              label: kindLabel_(groupKey),
+              items: [],
+              worstSeverity: 'info',
+            };
+            groupOrder.push(groupKey);
+          }
+          var g = groupsByKey[groupKey];
+          g.items.push(a);
+          if (severityRank_(a.severity) < severityRank_(g.worstSeverity)) {
+            g.worstSeverity = a.severity || 'info';
+          }
         }
+
+        // Sort groups: worst severity first, then more alerts first, then
+        // group label asc for determinism.
+        groupOrder.sort(function (ka, kb) {
+          var ga = groupsByKey[ka];
+          var gb = groupsByKey[kb];
+          var sevDiff = severityRank_(ga.worstSeverity) - severityRank_(gb.worstSeverity);
+          if (sevDiff !== 0) return sevDiff;
+          var countDiff = gb.items.length - ga.items.length;
+          if (countDiff !== 0) return countDiff;
+          return String(ga.label).localeCompare(String(gb.label));
+        });
+
+        // 1) Render standalone (rollup / all-clear) cards first — same chrome
+        //    as the legacy flat list.
+        for (var si = 0; si < standalone.length; si++) {
+          list.appendChild(buildStandaloneAlertCard_(standalone[si]));
+        }
+
+        // 2) Render grouped cards.
+        for (var gi = 0; gi < groupOrder.length; gi++) {
+          var group = groupsByKey[groupOrder[gi]];
+          list.appendChild(buildAlertGroupCard_(group));
+        }
+
+        // 3) Toggle the Collapse all button's visibility based on whether
+        //    any kind-based groups exist (panel-level cards don't have an
+        //    expand state to collapse). Refresh its disabled state after.
+        updateCollapseAllButtonVisibility_();
+      }
+
+      function buildStandaloneAlertCard_(a) {
+        var item = document.createElement('div');
+        item.className = 'fos-attention-item sev-' + (a.severity || 'info');
+        var icon = severityIcon_(a.severity);
+        item.innerHTML =
+          '<span class="sev-icon" aria-hidden="true">' + icon + '</span>' +
+          '<div class="flex-grow-1 min-w-0">' +
+            '<div class="title">' + escapeHtml(a.title || '') + '</div>' +
+            '<div class="body">' + escapeHtml(a.body || '') + '</div>' +
+          '</div>';
+        item.style.cursor = 'pointer';
+        item.addEventListener('click', function () {
+          handleUtilAlertClick_(a);
+        });
+        return item;
+      }
+
+      function buildAlertGroupCard_(group) {
+        var key = group.kind;
+        // Apply smart default if the user hasn't explicitly toggled this
+        // group yet (utilState.alerts.expanded is keyed on alert `kind` and
+        // is a strict boolean once the user has touched the header — either
+        // via direct click or the Collapse all button).
+        var stored = utilState.alerts.expanded[key];
+        var isOpen = stored === true || (
+          stored !== false && (group.worstSeverity === 'critical' || group.items.length === 1)
+        );
+
+        var wrapper = document.createElement('div');
+        wrapper.className = 'fos-attention-group sev-' + (group.worstSeverity || 'info') +
+          (isOpen ? ' is-open' : '');
+        // Stash the kind for the Collapse all handler so it can write
+        // back into utilState.alerts.expanded without re-deriving the key.
+        wrapper.setAttribute('data-kind', key);
+
+        var header = document.createElement('div');
+        header.className = 'fos-attention-group-header';
+        header.setAttribute('role', 'button');
+        header.setAttribute('tabindex', '0');
+        header.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        var childrenId = 'fos-attn-grp-' + slugForDomId_(key);
+        header.setAttribute('aria-controls', childrenId);
+        var icon = severityIcon_(group.worstSeverity);
+        var countLabel = group.items.length +
+          (group.items.length === 1 ? ' alert' : ' alerts');
+        header.innerHTML =
+          '<span class="fos-attention-group-chevron" aria-hidden="true">▸</span>' +
+          '<span class="fos-attention-group-sev-icon" aria-hidden="true">' + icon + '</span>' +
+          '<span class="fos-attention-group-name">' + escapeHtml(group.label) + '</span>' +
+          '<span class="fos-attention-group-count">' + escapeHtml(countLabel) + '</span>';
+
+        var children = document.createElement('div');
+        children.className = 'fos-attention-group-children';
+        children.id = childrenId;
+        for (var i = 0; i < group.items.length; i++) {
+          children.appendChild(buildGroupChildAlert_(group.items[i]));
+        }
+
+        function toggle() {
+          var nextOpen = !wrapper.classList.contains('is-open');
+          wrapper.classList.toggle('is-open', nextOpen);
+          header.setAttribute('aria-expanded', nextOpen ? 'true' : 'false');
+          utilState.alerts.expanded[key] = nextOpen;
+          logActivity_(
+            'util_alert_group_toggle',
+            'operations',
+            'kind=' + String(key).slice(0, 80) +
+              ' · ' + (nextOpen ? 'expand' : 'collapse')
+          );
+          updateCollapseAllButtonVisibility_();
+        }
+        header.addEventListener('click', toggle);
+        header.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') {
+            ev.preventDefault();
+            toggle();
+          }
+        });
+
+        wrapper.appendChild(header);
+        wrapper.appendChild(children);
+        return wrapper;
+      }
+
+      function buildGroupChildAlert_(a) {
+        var item = document.createElement('div');
+        item.className = 'fos-attention-item sev-' + (a.severity || 'info');
+        var icon = severityIcon_(a.severity);
+        item.innerHTML =
+          '<span class="sev-icon" aria-hidden="true">' + icon + '</span>' +
+          '<div class="flex-grow-1 min-w-0">' +
+            '<div class="title">' + escapeHtml(a.title || '') + '</div>' +
+            '<div class="body">' + escapeHtml(a.body || '') + '</div>' +
+          '</div>';
+        item.style.cursor = 'pointer';
+        item.addEventListener('click', function (ev) {
+          // Defensive: the parent group's header has its own click handler,
+          // but bubbling to the wrapper itself shouldn't toggle the group.
+          ev.stopPropagation();
+          handleUtilAlertClick_(a);
+        });
+        return item;
+      }
+
+      function severityIcon_(sev) {
+        if (sev === 'critical') return '🔴';
+        if (sev === 'warning') return '🟡';
+        return '🟢';
+      }
+
+      function severityRank_(sev) {
+        if (sev === 'critical') return 0;
+        if (sev === 'warning') return 1;
+        return 2;
+      }
+
+      // Kinds that are panel-level summaries and MUST stay as standalone
+      // flat cards above the grouped section (they have nothing to "expand").
+      var UTIL_ALERT_STANDALONE_KINDS_ = {
+        stale_approval_rollup: true,
+        all_clear: true,
+      };
+
+      function isStandaloneAlertKind_(kind) {
+        return !!UTIL_ALERT_STANDALONE_KINDS_[String(kind || '')];
+      }
+
+      // User-facing label for an alert kind. Unknown kinds fall back to a
+      // humanized version of the raw value so the panel stays self-describing
+      // if the server adds a new rule before the client catches up.
+      function kindLabel_(kind) {
+        switch (kind) {
+          case 'under_utilized':       return 'Under-utilized';
+          case 'over_allocated':       return 'Over-allocated';
+          case 'stale_approval':       return 'Stale approvals';
+          case 'stale_approval_rollup':return 'Stale approvals (rollup)';
+          case 'all_clear':            return 'All clear';
+        }
+        // Humanize unknown kinds: replace `_` with spaces, capitalize first.
+        var s = String(kind || 'Other').replace(/_/g, ' ');
+        return s.charAt(0).toUpperCase() + s.slice(1);
+      }
+
+      // Build a DOM-id-safe slug for the `aria-controls` linkage. Kind values
+      // are simple ASCII but the helper stays generic so a future grouping
+      // key (e.g. `customer:Acme Co.`) doesn't break the selector.
+      function slugForDomId_(key) {
+        return String(key || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_');
+      }
+
+      // Reveals the Collapse all button only when at least one kind-based
+      // group is currently expanded; hides it when the panel is all-flat
+      // (only standalone cards) OR when every group is already collapsed.
+      function updateCollapseAllButtonVisibility_() {
+        var btn = els.utilAttentionCollapseAll;
+        if (!btn) return;
+        var groups = els.utilAttentionList
+          ? els.utilAttentionList.querySelectorAll('.fos-attention-group')
+          : null;
+        if (!groups || !groups.length) {
+          btn.hidden = true;
+          return;
+        }
+        var anyOpen = false;
+        for (var i = 0; i < groups.length; i++) {
+          if (groups[i].classList.contains('is-open')) {
+            anyOpen = true;
+            break;
+          }
+        }
+        btn.hidden = !anyOpen;
+      }
+
+      // Collapses every kind-based group in the panel in one click. For each
+      // wrapper we (a) drop the `is-open` class so CSS hides the children,
+      // (b) sync `aria-expanded` on the header, and (c) write `false` into
+      // utilState.alerts.expanded[kind] so the override survives re-renders
+      // triggered by filter changes until the next applyUtilPayload() clears
+      // the slate. Standalone cards (rollup / all-clear) are unaffected —
+      // they have no expand state.
+      function collapseAllUtilAlertGroups_() {
+        var groups = els.utilAttentionList
+          ? els.utilAttentionList.querySelectorAll('.fos-attention-group')
+          : null;
+        if (!groups || !groups.length) return;
+        var collapsedCount = 0;
+        for (var i = 0; i < groups.length; i++) {
+          var wrapper = groups[i];
+          if (wrapper.classList.contains('is-open')) {
+            wrapper.classList.remove('is-open');
+            collapsedCount++;
+          }
+          var header = wrapper.querySelector('.fos-attention-group-header');
+          if (header) header.setAttribute('aria-expanded', 'false');
+          var kind = wrapper.getAttribute('data-kind');
+          if (kind) utilState.alerts.expanded[kind] = false;
+        }
+        updateCollapseAllButtonVisibility_();
+        logActivity_('util_alert_collapse_all', 'operations',
+          'groups=' + collapsedCount);
       }
       function handleUtilAlertClick_(alert) {
         if (!alert) return;
@@ -4538,22 +4931,46 @@
             row_(row.agreementType || '—', 'Agreement type') +
             row_(row.id || '—', 'Fibery id') +
           '</dl>';
-        // Fibery deep link — composed from the public-id when present, else
-        // suppressed. The host comes from the agreement-dashboard FIBERY_HOST
-        // setting; we don't have it client-side, so the link uses the
-        // standard Fibery URL pattern with `harpinai` (the known workspace).
+        // Fibery deep link — composed server-side as a template, then
+        // filled in here from the row's name + publicId. The anchor is
+        // hidden entirely when:
+        //   1. The signed-in user does NOT have `fibery_access = TRUE` in
+        //      the Users sheet (navState.fiberyAccess === false), OR
+        //   2. The server didn't surface a deep-link config (host missing
+        //      from Script Properties), OR
+        //   3. The row is missing the publicId / name needed to build the URL.
+        // We hide the surrounding `.fos-util-drawer-footer` so the gap
+        // collapses cleanly when access is denied.
         var link = els.utilDrawerFiberyLink;
+        var footer = link ? link.parentNode : null;
+        var url = getFiberyLaborCostUrl_(row);
         if (link) {
-          if (row.publicId) {
-            // Workspace host is hard-coded here (matches FIBERY_HOST). If the
-            // workspace name changes, update both places.
-            link.href = 'https://harpinai.fibery.io/Agreement-Management/Labor-Cost-' + row.publicId;
+          if (url) {
+            link.href = url;
             link.classList.remove('disabled');
+            if (footer && footer.classList) footer.classList.remove('d-none');
           } else {
             link.href = '#';
             link.classList.add('disabled');
+            if (footer && footer.classList) footer.classList.add('d-none');
           }
         }
+      }
+      // Builds the public Fibery URL for a Labor Cost row, or `''` if the
+      // user lacks Fibery access OR the deep-link config / row data is
+      // incomplete. The slug rule (each whitespace → `-`, no collapse)
+      // matches Fibery's public-URL convention; see fiberyDeepLinks.js.
+      function getFiberyLaborCostUrl_(row) {
+        if (!row || !row.publicId || !row.name) return '';
+        if (!navState || navState.fiberyAccess !== true) return '';
+        var cfg = navState.fibery;
+        if (!cfg || !cfg.host || !cfg.laborCostPathTemplate) return '';
+        var slug = String(row.name).trim().replace(/\s/g, '-');
+        var path = cfg.laborCostPathTemplate
+          .split('{slug}').join(slug)
+          .split('{publicId}').join(String(row.publicId));
+        var scheme = cfg.scheme || 'https';
+        return scheme + '://' + cfg.host + path;
       }
       function row_(value, label, numeric) {
         var v = (value == null || value === '') ? '—' : String(value);
@@ -4627,6 +5044,10 @@
 
       function applyUtilPayload(data) {
         utilState.payload = data;
+        // v1.16.0 — fresh payload means fresh person groups in the Alerts
+        // panel. Drop any user-set expand toggles so the smart defaults
+        // (Critical or single-alert groups expanded) apply to the new set.
+        utilState.alerts.expanded = {};
         var dim = data && data.dimensions;
         populateFilterDropdowns(dim);
         // Phase C — heatmap-local Role dropdown (separate from the global
@@ -4825,6 +5246,22 @@
           closeDetailDrawer();
         }
       });
+      // FR-83 — Log a `util_drawer_fibery_click` event whenever the user
+      // opens the Fibery deep-link from the drawer. We do not block the
+      // navigation (target=_blank), just fire-and-forget the log.
+      if (els.utilDrawerFiberyLink) {
+        els.utilDrawerFiberyLink.addEventListener('click', function () {
+          var rowId = utilState && utilState.detailDrawer ? utilState.detailDrawer.rowId : '';
+          logActivity_('util_drawer_fibery_click', 'operations',
+            'rowId=' + (rowId || 'unknown'));
+        });
+      }
+      // v1.17.0 — Collapse all groups in the Utilization Alerts panel.
+      if (els.utilAttentionCollapseAll) {
+        els.utilAttentionCollapseAll.addEventListener('click', function () {
+          collapseAllUtilAlertGroups_();
+        });
+      }
       // Detail Table row click → drawer.
       var detailTbody = document.getElementById('util-detail-tbody');
       if (detailTbody) {

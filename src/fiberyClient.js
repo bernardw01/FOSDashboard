@@ -1,12 +1,12 @@
 /**
- * PRD version 1.14.1 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.17.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Fibery REST API client (Apps Script UrlFetchApp).
  *
  * - Authenticates with a single bearer token stored in Script Property
  *   FIBERY_API_TOKEN (read-only on the server; never returned to the client).
  * - Targets the workspace identified by Script Property FIBERY_HOST
- *   (e.g. "harpinai.fibery.io"; no scheme, no trailing slash).
+ *   (e.g. "harpin-ai.fibery.io"; no scheme, no trailing slash).
  * - Sends one or more {command, args} objects per POST to /api/commands —
  *   Fibery returns a same-length array of results.
  *

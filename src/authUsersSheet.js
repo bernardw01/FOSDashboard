@@ -1,15 +1,21 @@
 /**
- * PRD version 1.14.1 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.17.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Spreadsheet-backed user authorization (Users tab).
  * Script Properties: AUTH_SPREADSHEET_ID (required), AUTH_USERS_SHEET_NAME (default Users),
- * AUTH_COL_EMAIL, AUTH_COL_ROLE, AUTH_COL_TEAM (defaults Email, Role, Team).
+ * AUTH_COL_EMAIL, AUTH_COL_ROLE, AUTH_COL_TEAM (defaults Email, Role, Team),
+ * AUTH_COL_FIBERY_ACCESS (default `fibery_access`).
+ *
+ * The `fibery_access` column is OPTIONAL. When the header is missing the whole
+ * deployment is treated as "no Fibery access for anyone" (deny by default).
+ * Blank / unrecognized cells also resolve to `false`. Recognized truthy values:
+ * `true`, `TRUE`, `yes`, `y`, `1`, and JavaScript / Sheets boolean `true`.
  */
 
 /**
  * Resolves the active user against the configured Users sheet.
  * First matching data row wins (row index ascending).
- * @return {{ ok: true, email: string, role: string, team: string }|{ ok: false, reason: string, email?: string }}
+ * @return {{ ok: true, email: string, role: string, team: string, fiberyAccess: boolean }|{ ok: false, reason: string, email?: string }}
  */
 function getAuthorizationForActiveUser_() {
   var emailRaw = Session.getActiveUser().getEmail();
@@ -28,6 +34,7 @@ function getAuthorizationForActiveUser_() {
   var colEmail = (props.getProperty('AUTH_COL_EMAIL') || 'Email').trim() || 'Email';
   var colRole = (props.getProperty('AUTH_COL_ROLE') || 'Role').trim() || 'Role';
   var colTeam = (props.getProperty('AUTH_COL_TEAM') || 'Team').trim() || 'Team';
+  var colFiberyAccess = (props.getProperty('AUTH_COL_FIBERY_ACCESS') || 'fibery_access').trim() || 'fibery_access';
 
   try {
     var ss = SpreadsheetApp.openById(spreadsheetId);
@@ -48,6 +55,18 @@ function getAuthorizationForActiveUser_() {
     if (idxEmail < 0 || idxRole < 0 || idxTeam < 0) {
       return { ok: false, reason: 'SHEET_ERROR', email: email };
     }
+    var idxFiberyAccess = findHeaderIndex_(headers, colFiberyAccess);
+    if (idxFiberyAccess < 0) {
+      // Deny by default when the column is absent. Log so operators see why
+      // every user is gated.
+      try {
+        console.warn(
+          'authUsersSheet: optional column "' + colFiberyAccess +
+          '" not found in headers — Fibery access defaults to FALSE for all users.');
+      } catch (_) {
+        /* ignore */
+      }
+    }
 
     var needle = normalizeEmail_(email);
     for (var r = 1; r < values.length; r++) {
@@ -56,13 +75,34 @@ function getAuthorizationForActiveUser_() {
       if (normalizeEmail_(cell === null || cell === undefined ? '' : String(cell)) === needle) {
         var role = row[idxRole] === null || row[idxRole] === undefined ? '' : String(row[idxRole]).trim();
         var team = row[idxTeam] === null || row[idxTeam] === undefined ? '' : String(row[idxTeam]).trim();
-        return { ok: true, email: email, role: role, team: team };
+        var fiberyAccess = idxFiberyAccess < 0 ? false : parseFiberyAccessCell_(row[idxFiberyAccess]);
+        return { ok: true, email: email, role: role, team: team, fiberyAccess: fiberyAccess };
       }
     }
     return { ok: false, reason: 'NOT_LISTED', email: email };
   } catch (e) {
     return { ok: false, reason: 'SHEET_ERROR', email: email };
   }
+}
+
+/**
+ * Parses a `fibery_access` sheet cell into a strict boolean. Truthy values:
+ * JS / Sheets `true`, or string in {true, yes, y, 1} (case-insensitive after
+ * trim). Everything else (blank, `false`, `0`, `no`, garbage) resolves to
+ * `false` so a missing or accidentally-empty cell never grants access.
+ *
+ * @param {*} cell Raw cell value from `Range.getValues()`.
+ * @return {boolean}
+ * @private
+ */
+function parseFiberyAccessCell_(cell) {
+  if (cell === true) return true;
+  if (cell === false || cell === null || cell === undefined) return false;
+  var s = String(cell).trim().toLowerCase();
+  if (s === 'true' || s === 'yes' || s === 'y' || s === '1') {
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -95,7 +135,7 @@ function findHeaderIndex_(headers, name) {
 }
 
 /**
- * @return {{ ok: true, email: string, role: string, team: string }}
+ * @return {{ ok: true, email: string, role: string, team: string, fiberyAccess: boolean }}
  */
 function requireAuthForApi_() {
   var auth = getAuthorizationForActiveUser_();

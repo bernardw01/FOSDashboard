@@ -1,6 +1,6 @@
 # Feature: Spreadsheet user authorization (users tab)
 
-> **PRD version 1.14.1** — keep in sync with `docs/FOS-Dashboard-PRD.md`.
+> **PRD version 1.17.0** — keep in sync with `docs/FOS-Dashboard-PRD.md`.
 
 ## Goal
 
@@ -35,6 +35,7 @@ Authorize FOS Dashboard users by **looking up their Google account email** in a 
 | **Email** | Yes | Google account email; string; match is **trim + case-insensitive**. |
 | **Role** | Yes | Free text or controlled vocabulary (documented by ops); drives future RBAC. |
 | **Team** | Yes | Free text or controlled vocabulary. |
+| **fibery_access** *(v1.15.0)* | Optional | Per-user gate for the Operations row-detail drawer **Open in Fibery →** anchor. Truthy values: `TRUE` / `True` / `true`, `yes` / `y`, `1`, or the Sheets / JS boolean `true`. Blank, `FALSE`, `0`, `no`, garbage, or a **missing column** all resolve to **`false`** — deny by default. Header name is overridable via Script Property `AUTH_COL_FIBERY_ACCESS`. Gated `false` users never receive the Fibery host or URL template in any server response. |
 
 - **Optional later**: `Active` (Y/N), `StartDate`, `EndDate` — out of scope for v1 unless added in same feature.
 - **Header row**: row 1; data from row 2 downward.
@@ -49,6 +50,7 @@ Authorize FOS Dashboard users by **looking up their Google account email** in a 
 | `AUTH_COL_EMAIL` | Optional; default `Email`. |
 | `AUTH_COL_ROLE` | Optional; default `Role`. |
 | `AUTH_COL_TEAM` | Optional; default `Team`. |
+| `AUTH_COL_FIBERY_ACCESS` *(v1.15.0)* | Optional; default `fibery_access`. Header lookup for the per-user Fibery-access gate. When the header is absent, `getAuthorizationForActiveUser_()` MUST emit a one-time `console.warn` and treat every user as `fiberyAccess = false`. |
 
 ## Operations
 

@@ -1,6 +1,6 @@
 # Feature: Utilization Management Dashboard (Fibery Labor Costs)
 
-> **PRD version 1.14.1** — see `docs/FOS-Dashboard-PRD.md`. Phase A was delivered in v1.12.0 (new FRs FR-70–FR-76 + AC-22 / AC-23 + new **§8 Utilization Management Dashboard** added to the main PRD). Phase B was delivered in v1.13.0 (FR-77–FR-79 + AC-24 / AC-25 + AC-26). v1.13.1 is a UX-polish patch shared with the Agreement Dashboard (loading overlay + sticky panel render — see AC-27 in the main PRD). **Phase C was delivered in v1.14.0** (FR-80 / FR-81 / FR-82 + AC-28 / AC-29 / AC-30 / AC-31 / AC-32 / AC-33 / AC-34 / AC-35 in the main PRD — adds the Utilization Alerts panel, Person × Week heatmap with a heatmap-local Role filter (top 30 contributors), Pending Approvals widget, and row-detail drawer; bumps the client cache schema 1 → 2 to carry `aggregates.byPersonWeek` + `alerts[]`).
+> **PRD version 1.17.0** — see `docs/FOS-Dashboard-PRD.md`. Phase A was delivered in v1.12.0 (new FRs FR-70–FR-76 + AC-22 / AC-23 + new **§8 Utilization Management Dashboard** added to the main PRD). Phase B was delivered in v1.13.0 (FR-77–FR-79 + AC-24 / AC-25 + AC-26). v1.13.1 is a UX-polish patch shared with the Agreement Dashboard (loading overlay + sticky panel render — see AC-27 in the main PRD). **Phase C was delivered in v1.14.0** (FR-80 / FR-81 / FR-82 + AC-28 / AC-29 / AC-30 / AC-31 / AC-32 / AC-33 / AC-34 / AC-35 in the main PRD — adds the Utilization Alerts panel, Person × Week heatmap with a heatmap-local Role filter (top 30 contributors), Pending Approvals widget, and row-detail drawer; bumps the client cache schema 1 → 2 to carry `aggregates.byPersonWeek` + `alerts[]`). **v1.15.0** rebuilds the row-detail drawer's **Open in Fibery →** anchor: the old hard-coded URL (wrong host, wrong path, wrong slug) is replaced by a server-supplied deep-link template, and the anchor is gated by a new **`fibery_access`** column on the Users sheet (FR-83 / FR-84 + AC-36 / AC-37). **v1.16.0** reorganizes the Utilization Alerts panel from a flat list to **per-person collapsible groups** (server payload unchanged; presentation transform only — see FR-80 v1.16.0 clause + AC-38). **v1.17.0** revises the grouping axis from `target.person` to alert **`kind`** (Under-utilized / Over-allocated / Stale approvals) per operator feedback that managers triage one class of issue at a time, and adds a **Collapse all** button in the panel header that closes every group in one click (FR-80 v1.17.0 clause + AC-38 revision + new AC-39).
 
 ## Status
 
@@ -87,8 +87,12 @@ Fields read (paths verified via Fibery `describe_database` + a sample query on `
 
 | Key | Purpose | Default |
 | --- | --- | --- |
-| `FIBERY_HOST` | Existing — Fibery workspace host. | — (required) |
+| `FIBERY_HOST` | Existing — Fibery workspace host **and** default deep-link host (e.g. `harpin-ai.fibery.io`). | — (required) |
 | `FIBERY_API_TOKEN` | Existing — Fibery API token. | — (required) |
+| `FIBERY_PUBLIC_SCHEME` *(v1.15.0)* | URL scheme used when composing public deep links for the row-detail drawer's **Open in Fibery →** anchor. | `https` |
+| `FIBERY_DEEP_LINK_HOST` *(v1.15.0)* | Optional override for the **deep-link host only** (`FIBERY_HOST` continues to be the API host). Set this when the API host differs from the public web host. | falls back to `FIBERY_HOST` |
+| `FIBERY_LABOR_COST_PATH_TEMPLATE` *(v1.15.0)* | URL-path template with two placeholders — `{slug}` is `row.name.trim().replace(/\s/g, '-')` and `{publicId}` is the entity's `fibery/public-id`. | `/Agreement_Management/Labor_Costs/{slug}-{publicId}` |
+| `AUTH_COL_FIBERY_ACCESS` *(v1.15.0)* | Header name on the Users sheet for the per-user Fibery-access gate. When absent, server denies by default and emits a one-time `console.warn`. | `fibery_access` |
 | `UTILIZATION_CACHE_TTL_MINUTES` | Default seed TTL for the client selector. | `10` |
 | `UTILIZATION_DEFAULT_RANGE_DAYS` | Default lookback window when no explicit range chosen. | `90` |
 | `UTILIZATION_MAX_RANGE_DAYS` | Hard cap on the date-range fetch to keep payloads bounded. | `365` |
