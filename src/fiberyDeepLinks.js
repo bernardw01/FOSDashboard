@@ -13,6 +13,8 @@
  *                                    the workspace's public web host)
  *   FIBERY_LABOR_COST_PATH_TEMPLATE — defaults to
  *     `/Agreement_Management/Labor_Costs/{slug}-{publicId}`
+ *   FIBERY_AGREEMENT_PATH_TEMPLATE — defaults to
+ *     `/Agreement_Management/Agreements/{slug}-{publicId}`
  *
  * The path template supports two placeholders:
  *   {slug}     — entity name with whitespace replaced by `-` (per Fibery's
@@ -24,6 +26,8 @@
 var FIBERY_DEEP_LINK_DEFAULT_SCHEME_ = 'https';
 /** @private */
 var FIBERY_LABOR_COST_DEFAULT_PATH_TEMPLATE_ = '/Agreement_Management/Labor_Costs/{slug}-{publicId}';
+/** @private */
+var FIBERY_AGREEMENT_DEFAULT_PATH_TEMPLATE_ = '/Agreement_Management/Agreements/{slug}-{publicId}';
 
 /**
  * Returns the deep-link config the client needs to compose row URLs, or
@@ -35,7 +39,12 @@ var FIBERY_LABOR_COST_DEFAULT_PATH_TEMPLATE_ = '/Agreement_Management/Labor_Cost
  * malicious page scraped them they couldn't read Fibery without an
  * authenticated user session.
  *
- * @return {{ scheme: string, host: string, laborCostPathTemplate: string }|null}
+ * @return {{
+ *   scheme: string,
+ *   host: string,
+ *   laborCostPathTemplate: string,
+ *   agreementPathTemplate: string
+ * }|null}
  */
 function getFiberyDeepLinkConfig_() {
   var props = PropertiesService.getScriptProperties();
@@ -65,10 +74,14 @@ function getFiberyDeepLinkConfig_() {
   var template = (props.getProperty('FIBERY_LABOR_COST_PATH_TEMPLATE') || '').trim()
     || FIBERY_LABOR_COST_DEFAULT_PATH_TEMPLATE_;
 
+  var agreementTemplate = (props.getProperty('FIBERY_AGREEMENT_PATH_TEMPLATE') || '').trim()
+    || FIBERY_AGREEMENT_DEFAULT_PATH_TEMPLATE_;
+
   return {
     scheme: scheme,
     host: host,
     laborCostPathTemplate: template,
+    agreementPathTemplate: agreementTemplate,
   };
 }
 
@@ -87,6 +100,22 @@ function buildLaborCostDeepLinkUrl_(name, publicId) {
   if (!cfg) return '';
   var slug = fiberySlugify_(name);
   var path = cfg.laborCostPathTemplate
+    .split('{slug}').join(slug)
+    .split('{publicId}').join(String(publicId));
+  return cfg.scheme + '://' + cfg.host + path;
+}
+
+/**
+ * @param {string} name Agreement name.
+ * @param {string|number} publicId Fibery public id.
+ * @return {string}
+ */
+function buildAgreementDeepLinkUrl_(name, publicId) {
+  if (!name || publicId == null || publicId === '') return '';
+  var cfg = getFiberyDeepLinkConfig_();
+  if (!cfg) return '';
+  var slug = fiberySlugify_(name);
+  var path = (cfg.agreementPathTemplate || FIBERY_AGREEMENT_DEFAULT_PATH_TEMPLATE_)
     .split('{slug}').join(slug)
     .split('{publicId}').join(String(publicId));
   return cfg.scheme + '://' + cfg.host + path;
@@ -116,8 +145,10 @@ function _diag_fiberyDeepLinkSample() {
   var cfg = getFiberyDeepLinkConfig_();
   console.log('config: ' + JSON.stringify(cfg));
   var url = buildLaborCostDeepLinkUrl_('2026-03-20 - Alex Anakin - 0.5 hrs', '167141');
-  console.log('sample url: ' + url);
-  return { config: cfg, sample: url };
+  console.log('sample labor url: ' + url);
+  var agreeUrl = buildAgreementDeepLinkUrl_('Acme Corp — SOW 2025', '12345');
+  console.log('sample agreement url: ' + agreeUrl);
+  return { config: cfg, sampleLabor: url, sampleAgreement: agreeUrl };
 }
 
 /**
@@ -130,7 +161,12 @@ function _diag_fiberyDeepLinkSample() {
  *   email: string,
  *   authOk: boolean,
  *   fiberyAccess: boolean,
- *   deepLinkConfig: ?{scheme: string, host: string, laborCostPathTemplate: string},
+ *   deepLinkConfig: ?{
+ *     scheme: string,
+ *     host: string,
+ *     laborCostPathTemplate: string,
+ *     agreementPathTemplate: string
+ *   },
  *   sampleUrl: string,
  *   notes: !Array<string>
  * }}

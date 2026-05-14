@@ -60,7 +60,12 @@ function doGet() {
  *   role: string,
  *   team: string,
  *   fiberyAccess: boolean,
- *   fibery?: { scheme: string, host: string, laborCostPathTemplate: string },
+ *   fibery?: {
+ *     scheme: string,
+ *     host: string,
+ *     laborCostPathTemplate: string,
+ *     agreementPathTemplate: string
+ *   },
  *   items: Array<{ id: string, label: string, active: boolean }>
  * }}
  */
@@ -77,7 +82,12 @@ function getDashboardNavigation() {
  *   role: string,
  *   team: string,
  *   fiberyAccess: boolean,
- *   fibery?: { scheme: string, host: string, laborCostPathTemplate: string },
+ *   fibery?: {
+ *     scheme: string,
+ *     host: string,
+ *     laborCostPathTemplate: string,
+ *     agreementPathTemplate: string
+ *   },
  *   items: Array<{ id: string, label: string, active: boolean }>
  * }}
  * @private

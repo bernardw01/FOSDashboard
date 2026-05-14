@@ -18,7 +18,7 @@
  */
 
 /** @const {number} Bumped when the client cache shape changes. */
-var AGREEMENT_DASHBOARD_CACHE_SCHEMA_VERSION_ = 2;
+var AGREEMENT_DASHBOARD_CACHE_SCHEMA_VERSION_ = 3;
 
 /** @const {number} Default TTL (minutes) for the client-side cache. */
 var AGREEMENT_DEFAULT_CACHE_TTL_MIN_ = 10;
@@ -216,6 +216,7 @@ function buildAgreementsQuery_() {
       'q/from': 'Agreement Management/Agreements',
       'q/select': {
         id: 'fibery/id',
+        publicId: 'fibery/public-id',
         name: 'Agreement Management/Name',
         state: ['workflow/state', 'enum/name'],
         type: ['Agreement Management/Agreement Type', 'enum/name'],
@@ -348,6 +349,7 @@ function normalizeAgreements_(rows) {
     var dur = r.duration && typeof r.duration === 'object' ? r.duration : null;
     out.push({
       id: stringOr_(r.id, ''),
+      publicId: stringOr_(r.publicId, ''),
       name: stringOr_(r.name, '(Unnamed agreement)'),
       state: stringOrNull_(r.state),
       type: stringOrNull_(r.type),
@@ -833,6 +835,7 @@ function buildFinancialTable_(agreements, topCustomerName, thresholds) {
 function buildFinancialRow_(a, thresholds) {
   return {
     id: a.id,
+    publicId: a.publicId || '',
     name: a.name,
     customer: a.customer || '—',
     type: a.type || '—',

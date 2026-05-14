@@ -1016,6 +1016,7 @@
       display: block;
       width: 100%;
       height: 100%;
+      overflow: visible;
     }
     .fos-sankey-wrap .sankey-label {
       font-family: 'Inter', system-ui, sans-serif;
@@ -1957,7 +1958,14 @@
             <div class="row g-3 mt-1">
               <div class="col-12 col-xl-7">
                 <section class="fos-section-card h-100" aria-labelledby="attention-heading">
-                  <h2 id="attention-heading">Attention items</h2>
+                  <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <h2 id="attention-heading" class="mb-0">Attention items</h2>
+                    <span class="small" style="color: var(--ag-text-muted)" id="attention-count">0 items</span>
+                    <button type="button"
+                            class="fos-util-clear-btn ms-auto"
+                            id="attention-collapse-all"
+                            hidden>Collapse all</button>
+                  </div>
                   <div id="attention-list" aria-live="polite"></div>
                 </section>
               </div>
@@ -2646,8 +2654,17 @@
             No milestones found for this agreement.
           </p>
         </div>
-        <div class="modal-footer border-0 pt-0 d-flex justify-content-between">
-          <span class="small text-secondary" id="finAgreementModalTotals">—</span>
+        <div class="modal-footer border-0 pt-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div class="d-flex flex-column align-items-start gap-1">
+            <span class="small text-secondary" id="finAgreementModalTotals">—</span>
+            <a
+              id="fin-agreement-fibery-link"
+              class="fos-util-drawer-link small d-none"
+              target="_blank"
+              rel="noopener"
+              href="#"
+              >Open Agreement in Fibery →</a>
+          </div>
           <button type="button" class="btn btn-fos-primary px-4" data-bs-dismiss="modal">Close</button>
         </div>
       </div>
@@ -2710,7 +2727,7 @@
     (function () {
       var navState = { items: [], userLabel: '' };
       var AGREEMENT_CACHE_KEY = 'fos_agreement_dashboard_v2';
-      var AGREEMENT_CACHE_SCHEMA_VERSION = 2;
+      var AGREEMENT_CACHE_SCHEMA_VERSION = 3;
       var AGREEMENT_TTL_PREF_KEY = 'fos_agreement_dashboard_ttl_minutes_v1';
       var UTIL_CACHE_KEY = 'fos_utilization_dashboard_v1';
       // v2 (PRD 1.14.0) adds aggregates.byPersonWeek + alerts[]. Clients
@@ -2757,6 +2774,8 @@
       // FR-86, v1.18.0 — map of agreementId → revenue items, used by the
       // milestones modal. Populated from data.revenueItemsByAgreement.
       var revenueItemsByAgreement = {};
+      /** Agreement Attention — `expanded[kind] === true` means group is open. Cleared in `applyAgreementPayload()`. */
+      var agreementAttentionState = { expanded: {} };
 
       // Utilization dashboard client state (Phase A + Phase B).
       var utilState = {
@@ -2916,6 +2935,9 @@
         kpiMarginCard: document.getElementById('kpi-margin-card'),
         ttlSelect: document.getElementById('agreement-ttl-select'),
         staleBadge: document.getElementById('agreement-stale-badge'),
+        attentionList: document.getElementById('attention-list'),
+        attentionCount: document.getElementById('attention-count'),
+        attentionCollapseAll: document.getElementById('attention-collapse-all'),
         panelOperations: document.getElementById('panel-operations'),
         utilRefreshBtn: document.getElementById('util-refresh-btn'),
         utilLastRefresh: document.getElementById('util-last-refresh'),
@@ -3572,6 +3594,15 @@
         var height = Math.max(400, Math.min(900, nodeCount * 28));
         wrap.style.height = height + 'px';
 
+        // Reserve horizontal space so right-column labels are not clipped. When
+        // `layer` is missing post-layout, we still detect the last column via
+        // `depth` (see label positioning below).
+        var marginL = 12;
+        var marginR = 160;
+        var marginT = 12;
+        var marginB = 12;
+        var innerW = Math.max(200, width - marginL - marginR);
+
         // d3-sankey mutates the nodes/links arrays in place. Pass shallow
         // copies so a re-render against the same payload still works.
         var nodes = model.nodes.map(function (n) { return Object.assign({}, n); });
@@ -3581,9 +3612,28 @@
           .nodeWidth(20)
           .nodePadding(12)
           .nodeId(function (d, i) { return i; })
-          .extent([[12, 12], [width - 12, height - 12]]);
+          .extent([[marginL, marginT], [marginL + innerW, height - marginB]]);
 
         var graph = sankey({ nodes: nodes, links: links });
+
+        var maxDepth = 0;
+        for (var di = 0; di < graph.nodes.length; di++) {
+          var dpt = graph.nodes[di].depth;
+          if (dpt != null && dpt > maxDepth) maxDepth = dpt;
+        }
+        var maxX0 = 0;
+        for (var xi = 0; xi < graph.nodes.length; xi++) {
+          var x0n = graph.nodes[xi].x0;
+          if (x0n != null && x0n > maxX0) maxX0 = x0n;
+        }
+
+        function isLastSankeyColumn_(d) {
+          return (
+            d.layer === 'type' ||
+            (d.depth != null && d.depth === maxDepth && maxDepth > 0) ||
+            (d.x0 != null && maxX0 > 0 && d.x0 >= maxX0 - 0.5)
+          );
+        }
 
         var svg = d3.select(wrap).append('svg')
           .attr('viewBox', '0 0 ' + width + ' ' + height)
@@ -3641,11 +3691,13 @@
         nodeGroup.append('text')
           .attr('class', 'sankey-label')
           .attr('x', function (d) {
-            return d.layer === 'type' ? d.x0 - 8 : d.x1 + 8;
+            return isLastSankeyColumn_(d) ? d.x0 - 10 : d.x1 + 8;
           })
           .attr('y', function (d) { return (d.y0 + d.y1) / 2; })
           .attr('dy', '0.35em')
-          .attr('text-anchor', function (d) { return d.layer === 'type' ? 'end' : 'start'; })
+          .attr('text-anchor', function (d) {
+            return isLastSankeyColumn_(d) ? 'end' : 'start';
+          })
           .text(function (d) { return d.name + ' · ' + formatMoneyCompact(d.value); });
       }
 
@@ -3750,25 +3802,208 @@
       }
 
       function renderAttention(alerts) {
-        var list = document.getElementById('attention-list');
+        var list = els.attentionList || document.getElementById('attention-list');
         if (!list) {
           return;
         }
         list.innerHTML = '';
         alerts = alerts || [];
+        if (els.attentionCount) {
+          els.attentionCount.textContent =
+            alerts.length + (alerts.length === 1 ? ' item' : ' items');
+        }
+
+        var standalone = [];
+        var groupsByKey = {};
+        var groupOrder = [];
         for (var i = 0; i < alerts.length; i++) {
           var a = alerts[i];
-          var item = document.createElement('div');
-          item.className = 'fos-attention-item sev-' + (a.severity || 'info');
-          var icon = a.severity === 'critical' ? '🔴' : a.severity === 'warning' ? '🟡' : '🟢';
-          item.innerHTML =
-            '<span class="sev-icon" aria-hidden="true">' + icon + '</span>' +
-            '<div class="flex-grow-1 min-w-0">' +
-              '<div class="title">' + escapeHtml(a.title || '') + '</div>' +
-              '<div class="body">' + escapeHtml(a.body || '') + '</div>' +
-            '</div>';
-          list.appendChild(item);
+          var k = a && a.kind ? String(a.kind) : '';
+          if (k === 'all_clear') {
+            standalone.push(a);
+            continue;
+          }
+          var groupKey = k || 'other';
+          if (!groupsByKey[groupKey]) {
+            groupsByKey[groupKey] = {
+              kind: groupKey,
+              label: agreementAttentionKindLabel_(groupKey),
+              items: [],
+              worstSeverity: 'info',
+            };
+            groupOrder.push(groupKey);
+          }
+          var g = groupsByKey[groupKey];
+          g.items.push(a);
+          if (severityRank_(a.severity) < severityRank_(g.worstSeverity)) {
+            g.worstSeverity = a.severity || 'info';
+          }
         }
+
+        groupOrder.sort(function (ka, kb) {
+          var ga = groupsByKey[ka];
+          var gb = groupsByKey[kb];
+          var sevDiff = severityRank_(ga.worstSeverity) - severityRank_(gb.worstSeverity);
+          if (sevDiff !== 0) return sevDiff;
+          var countDiff = gb.items.length - ga.items.length;
+          if (countDiff !== 0) return countDiff;
+          return String(ga.label).localeCompare(String(gb.label));
+        });
+
+        for (var si = 0; si < standalone.length; si++) {
+          list.appendChild(buildAgreementAttentionStandalone_(standalone[si]));
+        }
+        for (var gi = 0; gi < groupOrder.length; gi++) {
+          list.appendChild(buildAgreementAttentionGroup_(groupsByKey[groupOrder[gi]]));
+        }
+        updateAgreementAttentionCollapseAll_();
+      }
+
+      function agreementAttentionKindLabel_(kind) {
+        switch (String(kind || '')) {
+          case 'margin':
+            return 'Margin & costs';
+          case 'revenue':
+            return 'Revenue & delivery';
+          case 'internal':
+            return 'Internal labor';
+          case 'renewal':
+            return 'Renewals & timeline';
+          default:
+            return kindLabel_(kind);
+        }
+      }
+
+      function buildAgreementAttentionStandalone_(a) {
+        var item = document.createElement('div');
+        item.className = 'fos-attention-item sev-' + (a.severity || 'info');
+        var icon = severityIcon_(a.severity);
+        item.innerHTML =
+          '<span class="sev-icon" aria-hidden="true">' + icon + '</span>' +
+          '<div class="flex-grow-1 min-w-0">' +
+            '<div class="title">' + escapeHtml(a.title || '') + '</div>' +
+            '<div class="body">' + escapeHtml(a.body || '') + '</div>' +
+          '</div>';
+        return item;
+      }
+
+      function buildAgreementAttentionChild_(a) {
+        var item = document.createElement('div');
+        item.className = 'fos-attention-item sev-' + (a.severity || 'info');
+        var icon = severityIcon_(a.severity);
+        item.innerHTML =
+          '<span class="sev-icon" aria-hidden="true">' + icon + '</span>' +
+          '<div class="flex-grow-1 min-w-0">' +
+            '<div class="title">' + escapeHtml(a.title || '') + '</div>' +
+            '<div class="body">' + escapeHtml(a.body || '') + '</div>' +
+          '</div>';
+        return item;
+      }
+
+      function buildAgreementAttentionGroup_(group) {
+        var key = group.kind;
+        var stored = agreementAttentionState.expanded[key];
+        var isOpen = stored === true;
+
+        var wrapper = document.createElement('div');
+        wrapper.className = 'fos-attention-group sev-' + (group.worstSeverity || 'info') +
+          (isOpen ? ' is-open' : '');
+        wrapper.setAttribute('data-kind', key);
+
+        var header = document.createElement('div');
+        header.className = 'fos-attention-group-header';
+        header.setAttribute('role', 'button');
+        header.setAttribute('tabindex', '0');
+        header.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        var childrenId = 'fos-agree-attn-grp-' + slugForDomId_(key);
+        header.setAttribute('aria-controls', childrenId);
+        var icon = severityIcon_(group.worstSeverity);
+        var countLabel = group.items.length +
+          (group.items.length === 1 ? ' item' : ' items');
+        header.innerHTML =
+          '<span class="fos-attention-group-chevron" aria-hidden="true">▸</span>' +
+          '<span class="fos-attention-group-sev-icon" aria-hidden="true">' + icon + '</span>' +
+          '<span class="fos-attention-group-name">' + escapeHtml(group.label) + '</span>' +
+          '<span class="fos-attention-group-count">' + escapeHtml(countLabel) + '</span>';
+
+        var items = group.items.slice().sort(function (a, b) {
+          var d = severityRank_(a.severity) - severityRank_(b.severity);
+          if (d !== 0) return d;
+          return String(a.title || '').localeCompare(String(b.title || ''));
+        });
+
+        var children = document.createElement('div');
+        children.className = 'fos-attention-group-children';
+        children.id = childrenId;
+        for (var i = 0; i < items.length; i++) {
+          children.appendChild(buildAgreementAttentionChild_(items[i]));
+        }
+
+        function toggle() {
+          var nextOpen = !wrapper.classList.contains('is-open');
+          wrapper.classList.toggle('is-open', nextOpen);
+          header.setAttribute('aria-expanded', nextOpen ? 'true' : 'false');
+          agreementAttentionState.expanded[key] = nextOpen;
+          logActivity_(
+            'agreement_alert_group_toggle',
+            'agreement-dashboard',
+            'kind=' + String(key).slice(0, 80) +
+              ' · ' + (nextOpen ? 'expand' : 'collapse')
+          );
+          updateAgreementAttentionCollapseAll_();
+        }
+        header.addEventListener('click', toggle);
+        header.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') {
+            ev.preventDefault();
+            toggle();
+          }
+        });
+
+        wrapper.appendChild(header);
+        wrapper.appendChild(children);
+        return wrapper;
+      }
+
+      function updateAgreementAttentionCollapseAll_() {
+        var btn = els.attentionCollapseAll;
+        var list = els.attentionList;
+        if (!btn || !list) return;
+        var groups = list.querySelectorAll('.fos-attention-group');
+        if (!groups || !groups.length) {
+          btn.hidden = true;
+          return;
+        }
+        var anyOpen = false;
+        for (var i = 0; i < groups.length; i++) {
+          if (groups[i].classList.contains('is-open')) {
+            anyOpen = true;
+            break;
+          }
+        }
+        btn.hidden = !anyOpen;
+      }
+
+      function collapseAllAgreementAttentionGroups_() {
+        var list = els.attentionList;
+        if (!list) return;
+        var groups = list.querySelectorAll('.fos-attention-group');
+        if (!groups || !groups.length) return;
+        var collapsedCount = 0;
+        for (var i = 0; i < groups.length; i++) {
+          var wrapper = groups[i];
+          if (wrapper.classList.contains('is-open')) {
+            wrapper.classList.remove('is-open');
+            collapsedCount++;
+          }
+          var header = wrapper.querySelector('.fos-attention-group-header');
+          if (header) header.setAttribute('aria-expanded', 'false');
+          var kind = wrapper.getAttribute('data-kind');
+          if (kind) agreementAttentionState.expanded[kind] = false;
+        }
+        updateAgreementAttentionCollapseAll_();
+        logActivity_('agreement_alert_collapse_all', 'agreement-dashboard',
+          'groups=' + collapsedCount);
       }
 
       function formatMarginPct(n) {
@@ -3811,6 +4046,7 @@
           tr.setAttribute('role', 'button');
           tr.setAttribute('tabindex', '0');
           tr.setAttribute('data-agreement-id', r.id || '');
+          tr.setAttribute('data-agreement-public-id', r.publicId != null ? String(r.publicId) : '');
           tr.setAttribute('data-agreement-name', r.name || '');
           tr.setAttribute('aria-label', 'View milestones for ' + (r.name || 'agreement'));
           var customerCell = hideCustomer ? '' :
@@ -3843,10 +4079,11 @@
         }
         if (!tr || !tr.classList || !tr.classList.contains('fos-clickable')) return;
         var agreementId = tr.getAttribute('data-agreement-id') || '';
+        var agreementPublicId = tr.getAttribute('data-agreement-public-id') || '';
         var agreementName = tr.getAttribute('data-agreement-name') || 'Agreement';
-        openAgreementMilestonesModal_(agreementId, agreementName);
+        openAgreementMilestonesModal_(agreementId, agreementName, agreementPublicId);
       }
-      function openAgreementMilestonesModal_(agreementId, agreementName) {
+      function openAgreementMilestonesModal_(agreementId, agreementName, agreementPublicId) {
         var items = (agreementId && revenueItemsByAgreement[agreementId]) || [];
         logActivity_('agreement_milestones_open', 'agreement-dashboard',
           'agreementId=' + agreementId + ' · items=' + items.length);
@@ -3858,6 +4095,7 @@
         var body = document.getElementById('finAgreementModalBody');
         var emptyEl = document.getElementById('finAgreementModalEmpty');
         var totalsEl = document.getElementById('finAgreementModalTotals');
+        var fiberyLink = document.getElementById('fin-agreement-fibery-link');
 
         if (titleEl) titleEl.textContent = agreementName;
         if (subtitleEl) {
@@ -3898,6 +4136,18 @@
           totalsEl.textContent = items.length
             ? 'Total target value: ' + formatMoneyCompact(totalAmt)
             : '—';
+        }
+
+        if (fiberyLink) {
+          var fibUrl = getFiberyAgreementUrl_(agreementName, agreementPublicId);
+          if (fibUrl) {
+            fiberyLink.href = fibUrl;
+            fiberyLink.setAttribute('data-log-agreement-id', agreementId || '');
+            fiberyLink.classList.remove('d-none');
+          } else {
+            fiberyLink.href = '#';
+            fiberyLink.classList.add('d-none');
+          }
         }
 
         try {
@@ -3942,6 +4192,7 @@
       }
 
       function applyAgreementPayload(data) {
+        agreementAttentionState.expanded = {};
         var agreements = data.agreements || [];
         var companies = data.companies || [];
         var kpis = data.kpis || {};
@@ -4065,6 +4316,12 @@
         });
       }
 
+      if (els.attentionCollapseAll) {
+        els.attentionCollapseAll.addEventListener('click', function () {
+          collapseAllAgreementAttentionGroups_();
+        });
+      }
+
       if (els.ttlSelect) {
         var initialTtl = readTtlMinutes();
         els.ttlSelect.value = String(initialTtl);
@@ -4122,6 +4379,15 @@
               handleFinTableRowActivate_(t);
             }
           }
+        });
+      }
+
+      var finAgreementFiberyLink = document.getElementById('fin-agreement-fibery-link');
+      if (finAgreementFiberyLink) {
+        finAgreementFiberyLink.addEventListener('click', function () {
+          var aid = finAgreementFiberyLink.getAttribute('data-log-agreement-id') || '';
+          logActivity_('agreement_milestones_fibery_click', 'agreement-dashboard',
+            'agreementId=' + aid);
         });
       }
 
@@ -6064,6 +6330,41 @@
         var path = cfg.laborCostPathTemplate
           .split('{slug}').join(slug)
           .split('{publicId}').join(String(row.publicId));
+        var scheme = cfg.scheme || 'https';
+        return scheme + '://' + cfg.host + path;
+      }
+      /**
+       * Public Fibery URL for an Agreement entity (milestones modal), or `''`.
+       * Gated by `navState.fiberyAccess` like `getFiberyLaborCostUrl_`; does not
+       * log when access is denied (expected for users without `fibery_access`).
+       */
+      function getFiberyAgreementUrl_(agreementName, publicId) {
+        if (!navState || navState.fiberyAccess !== true) {
+          return '';
+        }
+        var why = '';
+        if (!agreementName || !String(agreementName).trim()) {
+          why = 'agreement name missing';
+        } else if (!publicId) {
+          why = 'agreement publicId missing — Fibery `fibery/public-id` not on payload';
+        } else if (!navState.fibery) {
+          why = 'navState.fibery missing — FIBERY_HOST is not configured server-side';
+        } else if (!navState.fibery.host) {
+          why = 'navState.fibery.host missing';
+        }
+        if (why) {
+          try {
+            console.warn('[FOS] Agreement Open-in-Fibery hidden: ' + why);
+          } catch (_) { /* ignore */ }
+          return '';
+        }
+        var cfg = navState.fibery;
+        var tmpl = cfg.agreementPathTemplate ||
+          '/Agreement_Management/Agreements/{slug}-{publicId}';
+        var slug = String(agreementName).trim().replace(/\s/g, '-');
+        var path = String(tmpl)
+          .split('{slug}').join(slug)
+          .split('{publicId}').join(String(publicId));
         var scheme = cfg.scheme || 'https';
         return scheme + '://' + cfg.host + path;
       }

@@ -5,8 +5,10 @@
  * directly to agreement-dashboard-prd-v2.md §6.1–§6.7, plus v1.21.0
  * delivery-risk heuristics (pacing, cost vs recognition, low recognition near
  * duration end). Output is a list of
- * {severity, id, title, body} cards sorted Critical → Warning → Informational,
- * ready for the client to render in the Attention Items panel (§7.7).
+ * { kind, severity, id, title, body, agreementId } cards sorted Critical →
+ * Warning → Informational, ready for the client to render in the Attention
+ * Items panel (§7.7). Field `kind` groups cards in the UI: `margin`, `revenue`,
+ * `internal`, `renewal`, and `all_clear` (standalone, not grouped).
  */
 
 /** @const {string} */
@@ -37,6 +39,7 @@ var ALERT_SEV_RANK_ = { critical: 0, warning: 1, info: 2 };
  * }} thresholds
  * @return {!Array<!{
  *   id: string,
+ *   kind: string,
  *   severity: string,
  *   title: string,
  *   body: string,
@@ -53,6 +56,7 @@ function evaluateAlerts_(agreements, futureRevenueItems, thresholds) {
     if (a.type !== 'Internal' && isNumber_(a.margin) && a.margin < 0) {
       alerts.push({
         id: 'neg-margin:' + a.id,
+        kind: 'margin',
         severity: ALERT_SEV_CRITICAL_,
         title: a.name + ' — Negative Margin (' + formatMargin_(a.margin) + '%)',
         body:
@@ -77,6 +81,7 @@ function evaluateAlerts_(agreements, futureRevenueItems, thresholds) {
       var remaining = Math.max(0, Number(a.plannedRev || 0) - Number(a.revRec || 0));
       alerts.push({
         id: 'low-margin:' + a.id,
+        kind: 'margin',
         severity: ALERT_SEV_WARNING_,
         title: a.name + ' — Low Margin (' + formatMargin_(a.margin) + '%)',
         body:
@@ -93,6 +98,7 @@ function evaluateAlerts_(agreements, futureRevenueItems, thresholds) {
     if (a.state === 'Delivery In Progress' && a.schedulingStatus === 'Not Scheduled') {
       alerts.push({
         id: 'unsched:' + a.id,
+        kind: 'revenue',
         severity: ALERT_SEV_WARNING_,
         title: a.name + ' — Revenue Not Scheduled',
         body:
@@ -106,6 +112,7 @@ function evaluateAlerts_(agreements, futureRevenueItems, thresholds) {
     if (a.type === 'Internal' && Number(a.laborCosts || 0) > thresholds.internalLabor) {
       alerts.push({
         id: 'internal-labor:' + a.id,
+        kind: 'internal',
         severity: ALERT_SEV_WARNING_,
         title: a.name + ' (Internal) — ' + formatCurrency_(a.laborCosts) + ' Unattributed Labor',
         body:
@@ -119,6 +126,7 @@ function evaluateAlerts_(agreements, futureRevenueItems, thresholds) {
     if (a.state === 'Proposal Delivered' && Number(a.revenueItemCount || 0) === 0) {
       alerts.push({
         id: 'proposal-empty:' + a.id,
+        kind: 'revenue',
         severity: ALERT_SEV_WARNING_,
         title: a.name + ' — Proposal Pending Activation',
         body:
@@ -134,6 +142,7 @@ function evaluateAlerts_(agreements, futureRevenueItems, thresholds) {
       if (daysToEnd !== null && daysToEnd >= 0 && daysToEnd <= thresholds.expiryDays) {
         alerts.push({
           id: 'expiring:' + a.id,
+          kind: 'renewal',
           severity: ALERT_SEV_INFO_,
           title: a.name + ' — Expiring in ' + Math.round(daysToEnd) + ' days',
           body: 'Agreement is approaching its end date. Initiate renewal discussion if applicable.',
@@ -157,6 +166,7 @@ function evaluateAlerts_(agreements, futureRevenueItems, thresholds) {
         if (expectedRec > 15000 && rec < expectedRec * 0.65) {
           alerts.push({
             id: 'pace-behind:' + a.id,
+            kind: 'revenue',
             severity: ALERT_SEV_WARNING_,
             title: a.name + ' — Recognition behind linear plan',
             body:
@@ -184,6 +194,7 @@ function evaluateAlerts_(agreements, futureRevenueItems, thresholds) {
       if (totalCost > Number(a.revRec) * 1.28) {
         alerts.push({
           id: 'cost-exceeds-rec:' + a.id,
+          kind: 'margin',
           severity: ALERT_SEV_CRITICAL_,
           title: a.name + ' — Costs exceed recognized revenue',
           body:
@@ -213,6 +224,7 @@ function evaluateAlerts_(agreements, futureRevenueItems, thresholds) {
       ) {
         alerts.push({
           id: 'low-rec-near-end:' + a.id,
+          kind: 'revenue',
           severity: ALERT_SEV_WARNING_,
           title: a.name + ' — Low recognition before duration end',
           body:
@@ -235,6 +247,7 @@ function evaluateAlerts_(agreements, futureRevenueItems, thresholds) {
   if (!alerts.length) {
     alerts.push({
       id: 'all-clear',
+      kind: 'all_clear',
       severity: ALERT_SEV_INFO_,
       title: 'No attention items',
       body: 'All agreements are within normal parameters.',
