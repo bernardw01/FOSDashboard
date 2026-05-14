@@ -1,8 +1,10 @@
 /**
- * PRD version 1.20.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.21.1 — sync with docs/FOS-Dashboard-PRD.md
  *
  * §6 alert evaluation for the Agreement Management dashboard. Each rule maps
- * directly to agreement-dashboard-prd-v2.md §6.1–§6.7. Output is a list of
+ * directly to agreement-dashboard-prd-v2.md §6.1–§6.7, plus v1.21.0
+ * delivery-risk heuristics (pacing, cost vs recognition, low recognition near
+ * duration end). Output is a list of
  * {severity, id, title, body} cards sorted Critical → Warning → Informational,
  * ready for the client to render in the Attention Items panel (§7.7).
  */
@@ -18,13 +20,14 @@ var ALERT_SEV_INFO_ = 'info';
 var ALERT_SEV_RANK_ = { critical: 0, warning: 1, info: 2 };
 
 /**
- * Evaluates §6.1–§6.7 against the enriched agreement set + future revenue
- * items. Returns an empty-but-valid list (one "all good" info card) when no
- * rule fires (§6.7).
+ * Evaluates §6.1–§6.7 plus delivery-risk rules against the enriched agreement
+ * set + future revenue items. Returns an empty-but-valid list (one "all good"
+ * info card) when no rule fires (§6.7).
  *
  * @param {!Array<!Object>} agreements  Enriched per fiberyAgreementDashboard.js
  *   (each has `name`, `state`, `type`, `progress`, `customer`, `plannedRev`,
- *   `revRec`, `laborCosts`, `margin`, `targetMargin`, `durEnd`, `schedulingStatus`,
+ *   `revRec`, `laborCosts`, `materialsOdc`, `margin`, `targetMargin`, `durStart`,
+ *   `durEnd`, `schedulingStatus`,
  *   plus `id` and `revenueItemCount`).
  * @param {!Array<!Object>} futureRevenueItems
  * @param {!{
@@ -138,6 +141,94 @@ function evaluateAlerts_(agreements, futureRevenueItems, thresholds) {
         });
       }
     }
+
+    // v1.21.0 — Recognition pacing vs linear duration plan (non-Internal).
+    if (
+      a.type !== 'Internal' &&
+      a.state === 'Delivery In Progress' &&
+      Number(a.plannedRev || 0) > 0 &&
+      a.durStart &&
+      a.durEnd
+    ) {
+      var elapsedFrac = agreementDurationElapsedFrac_(a.durStart, a.durEnd);
+      if (elapsedFrac !== null && elapsedFrac >= 0.2) {
+        var expectedRec = Number(a.plannedRev) * elapsedFrac;
+        var rec = Number(a.revRec || 0);
+        if (expectedRec > 15000 && rec < expectedRec * 0.65) {
+          alerts.push({
+            id: 'pace-behind:' + a.id,
+            severity: ALERT_SEV_WARNING_,
+            title: a.name + ' — Recognition behind linear plan',
+            body:
+              'About ' +
+              formatMargin_(elapsedFrac * 100) +
+              '% through the agreement window by calendar, but only ' +
+              formatCurrency_(rec) +
+              ' is recognized vs roughly ' +
+              formatCurrency_(expectedRec) +
+              ' on a straight-line plan against ' +
+              formatCurrency_(a.plannedRev) +
+              ' planned revenue.',
+            agreementId: a.id,
+          });
+        }
+      }
+    }
+
+    // v1.21.0 — Labor + ODC materially above recognized revenue.
+    if (
+      a.type !== 'Internal' &&
+      Number(a.revRec || 0) >= 8000
+    ) {
+      var totalCost = Number(a.laborCosts || 0) + Number(a.materialsOdc || 0);
+      if (totalCost > Number(a.revRec) * 1.28) {
+        alerts.push({
+          id: 'cost-exceeds-rec:' + a.id,
+          severity: ALERT_SEV_CRITICAL_,
+          title: a.name + ' — Costs exceed recognized revenue',
+          body:
+            formatCurrency_(totalCost) +
+            ' in labor + materials & ODC vs ' +
+            formatCurrency_(a.revRec) +
+            ' recognized. Review cost pacing and remaining milestones.',
+          agreementId: a.id,
+        });
+      }
+    }
+
+    // v1.21.0 — Low recognition with duration ending soon.
+    if (
+      a.type !== 'Internal' &&
+      a.state === 'Delivery In Progress' &&
+      a.durEnd &&
+      Number(a.plannedRev || 0) > 0
+    ) {
+      var daysLeft = daysFromNowTo_(a.durEnd);
+      var recRatio = Number(a.revRec || 0) / Number(a.plannedRev);
+      if (
+        daysLeft !== null &&
+        daysLeft >= 0 &&
+        daysLeft <= 55 &&
+        recRatio < 0.35
+      ) {
+        alerts.push({
+          id: 'low-rec-near-end:' + a.id,
+          severity: ALERT_SEV_WARNING_,
+          title: a.name + ' — Low recognition before duration end',
+          body:
+            'Ends in about ' +
+            Math.round(daysLeft) +
+            ' days with ' +
+            formatCurrency_(a.revRec) +
+            ' recognized of ' +
+            formatCurrency_(a.plannedRev) +
+            ' planned (' +
+            formatMargin_(recRatio * 100) +
+            '%). Confirm billing milestones and delivery wrap-up.',
+          agreementId: a.id,
+        });
+      }
+    }
   }
 
   // 6.7 No alerts present.
@@ -228,4 +319,49 @@ function daysFromNowTo_(isoOrDate) {
   }
   var now = new Date();
   return (d.getTime() - now.getTime()) / 86400000;
+}
+
+/**
+ * @param {?string} startIso
+ * @param {?string} endIso
+ * @return {?number} 0..1 elapsed share, or null.
+ * @private
+ */
+function agreementDurationElapsedFrac_(startIso, endIso) {
+  var start = parseAgreeDateUtcDay_(startIso);
+  var end = parseAgreeDateUtcDay_(endIso);
+  if (!start || !end || !(end > start)) {
+    return null;
+  }
+  var now = Date.now();
+  var t = (now - start) / (end - start);
+  if (!isFinite(t)) {
+    return null;
+  }
+  return Math.max(0, Math.min(1, t));
+}
+
+/**
+ * @param {?string} isoOrDate
+ * @return {?number} UTC ms at start of local calendar day (best-effort).
+ * @private
+ */
+function parseAgreeDateUtcDay_(isoOrDate) {
+  if (!isoOrDate) {
+    return null;
+  }
+  var s = String(isoOrDate).trim();
+  var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) {
+    return Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  }
+  try {
+    var d = new Date(s);
+    if (isNaN(d.getTime())) {
+      return null;
+    }
+    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  } catch (_) {
+    return null;
+  }
 }

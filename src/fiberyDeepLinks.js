@@ -1,5 +1,5 @@
 /**
- * PRD version 1.20.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.21.1 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Composes public Fibery deep-link URLs (e.g. for the Operations dashboard's
  * row-detail drawer "Open in Fibery →" anchor). Lives server-side so the

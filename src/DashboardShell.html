@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 1.20.0 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 1.21.1 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -811,6 +811,61 @@
     }
     .fos-delivery-chart-hint {
       color: var(--ag-text-muted);
+    }
+    .fos-delivery-pacing {
+      padding: 10px 12px;
+      border: 1px solid var(--ag-border);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--ag-text);
+    }
+    .fos-delivery-pacing .fos-delivery-pacing-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--ag-text-muted);
+      margin-bottom: 8px;
+    }
+    .fos-delivery-pacing .fos-delivery-pacing-label {
+      font-size: 0.8rem;
+      margin-bottom: 4px;
+      color: var(--ag-text-muted);
+    }
+    .fos-delivery-pacing-track {
+      position: relative;
+      height: 10px;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .fos-delivery-pacing-fill {
+      height: 100%;
+      border-radius: 5px;
+      min-width: 0;
+      transition: width 0.2s ease;
+    }
+    .fos-delivery-pacing-fill.is-time {
+      background: #718096;
+    }
+    .fos-delivery-pacing-fill.is-rec {
+      background: var(--ag-accent, #38b2ac);
+    }
+    .fos-delivery-pacing-stats {
+      font-size: 0.8rem;
+      line-height: 1.45;
+      color: var(--ag-text);
+    }
+    .fos-delivery-attention-list .fos-attention-item {
+      cursor: pointer;
+    }
+    .fos-delivery-attention-list .fos-attention-item:focus-visible {
+      outline: 2px solid var(--ag-accent);
+      outline-offset: 2px;
+    }
+    .fos-delivery-sankey-host {
+      min-height: 280px;
     }
 
     /* Customer Relationship Cards (§7.6) */
@@ -2327,6 +2382,28 @@
               <span class="small d-none text-danger" id="delivery-fetch-error" role="alert"></span>
             </div>
 
+            <!-- v1.21.0 Phase C.2 — portfolio signals from Active Projects rows
+                 only (no per-project P&L fetch). Click an item to select that
+                 project and scroll it into view. -->
+            <section class="fos-section-card mb-3 d-none" id="delivery-attention-section" aria-labelledby="delivery-attention-heading">
+              <h2 id="delivery-attention-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Delivery signals</h2>
+              <p class="small mb-2" style="color: var(--ag-text-muted)" id="delivery-attention-hint">
+                Rules applied to the visible Active Projects list (cached delivery payload).
+              </p>
+              <div id="delivery-attention-list" class="fos-delivery-attention-list" aria-live="polite"></div>
+            </section>
+
+            <!-- v1.21.0 Phase C.3 — portfolio margin-flow Sankey (recognized
+                 revenue → labor · ODC · gross margin). Same D3 + d3-sankey
+                 loader as the Agreement Dashboard. -->
+            <section class="fos-section-card mb-3" aria-labelledby="delivery-sankey-heading">
+              <h2 id="delivery-sankey-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Portfolio margin flow</h2>
+              <p class="small mb-2" style="color: var(--ag-text-muted)">
+                Aggregated across active projects in the table (recognized revenue vs labor, materials &amp; ODC, and implied gross margin).
+              </p>
+              <div id="delivery-sankey-wrap" class="fos-sankey-wrap" role="img" aria-label="Delivery portfolio margin flow Sankey diagram"></div>
+            </section>
+
             <section class="fos-section-card mb-3" aria-labelledby="delivery-projects-heading">
               <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                 <h2 id="delivery-projects-heading" class="mb-0">Active projects</h2>
@@ -2383,6 +2460,9 @@
                 </div>
                 <div class="d-none d-flex flex-wrap gap-2" id="delivery-pnl-kpi-strip" aria-label="Profit &amp; Loss summary"></div>
               </div>
+              <!-- v1.21.0 Phase C.1 — pacing strip (trailing burn / recognition,
+                   linear plan vs actual). Shown when monthly P&L is loaded. -->
+              <div class="d-none fos-delivery-pacing mb-3" id="delivery-pnl-pacing" aria-label="Project pacing"></div>
               <!-- v1.20.0 (Phase B, FR-94 / FR-96) — view toggle (Table /
                    Chart) and a Copy CSV button. Hidden until a project is
                    selected; the empty-state placeholder above the grid
@@ -2709,10 +2789,10 @@
         pending: {
           showAll: false,         // default cap = 50 rows
         },
-        // v1.16.0 — Person-grouped Utilization Alerts. `expanded` is keyed by
-        // personKey; set to `true` when the user (or the auto-default) has
-        // opened a group. We reset the map inside `applyUtilPayload` so each
-        // new payload starts with the smart defaults (see renderUtilizationAlerts).
+        // v1.16.0 / v1.17.0 — Utilization Alerts grouped by `kind`. `expanded`
+        // is keyed by alert kind; `true` = user opened the group. Cleared in
+        // `applyUtilPayload` so each new payload starts with every group
+        // collapsed (v1.21.1).
         alerts: {
           expanded: {},
         },
@@ -2892,6 +2972,9 @@
         deliveryLastRefresh: document.getElementById('delivery-last-refresh'),
         deliveryFetchError: document.getElementById('delivery-fetch-error'),
         deliverySubtitle: document.getElementById('delivery-subtitle'),
+        deliveryAttentionSection: document.getElementById('delivery-attention-section'),
+        deliveryAttentionList: document.getElementById('delivery-attention-list'),
+        deliverySankeyWrap: document.getElementById('delivery-sankey-wrap'),
         deliveryWarn: document.getElementById('delivery-warn'),
         deliveryLoading: document.getElementById('delivery-loading'),
         deliveryTtlSelect: document.getElementById('delivery-ttl-select'),
@@ -2901,6 +2984,7 @@
         deliveryProjectsEmpty: document.getElementById('delivery-projects-empty'),
         deliveryPnlSubtitle: document.getElementById('delivery-pnl-subtitle'),
         deliveryPnlKpiStrip: document.getElementById('delivery-pnl-kpi-strip'),
+        deliveryPnlPacing: document.getElementById('delivery-pnl-pacing'),
         deliveryPnlPartialBadge: document.getElementById('delivery-pnl-partial-badge'),
         deliveryPnlLoading: document.getElementById('delivery-pnl-loading'),
         deliveryPnlGridWrap: document.getElementById('delivery-pnl-grid-wrap'),
@@ -3469,7 +3553,7 @@
 
         loadD3Sankey()
           .then(function (d3) {
-            drawSankey_(d3, wrap, model);
+            drawSankey_(d3, wrap, model, { gradientPrefix: 'sankey-link-' });
           })
           .catch(function (e) {
             wrap.innerHTML = '';
@@ -3480,7 +3564,9 @@
           });
       }
 
-      function drawSankey_(d3, wrap, model) {
+      function drawSankey_(d3, wrap, model, drawOpts) {
+        drawOpts = drawOpts || {};
+        var gradientPrefix = drawOpts.gradientPrefix ? String(drawOpts.gradientPrefix) : 'sankey-link-';
         var width = wrap.clientWidth || 800;
         var nodeCount = model.nodes.length;
         var height = Math.max(400, Math.min(900, nodeCount * 28));
@@ -3509,7 +3595,7 @@
         // than a flat source-only fill when types and customers share palette.
         graph.links.forEach(function (link, i) {
           var grad = defs.append('linearGradient')
-            .attr('id', 'sankey-link-' + i)
+            .attr('id', gradientPrefix + i)
             .attr('gradientUnits', 'userSpaceOnUse')
             .attr('x1', link.source.x1)
             .attr('x2', link.target.x0);
@@ -3524,7 +3610,7 @@
           .enter()
           .append('path')
           .attr('d', d3.sankeyLinkHorizontal())
-          .attr('stroke', function (d, i) { return 'url(#sankey-link-' + i + ')'; })
+          .attr('stroke', function (d, i) { return 'url(#' + gradientPrefix + i + ')'; })
           .attr('stroke-width', function (d) { return Math.max(1, d.width); })
           .attr('stroke-opacity', model.linkOpacity || 0.35)
           .append('title')
@@ -3561,6 +3647,106 @@
           .attr('dy', '0.35em')
           .attr('text-anchor', function (d) { return d.layer === 'type' ? 'end' : 'start'; })
           .text(function (d) { return d.name + ' · ' + formatMoneyCompact(d.value); });
+      }
+
+      /**
+       * v1.21.0 Phase C.3 — aggregate recognized revenue → labor / ODC /
+       * gross margin for the visible Delivery rows (non-Internal only).
+       * @param {!Array<!Object>} projects
+       * @return {!{nodes: !Array, links: !Array, total: number, linkOpacity: number, caption: ?string}}
+       */
+      function buildDeliveryPortfolioSankeyModel_(projects) {
+        var R = 0;
+        var L = 0;
+        var O = 0;
+        for (var i = 0; i < projects.length; i++) {
+          var p = projects[i];
+          if (!p || p.type === 'Internal') {
+            continue;
+          }
+          R += Number(p.revenueRecognized || 0);
+          L += Number(p.laborCosts || 0);
+          O += Number(p.materialsOdc || 0);
+        }
+        if (R <= 0) {
+          return { nodes: [], links: [], total: 0, linkOpacity: 0.38, caption: null };
+        }
+        var cost = L + O;
+        var laborAlloc;
+        var odcAlloc;
+        var marginAlloc;
+        var caption = null;
+        if (cost <= 0) {
+          laborAlloc = 0;
+          odcAlloc = 0;
+          marginAlloc = R;
+        } else if (R >= cost) {
+          laborAlloc = L;
+          odcAlloc = O;
+          marginAlloc = R - cost;
+        } else {
+          laborAlloc = R * (L / cost);
+          odcAlloc = R * (O / cost);
+          marginAlloc = 0;
+          caption = 'Recognized revenue in the visible set is less than labor + ODC; flows are split in proportion to costs.';
+        }
+        var nodes = [
+          { name: 'Recognized revenue', layer: 'status', color: '#38B2AC' },
+          { name: 'Labor', layer: 'customer', color: '#FC8181' },
+          { name: 'Materials & ODC', layer: 'customer', color: '#F6AD55' },
+          { name: 'Gross margin', layer: 'type', color: '#68D391' },
+        ];
+        var links = [
+          { source: 0, target: 1, value: laborAlloc },
+          { source: 0, target: 2, value: odcAlloc },
+          { source: 0, target: 3, value: marginAlloc },
+        ].filter(function (lk) {
+          return lk.value > 0.5;
+        });
+        return {
+          nodes: nodes,
+          links: links,
+          total: R,
+          linkOpacity: 0.38,
+          caption: caption,
+        };
+      }
+
+      function renderDeliveryPortfolioSankey_(projects) {
+        var wrap = els.deliverySankeyWrap || document.getElementById('delivery-sankey-wrap');
+        if (!wrap) {
+          return;
+        }
+        wrap.innerHTML = '';
+        var model = buildDeliveryPortfolioSankeyModel_(projects || []);
+        if (!model.links.length) {
+          var emptyEl = document.createElement('div');
+          emptyEl.className = 'empty';
+          emptyEl.textContent = 'No recognized revenue in the visible projects to chart.';
+          wrap.appendChild(emptyEl);
+          return;
+        }
+        if (model.caption) {
+          var cap = document.createElement('p');
+          cap.className = 'small mb-2';
+          cap.style.color = 'var(--ag-text-muted)';
+          cap.textContent = model.caption;
+          wrap.appendChild(cap);
+        }
+        var host = document.createElement('div');
+        host.className = 'fos-delivery-sankey-host';
+        wrap.appendChild(host);
+        loadD3Sankey()
+          .then(function (d3) {
+            drawSankey_(d3, host, model, { gradientPrefix: 'delivery-sankey-link-' });
+          })
+          .catch(function (e) {
+            host.innerHTML = '';
+            var err = document.createElement('div');
+            err.className = 'empty';
+            err.textContent = e && e.message ? e.message : 'Could not load Sankey chart.';
+            host.appendChild(err);
+          });
       }
 
       function renderAttention(alerts) {
@@ -4971,18 +5157,13 @@
       // a time. Panel-level cards (`stale_approval_rollup`, `all_clear`)
       // remain as standalone flat cards above the grouped section.
       //
-      // Default expand state per group:
-      //   - Contains at least one Critical alert  → expanded
-      //   - Contains exactly one alert            → expanded (collapsing is
-      //                                              pointless when there's
-      //                                              only one item to show)
-      //   - Otherwise                             → collapsed
+      // Default expand state per group (v1.21.1): **all collapsed** until the
+      // user clicks a group header. `utilState.alerts.expanded[kind] === true`
+      // means open; `false` means explicitly collapsed; `undefined` means
+      // collapsed. Cleared in applyUtilPayload() on each new payload.
       //
-      // The user's manual toggle state (utilState.alerts.expanded — keyed on
-      // alert `kind` as of v1.17.0) is respected when re-rendering on filter
-      // changes, and is cleared in applyUtilPayload() so each new payload
-      // starts with the smart defaults. The Collapse all button at the top
-      // of the panel can force every group closed in one click.
+      // The Collapse all button at the top of the panel can force every group
+      // closed in one click.
       function renderUtilizationAlerts(alerts) {
         var list = els.utilAttentionList;
         if (!list) return;
@@ -5068,14 +5249,11 @@
 
       function buildAlertGroupCard_(group) {
         var key = group.kind;
-        // Apply smart default if the user hasn't explicitly toggled this
-        // group yet (utilState.alerts.expanded is keyed on alert `kind` and
-        // is a strict boolean once the user has touched the header — either
-        // via direct click or the Collapse all button).
+        // Apply default: collapsed unless the user has expanded this group
+        // (`stored === true`). `stored === false` keeps the group collapsed
+        // across re-renders within the same payload (e.g. after Collapse all).
         var stored = utilState.alerts.expanded[key];
-        var isOpen = stored === true || (
-          stored !== false && (group.worstSeverity === 'critical' || group.items.length === 1)
-        );
+        var isOpen = stored === true;
 
         var wrapper = document.createElement('div');
         wrapper.className = 'fos-attention-group sev-' + (group.worstSeverity || 'info') +
@@ -5961,9 +6139,8 @@
 
       function applyUtilPayload(data) {
         utilState.payload = data;
-        // v1.16.0 — fresh payload means fresh person groups in the Alerts
-        // panel. Drop any user-set expand toggles so the smart defaults
-        // (Critical or single-alert groups expanded) apply to the new set.
+        // v1.16.0 — fresh payload clears expand toggles so grouped alerts
+        // render with v1.21.1 defaults (all groups collapsed until expanded).
         utilState.alerts.expanded = {};
         var dim = data && data.dimensions;
         populateFilterDropdowns(dim);
@@ -6458,10 +6635,287 @@
         if (end) return '→ ' + end;
         return 'No duration';
       }
+      function parseAgreeDateLocal_(isoOrDate) {
+        if (!isoOrDate) {
+          return null;
+        }
+        var s = String(isoOrDate).trim();
+        var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (m) {
+          return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+        }
+        try {
+          var d = new Date(s);
+          if (!isNaN(d.getTime())) {
+            return d;
+          }
+        } catch (e) { /* ignore */ }
+        return null;
+      }
+      function deliveryDaysUntilDurEnd_(isoOrDate) {
+        var end = parseAgreeDateLocal_(isoOrDate);
+        if (!end) {
+          return null;
+        }
+        var now = new Date();
+        var dayMs = 86400000;
+        var endDay = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
+        var nowDay = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+        return (endDay - nowDay) / dayMs;
+      }
+      function deliveryDurationElapsedFrac_(p) {
+        var start = parseAgreeDateLocal_(p && (p.durStart || p.executionDate));
+        var end = parseAgreeDateLocal_(p && p.durEnd);
+        if (!start || !end || !(end.getTime() > start.getTime())) {
+          return null;
+        }
+        var now = Date.now();
+        var t = (now - start.getTime()) / (end.getTime() - start.getTime());
+        if (!isFinite(t)) {
+          return null;
+        }
+        return Math.max(0, Math.min(1, t));
+      }
+      var DELIVERY_ATT_SEV_RANK_ = { critical: 0, warning: 1, info: 2 };
+      function buildDeliveryAttentionItems_(rows) {
+        var items = [];
+        for (var i = 0; i < rows.length; i++) {
+          var p = rows[i];
+          if (!p || p.type === 'Internal') {
+            continue;
+          }
+          var rev = Number(p.revenueRecognized || 0);
+          var labor = Number(p.laborCosts || 0);
+          var odc = Number(p.materialsOdc || 0);
+          var costs = labor + odc;
+          var cv = Number(p.contractValue || 0);
+          var mp = (p.marginPct === null || p.marginPct === undefined || isNaN(p.marginPct))
+            ? null
+            : Number(p.marginPct);
+          var completionPct = (p.completionPct === null || p.completionPct === undefined || isNaN(p.completionPct))
+            ? null
+            : Number(p.completionPct);
+          if (mp !== null && mp < 0) {
+            items.push({
+              severity: 'critical',
+              agreementId: p.id,
+              signal: 'negative_margin',
+              title: (p.name || 'Project') + ' — negative margin',
+              body: 'Margin is ' + formatMarginPct(mp) + ' on ' + formatMoneyCompact(rev) + ' recognized vs ' +
+                formatExpense_(costs) + ' in labor + ODC.',
+            });
+          }
+          if (rev >= 5000 && costs > rev * 1.2) {
+            items.push({
+              severity: 'warning',
+              agreementId: p.id,
+              signal: 'cost_pressure',
+              title: (p.name || 'Project') + ' — costs running ahead of recognition',
+              body: 'Labor + ODC (' + formatExpense_(costs) + ') exceeds recognized revenue (' +
+                formatMoneyCompact(rev) + ') by more than 20%.',
+            });
+          }
+          var durFrac = deliveryDurationElapsedFrac_(p);
+          if (durFrac !== null && durFrac > 0.5 && completionPct !== null && completionPct < 38 && cv > 10000) {
+            items.push({
+              severity: 'warning',
+              agreementId: p.id,
+              signal: 'behind_schedule',
+              title: (p.name || 'Project') + ' — completion lags timeline',
+              body: 'Past the midpoint of the agreement window but completion is only ' +
+                formatPct(completionPct) + '%.',
+            });
+          }
+          var daysLeft = deliveryDaysUntilDurEnd_(p.durEnd);
+          if (daysLeft !== null && daysLeft >= 0 && daysLeft <= 60 && cv > 0 && rev < cv * 0.2) {
+            items.push({
+              severity: 'info',
+              agreementId: p.id,
+              signal: 'low_recognition_near_end',
+              title: (p.name || 'Project') + ' — low recognition before end date',
+              body: 'Ends in ' + Math.round(daysLeft) + ' days with only ' +
+                formatMoneyCompact(rev) + ' recognized of ' + formatMoneyCompact(cv) + ' contract value.',
+            });
+          }
+        }
+        items.sort(function (a, b) {
+          var ra = DELIVERY_ATT_SEV_RANK_[a.severity] !== undefined ? DELIVERY_ATT_SEV_RANK_[a.severity] : 2;
+          var rb = DELIVERY_ATT_SEV_RANK_[b.severity] !== undefined ? DELIVERY_ATT_SEV_RANK_[b.severity] : 2;
+          if (ra !== rb) {
+            return ra - rb;
+          }
+          return String(a.title).localeCompare(String(b.title));
+        });
+        return items;
+      }
+      function renderDeliveryAttentionStrip_(visibleRows) {
+        if (!els.deliveryAttentionList || !els.deliveryAttentionSection) {
+          return;
+        }
+        var items = buildDeliveryAttentionItems_(visibleRows || []);
+        els.deliveryAttentionList.innerHTML = '';
+        if (!items.length) {
+          els.deliveryAttentionSection.classList.add('d-none');
+          return;
+        }
+        els.deliveryAttentionSection.classList.remove('d-none');
+        for (var i = 0; i < items.length; i++) {
+          var it = items[i];
+          var row = document.createElement('div');
+          row.className = 'fos-attention-item sev-' + (it.severity || 'info');
+          row.setAttribute('role', 'button');
+          row.setAttribute('tabindex', '0');
+          row.setAttribute('data-agreement-id', it.agreementId || '');
+          row.setAttribute('data-signal', it.signal || '');
+          row.setAttribute('aria-label', 'Select project: ' + (it.title || ''));
+          var icon = it.severity === 'critical' ? '🔴' : it.severity === 'warning' ? '🟡' : '🟢';
+          row.innerHTML =
+            '<span class="sev-icon" aria-hidden="true">' + icon + '</span>' +
+            '<div class="flex-grow-1 min-w-0">' +
+              '<div class="title">' + escapeHtml(it.title || '') + '</div>' +
+              '<div class="body">' + escapeHtml(it.body || '') + '</div>' +
+            '</div>';
+          els.deliveryAttentionList.appendChild(row);
+        }
+      }
+      function computeDeliveryPacingMetrics_(payload, project) {
+        var months = (payload && payload.months) || [];
+        if (!months.length || !project) {
+          return null;
+        }
+        var contract = Number(project.contractValue || 0);
+        if (!isFinite(contract) || contract <= 0) {
+          return null;
+        }
+        var start = parseAgreeDateLocal_(project.durStart || project.executionDate);
+        var end = parseAgreeDateLocal_(project.durEnd);
+        var durElapsedPct = null;
+        var linearExpected = null;
+        if (start && end && end.getTime() > start.getTime()) {
+          durElapsedPct = deliveryDurationElapsedFrac_(project);
+          if (durElapsedPct !== null) {
+            linearExpected = contract * durElapsedPct;
+          }
+        }
+        var recognized = 0;
+        if (payload.lifetime && payload.lifetime.revenue != null) {
+          recognized = Number(payload.lifetime.revenue) || 0;
+        } else {
+          for (var ri = 0; ri < months.length; ri++) {
+            recognized += Number((months[ri] && months[ri].revenue) || 0);
+          }
+        }
+        var sorted = months.slice().sort(function (a, b) {
+          return String((a && a.key) || '').localeCompare(String((b && b.key) || ''));
+        });
+        var trailSum = 0;
+        var trailN = 0;
+        for (var ti = sorted.length - 1; ti >= 0 && trailN < 3; ti--) {
+          if (!sorted[ti] || sorted[ti].projected) {
+            continue;
+          }
+          trailSum += Number(sorted[ti].revenue || 0);
+          trailN++;
+        }
+        var trailAvgMo = trailN ? (trailSum / trailN) : null;
+        var gapVsLinear = linearExpected != null ? (recognized - linearExpected) : null;
+        var recPct = Math.max(0, Math.min(100, (recognized / contract) * 100));
+        var timePct = durElapsedPct != null ? durElapsedPct * 100 : null;
+        return {
+          contract: contract,
+          recognized: recognized,
+          linearExpected: linearExpected,
+          durElapsedPct: durElapsedPct,
+          recPct: recPct,
+          timePct: timePct,
+          trailAvgMo: trailAvgMo,
+          gapVsLinear: gapVsLinear,
+        };
+      }
+      function renderDeliveryPacing_(payload, project) {
+        if (!els.deliveryPnlPacing) {
+          return;
+        }
+        var m = computeDeliveryPacingMetrics_(payload, project);
+        if (!m || m.timePct === null) {
+          els.deliveryPnlPacing.classList.add('d-none');
+          els.deliveryPnlPacing.innerHTML = '';
+          return;
+        }
+        els.deliveryPnlPacing.classList.remove('d-none');
+        var timeW = Math.max(0, Math.min(100, m.timePct));
+        var recW = Math.max(0, Math.min(100, m.recPct));
+        var gapTxt = m.gapVsLinear == null ? '—' : formatMoneyParenIfNegative_(m.gapVsLinear);
+        var linTxt = m.linearExpected == null ? '—' : formatMoneyCompact(m.linearExpected);
+        var trailTxt = m.trailAvgMo == null ? '—' : formatMoneyCompact(m.trailAvgMo) + ' / mo';
+        var tipTime = 'Elapsed share of the agreement duration window (by calendar): ' + timeW.toFixed(0) + '%.';
+        var tipRec = 'Recognized revenue as a share of contract value: ' + recW.toFixed(0) + '%.';
+        var tipTrail = 'Average recognized revenue over the last up to three non-projected months in the P&L grid: ' + trailTxt + '.';
+        var tipLin = 'Linear recognition plan (contract value × elapsed duration share). Expected by now: ' + linTxt + '.';
+        els.deliveryPnlPacing.innerHTML =
+          '<div class="fos-delivery-pacing-title">Pacing vs linear plan</div>' +
+          '<div class="fos-delivery-pacing-label" title="' + escapeHtml(tipTime) + '">Timeline through duration window</div>' +
+          '<div class="fos-delivery-pacing-track" title="' + escapeHtml(tipTime) + '">' +
+            '<div class="fos-delivery-pacing-fill is-time" style="width:' + timeW + '%"></div>' +
+          '</div>' +
+          '<div class="fos-delivery-pacing-label" title="' + escapeHtml(tipRec) + '">Recognition vs contract value</div>' +
+          '<div class="fos-delivery-pacing-track" title="' + escapeHtml(tipRec) + '">' +
+            '<div class="fos-delivery-pacing-fill is-rec" style="width:' + recW + '%"></div>' +
+          '</div>' +
+          '<div class="fos-delivery-pacing-stats" title="' + escapeHtml(tipLin + ' ' + tipTrail) + '">' +
+            '<div>Linear expected (by duration): <strong>' + linTxt + '</strong> · Recognized (lifetime): <strong>' +
+              formatMoneyCompact(m.recognized) + '</strong> · Δ vs linear: <strong>' + gapTxt + '</strong></div>' +
+            '<div>Trailing 3-mo avg recognition: <strong title="' + escapeHtml(tipTrail) + '">' + trailTxt + '</strong></div>' +
+          '</div>';
+      }
+      function scrollDeliveryRowIntoView_(agreementId) {
+        if (!els.deliveryProjectsBody || !agreementId) {
+          return;
+        }
+        var trs = els.deliveryProjectsBody.querySelectorAll('tr');
+        for (var si = 0; si < trs.length; si++) {
+          if (trs[si].getAttribute('data-agreement-id') === agreementId) {
+            try {
+              trs[si].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            } catch (e) { /* older browsers */ }
+            break;
+          }
+        }
+      }
+      /**
+       * Select a project for the P&L card (shared by table row + attention strip).
+       * @param {string} agreementId
+       * @param {!{source?: string, scrollIntoView?: boolean}} opts
+       */
+      function selectDeliveryProject_(agreementId, opts) {
+        opts = opts || {};
+        var project = deliveryState.projectsByIndex[agreementId];
+        if (!project || !agreementId) {
+          return;
+        }
+        deliveryState.selectedId = agreementId;
+        markDeliveryRowSelected_(agreementId);
+        var name = project.name || '';
+        var truncatedName = name.length > 80 ? name.slice(0, 77) + '…' : name;
+        var src = opts.source || 'table';
+        var detail = 'agreementId=' + agreementId + ' · name=' + truncatedName + ' · source=' + src;
+        logActivity_('delivery_project_select', 'delivery', detail);
+        writeDeliveryFiltersStored();
+        renderDeliveryPnlHeader(project);
+        loadDeliveryPnLForProject_(project, { source: src });
+        if (opts.scrollIntoView) {
+          scrollDeliveryRowIntoView_(agreementId);
+        }
+      }
+
       function formatMoneyParenIfNegative_(n) {
         var x = Number(n);
-        if (!isFinite(x)) return '—';
-        if (x < 0) return '(' + formatMoneyCompact(Math.abs(x)) + ')';
+        if (!isFinite(x)) {
+          return '—';
+        }
+        if (x < 0) {
+          return '(' + formatMoneyCompact(Math.abs(x)) + ')';
+        }
         return formatMoneyCompact(x);
       }
       function formatExpense_(n) {
@@ -6636,12 +7090,16 @@
           if (els.deliveryProjectsEmpty) els.deliveryProjectsEmpty.classList.remove('d-none');
           if (els.deliveryProjectsNoMatch) els.deliveryProjectsNoMatch.classList.add('d-none');
           updateDeliverySortIndicators_();
+          renderDeliveryAttentionStrip_([]);
+          renderDeliveryPortfolioSankey_([]);
           return;
         }
         if (els.deliveryProjectsEmpty) els.deliveryProjectsEmpty.classList.add('d-none');
         if (!rows.length) {
           if (els.deliveryProjectsNoMatch) els.deliveryProjectsNoMatch.classList.remove('d-none');
           updateDeliverySortIndicators_();
+          renderDeliveryAttentionStrip_([]);
+          renderDeliveryPortfolioSankey_([]);
           return;
         }
         if (els.deliveryProjectsNoMatch) els.deliveryProjectsNoMatch.classList.add('d-none');
@@ -6684,6 +7142,8 @@
             '</td>';
           body.appendChild(tr);
         }
+        renderDeliveryAttentionStrip_(rows);
+        renderDeliveryPortfolioSankey_(rows);
         updateDeliverySortIndicators_();
       }
       function updateDeliverySortIndicators_() {
@@ -6732,20 +7192,17 @@
           writeDeliveryFiltersStored();
           return;
         }
-        deliveryState.selectedId = agreementId;
-        markDeliveryRowSelected_(agreementId);
-        var name = project.name || '';
-        var truncatedName = name.length > 80 ? name.slice(0, 77) + '…' : name;
-        logActivity_('delivery_project_select', 'delivery', 'agreementId=' + agreementId + ' · name=' + truncatedName);
-        writeDeliveryFiltersStored();
-        renderDeliveryPnlHeader(project);
-        loadDeliveryPnLForProject_(project, { source: 'click' });
+        selectDeliveryProject_(agreementId, { source: 'click', scrollIntoView: false });
       }
       function clearDeliveryPnL() {
         if (els.deliveryPnlSubtitle) els.deliveryPnlSubtitle.textContent = 'Select a project above to see its monthly P&L.';
         if (els.deliveryPnlKpiStrip) {
           els.deliveryPnlKpiStrip.classList.add('d-none');
           els.deliveryPnlKpiStrip.innerHTML = '';
+        }
+        if (els.deliveryPnlPacing) {
+          els.deliveryPnlPacing.classList.add('d-none');
+          els.deliveryPnlPacing.innerHTML = '';
         }
         if (els.deliveryPnlPartialBadge) {
           els.deliveryPnlPartialBadge.classList.add('d-none');
@@ -7017,6 +7474,7 @@
         }
         // Make sure the header is in sync with the project that was just rendered.
         if (project) renderDeliveryPnlHeader(project);
+        renderDeliveryPacing_(payload, project);
         // v1.20.0 (Phase B) — re-apply the active view + sync the toggle
         // buttons. When the grid is empty the toolbar was hidden above,
         // so this is a no-op in that case.
@@ -7393,6 +7851,24 @@
           } catch (e) {
             reject(e);
           }
+        });
+      }
+      if (els.deliveryAttentionList) {
+        els.deliveryAttentionList.addEventListener('click', function (e) {
+          var item = e.target;
+          while (item && item.nodeType === 1 && !item.classList.contains('fos-attention-item')) {
+            item = item.parentNode;
+          }
+          if (!item || item.nodeType !== 1) {
+            return;
+          }
+          var aid = item.getAttribute('data-agreement-id');
+          if (!aid) {
+            return;
+          }
+          var sig = item.getAttribute('data-signal') || '';
+          logActivity_('delivery_attention_click', 'delivery', 'agreementId=' + aid + ' · signal=' + sig);
+          selectDeliveryProject_(aid, { source: 'attention', scrollIntoView: true });
         });
       }
 
