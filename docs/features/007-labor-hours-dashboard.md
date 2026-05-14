@@ -1,6 +1,6 @@
 # Feature: Labor Hours Dashboard (under Operations)
 
-> **PRD version 1.24.0** — see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js`).
+> **PRD version 1.26.0** — see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js`).
 
 > **PRD baseline (imported):** `docs/implementation-notes/labor-hours-dashboard-PRD (1).html` (v2.4, static Python report spec).  
 > **Reference UI (imported example):** `docs/implementation-notes/labor-hours-week-of-2026-05-04.html` (week-of report with KPIs, tables, zero-hours chips, expandable project breakdown).  

@@ -1,6 +1,6 @@
 # Overview
 
-> **PRD version 1.24.0** — see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js`).
+> **PRD version 1.26.0** — see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js`).
 
 ## Goal
 
@@ -10,7 +10,9 @@ The dashboard **reads and presents** data; it sits alongside—does not replace�
 
 Requirements baseline: **`docs/FOS-Dashboard-PRD.md`**.
 
-**Shipped:** **[Labor Hours Dashboard](007-labor-hours-dashboard.md)** — **v1.22.0** Phase A, **v1.23.0** Phase B (zero KPI, KPI scroll, company JSON, exclusions), **v1.24.0** Phases **C–D** (expandable project/task breakdown, Copy CSV, print, `labor_hours_*` activity types).
+**Shipped:** **[Labor Hours Dashboard](007-labor-hours-dashboard.md)** — **v1.22.0** Phase A, **v1.23.0** Phase B (zero KPI, KPI scroll, company JSON, exclusions), **v1.24.0** Phases **C–D** (expandable project/task breakdown, Copy CSV, print, `labor_hours_*` activity types). **[Revenue review](008-revenue-review-dashboard.md)** — **v1.25.0** Phases **A–B** (Delivery nav group, `#panel-revenue-review`, Agreement cache + KPI strip, expiry + pre-recognition); **v1.26.0** Phases **C–D** (tables, sort, CSV, print, milestone `<details>` drill-down, `revenue_review_*` events beyond refresh).
+
+**Planned:** Optional **Revenue review** Phase E (HTML snapshot export) or PRD FR/AC lift per [008](008-revenue-review-dashboard.md).
 
 ## Non-goals
 

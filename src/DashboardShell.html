@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 1.24.0 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 1.26.0 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -73,6 +73,7 @@
     #panel-agreement-dashboard.fos-agreement-root,
     #panel-operations.fos-agreement-root,
     #panel-delivery.fos-agreement-root,
+    #panel-revenue-review.fos-agreement-root,
     #panel-labor-hours.fos-agreement-root {
       background: var(--ag-bg);
       border-radius: 12px;
@@ -181,6 +182,56 @@
       #panel-labor-hours .fos-lh-kpi-jump {
         cursor: default;
       }
+      #panel-revenue-review.fos-agreement-root {
+        break-inside: avoid;
+      }
+      #panel-revenue-review .fos-rr-cust-detail,
+      #panel-revenue-review .fos-rr-agreement-detail {
+        break-inside: avoid;
+        border: 1px solid #ccc;
+        margin-bottom: 0.25rem;
+      }
+      #panel-revenue-review .fos-rr-kpi-jump {
+        cursor: default;
+      }
+    }
+
+    #panel-revenue-review .fos-rr-sortable {
+      cursor: pointer;
+    }
+    #panel-revenue-review .fos-rr-sortable:hover {
+      color: var(--ag-accent);
+    }
+    #panel-revenue-review .fos-rr-kpi-jump {
+      cursor: pointer;
+      transition: box-shadow 0.15s ease, transform 0.12s ease;
+    }
+    #panel-revenue-review .fos-rr-kpi-jump:hover {
+      box-shadow: 0 0 0 2px var(--ag-accent);
+    }
+    #panel-revenue-review .fos-rr-kpi-jump:focus-visible {
+      outline: 2px solid var(--ag-accent);
+      outline-offset: 2px;
+    }
+    #panel-revenue-review details.fos-rr-cust-detail > summary,
+    #panel-revenue-review details.fos-rr-agreement-detail > summary {
+      cursor: pointer;
+      list-style: none;
+      color: var(--ag-text);
+      font-weight: 600;
+    }
+    #panel-revenue-review details.fos-rr-cust-detail > summary::-webkit-details-marker,
+    #panel-revenue-review details.fos-rr-agreement-detail > summary::-webkit-details-marker {
+      display: none;
+    }
+    #panel-revenue-review .fos-rr-chev {
+      font-size: 0.65em;
+      color: var(--ag-text-muted);
+      user-select: none;
+      margin-right: 0.35rem;
+    }
+    #panel-revenue-review .fos-rr-table-wrap {
+      overflow-x: auto;
     }
 
     .fos-agreement-inner {
@@ -2816,6 +2867,276 @@
             </section>
           </div>
         </div>
+
+        <!-- Monthly Revenue Review — agreement cache + Fibery payload (Phase A–B). -->
+        <div id="panel-revenue-review" class="d-none fos-agreement-root">
+          <div id="rr-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
+          <div class="fos-agreement-inner shadow-lg">
+            <div class="fos-loading-overlay d-none" id="rr-loading" role="status" aria-live="polite" aria-hidden="true">
+              <div class="fos-loading-spinner" aria-hidden="true"></div>
+              <span class="fos-loading-label">Loading agreement data…</span>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <div class="flex-grow-1 min-w-0">
+                <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Monthly Revenue Review</h1>
+                <p class="small mb-0" id="rr-subtitle" style="color: var(--ag-text-muted)">
+                  Review window …
+                </p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 mb-4 pb-3 border-bottom" style="border-color: var(--ag-border) !important">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="rr-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
+                Refresh
+              </button>
+              <span class="small" id="rr-last-refresh" style="color: var(--ag-text-muted)">Last refreshed: —</span>
+              <span class="d-none small" id="rr-stale-badge" style="color: var(--ag-warn); font-weight: 600">Stale</span>
+              <label class="small d-flex align-items-center gap-1" for="rr-ttl-select" style="color: var(--ag-text-muted)">
+                Auto-refresh
+                <select id="rr-ttl-select" class="fos-ttl-select" aria-label="Agreement cache auto-refresh interval (shared with Agreement Dashboard)">
+                  <option value="5">5 min</option>
+                  <option value="10" selected>10 min</option>
+                  <option value="30">30 min</option>
+                  <option value="0">Off</option>
+                </select>
+              </label>
+              <span class="small d-none text-danger" id="rr-fetch-error" role="alert"></span>
+            </div>
+
+            <p class="small d-none mb-3" id="rr-partial-note" style="color: var(--ag-warn)" role="status"></p>
+
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 mb-3">
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-blue h-100" title="Sum of planned revenue for agreements in scope (excludes Internal and name contains test).">
+                  <div class="label">Portfolio value</div>
+                  <div class="value" id="rr-kpi-portfolio">$0</div>
+                  <div class="sub" id="rr-kpi-portfolio-sub">0 agreements in scope</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-green h-100" title="Sum of recognized revenue for agreements in scope.">
+                  <div class="label">Revenue recognized</div>
+                  <div class="value" id="rr-kpi-revrec">$0</div>
+                  <div class="sub" id="rr-kpi-revrec-sub">0% of portfolio</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-teal h-100" title="Milestones with target date in the prior calendar month (excludes Not Scheduled); invoiced or recognized.">
+                  <div class="label">Prior month close</div>
+                  <div class="value" id="rr-kpi-prior">$0</div>
+                  <div class="sub" id="rr-kpi-prior-sub">0 milestones</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-yellow h-100" title="Current calendar month milestones (excludes Not Scheduled).">
+                  <div class="label">Current month invoiced</div>
+                  <div class="value" id="rr-kpi-curr">$0</div>
+                  <div class="sub" id="rr-kpi-curr-sub">0% of milestones</div>
+                </div>
+              </div>
+              <div class="col">
+                <div
+                  class="fos-agreement-kpi kpi-margin-low h-100 fos-rr-kpi-jump"
+                  id="rr-kpi-variance-card"
+                  tabindex="0"
+                  role="button"
+                  data-rr-scroll-to="rr-section-variance"
+                  title="Jump to variance table. Counts milestones in the prior or current target month with amount variance or a schedule issue (past target, not invoiced)."
+                >
+                  <div class="label">Variances</div>
+                  <div class="value" id="rr-kpi-variance">0</div>
+                  <div class="sub" id="rr-kpi-variance-sub">Amount or schedule</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-margin-neg h-100" title="Past-due target date, not invoiced, with positive target amount.">
+                  <div class="label">Overdue / at-risk</div>
+                  <div class="value" id="rr-kpi-overdue">0</div>
+                  <div class="sub" id="rr-kpi-overdue-sub">Milestone count</div>
+                </div>
+              </div>
+            </div>
+
+            <section id="rr-expiry-section" class="fos-section-card mb-3 d-none" aria-labelledby="rr-expiry-heading">
+              <h2 id="rr-expiry-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Agreement expiry</h2>
+              <p class="small mb-2" style="color: var(--ag-text-muted)">Active agreements (not Contract Complete) with an end date in the past or within 90 days.</p>
+              <div id="rr-expiry-list" class="small" style="color: var(--ag-text)"></div>
+            </section>
+
+            <div id="rr-prerec-banner" class="d-none mb-3 p-3 rounded-3" style="background: rgba(124, 58, 237, 0.12); border: 1px solid var(--accent4)">
+              <div class="fw-semibold mb-1" style="color: var(--ag-text)">Future revenue pre-recognition</div>
+              <p class="small mb-2" style="color: var(--ag-text-muted)">
+                Milestones marked recognized with a future target date and not yet invoiced (Fibery vs accounting timing — see PRD §8.1).
+              </p>
+              <ul id="rr-prerec-list" class="small mb-0 ps-3" style="color: var(--ag-text)"></ul>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3 pb-2 border-bottom d-print-none" style="border-color: var(--ag-border) !important">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="rr-copy-all-csv-btn" style="background: var(--ag-surface2); color: var(--ag-text); border: 1px solid var(--ag-border)">
+                Copy all CSV
+              </button>
+              <span class="small" id="rr-csv-status" style="color: var(--ag-text-muted)" aria-live="polite"></span>
+              <button type="button" class="btn btn-sm btn-outline-secondary border-secondary" id="rr-expand-detail-btn">Expand detail</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary border-secondary" id="rr-collapse-detail-btn">Collapse detail</button>
+            </div>
+
+            <section class="fos-section-card mb-3" id="rr-section-prior" aria-labelledby="rr-prior-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="rr-prior-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Prior month — milestone billing</h2>
+                <span class="small" style="color: var(--ag-text-muted)" id="rr-prior-meta"></span>
+                <button type="button" class="btn btn-sm btn-link p-0 ms-auto text-decoration-none d-print-none" data-rr-csv="prior" style="color: var(--ag-accent)">Copy CSV</button>
+              </div>
+              <div class="fos-rr-table-wrap">
+                <table class="fos-util-detail-table fos-rr-table" aria-describedby="rr-prior-heading">
+                  <thead>
+                    <tr>
+                      <th class="fos-rr-sortable" data-rr-table="prior" data-rr-sort="milestone">Milestone <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="prior" data-rr-sort="agreement">Agreement <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="prior" data-rr-sort="customer">Customer <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="prior" data-rr-sort="targetDate">Target date <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="prior" data-rr-sort="targetAmount">Target <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="prior" data-rr-sort="actualAmount">Actual <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="prior" data-rr-sort="varianceAmt">Variance <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="prior" data-rr-sort="state">Status <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="prior" data-rr-sort="recognized">Recognized <span class="sort-icon">↕</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="rr-tbody-prior"></tbody>
+                </table>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="rr-empty-prior" style="color: var(--ag-text-muted)">No milestones with target in the prior month (excluding Not Scheduled).</p>
+            </section>
+
+            <section class="fos-section-card mb-3" id="rr-section-current" aria-labelledby="rr-current-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="rr-current-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Current month — milestone billing</h2>
+                <span class="small" style="color: var(--ag-text-muted)" id="rr-current-meta"></span>
+                <button type="button" class="btn btn-sm btn-link p-0 ms-auto text-decoration-none d-print-none" data-rr-csv="current" style="color: var(--ag-accent)">Copy CSV</button>
+              </div>
+              <div class="fos-rr-table-wrap">
+                <table class="fos-util-detail-table fos-rr-table" aria-describedby="rr-current-heading">
+                  <thead>
+                    <tr>
+                      <th class="fos-rr-sortable" data-rr-table="current" data-rr-sort="milestone">Milestone <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="current" data-rr-sort="agreement">Agreement <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="current" data-rr-sort="customer">Customer <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="current" data-rr-sort="targetDate">Target date <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="current" data-rr-sort="targetAmount">Target <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="current" data-rr-sort="actualAmount">Actual <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="current" data-rr-sort="varianceAmt">Variance <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="current" data-rr-sort="state">Status <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="current" data-rr-sort="recognized">Recognized <span class="sort-icon">↕</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="rr-tbody-current"></tbody>
+                </table>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="rr-empty-current" style="color: var(--ag-text-muted)">No milestones with target in the current month (excluding Not Scheduled).</p>
+            </section>
+
+            <section class="fos-section-card mb-3" id="rr-section-variance" aria-labelledby="rr-variance-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="rr-variance-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Variance &amp; schedule</h2>
+                <span class="small" style="color: var(--ag-text-muted)">Prior + current month by target date — amount mismatch or past target not invoiced</span>
+                <button type="button" class="btn btn-sm btn-link p-0 ms-auto text-decoration-none d-print-none" data-rr-csv="variance" style="color: var(--ag-accent)">Copy CSV</button>
+              </div>
+              <div class="fos-rr-table-wrap">
+                <table class="fos-util-detail-table fos-rr-table" aria-describedby="rr-variance-heading">
+                  <thead>
+                    <tr>
+                      <th class="fos-rr-sortable" data-rr-table="variance" data-rr-sort="milestone">Milestone <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="variance" data-rr-sort="agreement">Agreement <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="variance" data-rr-sort="targetDate">Target date <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="variance" data-rr-sort="varianceAmt">Amt variance <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="variance" data-rr-sort="scheduleIssue">Schedule issue <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="variance" data-rr-sort="state">Status <span class="sort-icon">↕</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="rr-tbody-variance"></tbody>
+                </table>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="rr-empty-variance" style="color: var(--ag-text-muted)">No variance rows for this window.</p>
+            </section>
+
+            <section class="fos-section-card mb-3" id="rr-section-portfolio" aria-labelledby="rr-portfolio-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="rr-portfolio-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Agreement portfolio</h2>
+                <button type="button" class="btn btn-sm btn-link p-0 ms-auto text-decoration-none d-print-none" data-rr-csv="portfolio" style="color: var(--ag-accent)">Copy CSV</button>
+              </div>
+              <div class="fos-rr-table-wrap">
+                <table class="fos-util-detail-table fos-rr-table" aria-describedby="rr-portfolio-heading">
+                  <thead>
+                    <tr>
+                      <th class="fos-rr-sortable" data-rr-table="portfolio" data-rr-sort="agreement">Agreement <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="portfolio" data-rr-sort="customer">Customer <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="portfolio" data-rr-sort="type">Type <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="portfolio" data-rr-sort="state">Status <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="portfolio" data-rr-sort="plannedRev">Planned <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="portfolio" data-rr-sort="revRec">Recognized <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="portfolio" data-rr-sort="pctRec">% rec. <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="portfolio" data-rr-sort="durEnd">End date <span class="sort-icon">↕</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="rr-tbody-portfolio"></tbody>
+                </table>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="rr-empty-portfolio" style="color: var(--ag-text-muted)">No agreements in scope.</p>
+            </section>
+
+            <section class="fos-section-card mb-3" id="rr-section-customer" aria-labelledby="rr-customer-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="rr-customer-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Revenue by customer</h2>
+                <button type="button" class="btn btn-sm btn-link p-0 ms-auto text-decoration-none d-print-none" data-rr-csv="customer" style="color: var(--ag-accent)">Copy CSV</button>
+              </div>
+              <div class="fos-rr-table-wrap">
+                <table class="fos-util-detail-table fos-rr-table" aria-describedby="rr-customer-heading">
+                  <thead>
+                    <tr>
+                      <th class="fos-rr-sortable" data-rr-table="customer" data-rr-sort="customer">Customer <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="customer" data-rr-sort="agreementCount">Agreements <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="customer" data-rr-sort="plannedRev">Planned <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="customer" data-rr-sort="revRec">Recognized <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="customer" data-rr-sort="pctRec">% rec. <span class="sort-icon">↕</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="rr-tbody-customer"></tbody>
+                </table>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="rr-empty-customer" style="color: var(--ag-text-muted)">No customer rollup.</p>
+            </section>
+
+            <section class="fos-section-card mb-3" id="rr-section-overdue" aria-labelledby="rr-overdue-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="rr-overdue-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Overdue / at-risk milestones</h2>
+                <button type="button" class="btn btn-sm btn-link p-0 ms-auto text-decoration-none d-print-none" data-rr-csv="overdue" style="color: var(--ag-accent)">Copy CSV</button>
+              </div>
+              <div class="fos-rr-table-wrap">
+                <table class="fos-util-detail-table fos-rr-table" aria-describedby="rr-overdue-heading">
+                  <thead>
+                    <tr>
+                      <th class="fos-rr-sortable" data-rr-table="overdue" data-rr-sort="milestone">Milestone <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="overdue" data-rr-sort="agreement">Agreement <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="overdue" data-rr-sort="customer">Customer <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="overdue" data-rr-sort="targetDate">Target date <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="overdue" data-rr-sort="daysLate">Days late <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="overdue" data-rr-sort="targetAmount">Target <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="overdue" data-rr-sort="state">Status <span class="sort-icon">↕</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="rr-tbody-overdue"></tbody>
+                </table>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="rr-empty-overdue" style="color: var(--ag-text-muted)">No overdue milestones in scope.</p>
+            </section>
+
+            <section class="fos-section-card mb-3" id="rr-section-detail" aria-labelledby="rr-detail-heading">
+              <h2 id="rr-detail-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Milestone detail</h2>
+              <p class="small mb-2" style="color: var(--ag-text-muted)">By customer → agreement. Expand rows to see every milestone in scope.</p>
+              <div id="rr-detail-tree" class="small"></div>
+              <p class="small mb-0 mt-2 d-none" id="rr-empty-detail" style="color: var(--ag-text-muted)">No milestones to show.</p>
+            </section>
+          </div>
+        </div>
       </main>
     </div>
   </div>
@@ -3195,6 +3516,7 @@
         'operations': 'bi-kanban-fill',
         'labor-hours': 'bi-clock-history',
         'delivery': 'bi-truck',
+        'revenue-review': 'bi-cash-stack',
       };
 
       function escapeHtml(text) {
@@ -3325,6 +3647,32 @@
         deliveryPnlGridBody: document.getElementById('delivery-pnl-grid-body'),
         deliveryPnlGridFoot: document.getElementById('delivery-pnl-grid-foot'),
         deliveryPnlEmpty: document.getElementById('delivery-pnl-empty'),
+        // Monthly Revenue Review (agreement cache).
+        panelRevenueReview: document.getElementById('panel-revenue-review'),
+        rrWarn: document.getElementById('rr-warn'),
+        rrLoading: document.getElementById('rr-loading'),
+        rrRefreshBtn: document.getElementById('rr-refresh-btn'),
+        rrLastRefresh: document.getElementById('rr-last-refresh'),
+        rrFetchError: document.getElementById('rr-fetch-error'),
+        rrSubtitle: document.getElementById('rr-subtitle'),
+        rrStaleBadge: document.getElementById('rr-stale-badge'),
+        rrTtlSelect: document.getElementById('rr-ttl-select'),
+        rrPartialNote: document.getElementById('rr-partial-note'),
+        rrExpirySection: document.getElementById('rr-expiry-section'),
+        rrExpiryList: document.getElementById('rr-expiry-list'),
+        rrPrerecBanner: document.getElementById('rr-prerec-banner'),
+        rrPrerecList: document.getElementById('rr-prerec-list'),
+        rrCopyAllCsvBtn: document.getElementById('rr-copy-all-csv-btn'),
+        rrCsvStatus: document.getElementById('rr-csv-status'),
+        rrExpandDetailBtn: document.getElementById('rr-expand-detail-btn'),
+        rrCollapseDetailBtn: document.getElementById('rr-collapse-detail-btn'),
+        rrTbodyPrior: document.getElementById('rr-tbody-prior'),
+        rrTbodyCurrent: document.getElementById('rr-tbody-current'),
+        rrTbodyVariance: document.getElementById('rr-tbody-variance'),
+        rrTbodyPortfolio: document.getElementById('rr-tbody-portfolio'),
+        rrTbodyCustomer: document.getElementById('rr-tbody-customer'),
+        rrTbodyOverdue: document.getElementById('rr-tbody-overdue'),
+        rrDetailTree: document.getElementById('rr-detail-tree'),
         deliveryPnlError: document.getElementById('delivery-pnl-error'),
         deliveryPnlReconcile: document.getElementById('delivery-pnl-reconcile'),
         // v1.20.0 (Phase B) — Delivery Dashboard chart + drill-down + CSV
@@ -3457,6 +3805,7 @@
       // a full re-render when the user just toggles back to a panel whose
       // cached payload is identical to what's already on screen. v1.13.1.
       var agreementRenderState = { lastRenderedFetchedAt: null };
+      var revenueReviewRenderState = { lastRenderedFetchedAt: null };
       var utilRenderState = { lastRenderedFetchedAt: null };
 
       function setAgreementLoading(on) {
@@ -3469,6 +3818,19 @@
         } else {
           els.agreementLoading.classList.add('d-none');
           els.agreementLoading.setAttribute('aria-hidden', 'true');
+        }
+      }
+
+      function setRrLoading(on) {
+        if (!els.rrLoading) {
+          return;
+        }
+        if (on) {
+          els.rrLoading.classList.remove('d-none');
+          els.rrLoading.setAttribute('aria-hidden', 'false');
+        } else {
+          els.rrLoading.classList.add('d-none');
+          els.rrLoading.setAttribute('aria-hidden', 'true');
         }
       }
 
@@ -4597,39 +4959,85 @@
         // Remember which payload the DOM now reflects so subsequent panel
         // switches can skip a redundant re-render (v1.13.1).
         agreementRenderState.lastRenderedFetchedAt = data.fetchedAt || null;
+
+        if (els.panelRevenueReview && !els.panelRevenueReview.classList.contains('d-none')) {
+          renderRevenueReview_(data);
+        }
       }
 
-      function fetchAgreementFromServer() {
-        if (els.agreementRefreshBtn) {
-          els.agreementRefreshBtn.disabled = true;
+      function fetchAgreementFromServer(loadingTarget) {
+        loadingTarget = loadingTarget || 'agreement';
+        var isRr = loadingTarget === 'revenue-review';
+        if (isRr) {
+          if (els.rrRefreshBtn) {
+            els.rrRefreshBtn.disabled = true;
+          }
+          if (els.rrFetchError) {
+            els.rrFetchError.classList.add('d-none');
+          }
+          setRrLoading(true);
+        } else {
+          if (els.agreementRefreshBtn) {
+            els.agreementRefreshBtn.disabled = true;
+          }
+          els.agreementFetchError.classList.add('d-none');
+          setAgreementLoading(true);
         }
-        els.agreementFetchError.classList.add('d-none');
-        setAgreementLoading(true);
         google.script.run
           .withSuccessHandler(function (data) {
-            setAgreementLoading(false);
-            if (els.agreementRefreshBtn) {
-              els.agreementRefreshBtn.disabled = false;
+            if (isRr) {
+              setRrLoading(false);
+              if (els.rrRefreshBtn) {
+                els.rrRefreshBtn.disabled = false;
+              }
+            } else {
+              setAgreementLoading(false);
+              if (els.agreementRefreshBtn) {
+                els.agreementRefreshBtn.disabled = false;
+              }
             }
             if (!data || data.ok === false) {
-              els.agreementFetchError.textContent = (data && data.message) || 'Could not load agreement data.';
-              els.agreementFetchError.classList.remove('d-none');
+              var m = (data && data.message) || 'Could not load agreement data.';
+              if (isRr) {
+                if (els.rrFetchError) {
+                  els.rrFetchError.textContent = m;
+                  els.rrFetchError.classList.remove('d-none');
+                }
+              } else {
+                els.agreementFetchError.textContent = m;
+                els.agreementFetchError.classList.remove('d-none');
+              }
               return;
             }
             writeAgreementCache(data);
             applyAgreementPayload(data);
           })
           .withFailureHandler(function (err) {
-            setAgreementLoading(false);
-            if (els.agreementRefreshBtn) {
-              els.agreementRefreshBtn.disabled = false;
+            if (isRr) {
+              setRrLoading(false);
+              if (els.rrRefreshBtn) {
+                els.rrRefreshBtn.disabled = false;
+              }
+              var msg = err && err.message ? err.message : 'Refresh failed.';
+              if (msg === 'NOT_AUTHORIZED') {
+                msg = 'Your session is not authorized. Reload the page.';
+              }
+              if (els.rrFetchError) {
+                els.rrFetchError.textContent = msg;
+                els.rrFetchError.classList.remove('d-none');
+              }
+            } else {
+              setAgreementLoading(false);
+              if (els.agreementRefreshBtn) {
+                els.agreementRefreshBtn.disabled = false;
+              }
+              var msg2 = err && err.message ? err.message : 'Refresh failed.';
+              if (msg2 === 'NOT_AUTHORIZED') {
+                msg2 = 'Your session is not authorized. Reload the page.';
+              }
+              els.agreementFetchError.textContent = msg2;
+              els.agreementFetchError.classList.remove('d-none');
             }
-            var msg = err && err.message ? err.message : 'Refresh failed.';
-            if (msg === 'NOT_AUTHORIZED') {
-              msg = 'Your session is not authorized. Reload the page.';
-            }
-            els.agreementFetchError.textContent = msg;
-            els.agreementFetchError.classList.remove('d-none');
           })
           .getAgreementDashboardData();
       }
@@ -4666,6 +5074,38 @@
                 els.staleBadge.classList.add('d-none');
               }
             }
+          }
+          if (els.rrTtlSelect) {
+            els.rrTtlSelect.value = String(n);
+          }
+        });
+      }
+
+      if (els.rrRefreshBtn) {
+        els.rrRefreshBtn.addEventListener('click', function () {
+          logActivity_('revenue_review_refresh', 'revenue-review', '');
+          fetchAgreementFromServer('revenue-review');
+        });
+      }
+      if (els.rrTtlSelect) {
+        els.rrTtlSelect.value = String(readTtlMinutes());
+        els.rrTtlSelect.addEventListener('change', function () {
+          var n = parseInt(els.rrTtlSelect.value, 10);
+          if (!isFinite(n) || n < 0) {
+            n = DEFAULT_TTL_MINUTES;
+          }
+          writeTtlMinutes(n);
+          logActivity_('ttl_change', 'revenue-review', String(n) + 'm');
+          var cached = readAgreementCache();
+          if (cached && els.rrStaleBadge) {
+            if (n > 0 && isCacheStale(cached, n)) {
+              els.rrStaleBadge.classList.remove('d-none');
+            } else {
+              els.rrStaleBadge.classList.add('d-none');
+            }
+          }
+          if (els.ttlSelect) {
+            els.ttlSelect.value = String(n);
           }
         });
       }
@@ -4730,6 +5170,9 @@
         if (els.panelLaborHours) {
           els.panelLaborHours.classList.add('d-none');
         }
+        if (els.panelRevenueReview) {
+          els.panelRevenueReview.classList.add('d-none');
+        }
         els.topbarTitle.textContent = 'Home';
       }
 
@@ -4743,6 +5186,9 @@
         }
         if (els.panelLaborHours) {
           els.panelLaborHours.classList.add('d-none');
+        }
+        if (els.panelRevenueReview) {
+          els.panelRevenueReview.classList.add('d-none');
         }
         if (els.panelAgreementDashboard) {
           els.panelAgreementDashboard.classList.remove('d-none');
@@ -7054,6 +7500,7 @@
         if (els.panelAgreementDashboard) els.panelAgreementDashboard.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
+        if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelOperations) els.panelOperations.classList.remove('d-none');
         els.topbarTitle.textContent = 'Operations';
         if (els.utilFetchError) els.utilFetchError.classList.add('d-none');
@@ -8016,6 +8463,7 @@
         if (els.panelAgreementDashboard) els.panelAgreementDashboard.classList.add('d-none');
         if (els.panelOperations) els.panelOperations.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
+        if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelLaborHours) els.panelLaborHours.classList.remove('d-none');
         els.topbarTitle.textContent = 'Labor hours';
         if (els.lhFetchError) els.lhFetchError.classList.add('d-none');
@@ -8512,6 +8960,7 @@
         if (els.panelAgreementDashboard) els.panelAgreementDashboard.classList.add('d-none');
         if (els.panelOperations) els.panelOperations.classList.add('d-none');
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
+        if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.remove('d-none');
         els.topbarTitle.textContent = 'Delivery';
         if (els.deliveryFetchError) els.deliveryFetchError.classList.add('d-none');
@@ -8534,6 +8983,978 @@
           applyDeliveryStoredFilters_();
           applyDeliveryPayload({ ok: true, fetchedAt: null, projects: [], warnings: [] });
           fetchDeliveryFromServer({ manual: false });
+        }
+      }
+
+      /* =====================================================================
+         Monthly Revenue Review — Phase A–B. Agreement cache
+         (`fos_agreement_dashboard_v2`) + `getAgreementDashboardData()`.
+         ================================================================== */
+
+      var RR_SORT_STORAGE_KEY = 'fos_rr_table_sort_v1';
+      var revenueReviewViewModel_ = {
+        bounds: null,
+        sort: {
+          prior: { key: 'targetDate', dir: 'asc' },
+          current: { key: 'targetDate', dir: 'asc' },
+          variance: { key: 'targetDate', dir: 'desc' },
+          portfolio: { key: 'plannedRev', dir: 'desc' },
+          customer: { key: 'revRec', dir: 'desc' },
+          overdue: { key: 'daysLate', dir: 'desc' },
+        },
+        rowsPrior: [],
+        rowsCurrent: [],
+        rowsVariance: [],
+        rowsPortfolio: [],
+        rowsCustomer: [],
+        rowsOverdue: [],
+        _todayStart: null,
+      };
+      var revenueReviewPrintBound_ = false;
+      var revenueReviewPrintRestore_ = [];
+
+      function rrLoadSortPrefs_() {
+        try {
+          var raw = sessionStorage.getItem(RR_SORT_STORAGE_KEY);
+          if (!raw) return;
+          var o = JSON.parse(raw);
+          if (!o || typeof o !== 'object') return;
+          var keys = Object.keys(revenueReviewViewModel_.sort);
+          for (var i = 0; i < keys.length; i++) {
+            var k = keys[i];
+            if (o[k] && o[k].key && (o[k].dir === 'asc' || o[k].dir === 'desc')) {
+              revenueReviewViewModel_.sort[k] = { key: o[k].key, dir: o[k].dir };
+            }
+          }
+        } catch (e) {
+          /* ignore */
+        }
+      }
+
+      function rrSaveSortPrefs_() {
+        try {
+          sessionStorage.setItem(RR_SORT_STORAGE_KEY, JSON.stringify(revenueReviewViewModel_.sort));
+        } catch (e) {
+          /* ignore */
+        }
+      }
+
+      function rrCsvEscape_(s) {
+        var v = String(s == null ? '' : s);
+        if (v.indexOf(',') >= 0 || v.indexOf('"') >= 0 || v.indexOf('\n') >= 0 || v.indexOf('\r') >= 0) {
+          return '"' + v.replace(/"/g, '""') + '"';
+        }
+        return v;
+      }
+
+      function rrCsvRow_(cells) {
+        var parts = [];
+        for (var i = 0; i < cells.length; i++) {
+          parts.push(rrCsvEscape_(cells[i]));
+        }
+        return parts.join(',');
+      }
+
+      function flashRrCsvStatus_(msg) {
+        if (!els.rrCsvStatus) return;
+        els.rrCsvStatus.textContent = msg || '';
+        if (els.rrCsvStatus._rrT) clearTimeout(els.rrCsvStatus._rrT);
+        els.rrCsvStatus._rrT = setTimeout(function () {
+          if (els.rrCsvStatus) els.rrCsvStatus.textContent = '';
+        }, 3500);
+      }
+
+      function rrAugmentMilestone_(m, agreementById, todayStart) {
+        var ag = agreementById[m.agreementId] || {};
+        var tgt = Number(m.targetAmount || 0);
+        var act = Number(m.actualAmount || 0);
+        var td = parseIsoLocalDay_(m.targetDate);
+        var inv = rrIsInvoicedState_(m.state);
+        var schedIssue = !!(td && td < todayStart && tgt > 0 && !m.recognized && !inv);
+        var daysLate = 0;
+        if (td && td < todayStart) {
+          daysLate = Math.max(0, Math.floor((todayStart.getTime() - td.getTime()) / 86400000));
+        }
+        return {
+          milestone: m.name || '—',
+          agreement: ag.name || m.agreement || '—',
+          agreementId: m.agreementId || '',
+          customer: m.customer || ag.customer || '—',
+          targetDate: m.targetDate || '',
+          targetAmount: tgt,
+          actualAmount: act,
+          varianceAmt: act - tgt,
+          state: m.state || '—',
+          recognized: !!m.recognized,
+          scheduleIssue: schedIssue,
+          daysLate: daysLate,
+        };
+      }
+
+      function rrSortRows_(rows, key, dir) {
+        rows.sort(function (a, b) {
+          var cmp = 0;
+          var va = a[key];
+          var vb = b[key];
+          if (
+            key === 'targetAmount' ||
+            key === 'actualAmount' ||
+            key === 'varianceAmt' ||
+            key === 'plannedRev' ||
+            key === 'revRec' ||
+            key === 'pctRec' ||
+            key === 'agreementCount' ||
+            key === 'daysLate'
+          ) {
+            cmp = (Number(va) || 0) - (Number(vb) || 0);
+          } else if (key === 'targetDate' || key === 'durEnd') {
+            cmp = String(va || '').localeCompare(String(vb || ''));
+          } else if (key === 'recognized' || key === 'scheduleIssue') {
+            cmp = (va ? 1 : 0) - (vb ? 1 : 0);
+          } else {
+            cmp = String(va || '')
+              .toLowerCase()
+              .localeCompare(String(vb || '').toLowerCase());
+          }
+          return dir === 'asc' ? cmp : -cmp;
+        });
+      }
+
+      function rrUpdateSortHeaderClasses_(tableKey) {
+        if (!els.panelRevenueReview) return;
+        var ths = els.panelRevenueReview.querySelectorAll('th.fos-rr-sortable[data-rr-table="' + tableKey + '"]');
+        var st = revenueReviewViewModel_.sort[tableKey];
+        for (var i = 0; i < ths.length; i++) {
+          var th = ths[i];
+          th.classList.remove('sort-active');
+          var sk = th.getAttribute('data-rr-sort');
+          if (st && sk === st.key) {
+            th.classList.add('sort-active');
+          }
+        }
+      }
+
+      function rrMilestoneStatusPill_(state, recognized) {
+        var col = milestoneStatusColor_(state, recognized);
+        var lab = escapeHtml(state || (recognized ? 'Recognized' : '—'));
+        return (
+          '<span class="fos-util-pill" style="background:' +
+          col +
+          ';color:#061b30;border:none">' +
+          lab +
+          '</span>'
+        );
+      }
+
+      function paintRevenueReviewTables_() {
+        var vm = revenueReviewViewModel_;
+        function paintOne(tableKey, tbodyEl, emptyEl, metaEl, metaFmt) {
+          if (!tbodyEl) return;
+          var rows = vm[tableKey === 'prior' ? 'rowsPrior' : tableKey === 'current' ? 'rowsCurrent' : tableKey === 'variance' ? 'rowsVariance' : tableKey === 'portfolio' ? 'rowsPortfolio' : tableKey === 'customer' ? 'rowsCustomer' : 'rowsOverdue'] || [];
+          var st = vm.sort[tableKey];
+          if (st) {
+            var copy = rows.slice();
+            rrSortRows_(copy, st.key, st.dir);
+            rows = copy;
+          }
+          var html = [];
+          var ri;
+          if (tableKey === 'prior' || tableKey === 'current') {
+            for (ri = 0; ri < rows.length; ri++) {
+              var r = rows[ri];
+              html.push(
+                '<tr><td>' +
+                  escapeHtml(r.milestone) +
+                  '</td><td>' +
+                  escapeHtml(r.agreement) +
+                  '</td><td>' +
+                  escapeHtml(r.customer) +
+                  '</td><td class="text-end">' +
+                  escapeHtml(r.targetDate || '—') +
+                  '</td><td class="text-end">' +
+                  formatMoneyCompact(r.targetAmount) +
+                  '</td><td class="text-end">' +
+                  formatMoneyCompact(r.actualAmount) +
+                  '</td><td class="text-end">' +
+                  formatMoneyParenIfNegative_(r.varianceAmt) +
+                  '</td><td>' +
+                  rrMilestoneStatusPill_(r.state, r.recognized) +
+                  '</td><td>' +
+                  (r.recognized ? 'Yes' : 'No') +
+                  '</td></tr>'
+              );
+            }
+          } else if (tableKey === 'variance') {
+            for (ri = 0; ri < rows.length; ri++) {
+              var v = rows[ri];
+              html.push(
+                '<tr><td>' +
+                  escapeHtml(v.milestone) +
+                  '</td><td>' +
+                  escapeHtml(v.agreement) +
+                  '</td><td class="text-end">' +
+                  escapeHtml(v.targetDate || '—') +
+                  '</td><td class="text-end">' +
+                  formatMoneyParenIfNegative_(v.varianceAmt) +
+                  '</td><td>' +
+                  (v.scheduleIssue ? '<span style="color:var(--ag-warn)">Yes</span>' : '—') +
+                  '</td><td>' +
+                  rrMilestoneStatusPill_(v.state, v.recognized) +
+                  '</td></tr>'
+              );
+            }
+          } else if (tableKey === 'portfolio') {
+            for (ri = 0; ri < rows.length; ri++) {
+              var p = rows[ri];
+              html.push(
+                '<tr><td>' +
+                  escapeHtml(p.agreement) +
+                  '</td><td>' +
+                  escapeHtml(p.customer) +
+                  '</td><td>' +
+                  escapeHtml(p.type || '—') +
+                  '</td><td>' +
+                  escapeHtml(p.state || '—') +
+                  '</td><td class="text-end">' +
+                  formatMoneyCompact(p.plannedRev) +
+                  '</td><td class="text-end">' +
+                  formatMoneyCompact(p.revRec) +
+                  '</td><td class="text-end">' +
+                  formatPct(p.pctRec) +
+                  '%</td><td class="text-end">' +
+                  escapeHtml(p.durEnd || '—') +
+                  '</td></tr>'
+              );
+            }
+          } else if (tableKey === 'customer') {
+            for (ri = 0; ri < rows.length; ri++) {
+              var c = rows[ri];
+              html.push(
+                '<tr><td>' +
+                  escapeHtml(c.customer) +
+                  '</td><td class="text-end">' +
+                  String(c.agreementCount) +
+                  '</td><td class="text-end">' +
+                  formatMoneyCompact(c.plannedRev) +
+                  '</td><td class="text-end">' +
+                  formatMoneyCompact(c.revRec) +
+                  '</td><td class="text-end">' +
+                  formatPct(c.pctRec) +
+                  '%</td></tr>'
+              );
+            }
+          } else if (tableKey === 'overdue') {
+            for (ri = 0; ri < rows.length; ri++) {
+              var o = rows[ri];
+              html.push(
+                '<tr><td>' +
+                  escapeHtml(o.milestone) +
+                  '</td><td>' +
+                  escapeHtml(o.agreement) +
+                  '</td><td>' +
+                  escapeHtml(o.customer) +
+                  '</td><td class="text-end">' +
+                  escapeHtml(o.targetDate || '—') +
+                  '</td><td class="text-end">' +
+                  String(o.daysLate) +
+                  '</td><td class="text-end">' +
+                  formatMoneyCompact(o.targetAmount) +
+                  '</td><td>' +
+                  rrMilestoneStatusPill_(o.state, o.recognized) +
+                  '</td></tr>'
+              );
+            }
+          }
+          tbodyEl.innerHTML = html.join('');
+          if (emptyEl) {
+            if (!rows.length) emptyEl.classList.remove('d-none');
+            else emptyEl.classList.add('d-none');
+          }
+          if (metaEl && metaFmt) {
+            metaEl.textContent = metaFmt(rows.length);
+          }
+          rrUpdateSortHeaderClasses_(tableKey);
+        }
+        paintOne('prior', els.rrTbodyPrior, document.getElementById('rr-empty-prior'), document.getElementById('rr-prior-meta'), function (n) {
+          return n + ' row' + (n === 1 ? '' : 's');
+        });
+        paintOne('current', els.rrTbodyCurrent, document.getElementById('rr-empty-current'), document.getElementById('rr-current-meta'), function (n2) {
+          return n2 + ' row' + (n2 === 1 ? '' : 's');
+        });
+        paintOne('variance', els.rrTbodyVariance, document.getElementById('rr-empty-variance'), null, null);
+        paintOne('portfolio', els.rrTbodyPortfolio, document.getElementById('rr-empty-portfolio'), null, null);
+        paintOne('customer', els.rrTbodyCustomer, document.getElementById('rr-empty-customer'), null, null);
+        paintOne('overdue', els.rrTbodyOverdue, document.getElementById('rr-empty-overdue'), null, null);
+      }
+
+      function renderRrDetailTree_(milestones, agreementById, todayStart) {
+        if (!els.rrDetailTree) return;
+        var byCust = {};
+        var mi;
+        for (mi = 0; mi < milestones.length; mi++) {
+          var m = milestones[mi];
+          var row = rrAugmentMilestone_(m, agreementById, todayStart);
+          var ck = row.customer || '(Unknown)';
+          if (!byCust[ck]) byCust[ck] = {};
+          var aid = row.agreementId || row.agreement || '_';
+          if (!byCust[ck][aid]) byCust[ck][aid] = { agreement: row.agreement, rows: [] };
+          byCust[ck][aid].rows.push(row);
+        }
+        var custKeys = Object.keys(byCust).sort(function (a, b) {
+          return a.toLowerCase().localeCompare(b.toLowerCase());
+        });
+        if (!custKeys.length) {
+          els.rrDetailTree.innerHTML = '';
+          var ed = document.getElementById('rr-empty-detail');
+          if (ed) ed.classList.remove('d-none');
+          return;
+        }
+        var ed2 = document.getElementById('rr-empty-detail');
+        if (ed2) ed2.classList.add('d-none');
+        var parts = [];
+        for (var ci = 0; ci < custKeys.length; ci++) {
+          var cust = custKeys[ci];
+          parts.push(
+            '<details class="fos-rr-cust-detail mb-2"><summary><span class="fos-rr-chev">▸</span>' +
+              escapeHtml(cust) +
+              '</summary><div class="mt-2 ps-2">'
+          );
+          var agMap = byCust[cust];
+          var aids = Object.keys(agMap).sort(function (a, b) {
+            return (agMap[a].agreement || '').toLowerCase().localeCompare((agMap[b].agreement || '').toLowerCase());
+          });
+          var ai;
+          for (ai = 0; ai < aids.length; ai++) {
+            var pack = agMap[aids[ai]];
+            var mrows = pack.rows.slice().sort(function (a, b) {
+              return String(a.targetDate).localeCompare(String(b.targetDate));
+            });
+            parts.push(
+              '<details class="fos-rr-agreement-detail mb-2"><summary><span class="fos-rr-chev">▸</span>' +
+                escapeHtml(pack.agreement || 'Agreement') +
+                ' · ' +
+                mrows.length +
+                ' milestone' +
+                (mrows.length === 1 ? '' : 's') +
+                '</summary><div class="fos-rr-table-wrap mt-1"><table class="fos-util-detail-table fos-rr-table"><thead><tr><th>Milestone</th><th class="text-end">Target date</th><th class="text-end">Target</th><th class="text-end">Actual</th><th class="text-end">Variance</th><th>Status</th></tr></thead><tbody>'
+            );
+            var rj;
+            for (rj = 0; rj < mrows.length; rj++) {
+              var mr = mrows[rj];
+              parts.push(
+                '<tr><td>' +
+                  escapeHtml(mr.milestone) +
+                  '</td><td class="text-end">' +
+                  escapeHtml(mr.targetDate || '—') +
+                  '</td><td class="text-end">' +
+                  formatMoneyCompact(mr.targetAmount) +
+                  '</td><td class="text-end">' +
+                  formatMoneyCompact(mr.actualAmount) +
+                  '</td><td class="text-end">' +
+                  formatMoneyParenIfNegative_(mr.varianceAmt) +
+                  '</td><td>' +
+                  rrMilestoneStatusPill_(mr.state, mr.recognized) +
+                  '</td></tr>'
+              );
+            }
+            parts.push('</tbody></table></div></details>');
+          }
+          parts.push('</div></details>');
+        }
+        els.rrDetailTree.innerHTML = parts.join('');
+      }
+
+      function setRrDetailsOpen_(open) {
+        if (!els.panelRevenueReview) return;
+        var dets = els.panelRevenueReview.querySelectorAll('details.fos-rr-cust-detail, details.fos-rr-agreement-detail');
+        for (var i = 0; i < dets.length; i++) {
+          dets[i].open = !!open;
+          var ch = dets[i].querySelector(':scope > summary .fos-rr-chev');
+          if (ch) ch.textContent = open ? '▾' : '▸';
+        }
+        logActivity_('revenue_review_expand', 'revenue-review', open ? 'all' : 'collapse');
+      }
+
+      function exportRevenueReviewCsv_(which) {
+        var vm = revenueReviewViewModel_;
+        var bounds = vm.bounds || buildRevenueReviewMonthBounds_(new Date());
+        var lines = [];
+        lines.push('# Revenue review · ' + bounds.priorLabel + ' + ' + bounds.currentLabel);
+        var totalRows = 0;
+        function pushBlock(title, header, rows, mapRow) {
+          lines.push('');
+          lines.push('# ' + title);
+          lines.push(rrCsvRow_(header));
+          for (var i = 0; i < rows.length; i++) {
+            lines.push(rrCsvRow_(mapRow(rows[i])));
+            totalRows++;
+          }
+        }
+        if (which === 'all' || which === 'prior') {
+          pushBlock(
+            'Prior month milestones',
+            ['Milestone', 'Agreement', 'Customer', 'Target_date', 'Target', 'Actual', 'Variance', 'Status', 'Recognized'],
+            vm.rowsPrior,
+            function (r) {
+              return [
+                r.milestone,
+                r.agreement,
+                r.customer,
+                r.targetDate,
+                r.targetAmount,
+                r.actualAmount,
+                r.varianceAmt,
+                r.state,
+                r.recognized ? 'Y' : 'N',
+              ];
+            }
+          );
+        }
+        if (which === 'all' || which === 'current') {
+          pushBlock(
+            'Current month milestones',
+            ['Milestone', 'Agreement', 'Customer', 'Target_date', 'Target', 'Actual', 'Variance', 'Status', 'Recognized'],
+            vm.rowsCurrent,
+            function (r) {
+              return [
+                r.milestone,
+                r.agreement,
+                r.customer,
+                r.targetDate,
+                r.targetAmount,
+                r.actualAmount,
+                r.varianceAmt,
+                r.state,
+                r.recognized ? 'Y' : 'N',
+              ];
+            }
+          );
+        }
+        if (which === 'all' || which === 'variance') {
+          pushBlock(
+            'Variance',
+            ['Milestone', 'Agreement', 'Target_date', 'Amt_variance', 'Schedule_issue', 'Status'],
+            vm.rowsVariance,
+            function (v) {
+              return [v.milestone, v.agreement, v.targetDate, v.varianceAmt, v.scheduleIssue ? 'Y' : 'N', v.state];
+            }
+          );
+        }
+        if (which === 'all' || which === 'portfolio') {
+          pushBlock(
+            'Portfolio',
+            ['Agreement', 'Customer', 'Type', 'Status', 'Planned', 'Recognized', 'Pct_rec', 'End_date'],
+            vm.rowsPortfolio,
+            function (p) {
+              return [p.agreement, p.customer, p.type, p.state, p.plannedRev, p.revRec, p.pctRec, p.durEnd];
+            }
+          );
+        }
+        if (which === 'all' || which === 'customer') {
+          pushBlock(
+            'Revenue by customer',
+            ['Customer', 'Agreements', 'Planned', 'Recognized', 'Pct_rec'],
+            vm.rowsCustomer,
+            function (c) {
+              return [c.customer, c.agreementCount, c.plannedRev, c.revRec, c.pctRec];
+            }
+          );
+        }
+        if (which === 'all' || which === 'overdue') {
+          pushBlock(
+            'Overdue',
+            ['Milestone', 'Agreement', 'Customer', 'Target_date', 'Days_late', 'Target', 'Status'],
+            vm.rowsOverdue,
+            function (o) {
+              return [o.milestone, o.agreement, o.customer, o.targetDate, o.daysLate, o.targetAmount, o.state];
+            }
+          );
+        }
+        var text = lines.join('\n');
+        writeTextToClipboard_(text)
+          .then(function () {
+            flashRrCsvStatus_('Copied CSV (' + which + ') · ~' + totalRows + ' data rows');
+            logActivity_('revenue_review_export', 'revenue-review', 'scope=' + which + ' · rows=' + totalRows);
+          })
+          .catch(function () {
+            flashRrCsvStatus_('Copy failed');
+          });
+      }
+
+      function wireRevenueReviewTablesOnce_() {
+        if (!els.panelRevenueReview || els.panelRevenueReview._rrTablesWired) return;
+        els.panelRevenueReview._rrTablesWired = true;
+        rrLoadSortPrefs_();
+        els.panelRevenueReview.addEventListener('click', function (ev) {
+          var jumpEl = ev.target.closest('[data-rr-scroll-to]');
+          if (jumpEl) {
+            var sid = jumpEl.getAttribute('data-rr-scroll-to');
+            var jt = sid ? document.getElementById(sid) : null;
+            if (jt) {
+              jt.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              logActivity_('revenue_review_kpi_nav', 'revenue-review', sid || '');
+            }
+            return;
+          }
+          var csvOne = ev.target.closest('[data-rr-csv]');
+          if (csvOne) {
+            exportRevenueReviewCsv_(csvOne.getAttribute('data-rr-csv') || 'all');
+            return;
+          }
+          var th = ev.target.closest('th.fos-rr-sortable');
+          if (!th) return;
+          var tbl = th.getAttribute('data-rr-table');
+          var sk = th.getAttribute('data-rr-sort');
+          if (!tbl || !sk || !revenueReviewViewModel_.sort[tbl]) return;
+          var st = revenueReviewViewModel_.sort[tbl];
+          if (st.key === sk) {
+            st.dir = st.dir === 'asc' ? 'desc' : 'asc';
+          } else {
+            st.key = sk;
+            st.dir =
+              sk === 'targetDate' || sk === 'milestone' || sk === 'agreement' || sk === 'customer' || sk === 'state'
+                ? 'asc'
+                : 'desc';
+          }
+          rrSaveSortPrefs_();
+          paintRevenueReviewTables_();
+          logActivity_('revenue_review_sort', 'revenue-review', tbl + '=' + sk + ':' + st.dir);
+        });
+        if (!els.panelRevenueReview._rrKpiKeyBound) {
+          els.panelRevenueReview._rrKpiKeyBound = true;
+          els.panelRevenueReview.addEventListener('keydown', function (ev) {
+            if (ev.key !== 'Enter' && ev.key !== ' ') return;
+            var jumpEl2 = ev.target.closest('[data-rr-scroll-to]');
+            if (!jumpEl2) return;
+            ev.preventDefault();
+            var sid2 = jumpEl2.getAttribute('data-rr-scroll-to');
+            var jt2 = sid2 ? document.getElementById(sid2) : null;
+            if (jt2) {
+              jt2.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              logActivity_('revenue_review_kpi_nav', 'revenue-review', sid2 || '');
+            }
+          });
+        }
+        els.panelRevenueReview.addEventListener('toggle', function (ev) {
+          var t = ev.target;
+          if (!t || t.tagName !== 'DETAILS') return;
+          if (!t.classList.contains('fos-rr-cust-detail') && !t.classList.contains('fos-rr-agreement-detail')) return;
+          var ch = t.querySelector(':scope > summary .fos-rr-chev');
+          if (ch) ch.textContent = t.open ? '▾' : '▸';
+        });
+        if (els.rrCopyAllCsvBtn) {
+          els.rrCopyAllCsvBtn.addEventListener('click', function () {
+            exportRevenueReviewCsv_('all');
+          });
+        }
+        if (els.rrExpandDetailBtn) {
+          els.rrExpandDetailBtn.addEventListener('click', function () {
+            setRrDetailsOpen_(true);
+          });
+        }
+        if (els.rrCollapseDetailBtn) {
+          els.rrCollapseDetailBtn.addEventListener('click', function () {
+            setRrDetailsOpen_(false);
+          });
+        }
+        if (!revenueReviewPrintBound_) {
+          revenueReviewPrintBound_ = true;
+          window.addEventListener('beforeprint', function () {
+            if (!els.panelRevenueReview || els.panelRevenueReview.classList.contains('d-none')) return;
+            var dets = els.panelRevenueReview.querySelectorAll('details.fos-rr-cust-detail, details.fos-rr-agreement-detail');
+            revenueReviewPrintRestore_ = [];
+            for (var pi = 0; pi < dets.length; pi++) {
+              revenueReviewPrintRestore_.push({ el: dets[pi], wasOpen: dets[pi].open });
+              dets[pi].open = true;
+              var chp = dets[pi].querySelector(':scope > summary .fos-rr-chev');
+              if (chp) chp.textContent = '▾';
+            }
+            logActivity_('revenue_review_print', 'revenue-review', 'beforeprint');
+          });
+          window.addEventListener('afterprint', function () {
+            for (var pj = 0; pj < revenueReviewPrintRestore_.length; pj++) {
+              var item = revenueReviewPrintRestore_[pj];
+              item.el.open = item.wasOpen;
+              var chq = item.el.querySelector(':scope > summary .fos-rr-chev');
+              if (chq) chq.textContent = item.el.open ? '▾' : '▸';
+            }
+            revenueReviewPrintRestore_ = [];
+          });
+        }
+      }
+
+      function rrPad2_(n) {
+        return n < 10 ? '0' + n : String(n);
+      }
+
+      function filterAgreementsForRevenueReview_(agreements) {
+        var out = [];
+        for (var i = 0; i < agreements.length; i++) {
+          var a = agreements[i];
+          if (!a) continue;
+          if (String(a.type || '').toLowerCase() === 'internal') continue;
+          var nm = String(a.name || '').toLowerCase();
+          if (nm.indexOf('test') >= 0) continue;
+          out.push(a);
+        }
+        return out;
+      }
+
+      function parseIsoLocalDay_(s) {
+        if (!s) return null;
+        var m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (!m) return null;
+        var y = parseInt(m[1], 10);
+        var mo = parseInt(m[2], 10) - 1;
+        var d = parseInt(m[3], 10);
+        var dt = new Date(y, mo, d);
+        return isNaN(dt.getTime()) ? null : dt;
+      }
+
+      function ymFromIso_(s) {
+        var m = String(s || '').match(/^(\d{4})-(\d{2})/);
+        return m ? m[1] + '-' + m[2] : null;
+      }
+
+      function buildRevenueReviewMonthBounds_(reportDate) {
+        var r = reportDate || new Date();
+        var p = new Date(r.getFullYear(), r.getMonth() - 1, 1);
+        return {
+          priorYm: p.getFullYear() + '-' + rrPad2_(p.getMonth() + 1),
+          currentYm: r.getFullYear() + '-' + rrPad2_(r.getMonth() + 1),
+          priorLabel: p.toLocaleString(undefined, { month: 'long', year: 'numeric' }),
+          currentLabel: r.toLocaleString(undefined, { month: 'long', year: 'numeric' }),
+        };
+      }
+
+      function rrIsNotScheduled_(state) {
+        return String(state || '').toLowerCase().indexOf('not scheduled') >= 0;
+      }
+
+      function rrIsInvoicedState_(state) {
+        var s = String(state || '').toLowerCase();
+        return s.indexOf('invoic') >= 0 || s.indexOf('paid') >= 0;
+      }
+
+      function rrIsContractComplete_(state) {
+        return String(state || '').toLowerCase().indexOf('contract complete') >= 0;
+      }
+
+      function rrCollectMilestones_(filteredAgreements, revenueMap) {
+        var idSet = {};
+        for (var i = 0; i < filteredAgreements.length; i++) {
+          idSet[filteredAgreements[i].id] = true;
+        }
+        var list = [];
+        var keys = Object.keys(revenueMap || {});
+        for (var k = 0; k < keys.length; k++) {
+          var aid = keys[k];
+          if (!idSet[aid]) continue;
+          var arr = revenueMap[aid] || [];
+          for (var j = 0; j < arr.length; j++) {
+            list.push(arr[j]);
+          }
+        }
+        return list;
+      }
+
+      function renderRevenueReview_(data) {
+        data = data || {};
+        revenueReviewRenderState.lastRenderedFetchedAt = data.fetchedAt || null;
+
+        var bounds = buildRevenueReviewMonthBounds_(new Date());
+        var agreements = data.agreements || [];
+        var filtered = filterAgreementsForRevenueReview_(agreements);
+        var revMap = data.revenueItemsByAgreement || revenueItemsByAgreement || {};
+        var milestones = rrCollectMilestones_(filtered, revMap);
+
+        var reportDay = new Date();
+        var todayStart = new Date(reportDay.getFullYear(), reportDay.getMonth(), reportDay.getDate());
+
+        if (els.rrLastRefresh) {
+          els.rrLastRefresh.textContent = 'Last refreshed: ' + formatLastRefresh(data.fetchedAt);
+        }
+        if (els.rrSubtitle) {
+          var asOf = data.fetchedAt ? new Date(data.fetchedAt).toLocaleString() : '—';
+          els.rrSubtitle.textContent =
+            'Review window: ' +
+            bounds.priorLabel +
+            ' + ' +
+            bounds.currentLabel +
+            ' (milestone target months) · As of ' +
+            asOf +
+            ' · ' +
+            filtered.length +
+            ' agreement' +
+            (filtered.length === 1 ? '' : 's') +
+            ' in scope';
+        }
+
+        if (els.rrWarn) {
+          if (data.warnings && data.warnings.length) {
+            els.rrWarn.textContent = data.warnings.join(' ');
+            els.rrWarn.classList.remove('d-none');
+          } else {
+            els.rrWarn.classList.add('d-none');
+          }
+        }
+        if (els.rrPartialNote) {
+          if (data.partial) {
+            els.rrPartialNote.textContent =
+              'Partial agreement payload — some rows may be trimmed. Refresh if numbers look incomplete.';
+            els.rrPartialNote.classList.remove('d-none');
+          } else {
+            els.rrPartialNote.classList.add('d-none');
+          }
+        }
+
+        var ttl = readTtlMinutes();
+        if (els.rrStaleBadge) {
+          if (ttl > 0 && isCacheStale(data, ttl)) els.rrStaleBadge.classList.remove('d-none');
+          else els.rrStaleBadge.classList.add('d-none');
+        }
+
+        var portfolio = 0;
+        var revSum = 0;
+        for (var fi = 0; fi < filtered.length; fi++) {
+          portfolio += Number(filtered[fi].plannedRev || 0);
+          revSum += Number(filtered[fi].revRec || 0);
+        }
+        var recogPct = portfolio > 0 ? (revSum / portfolio) * 100 : 0;
+
+        var priorAmt = 0;
+        var priorCt = 0;
+        var currInvAmt = 0;
+        var currInvCt = 0;
+        var currTotal = 0;
+        var varCt = 0;
+        var overdueCt = 0;
+        var priorYm = bounds.priorYm;
+        var currentYm = bounds.currentYm;
+
+        var agreementById = {};
+        for (var fi = 0; fi < filtered.length; fi++) {
+          agreementById[filtered[fi].id] = filtered[fi];
+        }
+
+        var vm = revenueReviewViewModel_;
+        vm.bounds = bounds;
+        vm._todayStart = todayStart;
+        vm.rowsPrior = [];
+        vm.rowsCurrent = [];
+        vm.rowsVariance = [];
+        vm.rowsOverdue = [];
+
+        for (var mi = 0; mi < milestones.length; mi++) {
+          var m = milestones[mi];
+          var ym = ymFromIso_(m.targetDate);
+          if (!ym) continue;
+
+          var aug = rrAugmentMilestone_(m, agreementById, todayStart);
+
+          if (!rrIsNotScheduled_(m.state) && ym === currentYm) {
+            currTotal++;
+          }
+
+          if (!rrIsNotScheduled_(m.state) && ym === priorYm) {
+            vm.rowsPrior.push(aug);
+            if (m.recognized || rrIsInvoicedState_(m.state)) {
+              priorAmt += Number(m.actualAmount || 0);
+              priorCt++;
+            }
+          }
+
+          if (!rrIsNotScheduled_(m.state) && ym === currentYm) {
+            vm.rowsCurrent.push(aug);
+            if (m.recognized || rrIsInvoicedState_(m.state)) {
+              currInvAmt += Number(m.actualAmount || 0);
+              currInvCt++;
+            }
+          }
+
+          if (!rrIsNotScheduled_(m.state) && (ym === priorYm || ym === currentYm)) {
+            var tgtV = Number(m.targetAmount || 0);
+            var actV = Number(m.actualAmount || 0);
+            var variance = actV - tgtV;
+            var schedIss = aug.scheduleIssue;
+            if (Math.abs(variance) > 0.005 || schedIss) {
+              varCt++;
+              vm.rowsVariance.push({
+                milestone: aug.milestone,
+                agreement: aug.agreement,
+                targetDate: aug.targetDate,
+                varianceAmt: variance,
+                scheduleIssue: schedIss,
+                state: aug.state,
+                recognized: aug.recognized,
+              });
+            }
+          }
+
+          if (!rrIsNotScheduled_(m.state)) {
+            var td = parseIsoLocalDay_(m.targetDate);
+            var oTgt = Number(m.targetAmount || 0);
+            if (td && td < todayStart && oTgt > 0 && !m.recognized && !rrIsInvoicedState_(m.state)) {
+              overdueCt++;
+              vm.rowsOverdue.push(aug);
+            }
+          }
+        }
+
+        vm.rowsPortfolio = [];
+        for (fi = 0; fi < filtered.length; fi++) {
+          var a = filtered[fi];
+          var pr = Number(a.plannedRev || 0);
+          var rr = Number(a.revRec || 0);
+          vm.rowsPortfolio.push({
+            agreement: a.name || '—',
+            customer: a.customer || '—',
+            type: a.type || '',
+            state: a.state || '',
+            plannedRev: pr,
+            revRec: rr,
+            pctRec: pr > 0 ? (rr / pr) * 100 : 0,
+            durEnd: a.durEnd || '',
+          });
+        }
+        var custMap = {};
+        for (fi = 0; fi < filtered.length; fi++) {
+          var a2 = filtered[fi];
+          var ck = a2.customer || '(Unknown)';
+          if (!custMap[ck]) {
+            custMap[ck] = { customer: ck, agreementCount: 0, plannedRev: 0, revRec: 0, pctRec: 0 };
+          }
+          custMap[ck].agreementCount++;
+          custMap[ck].plannedRev += Number(a2.plannedRev || 0);
+          custMap[ck].revRec += Number(a2.revRec || 0);
+        }
+        vm.rowsCustomer = [];
+        var ckeys = Object.keys(custMap);
+        for (var ci = 0; ci < ckeys.length; ci++) {
+          var co = custMap[ckeys[ci]];
+          co.pctRec = co.plannedRev > 0 ? (co.revRec / co.plannedRev) * 100 : 0;
+          vm.rowsCustomer.push(co);
+        }
+
+        var currPctMilestones = currTotal > 0 ? (currInvCt / currTotal) * 100 : 0;
+
+        paintRevenueReviewTables_();
+        renderRrDetailTree_(milestones, agreementById, todayStart);
+
+        function rrSetText_(id, txt) {
+          var el = document.getElementById(id);
+          if (el) el.textContent = txt;
+        }
+        rrSetText_('rr-kpi-portfolio', formatMoneyCompact(portfolio));
+        rrSetText_(
+          'rr-kpi-portfolio-sub',
+          filtered.length + ' agreement' + (filtered.length === 1 ? '' : 's') + ' in scope'
+        );
+        rrSetText_('rr-kpi-revrec', formatMoneyCompact(revSum));
+        rrSetText_('rr-kpi-revrec-sub', formatPct(recogPct) + '% of portfolio');
+        rrSetText_('rr-kpi-prior', formatMoneyCompact(priorAmt));
+        rrSetText_('rr-kpi-prior-sub', priorCt + ' milestone' + (priorCt === 1 ? '' : 's'));
+        rrSetText_('rr-kpi-curr', formatMoneyCompact(currInvAmt));
+        rrSetText_(
+          'rr-kpi-curr-sub',
+          formatPct(currPctMilestones) + '% of ' + currTotal + ' milestone' + (currTotal === 1 ? '' : 's')
+        );
+        rrSetText_('rr-kpi-variance', String(varCt));
+        rrSetText_('rr-kpi-variance-sub', 'Amount or schedule (prior + current month)');
+        rrSetText_('rr-kpi-overdue', String(overdueCt));
+        rrSetText_('rr-kpi-overdue-sub', 'Past target, not invoiced');
+
+        var expLines = [];
+        var nowPlus90 = new Date(todayStart.getTime());
+        nowPlus90.setDate(nowPlus90.getDate() + 90);
+        for (fi = 0; fi < filtered.length; fi++) {
+          var ag = filtered[fi];
+          if (rrIsContractComplete_(ag.state)) continue;
+          var endD = parseIsoLocalDay_(ag.durEnd);
+          if (!endD) continue;
+          var nameEsc = escapeHtml(ag.name || '');
+          if (endD < todayStart) {
+            expLines.push(
+              '<div class="mb-1"><span class="fw-semibold" style="color:var(--ag-danger)">Ended</span> · ' +
+                nameEsc +
+                ' · ended ' +
+                escapeHtml(ag.durEnd || '') +
+                '</div>'
+            );
+          } else if (endD <= nowPlus90) {
+            expLines.push(
+              '<div class="mb-1"><span class="fw-semibold" style="color:var(--ag-warn)">Ending soon</span> · ' +
+                nameEsc +
+                ' · ends ' +
+                escapeHtml(ag.durEnd || '') +
+                '</div>'
+            );
+          }
+        }
+        if (els.rrExpirySection && els.rrExpiryList) {
+          if (expLines.length) {
+            els.rrExpiryList.innerHTML = expLines.join('');
+            els.rrExpirySection.classList.remove('d-none');
+          } else {
+            els.rrExpiryList.innerHTML = '';
+            els.rrExpirySection.classList.add('d-none');
+          }
+        }
+
+        var preLines = [];
+        for (var pr = 0; pr < milestones.length; pr++) {
+          var pm = milestones[pr];
+          if (!pm.recognized) continue;
+          var tdx = parseIsoLocalDay_(pm.targetDate);
+          if (!tdx || tdx <= todayStart) continue;
+          if (rrIsInvoicedState_(pm.state)) continue;
+          var nmEsc = escapeHtml(pm.name || 'Milestone');
+          preLines.push('<li>' + nmEsc + ' · target ' + escapeHtml(pm.targetDate || '') + '</li>');
+        }
+        if (els.rrPrerecBanner && els.rrPrerecList) {
+          if (preLines.length) {
+            els.rrPrerecList.innerHTML = preLines.join('');
+            els.rrPrerecBanner.classList.remove('d-none');
+          } else {
+            els.rrPrerecList.innerHTML = '';
+            els.rrPrerecBanner.classList.add('d-none');
+          }
+        }
+      }
+
+      function showRevenueReview() {
+        if (!els.panelRevenueReview) return;
+        els.panelHome.classList.add('d-none');
+        if (els.panelAgreementDashboard) els.panelAgreementDashboard.classList.add('d-none');
+        if (els.panelOperations) els.panelOperations.classList.add('d-none');
+        if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
+        if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
+        els.panelRevenueReview.classList.remove('d-none');
+        els.topbarTitle.textContent = 'Revenue review';
+        if (els.rrFetchError) els.rrFetchError.classList.add('d-none');
+        if (els.rrTtlSelect) els.rrTtlSelect.value = String(readTtlMinutes());
+
+        var cached = readAgreementCache();
+        var ttlMinutes = readTtlMinutes();
+        if (cached) {
+          var alreadyRendered =
+            revenueReviewRenderState.lastRenderedFetchedAt &&
+            cached.fetchedAt &&
+            revenueReviewRenderState.lastRenderedFetchedAt === cached.fetchedAt;
+          if (!alreadyRendered) {
+            renderRevenueReview_(cached);
+          }
+          if (ttlMinutes > 0 && isCacheStale(cached, ttlMinutes)) {
+            fetchAgreementFromServer('revenue-review');
+          }
+        } else {
+          renderRevenueReview_({
+            agreements: [],
+            fetchedAt: null,
+            revenueItemsByAgreement: {},
+            warnings: [],
+          });
+          fetchAgreementFromServer('revenue-review');
         }
       }
 
@@ -9648,6 +11069,11 @@
             showLaborHours();
             return;
           }
+          if (item.id === 'revenue-review') {
+            setActiveNav('revenue-review');
+            showRevenueReview();
+            return;
+          }
           if (item.id === 'delivery') {
             setActiveNav('delivery');
             showDelivery();
@@ -9727,6 +11153,7 @@
         setActiveNav('home');
         showHome();
         wireLaborHoursControlsOnce_();
+        wireRevenueReviewTablesOnce_();
         els.loadBanner.classList.add('d-none');
         updateNavHintVisibility();
       }

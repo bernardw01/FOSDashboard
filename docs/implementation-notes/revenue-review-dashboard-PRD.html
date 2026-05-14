@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PRD — harpin.ai Monthly Revenue Review Dashboard</title>
+<style>
+  :root {
+    --navy: #0f2044;
+    --blue: #2563eb;
+    --light: #f8fafc;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; color: var(--text); background: white; line-height: 1.6; }
+  .cover { background: var(--navy); color: white; padding: 60px 80px; min-height: 180px; }
+  .cover h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+  .cover .sub { color: #94a3b8; font-size: 15px; margin-top: 8px; }
+  .cover .meta { margin-top: 20px; font-size: 12px; color: #64748b; display: flex; gap: 32px; }
+  .cover .meta span strong { color: #94a3b8; display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .content { max-width: 900px; margin: 0 auto; padding: 48px 40px; }
+  h2 { font-size: 18px; font-weight: 700; color: var(--navy); margin: 40px 0 12px; padding-bottom: 8px; border-bottom: 2px solid var(--navy); }
+  h3 { font-size: 14px; font-weight: 700; color: var(--navy); margin: 24px 0 8px; }
+  h4 { font-size: 13px; font-weight: 700; color: var(--muted); margin: 16px 0 6px; text-transform: uppercase; letter-spacing: 0.4px; }
+  p { margin-bottom: 12px; color: var(--text); }
+  ul, ol { margin: 8px 0 12px 20px; }
+  li { margin-bottom: 4px; }
+  code { background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-family: "SF Mono", Consolas, monospace; font-size: 12px; color: #0f172a; }
+  pre { background: #0f172a; color: #e2e8f0; padding: 16px 20px; border-radius: 8px; font-family: "SF Mono", Consolas, monospace; font-size: 12px; overflow-x: auto; margin: 12px 0 16px; line-height: 1.7; }
+  pre code { background: none; padding: 0; color: inherit; font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+  th { background: var(--navy); color: white; padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; }
+  td { padding: 7px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: var(--light); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .badge.green { background: #dcfce7; color: #15803d; }
+  .badge.yellow { background: #fef9c3; color: #854d0e; }
+  .badge.red { background: #fee2e2; color: #991b1b; }
+  .badge.blue { background: #dbeafe; color: #1d4ed8; }
+  .badge.orange { background: #ffedd5; color: #9a3412; }
+  .badge.gray { background: #f1f5f9; color: #475569; }
+  .callout { border-left: 4px solid var(--blue); background: #eff6ff; padding: 12px 16px; border-radius: 0 6px 6px 0; margin: 12px 0 16px; font-size: 13px; }
+  .callout.warn { border-left-color: #f59e0b; background: #fffbeb; }
+  .callout.red { border-left-color: #ef4444; background: #fef2f2; }
+  .toc { background: var(--light); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; margin: 0 0 40px; }
+  .toc h3 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
+  .toc ol { margin-left: 16px; }
+  .toc li { margin-bottom: 6px; }
+  .toc a { color: var(--blue); text-decoration: none; font-size: 13px; }
+  .toc a:hover { text-decoration: underline; }
+  .section-num { color: var(--muted); font-weight: 400; margin-right: 4px; }
+  @media print {
+    body { font-size: 12px; }
+    .content { padding: 0; max-width: 100%; }
+    h2 { page-break-before: auto; }
+    pre { white-space: pre-wrap; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>harpin.ai — Monthly Revenue Review Dashboard</h1>
+  <div class="sub">Product Requirements Document</div>
+  <div class="meta">
+    <span><strong>Version</strong>2.4</span>
+    <span><strong>Created</strong>April 14, 2026</span>
+    <span><strong>Author</strong>Operations / Claude</span>
+    <span><strong>Output File</strong>revenue-review-[month]-[year].html</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="toc">
+    <h3>Table of Contents</h3>
+    <ol>
+      <li><a href="#s1">Purpose &amp; Audience</a></li>
+      <li><a href="#s2">Data Source &amp; Credentials</a></li>
+      <li><a href="#s3">Agreement Inclusion Rules</a></li>
+      <li><a href="#s4">Dashboard Sections</a></li>
+      <li><a href="#s5">Business Logic &amp; Calculation Rules</a></li>
+      <li><a href="#s6">Color Coding &amp; Status Indicators</a></li>
+      <li><a href="#s7">Data Freshness &amp; Refresh</a></li>
+      <li><a href="#s8">Known Data Considerations</a></li>
+      <li><a href="#s9">Output &amp; File Naming</a></li>
+      <li><a href="#s10">Rebuild Instructions</a></li>
+      <li><a href="#changelog">Changelog</a></li>
+    </ol>
+  </div>
+
+  <!-- 1 -->
+  <h2 id="s1"><span class="section-num">1.</span> Purpose &amp; Audience</h2>
+  <p>This dashboard is a self-contained, single-file HTML report used by harpin.ai leadership during the monthly revenue review meeting. It provides a complete, real-time view of the agreement portfolio — milestone billing status, invoice timeliness, amount variances, and contract health.</p>
+  <h4>Primary Audience</h4>
+  <ul>
+    <li>Head of Operations</li>
+    <li>Finance / Revenue team</li>
+    <li>Executive leadership</li>
+  </ul>
+  <h4>Review Cadence</h4>
+  <p>Generated once per month, covering the <strong>prior month close</strong> (e.g., March) and the <strong>current month in-progress</strong> (e.g., April). The report date drives all "current month" and overdue logic.</p>
+
+  <!-- 2 -->
+  <h2 id="s2"><span class="section-num">2.</span> Data Source &amp; Credentials</h2>
+  <p>All data is pulled live from <strong>Fibery</strong> at time of generation. No static data is embedded — every rebuild fetches fresh from the API.</p>
+  <table>
+    <thead><tr><th>Item</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr><td>Workspace URL</td><td><code>https://harpin-ai.fibery.io</code></td></tr>
+      <tr><td>API Token</td><td>macOS Keychain: <code>security find-generic-password -s fibery -a api-token -w</code></td></tr>
+      <tr><td>Workspace URL lookup</td><td>macOS Keychain: <code>security find-generic-password -s fibery -a workspace-url -w</code></td></tr>
+      <tr><td>API Endpoint</td><td><code>POST https://harpin-ai.fibery.io/api/commands</code></td></tr>
+      <tr><td>Auth Header</td><td><code>Authorization: Token &lt;api-token&gt;</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Fibery Entity Types Used</h3>
+  <table>
+    <thead><tr><th>Entity</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>Agreement Management/Agreements</code></td><td>Top-level contracts — name, customer, type, dates, revenue totals, state</td></tr>
+      <tr><td><code>Agreement Management/Revenue Item</code></td><td>Individual billing milestones — target/actual amounts, dates, invoice status</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Key Fields — Agreements</h3>
+  <table>
+    <thead><tr><th>Fibery Field</th><th>Used For</th></tr></thead>
+    <tbody>
+      <tr><td><code>Agreement Management/Name</code></td><td>Display name</td></tr>
+      <tr><td><code>Agreement Management/Customer</code></td><td>Customer company name (linked entity)</td></tr>
+      <tr><td><code>Agreement Management/Agreement Type</code></td><td>Services / Subscription / Internal (enum)</td></tr>
+      <tr><td><code>Agreement Management/Duration</code></td><td>Date range — start and end</td></tr>
+      <tr><td><code>Agreement Management/Target Revenue</code></td><td>Total contract value</td></tr>
+      <tr><td><code>Agreement Management/Rev Recognized</code></td><td>Revenue recognized to date (agreement-level rollup)</td></tr>
+      <tr><td><code>Agreement Management/Target Margin</code></td><td>Planned margin %</td></tr>
+      <tr><td><code>Agreement Management/Current Margin</code></td><td>Actual margin % to date</td></tr>
+      <tr><td><code>workflow/state</code> (<code>enum/name</code>)</td><td>Delivery In Progress / Contract Complete / Proposal Delivered</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Key Fields — Revenue Items (Milestones)</h3>
+  <table>
+    <thead><tr><th>Fibery Field</th><th>Used For</th></tr></thead>
+    <tbody>
+      <tr><td><code>Agreement Management/Milestone Title</code></td><td>Display name for the milestone</td></tr>
+      <tr><td><code>Agreement Management/Target Amount</code></td><td>Planned invoice amount</td></tr>
+      <tr><td><code>Agreement Management/Actual Amount</code></td><td>Amount actually invoiced</td></tr>
+      <tr><td><code>Agreement Management/Amount Variance</code></td><td>Actual minus Target (positive = over, negative = under)</td></tr>
+      <tr><td><code>Agreement Management/Target Date</code></td><td>Planned invoice date</td></tr>
+      <tr><td><code>Agreement Management/Actual Date</code></td><td>Date invoice was actually sent</td></tr>
+      <tr><td><code>Agreement Management/Revenue Recognized</code></td><td>Boolean — whether revenue has been recognized</td></tr>
+      <tr><td><code>Agreement Management/QBO Invoice ID</code></td><td>QuickBooks Online invoice reference</td></tr>
+      <tr><td><code>Agreement Management/notes</code></td><td>Free text notes on the milestone</td></tr>
+      <tr><td><code>workflow/state</code> (<code>enum/name</code>)</td><td>Invoiced / Scheduled / Not Scheduled / Not Delivered</td></tr>
+    </tbody>
+  </table>
+
+  <!-- 3 -->
+  <h2 id="s3"><span class="section-num">3.</span> Agreement Inclusion Rules</h2>
+  <p>Not all agreements in Fibery are displayed. Apply these filters:</p>
+  <table>
+    <thead><tr><th>Rule</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td>Agreement type = <code>Internal</code></td><td>Exclude (e.g., "harpin General")</td></tr>
+      <tr><td><code>"test"</code> anywhere in the agreement name (case-insensitive)</td><td>Exclude</td></tr>
+      <tr><td>All other agreements</td><td>Include regardless of workflow state</td></tr>
+    </tbody>
+  </table>
+  <div class="callout">
+    <strong>Note:</strong> Contract Complete agreements ARE included — they appear in the portfolio table and milestone detail, but are excluded from expiry alerts (see Section 5).
+  </div>
+
+  <!-- 4 -->
+  <h2 id="s4"><span class="section-num">4.</span> Dashboard Sections</h2>
+  <p>The dashboard renders as a single scrollable HTML page with the following sections in order:</p>
+
+  <h3>4.1 Page Header</h3>
+  <p>Dark navy banner showing: <em>harpin.ai — Monthly Revenue Review</em>, the review month/year, generation date, agreement count, and data source.</p>
+
+  <h3>4.2 Executive Summary KPIs</h3>
+  <p>Six metric cards in a horizontal grid:</p>
+  <table>
+    <thead><tr><th>Card</th><th>Metric</th><th>Color Rule</th></tr></thead>
+    <tbody>
+      <tr><td>Total Portfolio Value</td><td>Sum of Target Revenue across all included agreements</td><td>Navy (neutral)</td></tr>
+      <tr><td>Revenue Recognized</td><td>Sum of Rev Recognized + % of portfolio</td><td>Green (always)</td></tr>
+      <tr><td>Prior Month Close</td><td>Amount invoiced in prior month + milestone count</td><td>Blue (neutral)</td></tr>
+      <tr><td>Current Month Invoiced</td><td>Amount invoiced so far this month + % of milestones</td><td>Green if ≥50%, Yellow if &lt;50%</td></tr>
+      <tr><td>Amount Variances</td><td>Count of milestones with non-zero variance (March/April only, non-Not-Scheduled only)</td><td>Yellow if &gt;0, Green if 0</td></tr>
+      <tr><td>Overdue / At-Risk</td><td>Count of milestones past target date, not invoiced, &gt;$0</td><td>Red if &gt;0, Green if 0</td></tr>
+    </tbody>
+  </table>
+
+  <h3>4.3 Agreement Expiry Alerts</h3>
+  <p>Only shown if there are expired or ending-soon agreements. Two alert types:</p>
+  <ul>
+    <li><strong>Expired (red):</strong> End date is in the past AND workflow state is NOT Contract Complete</li>
+    <li><strong>Ending soon (yellow):</strong> End date is within 90 days AND state is NOT Contract Complete</li>
+  </ul>
+  <div class="callout warn">
+    <strong>Important:</strong> Contract Complete agreements are never shown in expiry alerts, even if their end date has passed.
+  </div>
+
+  <h3>4.4 Prior Month Billing Review</h3>
+  <p>Full table of all milestones with a Target Date in the prior review month (e.g., March 2026). <strong>Not Scheduled milestones are excluded.</strong> Columns:</p>
+  <ul>
+    <li>Agreement name · Milestone · Target Date · Target $ · Actual Date · Actual $ · On Time? · Variance · Status badge</li>
+  </ul>
+
+  <h3>4.5 Current Month Milestones</h3>
+  <p>Same structure as Section 4.4 but filtered to the current month (e.g., April 2026). <strong>Not Scheduled milestones are excluded.</strong> Header shows count invoiced so far and total target for the month.</p>
+
+  <h3>4.6 Agreement Portfolio</h3>
+  <p>Full table of all included agreements, sorted by customer revenue (descending). Columns:</p>
+  <ul>
+    <li>Customer · Agreement name · Type · Status · Start · End Date · Target Revenue · Recognized · % Collected (progress bar) · Milestones (invoiced/total)</li>
+  </ul>
+  <p>Agreements with variances (per Section 5 rules) show an orange <em>"X variance"</em> mini-badge next to the name.</p>
+
+  <h3>4.7 Revenue by Customer</h3>
+  <p>Rollup table sorted by total contract value (descending). Columns: Customer · Agreement count · Total Contract Value · Revenue Recognized · Remaining · % Collected. Includes a bold TOTAL row.</p>
+
+  <h3>4.8 Overdue / At-Risk Milestones</h3>
+  <p>Only shown if there are overdue items. Lists all milestones where: Target Date &lt; today AND state ≠ Invoiced AND Revenue Recognized = False AND Target Amount &gt; $0.</p>
+
+  <h3>4.9 Full Milestone Detail</h3>
+  <p>Collapsible <code>&lt;details&gt;</code> elements, grouped by customer then agreement. Each agreement shows all its milestones with the same columns as the monthly tables. Click header to expand/collapse. Summary line shows invoiced count, target revenue, and recognized revenue.</p>
+
+  <h3>4.10 Sortable Columns</h3>
+  <p>All table headers are clickable to sort ascending (▲) or descending (▼). Sorting handles money, dates, percentages, and text. Total rows stay pinned to the bottom.</p>
+
+  <!-- 5 -->
+  <h2 id="s5"><span class="section-num">5.</span> Business Logic &amp; Calculation Rules</h2>
+
+  <h3>5.1 Variance Eligibility</h3>
+  <p>A milestone counts as a variance item (for KPI card, portfolio badges, and table indicators) only if ALL of the following are true:</p>
+  <ul>
+    <li>Amount Variance ≠ 0</li>
+    <li>Target Date falls in the current or prior review month (e.g., 2026-03 or 2026-04)</li>
+    <li>Workflow state ≠ <code>Not Scheduled</code></li>
+  </ul>
+  <div class="callout warn">
+    Variances from outside the two-month review window (e.g., a Month 1 prorated billing from November 2024) are intentionally excluded. This keeps the report focused on the current review period.
+  </div>
+
+  <h3>5.2 On-Time Indicator</h3>
+  <p>For invoiced milestones only (state = Invoiced OR Revenue Recognized = True):</p>
+  <ul>
+    <li><span class="badge green">✓ On Time</span> — Actual Date ≤ Target Date</li>
+    <li><span class="badge yellow">⚠ Late</span> — Actual Date &gt; Target Date (shows days late)</li>
+    <li>— (dash) — Not yet invoiced, or missing date data</li>
+  </ul>
+
+  <h3>5.3 Milestone Status Badge</h3>
+  <table>
+    <thead><tr><th>Condition</th><th>Badge</th></tr></thead>
+    <tbody>
+      <tr><td>Invoiced or Recognized, on time, no variance</td><td><span class="badge green">✓ On Time</span></td></tr>
+      <tr><td>Invoiced or Recognized, but late and/or has variance</td><td><span class="badge yellow">⚠ Late / Variance $X</span></td></tr>
+      <tr><td>Scheduled, target date in the future</td><td><span class="badge blue">Scheduled</span></td></tr>
+      <tr><td>Scheduled, target date has passed</td><td><span class="badge red">⚠ Overdue</span></td></tr>
+      <tr><td>Not Scheduled, target date has passed</td><td><span class="badge red">✗ Not Scheduled (Overdue)</span></td></tr>
+      <tr><td>Not Scheduled, target date in the future</td><td><span class="badge orange">Not Scheduled</span></td></tr>
+      <tr><td>Not Delivered, Target Amount = $0</td><td><span class="badge gray">N/A ($0)</span></td></tr>
+      <tr><td>Not Delivered, Target Amount &gt; $0</td><td><span class="badge red">✗ Not Delivered</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>5.4 Expiry Logic</h3>
+  <ul>
+    <li>Agreements with state = <code>Contract Complete</code> are <strong>never</strong> flagged as expired or ending soon — regardless of end date.</li>
+    <li>Expired = end date &lt; today AND state ≠ Contract Complete</li>
+    <li>Ending soon = end date is within 90 days (but not past) AND state ≠ Contract Complete</li>
+  </ul>
+
+  <h3>5.5 Overdue Definition</h3>
+  <p>A milestone is overdue if ALL of:</p>
+  <ul>
+    <li>Target Date &lt; today (report generation date)</li>
+    <li>Workflow state ≠ <code>Invoiced</code></li>
+    <li>Revenue Recognized ≠ True</li>
+    <li>Target Amount &gt; $0 (excludes $0 placeholder milestones)</li>
+  </ul>
+
+  <h3>5.6 Portfolio % Collected</h3>
+  <p>Driven by the agreement-level <code>Rev Recognized</code> field, not by counting invoiced milestones. This can differ from the milestone invoiced count when revenue is pre-recognized or when actual amounts differ from targets.</p>
+
+  <!-- 6 -->
+  <h2 id="s6"><span class="section-num">6.</span> Color Coding &amp; Visual Design</h2>
+  <table>
+    <thead><tr><th>Color</th><th>Hex</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge green">Green</span></td><td><code>#16a34a</code></td><td>On track — invoiced on time, no variance, no issues</td></tr>
+      <tr><td><span class="badge yellow">Yellow</span></td><td><code>#ca8a04</code></td><td>Attention — late invoice, or amount variance present</td></tr>
+      <tr><td><span class="badge red">Red</span></td><td><code>#dc2626</code></td><td>Problem — overdue, not delivered, expired</td></tr>
+      <tr><td><span class="badge orange">Orange</span></td><td><code>#ea580c</code></td><td>Warning — not scheduled, variance badge</td></tr>
+      <tr><td><span class="badge blue">Blue</span></td><td><code>#2563eb</code></td><td>Neutral / upcoming — scheduled milestones</td></tr>
+      <tr><td><span class="badge gray">Gray</span></td><td><code>#6b7280</code></td><td>Not applicable, $0 items</td></tr>
+      <tr><td>Navy header</td><td><code>#0f2044</code></td><td>Page header, table headers, section headings</td></tr>
+    </tbody>
+  </table>
+  <p>The dashboard is <strong>fully self-contained</strong> — no external CSS, fonts, or JS libraries. All styles are inline. Print-friendly CSS is included for PDF export.</p>
+
+  <!-- 7 -->
+  <h2 id="s7"><span class="section-num">7.</span> Data Freshness &amp; Refresh</h2>
+  <p>The generator script caches revenue items in <code>/tmp/revenue_items.json</code> and agreements in <code>/tmp/agreements_clean.json</code>. These are session-scoped and need to be re-fetched when rebuilding from scratch.</p>
+
+  <h3>Selective Refresh (within a session)</h3>
+  <p>Individual agreements can be refreshed without a full rebuild by fetching revenue items for specific agreement IDs and replacing their entries in the cache. This was used during the April 2026 review to update Order Form 2 (LeadWhisper Active Users) and T&amp;L agreements mid-session.</p>
+
+  <div class="callout">
+    <strong>When to do a full re-fetch:</strong> At the start of each monthly review session, always re-fetch both the agreements list and all revenue items from Fibery to ensure the data is current.
+  </div>
+
+  <!-- 8 -->
+  <h2 id="s8"><span class="section-num">8.</span> Known Data Considerations</h2>
+
+  <h3>8.1 Revenue Recognized vs. Invoiced State</h3>
+  <p>These are tracked separately in Fibery. A milestone can have Revenue Recognized = True while its workflow state is still "Scheduled" (not yet invoiced). This is most common in flat-rate subscriptions where amounts are pre-entered and recognized is checked in advance.</p>
+  <div class="callout red">
+    <strong>Watch for:</strong> Future-dated milestones (months that haven't occurred yet) with Revenue Recognized = True and actual amounts pre-filled. This inflates the agreement-level Rev Recognized figure and the portfolio % complete. Example found in April 2026 review: Bartaco Order Form 2 Answers Subscription had months 13–21 (May 2026–Jan 2027) pre-marked as recognized, overstating recognized revenue by ~$16,000.
+  </div>
+
+  <h3>8.2 $0 Query Usage Milestones</h3>
+  <p>Order Form 2 - LeadWhisper Active Users (PCL) carries parallel Active Users and Query Usage milestones each month. In the early months (1–4), Query Usage was priced at $0 (not yet activated) with state "Not Delivered." This is expected and not an error — the $0 / Not Delivered combination renders as <span class="badge gray">N/A ($0)</span>.</p>
+
+  <h3>8.3 Prorated First Month Variances</h3>
+  <p>Agreements that start mid-month often have a prorated target amount for Month 1. If billed at the full monthly rate, this creates a positive variance. Example: Bartaco Order Form 1 Tools Access Month 1 (Nov 14–30, 2024) — target $1,960 (prorated), actual $3,500 (full month), variance +$1,540. No note or error flag was present in Fibery. This variance is outside the March/April window so it does not appear in the variance report.</p>
+
+  <h3>8.4 Agreement End Dates vs. Contract State</h3>
+  <p>An agreement's end date in the Duration field may be in the past even when it's in good standing. Always check workflow state before treating an agreement as "expired." Agreements in Contract Complete state should never be shown in expiry alerts.</p>
+
+  <h3>8.5 Invoice Count vs. Revenue % Mismatch</h3>
+  <p>The milestone invoiced count (e.g., 12/24) and the revenue % complete (e.g., 83%) can diverge significantly. This is by design — the % is driven by the agreement-level Rev Recognized field which can be pre-populated, while the count reflects the actual number of milestones moved to Invoiced state.</p>
+
+  <!-- 9 -->
+  <h2 id="s9"><span class="section-num">9.</span> Output &amp; File Naming</h2>
+  <table>
+    <thead><tr><th>Item</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr><td>Output format</td><td>Single self-contained .html file</td></tr>
+      <tr><td>Save location</td><td><code>harpin Main/Inbox/</code></td></tr>
+      <tr><td>File naming convention</td><td><code>revenue-review-[month]-[year].html</code> (e.g., <code>revenue-review-april-2026.html</code>)</td></tr>
+      <tr><td>Generator script</td><td><code>/tmp/generate_dashboard.py</code> (session-scoped, must be rebuilt if session ends)</td></tr>
+      <tr><td>Data cache</td><td><code>/tmp/revenue_items.json</code>, <code>/tmp/agreements_clean.json</code> (session-scoped)</td></tr>
+    </tbody>
+  </table>
+
+  <!-- CHANGELOG -->
+  <h2 id="changelog"><span class="section-num">—</span> Changelog</h2>
+  <table>
+    <thead><tr><th>Date</th><th>Version</th><th>Change</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>2026-04-14</td>
+        <td>1.0</td>
+        <td>Initial build. 18 agreements across 7 customers. March close + April current month. Sortable columns. Expiry alerts. Variance report scoped to March/April, excludes Not Scheduled.</td>
+      </tr>
+      <tr>
+        <td>2026-04-14</td>
+        <td>1.1</td>
+        <td>Variance report filtered to March/April milestones only; Not Scheduled milestones excluded from monthly billing tables and variance KPI count.</td>
+      </tr>
+      <tr>
+        <td>2026-04-14</td>
+        <td>1.2</td>
+        <td>Order Form 2 LeadWhisper Active Users (PCL) data refreshed — Month 6 updated to Invoiced; removed from overdue section.</td>
+      </tr>
+      <tr>
+        <td>2026-04-14</td>
+        <td>1.3</td>
+        <td>T&amp;L and Morey's Piers agreements refreshed from Fibery. Expiry alert logic updated to exclude Contract Complete agreements from both the alert banner and portfolio end-date badges.</td>
+      </tr>
+      <tr>
+        <td>2026-04-14</td>
+        <td>1.4</td>
+        <td>Sortable columns added to all tables. PRD written and saved. Generator script saved permanently to Inbox/. MEMORY.md updated.</td>
+      </tr>
+      <tr>
+        <td>2026-04-14</td>
+        <td>1.5</td>
+        <td>Branded for harpin AI. Colors updated to brand palette: cream background (#F2EFE5), deep navy (#152744), teal accent (#2B8B8B). Teal gradient progress bars, teal-on-hover table rows, teal customer group headings, animated expand arrows on milestone detail, harpin AI pin logo in header.</td>
+      </tr>
+      <tr>
+        <td>2026-04-14</td>
+        <td>1.6</td>
+        <td>Added Future Revenue Pre-Recognition alert section (purple). Flags any milestone where Revenue Recognized = True, Target Date is in the future, and state is not Invoiced. Section is hidden automatically when no issues exist. Full data refresh performed — Bartaco OF2 pre-recognition confirmed cleared.</td>
+      </tr>
+      <tr>
+        <td>2026-04-14</td>
+        <td>1.7</td>
+        <td>Overdue / At-Risk KPI card made clickable — scrolls to overdue table. Lift-on-hover effect added.</td>
+      </tr>
+      <tr>
+        <td>2026-04-14</td>
+        <td>1.8</td>
+        <td>Amount Variances KPI card made clickable — scrolls to new all-time variance table. Variance count updated from March/April-only to all-time (10 items). Variance table shows customer, agreement, milestone, target vs. actual, variance amount (red=under, yellow=over), and status.</td>
+      </tr>
+      <tr>
+        <td>2026-04-14</td>
+        <td>1.9</td>
+        <td>Agreement expiry alert heading changed from "Action Required" to "Upcoming Expirations". Removed bold red uppercase styling — now calm amber, normal weight.</td>
+      </tr>
+      <tr>
+        <td>2026-04-14</td>
+        <td>2.0</td>
+        <td>Variances KPI card and section redesigned. Now shows combined count of amount AND date variances (days late). Single table with both dimensions: Date Var (days late, yellow) and Amount Var (+/-, red/yellow), with ✓ when clean on that dimension. KPI sub-label shows split count (e.g. "10 amount · 3 date"). Clickable to variance section.</td>
+      </tr>
+      <tr>
+        <td>2026-04-14</td>
+        <td>2.1</td>
+        <td>Variance table pre-sorted: amount variances first (then by date), date-only variances second. User can still re-sort by clicking any column header.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- 10 -->
+  <h2 id="s10"><span class="section-num">10.</span> Rebuild Instructions</h2>
+  <p>To rebuild the dashboard from scratch in a new session, give Claude the following prompt (update the month/year as needed):</p>
+
+  <pre><code>Build the harpin.ai monthly revenue review dashboard for [Month Year].
+
+Use the PRD at harpin Main/Revenue Review/PRD/revenue-review-dashboard-PRD.html for full spec.
+
+Steps:
+1. Fetch Fibery credentials from macOS Keychain:
+   - API token: security find-generic-password -s fibery -a api-token -w
+   - Workspace URL: security find-generic-password -s fibery -a workspace-url -w
+
+2. Fetch all agreements from Agreement Management/Agreements (exclude Internal type
+   and any with "test" in the name).
+
+3. Fetch all revenue items from Agreement Management/Revenue Item (all 500, use
+   pagination if needed).
+
+4. Generate the HTML dashboard per the PRD spec and save to:
+   harpin Main/Revenue Review/Monthly/revenue-review-[month]-[year].html
+
+Review month = [prior month, e.g. March 2026]
+Current month = [current month, e.g. April 2026]
+Report date = [today's date, e.g. April 14, 2026]</code></pre>
+
+  <h3>Mid-Session Agreement Refresh</h3>
+  <p>If an agreement has been updated in Fibery during the review meeting and needs to be refreshed without a full rebuild:</p>
+  <pre><code>Re-fetch the revenue items for [Agreement Name] from Fibery and regenerate the HTML.
+The agreement ID is [fibery/id].</code></pre>
+
+  <h3>Agreement IDs (April 2026 Review)</h3>
+  <table>
+    <thead><tr><th>Agreement</th><th>Customer</th><th>Fibery ID</th></tr></thead>
+    <tbody>
+      <tr><td>Phase 1 (T+L)</td><td>Travel + Leisure Operations, Inc</td><td><code>8b3eb346-2109-4022-abb5-7f3a253bf35a</code></td></tr>
+      <tr><td>SOW 15 — PCL Utility Service Design</td><td>Princess Cruise Lines</td><td><code>0eabb74d-0fec-4e6c-97a0-332db6b64988</code></td></tr>
+      <tr><td>SOW 16 — PCL Identity Services</td><td>Princess Cruise Lines</td><td><code>6c97f662-6cb7-4a7d-885e-8fc2dd749a04</code></td></tr>
+      <tr><td>LeadWhisper — Combined SOWs (PCL)</td><td>Princess Cruise Lines</td><td><code>c5026b57-1a59-4c38-9539-e27e7a5634ac</code></td></tr>
+      <tr><td>Illuminate Implementation (T+L)</td><td>Travel + Leisure Operations, Inc</td><td><code>86e200a1-e5fd-4638-a5d6-af7f610a2f64</code></td></tr>
+      <tr><td>Order Form 3 — Answers Subscription (PCL)</td><td>Princess Cruise Lines</td><td><code>a6561b5b-aae6-42d9-a57c-2947f2916a9c</code></td></tr>
+      <tr><td>Order Form 2 — LeadWhisper Active Users &amp; Query Usage</td><td>Princess Cruise Lines</td><td><code>5d33b2ca-41b7-4ba9-8229-187c5cc9e9c5</code></td></tr>
+      <tr><td>Order Form 1 — Illuminate/Momentum &amp; Beacon (Sycuan)</td><td>Sycuan Casino Resort</td><td><code>4a0c9845-3f55-4e3f-801f-21e93cc9c67d</code></td></tr>
+      <tr><td>Order Form 4 — Polaris Instant Insight Generator (PCL)</td><td>Princess Cruise Lines</td><td><code>18bf8ab6-5941-4b06-9a86-8c3e792a2e95</code></td></tr>
+      <tr><td>Order Form 1 — Canon Subscription and Renewal (Belamie)</td><td>Belami Inc</td><td><code>34b96539-a2be-4a84-9872-113b25ce891c</code></td></tr>
+      <tr><td>Order Form 1 — Additional Data Services (Bartaco)</td><td>Barteca Holdings LLC</td><td><code>b0157558-336c-49aa-8842-f7d20992de2a</code></td></tr>
+      <tr><td>Order Form 1 — Tools Access (Bartaco)</td><td>Barteca Holdings LLC</td><td><code>ffe696b6-0897-4eab-8e76-768e5bf97f6e</code></td></tr>
+      <tr><td>Order Form 2 — Answers Subscription (Bartaco)</td><td>Barteca Holdings LLC</td><td><code>e84227e6-7298-4095-b2b7-959c0f0b71</code></td></tr>
+      <tr><td>Platform Transition &amp; Tech Decision Advisory (Bartaco)</td><td>Barteca Holdings LLC</td><td><code>7bfb8e20-b7a4-4d83-b618-71e4d92b879e</code></td></tr>
+      <tr><td>Order Form 1 — Canon (Morey's Piers)</td><td>Morey's Piers, Inc</td><td><code>32312083-3abf-4871-8cb0-ab8f729006b7</code></td></tr>
+      <tr><td>Order Form 1 Renewal — Canon (Morey's Piers)</td><td>Morey's Piers, Inc</td><td><code>5b4a063e-31e8-474d-a191-b99534d9b2b5</code></td></tr>
+      <tr><td>SOW 1 — Experience Team Staff Aug (Marriott)</td><td>Marriott</td><td><code>369d3096-f0cb-443b-a17c-2a6ae892fd22</code></td></tr>
+      <tr><td>Order Form 1 — Deployment &amp; Config Services (Partners)</td><td>Partners Federal Credit Union</td><td><code>039cd109-d8aa-473d-be10-39224e4df84a</code></td></tr>
+    </tbody>
+  </table>
+
+  <!-- Google Drive -->
+  <h2 id="drive"><span class="section-num">11.</span> Google Drive Distribution</h2>
+  <p>The generator automatically uploads each dashboard to the <strong>harpin Dashboards</strong> Shared Drive after saving locally. The previous file is moved to Archive before uploading the new one.</p>
+  <h4>Folder structure</h4>
+  <pre><code>harpin Dashboards (Shared Drive)
+└── Revenue Review/
+    ├── revenue-review-[month]-[year].html   ← current month
+    └── Archive/                              ← previous months</code></pre>
+  <h4>Credentials (all in macOS Keychain)</h4>
+  <table>
+    <thead><tr><th>Keychain service</th><th>Account</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>google-drive</td><td>service-account-key-path</td><td>~/.harpin/credentials/google-drive-service-account.json</td></tr>
+      <tr><td>google-drive</td><td>revenue-review-folder-id</td><td>Revenue Review subfolder ID</td></tr>
+      <tr><td>google-drive</td><td>revenue-review-archive-id</td><td>Revenue Review/Archive subfolder ID</td></tr>
+    </tbody>
+  </table>
+  <h4>Service account</h4>
+  <p><code>dashboard-uploader@aerobic-pivot-493618-k3.iam.gserviceaccount.com</code> — added as Contributor on the harpin Dashboards Shared Drive. Key file stored at <code>~/.harpin/credentials/google-drive-service-account.json</code> (chmod 600, never committed to git).</p>
+
+  <!-- Changelog -->
+  <h2 id="changelog"><span class="section-num">12.</span> Changelog</h2>
+  <table>
+    <thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>1.0</strong></td>
+        <td>2026-04-14</td>
+        <td>Initial dashboard created. Sections: KPI cards, Agreements Ending Soon alert, March close review, April current-month milestones, Agreement Portfolio, Revenue by Customer, Overdue/At-Risk, Variance, Full Milestone Detail. Live Fibery data fetch. 18 agreements (excl. harpin General).</td>
+      </tr>
+      <tr>
+        <td><strong>1.1</strong></td>
+        <td>2026-04-14</td>
+        <td>Added March 2026 billing close review table (16/17 invoiced). Added expiring agreement alerts. Scoped variance report to March/April only, excluded "Not Scheduled" items.</td>
+      </tr>
+      <tr>
+        <td><strong>1.2</strong></td>
+        <td>2026-04-14</td>
+        <td>Re-fetched live data after T&amp;L Phase 1 and Morey's Canon updates. Fixed expired-agreement logic to skip Contract Complete agreements in both alert banner and portfolio table.</td>
+      </tr>
+      <tr>
+        <td><strong>1.3</strong></td>
+        <td>2026-04-14</td>
+        <td>Added sortable columns (click table headers) to all major tables via vanilla JS.</td>
+      </tr>
+      <tr>
+        <td><strong>2.0</strong></td>
+        <td>2026-04-14</td>
+        <td>Applied harpin.ai brand palette (navy #152744, teal #2B8B8B, cream #F2EFE5). Added harpin AI pin logo SVG in header.</td>
+      </tr>
+      <tr>
+        <td><strong>2.1</strong></td>
+        <td>2026-04-14</td>
+        <td>Added pre-recognition alert (purple banner) for future milestones with Revenue Recognized = true. Re-fetched data after Bartaco pre-recognition fix. Made "Overdue/At-Risk" KPI card clickable (anchor link). Changed expiry alert from bold red "ACTION REQUIRED" to subdued "Upcoming Expirations" style. Redesigned variance section: combined amount + date variances into single table with separate columns; changed KPI to count all-time combined variances; presorted table (amount variances first, then by date). PRD established and saved.</td>
+      </tr>
+      <tr>
+        <td><strong>2.4</strong></td>
+        <td>2026-04-17</td>
+        <td>Google Drive auto-upload added. Generator now uploads to harpin Dashboards Shared Drive → Revenue Review/ after each run; previous file archived to Revenue Review/Archive/ automatically. Service account: dashboard-uploader@aerobic-pivot-493618-k3.iam.gserviceaccount.com. All credentials in macOS Keychain. File structure reorganised: generator at Revenue Review/, output to Revenue Review/Monthly/, PRD to Revenue Review/PRD/.</td>
+      </tr>
+      <tr>
+        <td><strong>2.3</strong></td>
+        <td>2026-04-14</td>
+        <td>Made all records clickable to Fibery: milestone names in March/April tables link to Revenue Items; agreement names in the portfolio table and full detail section link to Agreements; overdue milestone names link to Revenue Items; agreement names in expiry alerts link to Agreements. Fibery deep-link URL format confirmed from live URL.</td>
+      </tr>
+      <tr>
+        <td><strong>2.2</strong></td>
+        <td>2026-04-14</td>
+        <td>Made variance table rows clickable — each row has a ↗ link icon that opens the corresponding Fibery Revenue Item record in a new tab. Correct Fibery deep-link URL format: <code>https://harpin-ai.fibery.io/fibery/space/Agreement_Management/database/Revenue_Item#Agreement_Management/Revenue_Item/{name-slug}-{public-id}</code> where slug = entity name with spaces→hyphens and colons removed.</td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+</body>
+</html>

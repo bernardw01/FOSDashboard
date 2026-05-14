@@ -1,11 +1,11 @@
 /**
- * PRD version 1.24.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.26.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard — Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '1.24.0';
+var FOS_PRD_VERSION = '1.26.0';
 
 /**
  * @return {string}
@@ -114,7 +114,16 @@ function buildNavigationModel_(auth) {
         { id: 'labor-hours', label: 'Labor hours', active: false },
       ],
     },
-    { id: 'delivery', label: 'Delivery', active: false },
+    {
+      id: 'delivery-group',
+      type: 'group',
+      label: 'Delivery',
+      active: false,
+      children: [
+        { id: 'delivery', label: 'Projects & P&L', active: false },
+        { id: 'revenue-review', label: 'Revenue review', active: false },
+      ],
+    },
   ];
 
   var fiberyAccess = !!(auth && auth.fiberyAccess);
