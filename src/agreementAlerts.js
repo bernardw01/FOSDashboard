@@ -1,5 +1,5 @@
 /**
- * PRD version 1.26.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.27.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * §6 alert evaluation for the Agreement Management dashboard. Each rule maps
  * directly to agreement-dashboard-prd-v2.md §6.1–§6.7, plus v1.21.0

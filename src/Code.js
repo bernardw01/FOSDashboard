@@ -1,11 +1,11 @@
 /**
- * PRD version 1.26.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.27.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard — Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '1.26.0';
+var FOS_PRD_VERSION = '1.27.0';
 
 /**
  * @return {string}
@@ -64,7 +64,8 @@ function doGet() {
  *     scheme: string,
  *     host: string,
  *     laborCostPathTemplate: string,
- *     agreementPathTemplate: string
+ *     agreementPathTemplate: string,
+ *     companyPathTemplate: string
  *   },
  *   items: Array<
  *     | { id: string, label: string, active: boolean }
@@ -89,7 +90,8 @@ function getDashboardNavigation() {
  *     scheme: string,
  *     host: string,
  *     laborCostPathTemplate: string,
- *     agreementPathTemplate: string
+ *     agreementPathTemplate: string,
+ *     companyPathTemplate: string
  *   },
  *   items: Array<
  *     | { id: string, label: string, active: boolean }

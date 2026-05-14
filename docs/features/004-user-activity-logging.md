@@ -1,6 +1,6 @@
 # Feature: User activity logging (User Activity tab)
 
-> **PRD version 1.26.0** — see `docs/FOS-Dashboard-PRD.md` (`§3.8`, **FR-60–FR-66**, **NFR-08**, **AC-15–AC-17**).
+> **PRD version 1.27.0** — see `docs/FOS-Dashboard-PRD.md` (`§3.8`, **FR-60–FR-66**, **NFR-08**, **AC-15–AC-17**).
 
 ## Goal
 
@@ -47,7 +47,7 @@ Log every authorized **page request** the FOS Dashboard handles — initial Web 
 | **Email** | Yes | Server (`Session.getActiveUser().getEmail()`) | Trimmed; case preserved as returned by Google. |
 | **Role** | Yes | Server (Users-tab lookup snapshot) | Empty string if the row no longer matches (event still drops by FR-64). |
 | **Team** | Yes | Server (Users-tab lookup snapshot) | Same as above. |
-| **Event Type** | Yes | Server-validated enum | Core set: `page_load`, `nav_view`, `refresh`, `server_call`. **As of v1.24.0**, Labor hours also emits first-class types: `labor_hours_week_change`, `labor_hours_refresh`, `labor_hours_export`, `labor_hours_kpi_nav`, `labor_hours_sort` (see **AC-59**). **As of v1.25.0**, Revenue review emits **`revenue_review_refresh`**. **As of v1.26.0**, Revenue review also emits **`revenue_review_sort`**, **`revenue_review_export`**, **`revenue_review_expand`**, **`revenue_review_kpi_nav`**, **`revenue_review_print`**. Any other unknown value → coerced to `server_call` with a warning logged. |
+| **Event Type** | Yes | Server-validated enum | Core set: `page_load`, `nav_view`, `refresh`, `server_call`. **As of v1.24.0**, Labor hours also emits first-class types: `labor_hours_week_change`, `labor_hours_refresh`, `labor_hours_export`, `labor_hours_kpi_nav`, `labor_hours_sort` (see **AC-59**). **As of v1.25.0**, Revenue review emits **`revenue_review_refresh`**. **As of v1.26.0**, Revenue review also emits **`revenue_review_sort`**, **`revenue_review_export`**, **`revenue_review_expand`**, **`revenue_review_kpi_nav`**, **`revenue_review_print`**. **As of v1.27.0**, Revenue review also emits **`revenue_review_drawer_open`** and **`revenue_review_drawer_fibery_click`**. Any other unknown value → coerced to `server_call` with a warning logged. |
 | **Route** | Yes (for nav/refresh) | Server-normalized | Kebab-case token from a server-side allowlist (e.g. `home`, `agreement-dashboard`, `operations`, `labor-hours`, `delivery`, `doGet`); the legacy `finance` value is retained in the allowlist so historical rows remain queryable. Arbitrary client strings are sanitized to `[a-z0-9_\-]{1,40}`. |
 | **Label** | No | Client | Short context (≤ 120 chars). Free text but bounded; do not include form input contents. |
 | **Session ID** | No | Client (`sessionStorage`) | Random ID generated client-side (e.g. `crypto.randomUUID()` with fallback). Best-effort; empty allowed. |

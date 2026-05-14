@@ -1,6 +1,6 @@
 # Feature: Monthly Revenue Review (under Delivery)
 
-> **PRD version 1.26.0** — see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js` when this feature ships).
+> **PRD version 1.27.0** — see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js` when this feature ships).
 
 > **Imported baseline PRD:** `docs/implementation-notes/revenue-review-dashboard-PRD.html` (static generator spec, v2.4 narrative + changelog through 2.1).  
 > **Reference UI (imported example):** `docs/implementation-notes/revenue-review-may-2026.html` (May 2026 report layout, KPIs, tables, alerts, milestone `<details>` hierarchy, pre-recognition banner).  
@@ -14,6 +14,7 @@
 | **Phase B — Executive KPIs + alerts** | Six KPI cards per imported §4.2 (portfolio value, recognized, prior month close, current month invoiced, variances, overdue/at-risk); **Agreement expiry** strip §4.3; **Future revenue pre-recognition** banner (example + imported changelog 1.6 — purple callout when recognized + future target date + not invoiced). | **Released (v1.25.0)** |
 | **Phase C — Tables + portfolio** | Prior-month and current-month **milestone billing** tables §4.4–4.5; **Agreement portfolio** §4.6; **Revenue by customer** §4.7; **Overdue / at-risk** §4.8; client-side **sortable** columns §4.10; optional **Copy CSV** / print (follow Labor hours / Delivery patterns). | **Released (v1.26.0)** |
 | **Phase D — Milestone drill-down + polish** | **Full milestone detail** §4.9 (`<details>` by customer → agreement); variance table / KPI scroll behavior aligned with **latest** imported PRD changelog (combined amount + date variance KPI 2.0+ if product confirms); activity logging (`revenue_review_*` or nested route labels); main PRD + version bump. | **Released (v1.26.0)** |
+| **Phase E — Customer drill + Fibery Companies link (v1.27.0)** | Milestone detail groups strictly by **agreement Customer** then **agreement**; **Revenue by customer** row opens the shared side drawer (company + panel rollups); **Open in Fibery** to Companies when `fibery_access` and `publicId` present. | **Released (v1.27.0)** |
 
 ## Goal
 

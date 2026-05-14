@@ -1,5 +1,5 @@
 /**
- * PRD version 1.26.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.27.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Composes public Fibery deep-link URLs (e.g. for the Operations dashboard's
  * row-detail drawer "Open in Fibery →" anchor). Lives server-side so the
@@ -15,6 +15,8 @@
  *     `/Agreement_Management/Labor_Costs/{slug}-{publicId}`
  *   FIBERY_AGREEMENT_PATH_TEMPLATE — defaults to
  *     `/Agreement_Management/Agreements/{slug}-{publicId}`
+ *   FIBERY_COMPANY_PATH_TEMPLATE — defaults to
+ *     `/Agreement_Management/Companies/{slug}-{publicId}`
  *
  * The path template supports two placeholders:
  *   {slug}     — entity name with whitespace replaced by `-` (per Fibery's
@@ -28,6 +30,8 @@ var FIBERY_DEEP_LINK_DEFAULT_SCHEME_ = 'https';
 var FIBERY_LABOR_COST_DEFAULT_PATH_TEMPLATE_ = '/Agreement_Management/Labor_Costs/{slug}-{publicId}';
 /** @private */
 var FIBERY_AGREEMENT_DEFAULT_PATH_TEMPLATE_ = '/Agreement_Management/Agreements/{slug}-{publicId}';
+/** @private */
+var FIBERY_COMPANY_DEFAULT_PATH_TEMPLATE_ = '/Agreement_Management/Companies/{slug}-{publicId}';
 
 /**
  * Returns the deep-link config the client needs to compose row URLs, or
@@ -43,7 +47,8 @@ var FIBERY_AGREEMENT_DEFAULT_PATH_TEMPLATE_ = '/Agreement_Management/Agreements/
  *   scheme: string,
  *   host: string,
  *   laborCostPathTemplate: string,
- *   agreementPathTemplate: string
+ *   agreementPathTemplate: string,
+ *   companyPathTemplate: string
  * }|null}
  */
 function getFiberyDeepLinkConfig_() {
@@ -77,11 +82,15 @@ function getFiberyDeepLinkConfig_() {
   var agreementTemplate = (props.getProperty('FIBERY_AGREEMENT_PATH_TEMPLATE') || '').trim()
     || FIBERY_AGREEMENT_DEFAULT_PATH_TEMPLATE_;
 
+  var companyTemplate = (props.getProperty('FIBERY_COMPANY_PATH_TEMPLATE') || '').trim()
+    || FIBERY_COMPANY_DEFAULT_PATH_TEMPLATE_;
+
   return {
     scheme: scheme,
     host: host,
     laborCostPathTemplate: template,
     agreementPathTemplate: agreementTemplate,
+    companyPathTemplate: companyTemplate,
   };
 }
 
@@ -122,6 +131,22 @@ function buildAgreementDeepLinkUrl_(name, publicId) {
 }
 
 /**
+ * @param {string} name Company name.
+ * @param {string|number} publicId Fibery public id.
+ * @return {string}
+ */
+function buildCompanyDeepLinkUrl_(name, publicId) {
+  if (!name || publicId == null || publicId === '') return '';
+  var cfg = getFiberyDeepLinkConfig_();
+  if (!cfg) return '';
+  var slug = fiberySlugify_(name);
+  var path = (cfg.companyPathTemplate || FIBERY_COMPANY_DEFAULT_PATH_TEMPLATE_)
+    .split('{slug}').join(slug)
+    .split('{publicId}').join(String(publicId));
+  return cfg.scheme + '://' + cfg.host + path;
+}
+
+/**
  * Replicates Fibery's public-URL slug rule: each whitespace character is
  * converted to a single `-`, no collapse. Other characters are left
  * untouched.
@@ -148,7 +173,9 @@ function _diag_fiberyDeepLinkSample() {
   console.log('sample labor url: ' + url);
   var agreeUrl = buildAgreementDeepLinkUrl_('Acme Corp — SOW 2025', '12345');
   console.log('sample agreement url: ' + agreeUrl);
-  return { config: cfg, sampleLabor: url, sampleAgreement: agreeUrl };
+  var companyUrl = buildCompanyDeepLinkUrl_('Acme Corp', '99999');
+  console.log('sample company url: ' + companyUrl);
+  return { config: cfg, sampleLabor: url, sampleAgreement: agreeUrl, sampleCompany: companyUrl };
 }
 
 /**
@@ -165,7 +192,8 @@ function _diag_fiberyDeepLinkSample() {
  *     scheme: string,
  *     host: string,
  *     laborCostPathTemplate: string,
- *     agreementPathTemplate: string
+ *     agreementPathTemplate: string,
+ *     companyPathTemplate: string
  *   },
  *   sampleUrl: string,
  *   notes: !Array<string>

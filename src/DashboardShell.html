@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 1.26.0 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 1.27.0 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -232,6 +232,18 @@
     }
     #panel-revenue-review .fos-rr-table-wrap {
       overflow-x: auto;
+    }
+    /* Revenue by customer — row opens shared drawer (v1.27.0). */
+    #panel-revenue-review #rr-tbody-customer tr.fos-rr-customer-row {
+      cursor: pointer;
+    }
+    #panel-revenue-review #rr-tbody-customer tr.fos-rr-customer-row:hover td,
+    #panel-revenue-review #rr-tbody-customer tr.fos-rr-customer-row:focus-visible td {
+      background: rgba(67, 214, 186, 0.06);
+    }
+    #panel-revenue-review #rr-tbody-customer tr.fos-rr-customer-row:focus-visible {
+      outline: 2px solid rgba(67, 214, 186, 0.45);
+      outline-offset: -2px;
     }
 
     .fos-agreement-inner {
@@ -3430,6 +3442,8 @@
         detailDrawer: {
           open: false,
           rowId: null,
+          mode: 'labor',
+          customerName: null,
         },
       };
 
@@ -3523,6 +3537,15 @@
         var div = document.createElement('div');
         div.textContent = text == null ? '' : String(text);
         return div.innerHTML;
+      }
+
+      /** HTML attribute escape for `data-*` values (e.g. customer names with quotes). */
+      function escapeAttr_(s) {
+        return String(s == null ? '' : s)
+          .replace(/&/g, '&amp;')
+          .replace(/"/g, '&quot;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
       }
 
       function navIconClassForId(id) {
@@ -3622,6 +3645,7 @@
         utilDrawerBody: document.getElementById('util-drawer-body'),
         utilDrawerClose: document.getElementById('util-drawer-close'),
         utilDrawerFiberyLink: document.getElementById('util-drawer-fibery-link'),
+        utilDrawerTitle: document.getElementById('util-drawer-title'),
         // v1.19.0 — Delivery Dashboard.
         panelDelivery: document.getElementById('panel-delivery'),
         deliveryRefreshBtn: document.getElementById('delivery-refresh-btn'),
@@ -6979,12 +7003,31 @@
       }
 
       // Phase C — Row-detail drawer -----------------------------------------
+      function applyUtilDrawerFiberyLink_(url) {
+        var link = els.utilDrawerFiberyLink;
+        var footer = link ? link.parentNode : null;
+        if (!link) return;
+        if (url) {
+          link.href = url;
+          link.classList.remove('disabled');
+          if (footer && footer.classList) footer.classList.remove('d-none');
+        } else {
+          link.href = '#';
+          link.classList.add('disabled');
+          if (footer && footer.classList) footer.classList.add('d-none');
+        }
+      }
       function openDetailDrawer(rowId, source) {
         if (!rowId || !els.utilDrawer) return;
         var row = findRowById_(rowId);
         if (!row) return;
         utilState.detailDrawer.open = true;
         utilState.detailDrawer.rowId = rowId;
+        utilState.detailDrawer.mode = 'labor';
+        utilState.detailDrawer.customerName = null;
+        if (els.utilDrawerTitle) {
+          els.utilDrawerTitle.textContent = 'Labor entry';
+        }
         renderDrawerBody_(row);
         els.utilDrawer.classList.remove('d-none');
         els.utilDrawer.setAttribute('aria-hidden', 'false');
@@ -7003,6 +7046,8 @@
         if (!els.utilDrawer) return;
         utilState.detailDrawer.open = false;
         utilState.detailDrawer.rowId = null;
+        utilState.detailDrawer.mode = 'labor';
+        utilState.detailDrawer.customerName = null;
         els.utilDrawer.classList.remove('open');
         els.utilDrawer.setAttribute('aria-hidden', 'true');
         // After the transition completes hide it from the layout entirely.
@@ -7057,30 +7102,7 @@
             row_(row.agreementType || '—', 'Agreement type') +
             row_(row.id || '—', 'Fibery id') +
           '</dl>';
-        // Fibery deep link — composed server-side as a template, then
-        // filled in here from the row's name + publicId. The anchor is
-        // hidden entirely when:
-        //   1. The signed-in user does NOT have `fibery_access = TRUE` in
-        //      the Users sheet (navState.fiberyAccess === false), OR
-        //   2. The server didn't surface a deep-link config (host missing
-        //      from Script Properties), OR
-        //   3. The row is missing the publicId / name needed to build the URL.
-        // We hide the surrounding `.fos-util-drawer-footer` so the gap
-        // collapses cleanly when access is denied.
-        var link = els.utilDrawerFiberyLink;
-        var footer = link ? link.parentNode : null;
-        var url = getFiberyLaborCostUrl_(row);
-        if (link) {
-          if (url) {
-            link.href = url;
-            link.classList.remove('disabled');
-            if (footer && footer.classList) footer.classList.remove('d-none');
-          } else {
-            link.href = '#';
-            link.classList.add('disabled');
-            if (footer && footer.classList) footer.classList.add('d-none');
-          }
-        }
+        applyUtilDrawerFiberyLink_(getFiberyLaborCostUrl_(row));
       }
       // Builds the public Fibery URL for a Labor Cost row, or `''` if the
       // user lacks Fibery access OR the deep-link config / row data is
@@ -7153,6 +7175,105 @@
           .split('{publicId}').join(String(publicId));
         var scheme = cfg.scheme || 'https';
         return scheme + '://' + cfg.host + path;
+      }
+      /**
+       * Public Fibery URL for a Companies entity (Revenue review drawer), or `''`.
+       * Same gate as `getFiberyAgreementUrl_`.
+       */
+      function getFiberyCompanyUrl_(companyName, publicId) {
+        if (!navState || navState.fiberyAccess !== true) {
+          return '';
+        }
+        var why = '';
+        if (!companyName || !String(companyName).trim()) {
+          why = 'company name missing';
+        } else if (!publicId) {
+          why = 'company publicId missing — Fibery `fibery/public-id` not on Companies payload';
+        } else if (!navState.fibery) {
+          why = 'navState.fibery missing — FIBERY_HOST is not configured server-side';
+        } else if (!navState.fibery.host) {
+          why = 'navState.fibery.host missing';
+        }
+        if (why) {
+          try {
+            console.warn('[FOS] Company Open-in-Fibery hidden: ' + why);
+          } catch (_) { /* ignore */ }
+          return '';
+        }
+        var cfg = navState.fibery;
+        var tmpl = cfg.companyPathTemplate ||
+          '/Agreement_Management/Companies/{slug}-{publicId}';
+        var slug = String(companyName).trim().replace(/\s/g, '-');
+        var path = String(tmpl)
+          .split('{slug}').join(slug)
+          .split('{publicId}').join(String(publicId));
+        var scheme = cfg.scheme || 'https';
+        return scheme + '://' + cfg.host + path;
+      }
+      function openRrCustomerDrawer_(customerName) {
+        if (!els.utilDrawer) return;
+        var vm = revenueReviewViewModel_;
+        var map = vm.companyByLowerName || {};
+        var company = map[String(customerName || '').toLowerCase()] || null;
+        var summary = null;
+        var rc = vm.rowsCustomer || [];
+        for (var ri = 0; ri < rc.length; ri++) {
+          if ((rc[ri].customer || '') === (customerName || '')) {
+            summary = rc[ri];
+            break;
+          }
+        }
+        utilState.detailDrawer.open = true;
+        utilState.detailDrawer.rowId = null;
+        utilState.detailDrawer.mode = 'rr-customer';
+        utilState.detailDrawer.customerName = customerName || '';
+        if (els.utilDrawerTitle) {
+          els.utilDrawerTitle.textContent = customerName || 'Customer';
+        }
+        renderRrCustomerDrawerBody_(company, summary);
+        els.utilDrawer.classList.remove('d-none');
+        els.utilDrawer.setAttribute('aria-hidden', 'false');
+        if (els.utilDrawerBackdrop) {
+          els.utilDrawerBackdrop.classList.remove('d-none');
+        }
+        requestAnimationFrame(function () {
+          els.utilDrawer.classList.add('open');
+        });
+        try { els.utilDrawer.focus(); } catch (_) { /* ignore */ }
+        logActivity_('revenue_review_drawer_open', 'revenue-review', 'customer=' + (customerName || ''));
+      }
+      function renderRrCustomerDrawerBody_(company, summary) {
+        if (!els.utilDrawerBody) return;
+        var note = '';
+        if (!company) {
+          note =
+            '<p class="small text-secondary mb-2">No matching company row in the cached Agreement Dashboard portfolio for this name. Totals below still reflect agreements tagged with this customer.</p>';
+        }
+        var parts = [];
+        if (company) {
+          parts.push(row_(company.name, 'Company'));
+          parts.push(row_(company.funnelStage, 'Funnel stage'));
+          parts.push(row_(company.segment, 'Segment'));
+          parts.push(row_(company.leadSource, 'Lead source'));
+          var tcv = company.totalContractValue != null
+            ? formatMoneyCompact(Number(company.totalContractValue))
+            : '—';
+          parts.push(row_(tcv, 'Total contract value', true));
+          parts.push(row_(company.ndaCompleted ? 'Yes' : 'No', 'NDA completed'));
+          parts.push(row_(company.id || '—', 'Fibery id'));
+        }
+        if (summary) {
+          parts.push(row_(String(summary.agreementCount), 'Agreements in scope', true));
+          parts.push(row_(formatMoneyCompact(summary.plannedRev), 'Planned revenue (review panel)', true));
+          parts.push(row_(formatMoneyCompact(summary.revRec), 'Recognized (review panel)', true));
+          parts.push(row_(formatPct(summary.pctRec) + '%', '% Recognized (review panel)', true));
+        }
+        els.utilDrawerBody.innerHTML = note + '<dl>' + parts.join('') + '</dl>';
+        var fibName = company && String(company.name || '').trim()
+          ? String(company.name).trim()
+          : (summary && summary.customer) || '';
+        var fibPid = company && company.publicId ? company.publicId : '';
+        applyUtilDrawerFiberyLink_(getFiberyCompanyUrl_(fibName, fibPid));
       }
       function row_(value, label, numeric) {
         var v = (value == null || value === '') ? '—' : String(value);
@@ -7435,9 +7556,18 @@
       // navigation (target=_blank), just fire-and-forget the log.
       if (els.utilDrawerFiberyLink) {
         els.utilDrawerFiberyLink.addEventListener('click', function () {
-          var rowId = utilState && utilState.detailDrawer ? utilState.detailDrawer.rowId : '';
-          logActivity_('util_drawer_fibery_click', 'operations',
-            'rowId=' + (rowId || 'unknown'));
+          var dd = utilState && utilState.detailDrawer ? utilState.detailDrawer : null;
+          if (dd && dd.mode === 'rr-customer' && dd.customerName) {
+            logActivity_(
+              'revenue_review_drawer_fibery_click',
+              'revenue-review',
+              'customer=' + dd.customerName
+            );
+          } else {
+            var rowId = dd ? dd.rowId : '';
+            logActivity_('util_drawer_fibery_click', 'operations',
+              'rowId=' + (rowId || 'unknown'));
+          }
         });
       }
       // v1.17.0 — Collapse all groups in the Utilization Alerts panel.
@@ -9009,6 +9139,7 @@
         rowsCustomer: [],
         rowsOverdue: [],
         _todayStart: null,
+        companyByLowerName: null,
       };
       var revenueReviewPrintBound_ = false;
       var revenueReviewPrintRestore_ = [];
@@ -9079,7 +9210,7 @@
           milestone: m.name || '—',
           agreement: ag.name || m.agreement || '—',
           agreementId: m.agreementId || '',
-          customer: m.customer || ag.customer || '—',
+          customer: ag.customer || m.customer || '—',
           targetDate: m.targetDate || '',
           targetAmount: tgt,
           actualAmount: act,
@@ -9230,7 +9361,9 @@
             for (ri = 0; ri < rows.length; ri++) {
               var c = rows[ri];
               html.push(
-                '<tr><td>' +
+                '<tr class="fos-rr-customer-row fos-clickable" tabindex="0" data-rr-customer="' +
+                  escapeAttr_(c.customer) +
+                  '"><td>' +
                   escapeHtml(c.customer) +
                   '</td><td class="text-end">' +
                   String(c.agreementCount) +
@@ -9293,11 +9426,21 @@
         var mi;
         for (mi = 0; mi < milestones.length; mi++) {
           var m = milestones[mi];
+          var agFor = agreementById[m.agreementId] || {};
           var row = rrAugmentMilestone_(m, agreementById, todayStart);
-          var ck = row.customer || '(Unknown)';
+          var ck = agFor.customer || m.customer || '(Unknown)';
           if (!byCust[ck]) byCust[ck] = {};
-          var aid = row.agreementId || row.agreement || '_';
-          if (!byCust[ck][aid]) byCust[ck][aid] = { agreement: row.agreement, rows: [] };
+          var aid = m.agreementId;
+          if (!aid) {
+            aid =
+              '_na:' +
+              String(agFor.name || row.agreement || row.milestone || 'agreement')
+                .trim()
+                .toLowerCase();
+          }
+          if (!byCust[ck][aid]) {
+            byCust[ck][aid] = { agreement: agFor.name || row.agreement || 'Agreement', rows: [] };
+          }
           byCust[ck][aid].rows.push(row);
         }
         var custKeys = Object.keys(byCust).sort(function (a, b) {
@@ -9501,6 +9644,12 @@
             exportRevenueReviewCsv_(csvOne.getAttribute('data-rr-csv') || 'all');
             return;
           }
+          var custTr = ev.target.closest('tr[data-rr-customer]');
+          if (custTr && custTr.closest && custTr.closest('#rr-tbody-customer')) {
+            var cname = custTr.getAttribute('data-rr-customer');
+            if (cname != null) openRrCustomerDrawer_(cname);
+            return;
+          }
           var th = ev.target.closest('th.fos-rr-sortable');
           if (!th) return;
           var tbl = th.getAttribute('data-rr-table');
@@ -9524,6 +9673,13 @@
           els.panelRevenueReview._rrKpiKeyBound = true;
           els.panelRevenueReview.addEventListener('keydown', function (ev) {
             if (ev.key !== 'Enter' && ev.key !== ' ') return;
+            var custRow = ev.target.closest('tr.fos-rr-customer-row[data-rr-customer]');
+            if (custRow && custRow.closest('#rr-tbody-customer')) {
+              ev.preventDefault();
+              var cn = custRow.getAttribute('data-rr-customer');
+              if (cn != null) openRrCustomerDrawer_(cn);
+              return;
+            }
             var jumpEl2 = ev.target.closest('[data-rr-scroll-to]');
             if (!jumpEl2) return;
             ev.preventDefault();
@@ -9664,6 +9820,14 @@
 
         var bounds = buildRevenueReviewMonthBounds_(new Date());
         var agreements = data.agreements || [];
+        var companies = data.companies || [];
+        var companyByLowerName = {};
+        var cix;
+        for (cix = 0; cix < companies.length; cix++) {
+          var cobj = companies[cix];
+          var cnm = String(cobj && cobj.name != null ? cobj.name : '').toLowerCase();
+          if (cnm) companyByLowerName[cnm] = cobj;
+        }
         var filtered = filterAgreementsForRevenueReview_(agreements);
         var revMap = data.revenueItemsByAgreement || revenueItemsByAgreement || {};
         var milestones = rrCollectMilestones_(filtered, revMap);
@@ -9740,6 +9904,7 @@
         var vm = revenueReviewViewModel_;
         vm.bounds = bounds;
         vm._todayStart = todayStart;
+        vm.companyByLowerName = companyByLowerName;
         vm.rowsPrior = [];
         vm.rowsCurrent = [];
         vm.rowsVariance = [];

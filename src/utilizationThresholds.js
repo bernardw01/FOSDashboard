@@ -1,5 +1,5 @@
 /**
- * PRD version 1.26.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.27.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard constants per
  * docs/features/005-utilization-management-dashboard.md:

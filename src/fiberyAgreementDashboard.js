@@ -1,5 +1,5 @@
 /**
- * PRD version 1.26.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.27.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement Dashboard orchestrator (route id `agreement-dashboard`, panel
  * `#panel-agreement-dashboard`). No persistent server-side cache
@@ -258,6 +258,7 @@ function buildCompaniesQuery_() {
       'q/from': 'Agreement Management/Companies',
       'q/select': {
         id: 'fibery/id',
+        publicId: 'fibery/public-id',
         name: 'Agreement Management/Name',
         funnelStage: ['Agreement Management/Funnel Stage', 'enum/name'],
         segment: ['Agreement Management/Segment', 'enum/name'],
@@ -387,6 +388,7 @@ function normalizeCompanies_(rows) {
     var segments = Array.isArray(r.segment) ? r.segment.slice() : (r.segment ? [String(r.segment)] : []);
     out.push({
       id: stringOr_(r.id, ''),
+      publicId: stringOr_(r.publicId, ''),
       name: stringOr_(r.name, '(Unnamed company)'),
       funnelStage: stringOrNull_(r.funnelStage),
       segments: segments,
