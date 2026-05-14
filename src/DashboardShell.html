@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 1.27.1 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 1.27.2 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -70,6 +70,44 @@
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
 
+    /* Grouped disclosures — chevron in a quiet chip (left of label). */
+    .fos-expand-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.375rem;
+      height: 1.375rem;
+      flex-shrink: 0;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      user-select: none;
+    }
+    .fos-agreement-root .fos-expand-chip {
+      border-color: var(--ag-border);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--ag-text-muted);
+    }
+    .fos-expand-chip .bi {
+      font-size: 0.72rem;
+      line-height: 1;
+      transition: transform 0.15s ease;
+    }
+    details.fos-disclosure-group > summary.fos-disclosure-summary {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      list-style: none;
+      cursor: pointer;
+    }
+    details.fos-disclosure-group > summary.fos-disclosure-summary::-webkit-details-marker {
+      display: none;
+    }
+    details.fos-disclosure-group[open] > summary .fos-expand-chip .bi-chevron-right {
+      transform: rotate(90deg);
+    }
+
     #panel-agreement-dashboard.fos-agreement-root,
     #panel-operations.fos-agreement-root,
     #panel-delivery.fos-agreement-root,
@@ -122,23 +160,12 @@
       margin-bottom: 0.2rem;
       border-radius: 4px;
     }
-    .fos-lh-proj-detail > summary {
-      cursor: pointer;
-      list-style: none;
-      display: flex;
+    .fos-lh-proj-detail > summary.fos-disclosure-summary {
       flex-wrap: wrap;
-      align-items: baseline;
+      align-items: center;
       gap: 0.35rem;
       color: var(--ag-text);
       font-weight: 600;
-    }
-    .fos-lh-proj-detail > summary::-webkit-details-marker {
-      display: none;
-    }
-    .fos-lh-proj-chev {
-      font-size: 0.65em;
-      color: var(--ag-text-muted);
-      user-select: none;
     }
     .fos-lh-proj-pct {
       color: var(--ag-text-muted);
@@ -213,22 +240,14 @@
       outline: 2px solid var(--ag-accent);
       outline-offset: 2px;
     }
-    #panel-revenue-review details.fos-rr-cust-detail > summary,
-    #panel-revenue-review details.fos-rr-agreement-detail > summary {
-      cursor: pointer;
-      list-style: none;
+    #panel-revenue-review details.fos-rr-cust-detail > summary.fos-disclosure-summary,
+    #panel-revenue-review details.fos-rr-agreement-detail > summary.fos-disclosure-summary {
       color: var(--ag-text);
       font-weight: 600;
     }
-    #panel-revenue-review details.fos-rr-cust-detail > summary::-webkit-details-marker,
-    #panel-revenue-review details.fos-rr-agreement-detail > summary::-webkit-details-marker {
-      display: none;
-    }
-    #panel-revenue-review .fos-rr-chev {
-      font-size: 0.65em;
-      color: var(--ag-text-muted);
-      user-select: none;
-      margin-right: 0.35rem;
+    #panel-revenue-review .fos-disclosure-summary-label {
+      min-width: 0;
+      flex: 1 1 auto;
     }
     #panel-revenue-review .fos-rr-table-wrap {
       overflow-x: auto;
@@ -466,17 +485,14 @@
     .fos-attention-group-header:focus-visible {
       box-shadow: inset 0 0 0 2px var(--ag-accent4);
     }
-    .fos-attention-group-chevron {
-      display: inline-block;
-      width: 14px;
-      flex-shrink: 0;
-      text-align: center;
-      color: var(--ag-text-muted);
-      font-size: 0.75rem;
-      transition: transform 150ms ease;
-      transform: rotate(0deg);
+    .fos-attention-group-chevron.fos-expand-chip {
+      width: 1.375rem;
+      height: 1.375rem;
     }
-    .fos-attention-group.is-open .fos-attention-group-chevron {
+    .fos-attention-group-chevron .bi {
+      transition: transform 150ms ease;
+    }
+    .fos-attention-group.is-open .fos-attention-group-chevron .bi-chevron-right {
       transform: rotate(90deg);
     }
     .fos-attention-group-name {
@@ -523,7 +539,8 @@
       padding-top: 8px;
     }
     @media (prefers-reduced-motion: reduce) {
-      .fos-attention-group-chevron,
+      .fos-expand-chip .bi,
+      .fos-attention-group-chevron .bi,
       .fos-attention-group-header {
         transition: none;
       }
@@ -2988,8 +3005,6 @@
                 Copy all CSV
               </button>
               <span class="small" id="rr-csv-status" style="color: var(--ag-text-muted)" aria-live="polite"></span>
-              <button type="button" class="btn btn-sm btn-outline-secondary border-secondary" id="rr-expand-detail-btn">Expand detail</button>
-              <button type="button" class="btn btn-sm btn-outline-secondary border-secondary" id="rr-collapse-detail-btn">Collapse detail</button>
             </div>
 
             <section class="fos-section-card mb-3" id="rr-section-prior" aria-labelledby="rr-prior-heading">
@@ -3142,7 +3157,13 @@
             </section>
 
             <section class="fos-section-card mb-3" id="rr-section-detail" aria-labelledby="rr-detail-heading">
-              <h2 id="rr-detail-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Milestone detail</h2>
+              <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
+                <h2 id="rr-detail-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Milestone detail</h2>
+                <div class="d-flex flex-wrap gap-2 d-print-none">
+                  <button type="button" class="btn btn-sm btn-outline-secondary border-secondary" id="rr-expand-detail-btn">Expand all</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary border-secondary" id="rr-collapse-detail-btn">Collapse all</button>
+                </div>
+              </div>
               <p class="small mb-2" style="color: var(--ag-text-muted)">By customer → agreement. Expand rows to see every milestone in scope.</p>
               <div id="rr-detail-tree" class="small"></div>
               <p class="small mb-0 mt-2 d-none" id="rr-empty-detail" style="color: var(--ag-text-muted)">No milestones to show.</p>
@@ -4632,7 +4653,7 @@
         var countLabel = group.items.length +
           (group.items.length === 1 ? ' item' : ' items');
         header.innerHTML =
-          '<span class="fos-attention-group-chevron" aria-hidden="true">▸</span>' +
+          '<span class="fos-attention-group-chevron fos-expand-chip" aria-hidden="true"><i class="bi bi-chevron-right"></i></span>' +
           '<span class="fos-attention-group-sev-icon" aria-hidden="true">' + icon + '</span>' +
           '<span class="fos-attention-group-name">' + escapeHtml(group.label) + '</span>' +
           '<span class="fos-attention-group-count">' + escapeHtml(countLabel) + '</span>';
@@ -6349,7 +6370,7 @@
         var countLabel = group.items.length +
           (group.items.length === 1 ? ' alert' : ' alerts');
         header.innerHTML =
-          '<span class="fos-attention-group-chevron" aria-hidden="true">▸</span>' +
+          '<span class="fos-attention-group-chevron fos-expand-chip" aria-hidden="true"><i class="bi bi-chevron-right"></i></span>' +
           '<span class="fos-attention-group-sev-icon" aria-hidden="true">' + icon + '</span>' +
           '<span class="fos-attention-group-name">' + escapeHtml(group.label) + '</span>' +
           '<span class="fos-attention-group-count">' + escapeHtml(countLabel) + '</span>';
@@ -8114,12 +8135,15 @@
         for (pi = 0; pi < shownP; pi++) {
           var pr = breakdown[pi];
           var det = document.createElement('details');
-          det.className = 'fos-lh-proj-detail';
+          det.className = 'fos-lh-proj-detail fos-disclosure-group';
           var sum = document.createElement('summary');
+          sum.className = 'fos-disclosure-summary';
           var chev = document.createElement('span');
-          chev.className = 'fos-lh-proj-chev';
+          chev.className = 'fos-expand-chip';
           chev.setAttribute('aria-hidden', 'true');
-          chev.textContent = '▸';
+          var chevI = document.createElement('i');
+          chevI.className = 'bi bi-chevron-right';
+          chev.appendChild(chevI);
           var nameSp = document.createElement('span');
           nameSp.textContent = pr.name;
           var pctSp = document.createElement('span');
@@ -8130,12 +8154,6 @@
           sum.appendChild(nameSp);
           sum.appendChild(pctSp);
           det.appendChild(sum);
-          det.addEventListener('toggle', function (tev) {
-            var d = tev.target;
-            if (!d || d.tagName !== 'DETAILS') return;
-            var sm = d.querySelector(':scope > summary .fos-lh-proj-chev');
-            if (sm) sm.textContent = d.open ? '▾' : '▸';
-          });
           var tasks = pr.tasks || [];
           var shownT = Math.min(maxT, tasks.length);
           var ti;
@@ -8288,8 +8306,6 @@
         var nodes = els.panelLaborHours.querySelectorAll('details.fos-lh-proj-detail');
         for (var i = 0; i < nodes.length; i++) {
           nodes[i].open = !!open;
-          var sm = nodes[i].querySelector(':scope > summary .fos-lh-proj-chev');
-          if (sm) sm.textContent = open ? '▾' : '▸';
         }
       }
 
@@ -8524,16 +8540,12 @@
             for (var pi = 0; pi < dets.length; pi++) {
               laborHoursPrintRestore_.push({ el: dets[pi], wasOpen: dets[pi].open });
               dets[pi].open = true;
-              var ch = dets[pi].querySelector(':scope > summary .fos-lh-proj-chev');
-              if (ch) ch.textContent = '▾';
             }
           });
           window.addEventListener('afterprint', function () {
             for (var pj = 0; pj < laborHoursPrintRestore_.length; pj++) {
               var item = laborHoursPrintRestore_[pj];
               item.el.open = item.wasOpen;
-              var ch2 = item.el.querySelector(':scope > summary .fos-lh-proj-chev');
-              if (ch2) ch2.textContent = item.el.open ? '▾' : '▸';
             }
             laborHoursPrintRestore_ = [];
           });
@@ -9458,9 +9470,9 @@
         for (var ci = 0; ci < custKeys.length; ci++) {
           var cust = custKeys[ci];
           parts.push(
-            '<details class="fos-rr-cust-detail mb-2"><summary><span class="fos-rr-chev">▸</span>' +
+            '<details class="fos-rr-cust-detail fos-disclosure-group mb-2"><summary class="fos-disclosure-summary"><span class="fos-expand-chip" aria-hidden="true"><i class="bi bi-chevron-right"></i></span><span class="fos-disclosure-summary-label">' +
               escapeHtml(cust) +
-              '</summary><div class="mt-2 ps-2">'
+              '</span></summary><div class="mt-2 ps-2">'
           );
           var agMap = byCust[cust];
           var aids = Object.keys(agMap).sort(function (a, b) {
@@ -9473,13 +9485,13 @@
               return String(a.targetDate).localeCompare(String(b.targetDate));
             });
             parts.push(
-              '<details class="fos-rr-agreement-detail mb-2"><summary><span class="fos-rr-chev">▸</span>' +
+              '<details class="fos-rr-agreement-detail fos-disclosure-group mb-2"><summary class="fos-disclosure-summary"><span class="fos-expand-chip" aria-hidden="true"><i class="bi bi-chevron-right"></i></span><span class="fos-disclosure-summary-label">' +
                 escapeHtml(pack.agreement || 'Agreement') +
                 ' · ' +
                 mrows.length +
                 ' milestone' +
                 (mrows.length === 1 ? '' : 's') +
-                '</summary><div class="fos-rr-table-wrap mt-1"><table class="fos-util-detail-table fos-rr-table"><thead><tr><th>Milestone</th><th class="text-end">Target date</th><th class="text-end">Target</th><th class="text-end">Actual</th><th class="text-end">Variance</th><th>Status</th></tr></thead><tbody>'
+                '</span></summary><div class="fos-rr-table-wrap mt-1"><table class="fos-util-detail-table fos-rr-table"><thead><tr><th>Milestone</th><th class="text-end">Target date</th><th class="text-end">Target</th><th class="text-end">Actual</th><th class="text-end">Variance</th><th>Status</th></tr></thead><tbody>'
             );
             var rj;
             for (rj = 0; rj < mrows.length; rj++) {
@@ -9512,8 +9524,6 @@
         var dets = els.panelRevenueReview.querySelectorAll('details.fos-rr-cust-detail, details.fos-rr-agreement-detail');
         for (var i = 0; i < dets.length; i++) {
           dets[i].open = !!open;
-          var ch = dets[i].querySelector(':scope > summary .fos-rr-chev');
-          if (ch) ch.textContent = open ? '▾' : '▸';
         }
         logActivity_('revenue_review_expand', 'revenue-review', open ? 'all' : 'collapse');
       }
@@ -9691,13 +9701,6 @@
             }
           });
         }
-        els.panelRevenueReview.addEventListener('toggle', function (ev) {
-          var t = ev.target;
-          if (!t || t.tagName !== 'DETAILS') return;
-          if (!t.classList.contains('fos-rr-cust-detail') && !t.classList.contains('fos-rr-agreement-detail')) return;
-          var ch = t.querySelector(':scope > summary .fos-rr-chev');
-          if (ch) ch.textContent = t.open ? '▾' : '▸';
-        });
         if (els.rrCopyAllCsvBtn) {
           els.rrCopyAllCsvBtn.addEventListener('click', function () {
             exportRevenueReviewCsv_('all');
@@ -9722,8 +9725,6 @@
             for (var pi = 0; pi < dets.length; pi++) {
               revenueReviewPrintRestore_.push({ el: dets[pi], wasOpen: dets[pi].open });
               dets[pi].open = true;
-              var chp = dets[pi].querySelector(':scope > summary .fos-rr-chev');
-              if (chp) chp.textContent = '▾';
             }
             logActivity_('revenue_review_print', 'revenue-review', 'beforeprint');
           });
@@ -9731,8 +9732,6 @@
             for (var pj = 0; pj < revenueReviewPrintRestore_.length; pj++) {
               var item = revenueReviewPrintRestore_[pj];
               item.el.open = item.wasOpen;
-              var chq = item.el.querySelector(':scope > summary .fos-rr-chev');
-              if (chq) chq.textContent = item.el.open ? '▾' : '▸';
             }
             revenueReviewPrintRestore_ = [];
           });

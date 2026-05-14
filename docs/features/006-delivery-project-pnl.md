@@ -1,6 +1,6 @@
 # Feature: Delivery Dashboard — Active Projects + Per-Project P&L
 
-> **PRD version 1.27.1** — Phase A shipped in v1.19.0; **Phase B** in v1.20.0; **Phase C (pacing strip, delivery signals, portfolio Sankey)** in v1.21.0.
+> **PRD version 1.27.2** — Phase A shipped in v1.19.0; **Phase B** in v1.20.0; **Phase C (pacing strip, delivery signals, portfolio Sankey)** in v1.21.0.
 > `src/Code.js` `FOS_PRD_VERSION` and every `src/*` file header MUST match the
 > version line in `docs/FOS-Dashboard-PRD.md`.
 

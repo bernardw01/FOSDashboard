@@ -77,6 +77,7 @@ Route **`revenue-review`** · panel **`#panel-revenue-review`**. Under sidebar *
 | **v1.26.0** | Sortable **tables** (prior/current milestone months, portfolio, revenue by customer, overdue, variance); **Copy CSV** (per section + all); **print** with expanded milestone `<details>`; milestone **drill-down** tree (customer → agreement); persisted table sort in `sessionStorage`; additional **`revenue_review_*`** events. |
 | **v1.27.0** | Milestone tree groups by **agreement Customer** then **agreement**; **Revenue by customer** rows open the **shared row-detail drawer** with company + rollups and **Open in Fibery → Companies** when **`fibery_access`** and company **`publicId`** exist; **`revenue_review_drawer_*`** activity events. |
 | **v1.27.1** | **Fix:** `revenueItemsByAgreement` bucket rows again include **`agreementId`**, **`agreement`**, and **`customer`** (they had been omitted when grouping); milestone detail no longer shows **(Unknown)** when Fibery returned that data. |
+| **v1.27.2** | **UX:** Chevron-in-chip disclosure affordance on Revenue review milestone tree, Labor hours project `<details>`, and attention groups; **Expand all** / **Collapse all** moved above **Milestone detail**. |
 
 ## Script properties (Apps Script project settings)
 
