@@ -1,11 +1,11 @@
 /**
- * PRD version 1.21.1 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.24.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard — Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '1.21.1';
+var FOS_PRD_VERSION = '1.24.0';
 
 /**
  * @return {string}
@@ -66,7 +66,10 @@ function doGet() {
  *     laborCostPathTemplate: string,
  *     agreementPathTemplate: string
  *   },
- *   items: Array<{ id: string, label: string, active: boolean }>
+ *   items: Array<
+ *     | { id: string, label: string, active: boolean }
+ *     | { type: 'group', id: string, label: string, active: boolean, children: Array<{ id: string, label: string, active: boolean }> }
+ *   >
  * }}
  */
 function getDashboardNavigation() {
@@ -88,7 +91,10 @@ function getDashboardNavigation() {
  *     laborCostPathTemplate: string,
  *     agreementPathTemplate: string
  *   },
- *   items: Array<{ id: string, label: string, active: boolean }>
+ *   items: Array<
+ *     | { id: string, label: string, active: boolean }
+ *     | { type: 'group', id: string, label: string, active: boolean, children: Array<{ id: string, label: string, active: boolean }> }
+ *   >
  * }}
  * @private
  */
@@ -98,7 +104,16 @@ function buildNavigationModel_(auth) {
   var allItems = [
     { id: 'home', label: 'Home', active: true },
     { id: 'agreement-dashboard', label: 'Agreement Dashboard', active: false },
-    { id: 'operations', label: 'Operations', active: false },
+    {
+      id: 'operations-group',
+      type: 'group',
+      label: 'Operations',
+      active: false,
+      children: [
+        { id: 'operations', label: 'Utilization', active: false },
+        { id: 'labor-hours', label: 'Labor hours', active: false },
+      ],
+    },
     { id: 'delivery', label: 'Delivery', active: false },
   ];
 

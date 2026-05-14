@@ -1,5 +1,5 @@
 /**
- * PRD version 1.21.1 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.24.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard orchestrator (route id `operations`, panel
  * `#panel-operations`). Reads `Agreement Management/Labor Costs` from Fibery
@@ -14,7 +14,8 @@
  *
  * Public surface (client-callable via google.script.run):
  *   getUtilizationDashboardData(rangeStart?, rangeEnd?)
- *     — returns the full view-model payload for the date window.
+ *     — returns the full view-model payload for the date window (includes
+ *       `laborHours` target config for the Labor Hours panel, feature 007).
  *   getUtilizationCacheTtlMinutes()
  *     — returns the configured default TTL minutes (Script Property
  *       UTILIZATION_CACHE_TTL_MINUTES, default 10).
@@ -69,6 +70,7 @@ function getUtilizationCacheTtlMinutes() {
  *   aggregates: !Object,
  *   pendingApprovals: !Array<!Object>,
  *   alerts: !Array<!Object>,
+ *   laborHours: !Object,
  *   warnings?: !Array<string>,
  *   message?: string
  * }}
@@ -80,6 +82,7 @@ function getUtilizationDashboardData(rangeStart, rangeEnd) {
   var fetchedAtIso = now.toISOString();
   var thresholds = getUtilizationThresholds_();
   var ttlMinutes = thresholds.cacheTtlMinutes;
+  var laborHoursCfg = getLaborHoursConfig_();
   var range = resolveRange_(rangeStart, rangeEnd, now, thresholds);
 
   var fetched = fetchAllLaborCosts_(range.start, range.end);
@@ -97,6 +100,7 @@ function getUtilizationDashboardData(rangeStart, rangeEnd) {
       aggregates: emptyUtilizationAggregates_(),
       pendingApprovals: [],
       alerts: [],
+      laborHours: laborHoursCfg,
       message: fetched.message || 'Could not load utilization data from Fibery.',
       warnings: ['Fibery error: ' + (fetched.reason || 'UNKNOWN')],
     };
@@ -134,6 +138,7 @@ function getUtilizationDashboardData(rangeStart, rangeEnd) {
     aggregates: aggregates,
     pendingApprovals: pendingApprovals,
     alerts: alerts,
+    laborHours: laborHoursCfg,
   };
   if (warnings.length) {
     payload.warnings = warnings;

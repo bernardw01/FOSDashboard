@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 1.21.1 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 1.24.0 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -72,10 +72,115 @@
 
     #panel-agreement-dashboard.fos-agreement-root,
     #panel-operations.fos-agreement-root,
-    #panel-delivery.fos-agreement-root {
+    #panel-delivery.fos-agreement-root,
+    #panel-labor-hours.fos-agreement-root {
       background: var(--ag-bg);
       border-radius: 12px;
       padding: 4px 0 8px;
+    }
+
+    .fos-nav-btn.fos-nav-child {
+      padding-left: 2.25rem;
+      font-size: 0.95rem;
+    }
+
+    .fos-lh-kpi-jump {
+      cursor: pointer;
+      transition: box-shadow 0.15s ease, transform 0.12s ease;
+    }
+    .fos-lh-kpi-jump:hover {
+      box-shadow: 0 0 0 2px var(--ag-accent);
+    }
+    .fos-lh-kpi-jump:focus-visible {
+      outline: 2px solid var(--ag-accent);
+      outline-offset: 2px;
+    }
+    .fos-lh-zero-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .fos-lh-zero-chip {
+      display: inline-block;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      background: var(--ag-surface2);
+      color: var(--ag-text-muted);
+      border: 1px solid var(--ag-border);
+    }
+
+    /* Labor hours — Phase C project / task breakdown */
+    .fos-lh-proj-cell {
+      color: var(--ag-text-muted);
+      line-height: 1.45;
+      max-width: 32rem;
+      vertical-align: top;
+    }
+    .fos-lh-proj-detail {
+      margin-bottom: 0.2rem;
+      border-radius: 4px;
+    }
+    .fos-lh-proj-detail > summary {
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.35rem;
+      color: var(--ag-text);
+      font-weight: 600;
+    }
+    .fos-lh-proj-detail > summary::-webkit-details-marker {
+      display: none;
+    }
+    .fos-lh-proj-chev {
+      font-size: 0.65em;
+      color: var(--ag-text-muted);
+      user-select: none;
+    }
+    .fos-lh-proj-pct {
+      color: var(--ag-text-muted);
+      font-weight: 400;
+      font-size: 0.82em;
+    }
+    .fos-lh-proj-task {
+      padding: 0.08rem 0 0.08rem 0.75rem;
+      color: var(--ag-text-muted);
+      font-size: 0.85em;
+    }
+    .fos-lh-proj-task-pct {
+      color: var(--ag-text-dim);
+      font-size: 0.82em;
+    }
+    .fos-lh-proj-more {
+      color: var(--ag-text-dim);
+      font-size: 0.78em;
+      margin-top: 0.15rem;
+    }
+
+    @media print {
+      .offcanvas.fos-sidebar,
+      header.fos-topbar,
+      .navbar-toggler {
+        display: none !important;
+      }
+      body {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+        background: #fff !important;
+      }
+      #panel-labor-hours.fos-agreement-root {
+        break-inside: avoid;
+      }
+      #panel-labor-hours .fos-lh-proj-detail {
+        break-inside: avoid;
+        border: 1px solid #ccc;
+        margin-bottom: 0.25rem;
+      }
+      #panel-labor-hours .fos-lh-kpi-jump {
+        cursor: default;
+      }
     }
 
     .fos-agreement-inner {
@@ -2354,6 +2459,191 @@
           </div>
         </div>
 
+        <div id="panel-labor-hours" class="d-none fos-agreement-root">
+          <div id="lh-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
+          <div class="fos-agreement-inner shadow-lg">
+            <div class="fos-loading-overlay d-none" id="lh-loading" role="status" aria-live="polite" aria-hidden="true">
+              <div class="fos-loading-spinner" aria-hidden="true"></div>
+              <span class="fos-loading-label">Loading week…</span>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <div class="flex-grow-1 min-w-0">
+                <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Labor hours review</h1>
+                <p class="small mb-0" id="lh-subtitle" style="color: var(--ag-text-muted)">—</p>
+                <p class="small mb-0 mt-1" id="lh-source-meta" style="color: var(--ag-text-muted)"></p>
+              </div>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 mb-3 pb-3 border-bottom" style="border-color: var(--ag-border) !important">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="lh-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
+                Refresh
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="lh-export-csv-btn">
+                Copy CSV
+              </button>
+              <span class="small text-success" id="lh-csv-status" role="status" aria-live="polite"></span>
+              <button type="button" class="btn btn-link btn-sm py-0 px-1 text-decoration-none" id="lh-expand-projects-btn" style="color: var(--ag-accent)">
+                Expand projects
+              </button>
+              <button type="button" class="btn btn-link btn-sm py-0 px-1 text-decoration-none" id="lh-collapse-projects-btn" style="color: var(--ag-text-muted)">
+                Collapse projects
+              </button>
+              <label class="small d-flex align-items-center gap-2 mb-0" for="lh-week-input" style="color: var(--ag-text-muted)">
+                <span class="text-nowrap">Week (Mon–Sun)</span>
+                <input type="week" id="lh-week-input" class="form-control form-control-sm" style="width: 11rem; background: var(--ag-surface2); color: var(--ag-text); border-color: var(--ag-border)" />
+              </label>
+              <div>
+                <label class="field-label">Internal labor</label>
+                <div class="btn-group" role="group" id="lh-internal-group" aria-label="Internal labor filter">
+                  <button type="button" class="btn btn-sm active" data-value="include">Include</button>
+                  <button type="button" class="btn btn-sm" data-value="exclude">Exclude</button>
+                </div>
+              </div>
+              <span class="small d-none text-danger" id="lh-fetch-error" role="alert"></span>
+            </div>
+
+            <div class="row row-cols-2 row-cols-sm-3 row-cols-lg-5 g-3 mb-3" id="lh-kpi-row">
+              <div class="col">
+                <div
+                  class="fos-agreement-kpi kpi-blue h-100 fos-lh-kpi-jump"
+                  title="People who logged time in the selected week (after filters). Click to scroll to the first table."
+                  role="button"
+                  tabindex="0"
+                  data-lh-scroll-to="lh-section-over"
+                >
+                  <div class="label">With time</div>
+                  <div class="value" id="lh-kpi-with">0</div>
+                  <div class="sub">people</div>
+                </div>
+              </div>
+              <div class="col">
+                <div
+                  class="fos-agreement-kpi kpi-margin-neg h-100 fos-lh-kpi-jump"
+                  title="Click to scroll to Over table."
+                  role="button"
+                  tabindex="0"
+                  data-lh-scroll-to="lh-section-over"
+                >
+                  <div class="label">Over target</div>
+                  <div class="value" id="lh-kpi-over">0</div>
+                  <div class="sub">people</div>
+                </div>
+              </div>
+              <div class="col">
+                <div
+                  class="fos-agreement-kpi kpi-yellow h-100 fos-lh-kpi-jump"
+                  title="Click to scroll to Under table."
+                  role="button"
+                  tabindex="0"
+                  data-lh-scroll-to="lh-section-under"
+                >
+                  <div class="label">Under target</div>
+                  <div class="value" id="lh-kpi-under">0</div>
+                  <div class="sub">people</div>
+                </div>
+              </div>
+              <div class="col">
+                <div
+                  class="fos-agreement-kpi kpi-teal h-100 fos-lh-kpi-jump"
+                  title="Click to scroll to On target table."
+                  role="button"
+                  tabindex="0"
+                  data-lh-scroll-to="lh-section-on"
+                >
+                  <div class="label">On target</div>
+                  <div class="value" id="lh-kpi-on">0</div>
+                  <div class="sub">people</div>
+                </div>
+              </div>
+              <div class="col">
+                <div
+                  class="fos-agreement-kpi h-100 fos-lh-kpi-jump"
+                  style="background: var(--ag-surface2); border: 1px solid var(--ag-border)"
+                  title="People in the utilization roster with no time this week. Click to scroll."
+                  role="button"
+                  tabindex="0"
+                  data-lh-scroll-to="lh-section-zero"
+                >
+                  <div class="label" style="color: var(--ag-text-muted)">Zero hours</div>
+                  <div class="value" id="lh-kpi-zero" style="color: var(--ag-text-muted)">0</div>
+                  <div class="sub" style="color: var(--ag-text-muted)">roster</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+              <div class="col-12">
+                <section class="fos-section-card" id="lh-section-zero" aria-labelledby="lh-zero-heading">
+                  <h2 id="lh-zero-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text-muted)">Zero hours this week</h2>
+                  <p class="small mb-2" style="color: var(--ag-text-muted)">
+                    From the Utilization <strong>Persons</strong> roster for the loaded date range — people with no qualifying entries in the selected week (after Internal labor filter).
+                  </p>
+                  <div id="lh-zero-chips" class="fos-lh-zero-chips" aria-live="polite"></div>
+                </section>
+              </div>
+              <div class="col-12">
+                <section class="fos-section-card" id="lh-section-over" aria-labelledby="lh-over-heading">
+                  <h2 id="lh-over-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-danger, var(--danger))">Over weekly target</h2>
+                  <div class="fos-util-detail-wrap">
+                    <table class="fos-util-detail-table">
+                      <thead>
+                        <tr>
+                          <th data-lh-section="over" data-lh-sort="person">Person <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="over" data-lh-sort="company">Company <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="over" data-lh-sort="target" class="text-end">Target <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="over" data-lh-sort="hours" class="text-end">Hours <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="over" data-lh-sort="delta" class="text-end">Δ vs target <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="over" data-lh-sort="projects">Projects <span class="sort-icon">↕</span></th>
+                        </tr>
+                      </thead>
+                      <tbody id="lh-over-tbody"></tbody>
+                    </table>
+                  </div>
+                </section>
+              </div>
+              <div class="col-12">
+                <section class="fos-section-card" id="lh-section-under" aria-labelledby="lh-under-heading">
+                  <h2 id="lh-under-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-warn)">Under weekly target</h2>
+                  <div class="fos-util-detail-wrap">
+                    <table class="fos-util-detail-table">
+                      <thead>
+                        <tr>
+                          <th data-lh-section="under" data-lh-sort="person">Person <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="under" data-lh-sort="company">Company <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="under" data-lh-sort="target" class="text-end">Target <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="under" data-lh-sort="hours" class="text-end">Hours <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="under" data-lh-sort="delta" class="text-end">Δ vs target <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="under" data-lh-sort="projects">Projects <span class="sort-icon">↕</span></th>
+                        </tr>
+                      </thead>
+                      <tbody id="lh-under-tbody"></tbody>
+                    </table>
+                  </div>
+                </section>
+              </div>
+              <div class="col-12">
+                <section class="fos-section-card" id="lh-section-on" aria-labelledby="lh-on-heading">
+                  <h2 id="lh-on-heading" class="h6 mb-2 fw-bold" style="color: var(--accent4)">On target</h2>
+                  <div class="fos-util-detail-wrap">
+                    <table class="fos-util-detail-table">
+                      <thead>
+                        <tr>
+                          <th data-lh-section="on" data-lh-sort="person">Person <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="on" data-lh-sort="company">Company <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="on" data-lh-sort="target" class="text-end">Target <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="on" data-lh-sort="hours" class="text-end">Hours <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="on" data-lh-sort="delta" class="text-end">Δ vs target <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="on" data-lh-sort="projects">Projects <span class="sort-icon">↕</span></th>
+                        </tr>
+                      </thead>
+                      <tbody id="lh-on-tbody"></tbody>
+                    </table>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- v1.19.0 — FR-89..93. Delivery Dashboard panel. Active Projects
              table at the top, per-project monthly P&L below on selection. -->
         <div id="panel-delivery" class="d-none fos-agreement-root">
@@ -2903,6 +3193,7 @@
         'home': 'bi-house-door-fill',
         'agreement-dashboard': 'bi-graph-up-arrow',
         'operations': 'bi-kanban-fill',
+        'labor-hours': 'bi-clock-history',
         'delivery': 'bi-truck',
       };
 
@@ -2939,6 +3230,27 @@
         attentionCount: document.getElementById('attention-count'),
         attentionCollapseAll: document.getElementById('attention-collapse-all'),
         panelOperations: document.getElementById('panel-operations'),
+        panelLaborHours: document.getElementById('panel-labor-hours'),
+        lhLoading: document.getElementById('lh-loading'),
+        lhSubtitle: document.getElementById('lh-subtitle'),
+        lhSourceMeta: document.getElementById('lh-source-meta'),
+        lhRefreshBtn: document.getElementById('lh-refresh-btn'),
+        lhExportCsvBtn: document.getElementById('lh-export-csv-btn'),
+        lhCsvStatus: document.getElementById('lh-csv-status'),
+        lhExpandProjectsBtn: document.getElementById('lh-expand-projects-btn'),
+        lhCollapseProjectsBtn: document.getElementById('lh-collapse-projects-btn'),
+        lhWeekInput: document.getElementById('lh-week-input'),
+        lhInternalGroup: document.getElementById('lh-internal-group'),
+        lhFetchError: document.getElementById('lh-fetch-error'),
+        lhKpiWith: document.getElementById('lh-kpi-with'),
+        lhKpiOver: document.getElementById('lh-kpi-over'),
+        lhKpiUnder: document.getElementById('lh-kpi-under'),
+        lhKpiOn: document.getElementById('lh-kpi-on'),
+        lhKpiZero: document.getElementById('lh-kpi-zero'),
+        lhZeroChips: document.getElementById('lh-zero-chips'),
+        lhOverTbody: document.getElementById('lh-over-tbody'),
+        lhUnderTbody: document.getElementById('lh-under-tbody'),
+        lhOnTbody: document.getElementById('lh-on-tbody'),
         utilRefreshBtn: document.getElementById('util-refresh-btn'),
         utilLastRefresh: document.getElementById('util-last-refresh'),
         utilFetchError: document.getElementById('util-fetch-error'),
@@ -3170,6 +3482,19 @@
         } else {
           els.utilLoading.classList.add('d-none');
           els.utilLoading.setAttribute('aria-hidden', 'true');
+        }
+      }
+
+      function setLhLoading(on) {
+        if (!els.lhLoading) {
+          return;
+        }
+        if (on) {
+          els.lhLoading.classList.remove('d-none');
+          els.lhLoading.setAttribute('aria-hidden', 'false');
+        } else {
+          els.lhLoading.classList.add('d-none');
+          els.lhLoading.setAttribute('aria-hidden', 'true');
         }
       }
 
@@ -4402,6 +4727,9 @@
         if (els.panelDelivery) {
           els.panelDelivery.classList.add('d-none');
         }
+        if (els.panelLaborHours) {
+          els.panelLaborHours.classList.add('d-none');
+        }
         els.topbarTitle.textContent = 'Home';
       }
 
@@ -4412,6 +4740,9 @@
         }
         if (els.panelDelivery) {
           els.panelDelivery.classList.add('d-none');
+        }
+        if (els.panelLaborHours) {
+          els.panelLaborHours.classList.add('d-none');
         }
         if (els.panelAgreementDashboard) {
           els.panelAgreementDashboard.classList.remove('d-none');
@@ -4846,11 +5177,20 @@
         }
       }
       function syncInternalButtons() {
-        if (!els.utilInternalGroup) return;
-        var btns = els.utilInternalGroup.querySelectorAll('button');
-        for (var i = 0; i < btns.length; i++) {
-          if (btns[i].getAttribute('data-value') === utilState.filters.internalLabor) btns[i].classList.add('active');
-          else btns[i].classList.remove('active');
+        var val = utilState.filters.internalLabor;
+        if (els.utilInternalGroup) {
+          var btns = els.utilInternalGroup.querySelectorAll('button');
+          for (var i = 0; i < btns.length; i++) {
+            if (btns[i].getAttribute('data-value') === val) btns[i].classList.add('active');
+            else btns[i].classList.remove('active');
+          }
+        }
+        if (els.lhInternalGroup) {
+          var btns2 = els.lhInternalGroup.querySelectorAll('button');
+          for (var j = 0; j < btns2.length; j++) {
+            if (btns2[j].getAttribute('data-value') === val) btns2[j].classList.add('active');
+            else btns2[j].classList.remove('active');
+          }
         }
       }
 
@@ -6589,6 +6929,9 @@
               utilState.filters.internalLabor = btn.getAttribute('data-value') || 'include';
               syncInternalButtons();
               renderUtilDashboard();
+              if (els.panelLaborHours && !els.panelLaborHours.classList.contains('d-none')) {
+                refreshLaborHoursView_();
+              }
               logActivity_('util_filter', 'operations', 'internal=' + utilState.filters.internalLabor);
             });
           })(intBtns[ii]);
@@ -6710,6 +7053,7 @@
         els.panelHome.classList.add('d-none');
         if (els.panelAgreementDashboard) els.panelAgreementDashboard.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
+        if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelOperations) els.panelOperations.classList.remove('d-none');
         els.topbarTitle.textContent = 'Operations';
         if (els.utilFetchError) els.utilFetchError.classList.add('d-none');
@@ -6747,6 +7091,940 @@
           var r0 = resolveRangeFromPreset();
           fetchUtilizationFromServer(r0.startIso, r0.endIso);
         }
+      }
+
+      function lastCompletedWeekMondayLocal_() {
+        var now = new Date();
+        var localMid = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        var dow = localMid.getDay();
+        var daysToPrevSunday = dow === 0 ? 7 : dow;
+        var prevSun = new Date(localMid);
+        prevSun.setDate(localMid.getDate() - daysToPrevSunday);
+        return new Date(prevSun.getFullYear(), prevSun.getMonth(), prevSun.getDate() - 6);
+      }
+
+      function isoWeekNumberAndYearForMonday_(mondayDate) {
+        var d = new Date(mondayDate.getFullYear(), mondayDate.getMonth(), mondayDate.getDate());
+        d.setDate(d.getDate() + 3);
+        var isoYear = d.getFullYear();
+        var week1 = new Date(isoYear, 0, 4);
+        var janDow = week1.getDay() || 7;
+        var week1Mon = new Date(week1);
+        week1Mon.setDate(week1.getDate() - (janDow - 1));
+        var diffMs = mondayDate.getTime() - week1Mon.getTime();
+        var weekNum = 1 + Math.floor(diffMs / 604800000);
+        return { isoYear: isoYear, week: weekNum };
+      }
+
+      function formatWeekInputFromLocalMonday_(mon) {
+        var iw = isoWeekNumberAndYearForMonday_(mon);
+        var w = iw.week;
+        var y = iw.isoYear;
+        return y + '-W' + (w < 10 ? '0' : '') + w;
+      }
+
+      function mondayFromWeekInputValue_(val) {
+        if (!val || typeof val !== 'string') return null;
+        var m = /^(\d{4})-W(\d{1,2})$/.exec(val.trim());
+        if (!m) return null;
+        var isoYear = parseInt(m[1], 10);
+        var week = parseInt(m[2], 10);
+        if (!isFinite(isoYear) || !isFinite(week) || week < 1 || week > 53) return null;
+        var jan4 = new Date(isoYear, 0, 4);
+        var janDow = jan4.getDay() || 7;
+        var week1Mon = new Date(jan4);
+        week1Mon.setDate(jan4.getDate() - (janDow - 1));
+        var mon = new Date(week1Mon);
+        mon.setDate(week1Mon.getDate() + (week - 1) * 7);
+        return mon;
+      }
+
+      function laborBoundsFromWeekInput_(weekVal) {
+        var mon = mondayFromWeekInputValue_(weekVal);
+        if (!mon) return null;
+        var sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
+        var weekStart = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate(), 0, 0, 0, 0);
+        var weekEnd = new Date(sun.getFullYear(), sun.getMonth(), sun.getDate(), 23, 59, 59, 999);
+        return {
+          weekStartMs: weekStart.getTime(),
+          weekEndMs: weekEnd.getTime(),
+          weekStartIso: weekStart.toISOString(),
+          weekEndIso: weekEnd.toISOString(),
+          labelMon: weekStart.toLocaleDateString(undefined, { dateStyle: 'medium' }),
+          labelSun: weekEnd.toLocaleDateString(undefined, { dateStyle: 'medium' }),
+        };
+      }
+
+      function rangeCoversWeekMs_(range, ws, we) {
+        if (!range || !range.start || !range.end) return false;
+        var rs = Date.parse(range.start);
+        var re = Date.parse(range.end);
+        if (!isFinite(rs) || !isFinite(re)) return false;
+        return rs <= ws && re >= we;
+      }
+
+      function laborFilterRowsForWeek_(rows, bounds, excludeInternal) {
+        var out = [];
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          if (!r) continue;
+          var t = Date.parse(r.startDateTime);
+          if (!isFinite(t)) continue;
+          if (t < bounds.weekStartMs || t > bounds.weekEndMs) continue;
+          if (excludeInternal && r.isInternal) continue;
+          out.push(r);
+        }
+        return out;
+      }
+
+      function resolveLaborHoursConfig_(payload) {
+        var lh = payload && payload.laborHours;
+        if (lh && typeof lh.defaultWeeklyTarget === 'number') {
+          return {
+            defaultWeeklyTarget: lh.defaultWeeklyTarget,
+            partnerWeeklyTarget: lh.partnerWeeklyTarget,
+            partnerCompanySubstrings: lh.partnerCompanySubstrings || [],
+            onTargetEpsilonHours:
+              lh.onTargetEpsilonHours != null ? lh.onTargetEpsilonHours : 0.01,
+            companyTargetHoursMap: lh.companyTargetHoursMap || {},
+            excludedPersonSubstrings: lh.excludedPersonSubstrings || [],
+          };
+        }
+        return {
+          defaultWeeklyTarget: 40,
+          partnerWeeklyTarget: 45,
+          partnerCompanySubstrings: ['ret', 'coherent', 'kforce'],
+          onTargetEpsilonHours: 0.01,
+          companyTargetHoursMap: {},
+          excludedPersonSubstrings: [],
+        };
+      }
+
+      function laborPersonExcluded_(cfg, displayName) {
+        var subs = cfg.excludedPersonSubstrings || [];
+        var nm = String(displayName || '').toLowerCase();
+        for (var ei = 0; ei < subs.length; ei++) {
+          var s = String(subs[ei] || '').trim().toLowerCase();
+          if (s && nm.indexOf(s) >= 0) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      function laborLookupCompanyForPersonKey_(rows, personKey) {
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          if (!r) continue;
+          if (personKeyForRow_(r) !== personKey) continue;
+          var co = String(r.clockifyUserCompany || '').trim();
+          if (co) {
+            return co;
+          }
+        }
+        return '—';
+      }
+
+      function laborTargetHoursForCompany_(cfg, company) {
+        var raw = String(company || '').trim();
+        if (raw && raw !== '—' && raw !== '(Unknown)') {
+          var cm = cfg.companyTargetHoursMap || {};
+          var lower = raw.toLowerCase();
+          for (var mk in cm) {
+            if (!Object.prototype.hasOwnProperty.call(cm, mk)) continue;
+            if (String(mk).trim().toLowerCase() === lower) {
+              var hv = Number(cm[mk]);
+              if (isFinite(hv) && hv > 0) {
+                return hv;
+              }
+            }
+          }
+        }
+        var c = String(company || '').toLowerCase();
+        var subs = cfg.partnerCompanySubstrings || [];
+        for (var si = 0; si < subs.length; si++) {
+          var sub = String(subs[si] || '').trim().toLowerCase();
+          if (sub && c.indexOf(sub) >= 0) {
+            return cfg.partnerWeeklyTarget;
+          }
+        }
+        return cfg.defaultWeeklyTarget;
+      }
+
+      /** Phase C — cap expandable project rows and tasks per project (+N more). */
+      var LABOR_HOURS_MAX_PROJECT_DETAILS_ = 6;
+      var LABOR_HOURS_MAX_TASKS_PER_PROJECT_ = 12;
+
+      function laborPctLabel_(hours, total) {
+        if (!total || total <= 0) return '0%';
+        var pct = (hours / total) * 100;
+        return (Math.round(pct * 10) / 10) + '%';
+      }
+
+      function laborBuildProjectBreakdown_(projNest, totalH) {
+        var projs = [];
+        for (var pn in projNest) {
+          if (!Object.prototype.hasOwnProperty.call(projNest, pn)) continue;
+          var tmap = projNest[pn] || {};
+          var ph = 0;
+          var taskArr = [];
+          for (var tk in tmap) {
+            if (!Object.prototype.hasOwnProperty.call(tmap, tk)) continue;
+            ph += tmap[tk] || 0;
+          }
+          for (var tk2 in tmap) {
+            if (!Object.prototype.hasOwnProperty.call(tmap, tk2)) continue;
+            var th = tmap[tk2] || 0;
+            taskArr.push({
+              label: tk2,
+              hours: th,
+              pctOfPerson: totalH > 0 ? (th / totalH) * 100 : 0,
+            });
+          }
+          taskArr.sort(function (a, b) {
+            return b.hours - a.hours;
+          });
+          projs.push({
+            name: pn,
+            hours: ph,
+            pctOfPerson: totalH > 0 ? (ph / totalH) * 100 : 0,
+            tasks: taskArr,
+          });
+        }
+        projs.sort(function (a, b) {
+          return b.hours - a.hours;
+        });
+        return projs;
+      }
+
+      function laborFormatTopProjects_(hoursByProject, maxNames) {
+        var arr = [];
+        for (var pn in hoursByProject) {
+          if (!Object.prototype.hasOwnProperty.call(hoursByProject, pn)) continue;
+          arr.push({ name: pn, h: hoursByProject[pn] });
+        }
+        arr.sort(function (a, b) {
+          return b.h - a.h;
+        });
+        var parts = [];
+        var n = Math.min(maxNames, arr.length);
+        for (var j = 0; j < n; j++) {
+          parts.push(arr[j].name + ' ' + formatHours(arr[j].h) + 'h');
+        }
+        if (arr.length > maxNames) {
+          parts.push('+' + (arr.length - maxNames) + ' more');
+        }
+        return parts.join('; ') || '—';
+      }
+
+      function aggregateLaborHoursByPerson_(rows, cfg) {
+        var map = {};
+        var eps = cfg.onTargetEpsilonHours != null ? cfg.onTargetEpsilonHours : 0.01;
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          if (!r) continue;
+          if (laborPersonExcluded_(cfg, r.userName)) continue;
+          var pk = personKeyForRow_(r);
+          if (!map[pk]) {
+            map[pk] = {
+              personKey: pk,
+              displayName: r.userName,
+              hoursByProject: {},
+              projNest: {},
+              companyHours: {},
+              totalHours: 0,
+            };
+          }
+          var o = map[pk];
+          o.totalHours += r.hours;
+          var proj = r.projectName || '(No project)';
+          o.hoursByProject[proj] = (o.hoursByProject[proj] || 0) + r.hours;
+          var taskLabel =
+            r.task && String(r.task).trim() ? String(r.task).trim() : '(no task)';
+          if (!o.projNest[proj]) {
+            o.projNest[proj] = {};
+          }
+          o.projNest[proj][taskLabel] = (o.projNest[proj][taskLabel] || 0) + r.hours;
+          var comp = String(r.clockifyUserCompany || '(Unknown)').trim() || '(Unknown)';
+          o.companyHours[comp] = (o.companyHours[comp] || 0) + r.hours;
+        }
+        var list = [];
+        for (var k in map) {
+          if (!Object.prototype.hasOwnProperty.call(map, k)) continue;
+          var row = map[k];
+          if (laborPersonExcluded_(cfg, row.displayName)) continue;
+          if (row.totalHours < eps) continue;
+          var topCo = '(Unknown)';
+          var topH = -1;
+          for (var cn in row.companyHours) {
+            if (!Object.prototype.hasOwnProperty.call(row.companyHours, cn)) continue;
+            var ch = row.companyHours[cn];
+            if (ch > topH) {
+              topH = ch;
+              topCo = cn;
+            }
+          }
+          row.company = topCo;
+          row.targetHours = laborTargetHoursForCompany_(cfg, topCo);
+          row.delta = row.totalHours - row.targetHours;
+          if (Math.abs(row.delta) < eps) {
+            row.bucket = 'on';
+          } else if (row.delta > 0) {
+            row.bucket = 'over';
+          } else {
+            row.bucket = 'under';
+          }
+          row.projectBreakdown = laborBuildProjectBreakdown_(row.projNest, row.totalHours);
+          delete row.projNest;
+          row.projectsSortKey = row.projectBreakdown
+            .map(function (x) {
+              return x.name;
+            })
+            .join('|')
+            .toLowerCase();
+          row.projectsLabel = laborFormatTopProjects_(row.hoursByProject, 3);
+          list.push(row);
+        }
+        return { active: list, map: map, epsilon: eps };
+      }
+
+      function laborZeroHoursPeople_(dimPersons, personMap, cfg, fullRows) {
+        var out = [];
+        var eps = cfg.onTargetEpsilonHours != null ? cfg.onTargetEpsilonHours : 0.01;
+        if (!dimPersons || !dimPersons.length) {
+          return out;
+        }
+        for (var zi = 0; zi < dimPersons.length; zi++) {
+          var dp = dimPersons[zi];
+          if (!dp) continue;
+          var name = dp.name || '(Unknown user)';
+          if (laborPersonExcluded_(cfg, name)) continue;
+          var pk = dp.id || dp.name || '(Unknown user)';
+          var agg = personMap[pk];
+          var th = agg ? agg.totalHours : 0;
+          if (th >= eps) continue;
+          var company = laborLookupCompanyForPersonKey_(fullRows || [], pk);
+          var target = laborTargetHoursForCompany_(cfg, company);
+          out.push({
+            personKey: pk,
+            displayName: name,
+            company: company,
+            targetHours: target,
+            totalHours: th,
+          });
+        }
+        out.sort(function (a, b) {
+          var va = String(a.displayName || '').toLowerCase();
+          var vb = String(b.displayName || '').toLowerCase();
+          return va < vb ? -1 : va > vb ? 1 : 0;
+        });
+        return out;
+      }
+
+      function laborSplitBuckets_(list) {
+        var over = [];
+        var under = [];
+        var on = [];
+        for (var i = 0; i < list.length; i++) {
+          var p = list[i];
+          if (p.bucket === 'over') over.push(p);
+          else if (p.bucket === 'under') under.push(p);
+          else on.push(p);
+        }
+        return { over: over, under: under, on: on };
+      }
+
+      function laborSortCompare_(a, b, key, dir) {
+        var mul = dir === 'desc' ? -1 : 1;
+        var va;
+        var vb;
+        if (key === 'person') {
+          va = String(a.displayName || '').toLowerCase();
+          vb = String(b.displayName || '').toLowerCase();
+          return va < vb ? -mul : va > vb ? mul : 0;
+        }
+        if (key === 'company') {
+          va = String(a.company || '').toLowerCase();
+          vb = String(b.company || '').toLowerCase();
+          return va < vb ? -mul : va > vb ? mul : 0;
+        }
+        if (key === 'projects') {
+          va = String(a.projectsSortKey || a.projectsLabel || '').toLowerCase();
+          vb = String(b.projectsSortKey || b.projectsLabel || '').toLowerCase();
+          return va < vb ? -mul : va > vb ? mul : 0;
+        }
+        if (key === 'target') {
+          va = a.targetHours;
+          vb = b.targetHours;
+        } else if (key === 'hours') {
+          va = a.totalHours;
+          vb = b.totalHours;
+        } else if (key === 'delta') {
+          va = a.delta;
+          vb = b.delta;
+        } else {
+          return 0;
+        }
+        if (va !== vb) {
+          return va < vb ? -mul : mul;
+        }
+        return 0;
+      }
+
+      function laborSortList_(arr, key, dir) {
+        var out = arr.slice();
+        out.sort(function (a, b) {
+          return laborSortCompare_(a, b, key, dir);
+        });
+        return out;
+      }
+
+      function laborWeekCacheKey_(bounds) {
+        return bounds.weekStartIso + '|' + bounds.weekEndIso + '|' + utilState.filters.internalLabor;
+      }
+
+      var laborHoursFetchCache_ = { key: null, payload: null };
+      var laborHoursPrintRestore_ = [];
+      var laborHoursPrintBound_ = false;
+      var laborHoursViewModel_ = {
+        buckets: { over: [], under: [], on: [] },
+        zeros: [],
+        bounds: null,
+        sourceMsg: '',
+        sort: {
+          over: { key: 'delta', dir: 'desc' },
+          under: { key: 'delta', dir: 'asc' },
+          on: { key: 'person', dir: 'asc' },
+        },
+      };
+
+      function renderLaborHoursZeroChips_() {
+        var el = els.lhZeroChips;
+        if (!el) return;
+        el.innerHTML = '';
+        var zeros = laborHoursViewModel_.zeros || [];
+        if (!zeros.length) {
+          el.innerHTML =
+            '<span class="small" style="color: var(--ag-text-muted)">Nobody in the Persons roster is at zero for this week — widen the Utilization date range or refresh if you expect more names.</span>';
+          return;
+        }
+        for (var zi = 0; zi < zeros.length; zi++) {
+          var z = zeros[zi];
+          var chip = document.createElement('span');
+          chip.className = 'fos-lh-zero-chip';
+          chip.setAttribute(
+            'title',
+            (z.company || '—') + ' · target ' + formatHours(z.targetHours) + 'h'
+          );
+          chip.textContent = z.displayName + ' · 0h';
+          el.appendChild(chip);
+        }
+      }
+
+      function buildLaborHoursProjectsCell_(p) {
+        var wrap = document.createElement('div');
+        wrap.className = 'fos-lh-proj-cell';
+        var total = p.totalHours || 0;
+        var breakdown = p.projectBreakdown || [];
+        if (!breakdown.length) {
+          wrap.textContent = '—';
+          return wrap;
+        }
+        var maxP = LABOR_HOURS_MAX_PROJECT_DETAILS_;
+        var maxT = LABOR_HOURS_MAX_TASKS_PER_PROJECT_;
+        var shownP = Math.min(maxP, breakdown.length);
+        var pi;
+        for (pi = 0; pi < shownP; pi++) {
+          var pr = breakdown[pi];
+          var det = document.createElement('details');
+          det.className = 'fos-lh-proj-detail';
+          var sum = document.createElement('summary');
+          var chev = document.createElement('span');
+          chev.className = 'fos-lh-proj-chev';
+          chev.setAttribute('aria-hidden', 'true');
+          chev.textContent = '▸';
+          var nameSp = document.createElement('span');
+          nameSp.textContent = pr.name;
+          var pctSp = document.createElement('span');
+          pctSp.className = 'fos-lh-proj-pct';
+          pctSp.textContent =
+            '(' + formatHours(pr.hours) + 'h · ' + laborPctLabel_(pr.hours, total) + ' of week)';
+          sum.appendChild(chev);
+          sum.appendChild(nameSp);
+          sum.appendChild(pctSp);
+          det.appendChild(sum);
+          det.addEventListener('toggle', function (tev) {
+            var d = tev.target;
+            if (!d || d.tagName !== 'DETAILS') return;
+            var sm = d.querySelector(':scope > summary .fos-lh-proj-chev');
+            if (sm) sm.textContent = d.open ? '▾' : '▸';
+          });
+          var tasks = pr.tasks || [];
+          var shownT = Math.min(maxT, tasks.length);
+          var ti;
+          for (ti = 0; ti < shownT; ti++) {
+            var tk = tasks[ti];
+            var row = document.createElement('div');
+            row.className = 'fos-lh-proj-task';
+            var bullet = document.createElement('span');
+            bullet.textContent = '· ';
+            var lab = document.createElement('span');
+            lab.textContent = tk.label;
+            var tp = document.createElement('span');
+            tp.className = 'fos-lh-proj-task-pct';
+            tp.textContent =
+              ' ' +
+              formatHours(tk.hours) +
+              'h · ' +
+              laborPctLabel_(tk.hours, total) +
+              ' of week';
+            row.appendChild(bullet);
+            row.appendChild(lab);
+            row.appendChild(tp);
+            det.appendChild(row);
+          }
+          if (tasks.length > shownT) {
+            var moreT = document.createElement('div');
+            moreT.className = 'fos-lh-proj-more';
+            moreT.textContent = '+' + (tasks.length - shownT) + ' more tasks';
+            det.appendChild(moreT);
+          }
+          wrap.appendChild(det);
+        }
+        if (breakdown.length > maxP) {
+          var moreP = document.createElement('div');
+          moreP.className = 'fos-lh-proj-more';
+          moreP.textContent = '+' + (breakdown.length - maxP) + ' more projects';
+          wrap.appendChild(moreP);
+        }
+        return wrap;
+      }
+
+      var lhCsvFlashTimer_ = null;
+
+      function flashLhCsvStatus_(msg) {
+        if (!els.lhCsvStatus) return;
+        els.lhCsvStatus.textContent = msg || '';
+        els.lhCsvStatus.classList.remove('text-danger');
+        els.lhCsvStatus.classList.add('text-success');
+        if (lhCsvFlashTimer_) {
+          clearTimeout(lhCsvFlashTimer_);
+        }
+        lhCsvFlashTimer_ = setTimeout(function () {
+          if (els.lhCsvStatus) els.lhCsvStatus.textContent = '';
+        }, 3500);
+      }
+
+      function csvEscapeLh_(s) {
+        var v = String(s == null ? '' : s);
+        if (v.indexOf(',') >= 0 || v.indexOf('"') >= 0 || v.indexOf('\n') >= 0 || v.indexOf('\r') >= 0) {
+          return '"' + v.replace(/"/g, '""') + '"';
+        }
+        return v;
+      }
+
+      function csvRowLh_(cells) {
+        var parts = [];
+        for (var i = 0; i < cells.length; i++) {
+          parts.push(csvEscapeLh_(cells[i]));
+        }
+        return parts.join(',');
+      }
+
+      function exportLaborHoursCsv_() {
+        var vm = laborHoursViewModel_;
+        var b = vm.buckets || { over: [], under: [], on: [] };
+        var bounds = vm.bounds;
+        var weekLabel = bounds ? bounds.labelMon + ' – ' + bounds.labelSun : '';
+        var lines = [];
+        lines.push('# Labor hours · ' + weekLabel);
+        if (vm.sourceMsg) {
+          lines.push('# ' + vm.sourceMsg);
+        }
+        lines.push(
+          csvRowLh_([
+            'Section',
+            'Person',
+            'Company',
+            'Target_h',
+            'Hours_h',
+            'Delta_h',
+            'Projects_summary',
+          ])
+        );
+        function pushSection(title, arr) {
+          for (var i = 0; i < arr.length; i++) {
+            var p = arr[i];
+            lines.push(
+              csvRowLh_([
+                title,
+                p.displayName,
+                p.company,
+                formatHours(p.targetHours),
+                formatHours(p.totalHours),
+                formatHours(p.delta),
+                p.projectsLabel || '',
+              ])
+            );
+          }
+        }
+        pushSection('over', b.over || []);
+        pushSection('under', b.under || []);
+        pushSection('on', b.on || []);
+        var zeros = vm.zeros || [];
+        lines.push('');
+        lines.push('# Zero hours roster');
+        lines.push(csvRowLh_(['Person', 'Company', 'Target_h', 'Hours_h']));
+        for (var zi = 0; zi < zeros.length; zi++) {
+          var z = zeros[zi];
+          lines.push(
+            csvRowLh_([
+              z.displayName,
+              z.company,
+              formatHours(z.targetHours),
+              formatHours(z.totalHours),
+            ])
+          );
+        }
+        var text = lines.join('\n');
+        var rowCount = (b.over || []).length + (b.under || []).length + (b.on || []).length + zeros.length;
+        writeTextToClipboard_(text)
+          .then(function () {
+            flashLhCsvStatus_('Copied ' + rowCount + ' rows');
+            logActivity_(
+              'labor_hours_export',
+              'labor_hours',
+              'rows=' + rowCount + ' · week=' + (els.lhWeekInput && els.lhWeekInput.value ? els.lhWeekInput.value : '')
+            );
+          })
+          .catch(function () {
+            if (els.lhCsvStatus) {
+              els.lhCsvStatus.textContent = 'Copy failed';
+              els.lhCsvStatus.classList.remove('text-success');
+              els.lhCsvStatus.classList.add('text-danger');
+            }
+          });
+      }
+
+      function setLaborHoursDetailsOpen_(open) {
+        if (!els.panelLaborHours) return;
+        var nodes = els.panelLaborHours.querySelectorAll('details.fos-lh-proj-detail');
+        for (var i = 0; i < nodes.length; i++) {
+          nodes[i].open = !!open;
+          var sm = nodes[i].querySelector(':scope > summary .fos-lh-proj-chev');
+          if (sm) sm.textContent = open ? '▾' : '▸';
+        }
+      }
+
+      function renderLaborHoursTable_(tbody, arr) {
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        for (var i = 0; i < arr.length; i++) {
+          var p = arr[i];
+          var tr = document.createElement('tr');
+          var td0 = document.createElement('td');
+          td0.textContent = p.displayName || '';
+          var td1 = document.createElement('td');
+          td1.textContent = p.company || '';
+          var td2 = document.createElement('td');
+          td2.className = 'text-end';
+          td2.textContent = formatHours(p.targetHours);
+          var td3 = document.createElement('td');
+          td3.className = 'text-end';
+          td3.textContent = formatHours(p.totalHours);
+          var td4 = document.createElement('td');
+          td4.className = 'text-end';
+          td4.textContent = (p.delta > 0 ? '+' : '') + formatHours(p.delta);
+          var td5 = document.createElement('td');
+          td5.appendChild(buildLaborHoursProjectsCell_(p));
+          tr.appendChild(td0);
+          tr.appendChild(td1);
+          tr.appendChild(td2);
+          tr.appendChild(td3);
+          tr.appendChild(td4);
+          tr.appendChild(td5);
+          tbody.appendChild(tr);
+        }
+      }
+
+      function paintLaborHoursFromBuckets_() {
+        var b = laborHoursViewModel_.buckets;
+        var s = laborHoursViewModel_.sort;
+        renderLaborHoursTable_(els.lhOverTbody, laborSortList_(b.over, s.over.key, s.over.dir));
+        renderLaborHoursTable_(els.lhUnderTbody, laborSortList_(b.under, s.under.key, s.under.dir));
+        renderLaborHoursTable_(els.lhOnTbody, laborSortList_(b.on, s.on.key, s.on.dir));
+        var total = b.over.length + b.under.length + b.on.length;
+        if (els.lhKpiWith) els.lhKpiWith.textContent = String(total);
+        if (els.lhKpiOver) els.lhKpiOver.textContent = String(b.over.length);
+        if (els.lhKpiUnder) els.lhKpiUnder.textContent = String(b.under.length);
+        if (els.lhKpiOn) els.lhKpiOn.textContent = String(b.on.length);
+        if (els.lhKpiZero) els.lhKpiZero.textContent = String((laborHoursViewModel_.zeros || []).length);
+        renderLaborHoursZeroChips_();
+      }
+
+      function refreshLaborHoursViewFromRows_(rows, cfg, bounds, sourceMsg, meta) {
+        meta = meta || {};
+        var fullRows = meta.fullRows != null ? meta.fullRows : rows;
+        var dimPersons =
+          meta.dimensions && meta.dimensions.persons ? meta.dimensions.persons : [];
+        var agg = aggregateLaborHoursByPerson_(rows, cfg);
+        var people = agg.active;
+        var buckets = laborSplitBuckets_(people);
+        laborHoursViewModel_.buckets = buckets;
+        laborHoursViewModel_.zeros = laborZeroHoursPeople_(
+          dimPersons,
+          agg.map,
+          cfg,
+          fullRows
+        );
+        laborHoursViewModel_.bounds = bounds;
+        laborHoursViewModel_.sourceMsg = sourceMsg || '';
+        paintLaborHoursFromBuckets_();
+        if (els.lhSubtitle) {
+          els.lhSubtitle.textContent = bounds.labelMon + ' – ' + bounds.labelSun;
+        }
+        if (els.lhSourceMeta) {
+          els.lhSourceMeta.textContent = sourceMsg || '';
+        }
+      }
+
+      function refreshLaborHoursView_() {
+        if (!els.lhWeekInput) return;
+        var weekVal = els.lhWeekInput.value;
+        if (!weekVal) {
+          els.lhWeekInput.value = formatWeekInputFromLocalMonday_(lastCompletedWeekMondayLocal_());
+          weekVal = els.lhWeekInput.value;
+        }
+        var bounds = laborBoundsFromWeekInput_(weekVal);
+        if (!bounds) {
+          if (els.lhFetchError) {
+            els.lhFetchError.textContent = 'Pick a valid ISO week.';
+            els.lhFetchError.classList.remove('d-none');
+          }
+          return;
+        }
+        if (els.lhFetchError) els.lhFetchError.classList.add('d-none');
+        var excludeInternal = utilState.filters.internalLabor === 'exclude';
+        var cacheKey = laborWeekCacheKey_(bounds);
+
+        var memPayload = utilState.payload && utilState.payload.ok !== false ? utilState.payload : null;
+        var sessionPayload = memPayload || readUtilizationCache();
+        var basePayload = sessionPayload && sessionPayload.ok !== false ? sessionPayload : null;
+
+        function cfgFrom(payload) {
+          return resolveLaborHoursConfig_(payload);
+        }
+
+        if (
+          basePayload &&
+          basePayload.rows &&
+          rangeCoversWeekMs_(basePayload.range, bounds.weekStartMs, bounds.weekEndMs)
+        ) {
+          var cfg0 = cfgFrom(basePayload);
+          var rows0 = laborFilterRowsForWeek_(basePayload.rows, bounds, excludeInternal);
+          refreshLaborHoursViewFromRows_(
+            rows0,
+            cfg0,
+            bounds,
+            'Slice from Utilization cache — no Fibery call for this week.',
+            { dimensions: basePayload.dimensions, fullRows: basePayload.rows }
+          );
+          setLhLoading(false);
+          return;
+        }
+
+        if (laborHoursFetchCache_.key === cacheKey && laborHoursFetchCache_.payload) {
+          var pay = laborHoursFetchCache_.payload;
+          var cfg1 = cfgFrom(pay);
+          var rows1 = laborFilterRowsForWeek_(pay.rows || [], bounds, excludeInternal);
+          refreshLaborHoursViewFromRows_(rows1, cfg1, bounds, 'Week data (fetched earlier this session).', {
+            dimensions: pay.dimensions,
+            fullRows: pay.rows,
+          });
+          setLhLoading(false);
+          return;
+        }
+
+        setLhLoading(true);
+        google.script.run
+          .withSuccessHandler(function (data) {
+            setLhLoading(false);
+            if (!data || data.ok === false) {
+              if (els.lhFetchError) {
+                els.lhFetchError.textContent = (data && data.message) || 'Could not load labor data.';
+                els.lhFetchError.classList.remove('d-none');
+              }
+              return;
+            }
+            laborHoursFetchCache_.key = cacheKey;
+            laborHoursFetchCache_.payload = data;
+            var cfg2 = cfgFrom(data);
+            var rows2 = laborFilterRowsForWeek_(data.rows || [], bounds, excludeInternal);
+            refreshLaborHoursViewFromRows_(rows2, cfg2, bounds, 'Loaded this week from Fibery.', {
+              dimensions: data.dimensions,
+              fullRows: data.rows,
+            });
+          })
+          .withFailureHandler(function (err) {
+            setLhLoading(false);
+            if (els.lhFetchError) {
+              var msg = err && err.message ? err.message : 'Request failed.';
+              if (msg === 'NOT_AUTHORIZED') {
+                msg = 'Your session is not authorized. Reload the page.';
+              }
+              els.lhFetchError.textContent = msg;
+              els.lhFetchError.classList.remove('d-none');
+            }
+          })
+          .getUtilizationDashboardData(bounds.weekStartIso, bounds.weekEndIso);
+      }
+
+      function wireLaborHoursSortOnce_() {
+        if (!els.panelLaborHours || els.panelLaborHours._lhSortBound) return;
+        els.panelLaborHours._lhSortBound = true;
+        els.panelLaborHours.addEventListener('click', function (ev) {
+          var jumpEl = ev.target.closest('[data-lh-scroll-to]');
+          if (jumpEl) {
+            var sid = jumpEl.getAttribute('data-lh-scroll-to');
+            if (sid) {
+              var jt = document.getElementById(sid);
+              if (jt) {
+                jt.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                logActivity_('labor_hours_kpi_nav', 'labor_hours', sid);
+              }
+            }
+            return;
+          }
+          var th = ev.target.closest('th[data-lh-sort]');
+          if (!th) return;
+          var section = th.getAttribute('data-lh-section');
+          var key = th.getAttribute('data-lh-sort');
+          if (!section || !key) return;
+          var st = laborHoursViewModel_.sort[section];
+          if (!st) return;
+          if (st.key === key) {
+            st.dir = st.dir === 'asc' ? 'desc' : 'asc';
+          } else {
+            st.key = key;
+            st.dir =
+              key === 'person' || key === 'company' || key === 'projects' ? 'asc' : 'desc';
+          }
+          paintLaborHoursFromBuckets_();
+          logActivity_('labor_hours_sort', 'labor_hours', section + '=' + key + ':' + st.dir);
+        });
+        if (!els.panelLaborHours._lhKpiKeyBound) {
+          els.panelLaborHours._lhKpiKeyBound = true;
+          els.panelLaborHours.addEventListener('keydown', function (ev) {
+            if (ev.key !== 'Enter' && ev.key !== ' ') return;
+            var jumpEl = ev.target.closest('[data-lh-scroll-to]');
+            if (!jumpEl) return;
+            ev.preventDefault();
+            var sid2 = jumpEl.getAttribute('data-lh-scroll-to');
+            if (sid2) {
+              var jt2 = document.getElementById(sid2);
+              if (jt2) {
+                jt2.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                logActivity_('labor_hours_kpi_nav', 'labor_hours', sid2);
+              }
+            }
+          });
+        }
+      }
+
+      var laborHoursControlsWired_ = false;
+      function wireLaborHoursControlsOnce_() {
+        if (laborHoursControlsWired_) return;
+        laborHoursControlsWired_ = true;
+        wireLaborHoursSortOnce_();
+        if (!laborHoursPrintBound_) {
+          laborHoursPrintBound_ = true;
+          window.addEventListener('beforeprint', function () {
+            if (!els.panelLaborHours || els.panelLaborHours.classList.contains('d-none')) {
+              return;
+            }
+            var dets = els.panelLaborHours.querySelectorAll('details.fos-lh-proj-detail');
+            laborHoursPrintRestore_ = [];
+            for (var pi = 0; pi < dets.length; pi++) {
+              laborHoursPrintRestore_.push({ el: dets[pi], wasOpen: dets[pi].open });
+              dets[pi].open = true;
+              var ch = dets[pi].querySelector(':scope > summary .fos-lh-proj-chev');
+              if (ch) ch.textContent = '▾';
+            }
+          });
+          window.addEventListener('afterprint', function () {
+            for (var pj = 0; pj < laborHoursPrintRestore_.length; pj++) {
+              var item = laborHoursPrintRestore_[pj];
+              item.el.open = item.wasOpen;
+              var ch2 = item.el.querySelector(':scope > summary .fos-lh-proj-chev');
+              if (ch2) ch2.textContent = item.el.open ? '▾' : '▸';
+            }
+            laborHoursPrintRestore_ = [];
+          });
+        }
+        if (els.lhRefreshBtn) {
+          els.lhRefreshBtn.addEventListener('click', function () {
+            laborHoursFetchCache_.key = null;
+            laborHoursFetchCache_.payload = null;
+            logActivity_('labor_hours_refresh', 'labor_hours', '');
+            refreshLaborHoursView_();
+          });
+        }
+        if (els.lhExportCsvBtn) {
+          els.lhExportCsvBtn.addEventListener('click', function () {
+            exportLaborHoursCsv_();
+          });
+        }
+        if (els.lhExpandProjectsBtn) {
+          els.lhExpandProjectsBtn.addEventListener('click', function () {
+            setLaborHoursDetailsOpen_(true);
+          });
+        }
+        if (els.lhCollapseProjectsBtn) {
+          els.lhCollapseProjectsBtn.addEventListener('click', function () {
+            setLaborHoursDetailsOpen_(false);
+          });
+        }
+        if (els.lhWeekInput) {
+          els.lhWeekInput.addEventListener('change', function () {
+            laborHoursFetchCache_.key = null;
+            laborHoursFetchCache_.payload = null;
+            logActivity_('labor_hours_week_change', 'labor_hours', els.lhWeekInput.value || '');
+            refreshLaborHoursView_();
+          });
+        }
+        if (els.lhInternalGroup) {
+          var btns = els.lhInternalGroup.querySelectorAll('button');
+          for (var ii = 0; ii < btns.length; ii++) {
+            (function (btn) {
+              btn.addEventListener('click', function () {
+                utilState.filters.internalLabor = btn.getAttribute('data-value') || 'include';
+                syncInternalButtons();
+                if (utilState.payload) {
+                  renderUtilDashboard();
+                }
+                persistUtilFilters_();
+                refreshLaborHoursView_();
+                logActivity_('util_filter', 'labor_hours', 'internal=' + utilState.filters.internalLabor);
+              });
+            })(btns[ii]);
+          }
+        }
+      }
+
+      function showLaborHours() {
+        els.panelHome.classList.add('d-none');
+        if (els.panelAgreementDashboard) els.panelAgreementDashboard.classList.add('d-none');
+        if (els.panelOperations) els.panelOperations.classList.add('d-none');
+        if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
+        if (els.panelLaborHours) els.panelLaborHours.classList.remove('d-none');
+        els.topbarTitle.textContent = 'Labor hours';
+        if (els.lhFetchError) els.lhFetchError.classList.add('d-none');
+        wireLaborHoursControlsOnce_();
+        if (els.lhWeekInput && !els.lhWeekInput.value) {
+          els.lhWeekInput.value = formatWeekInputFromLocalMonday_(lastCompletedWeekMondayLocal_());
+        }
+        syncInternalButtons();
+        refreshLaborHoursView_();
       }
 
       /* =====================================================================
@@ -7233,6 +8511,7 @@
         els.panelHome.classList.add('d-none');
         if (els.panelAgreementDashboard) els.panelAgreementDashboard.classList.add('d-none');
         if (els.panelOperations) els.panelOperations.classList.add('d-none');
+        if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.remove('d-none');
         els.topbarTitle.textContent = 'Delivery';
         if (els.deliveryFetchError) els.deliveryFetchError.classList.add('d-none');
@@ -8364,6 +9643,11 @@
             showOperations();
             return;
           }
+          if (item.id === 'labor-hours') {
+            setActiveNav('labor-hours');
+            showLaborHours();
+            return;
+          }
           if (item.id === 'delivery') {
             setActiveNav('delivery');
             showDelivery();
@@ -8389,6 +9673,35 @@
         var items = model.items || [];
         for (var i = 0; i < items.length; i++) {
           var item = items[i];
+          if (item.type === 'group' && item.children && item.children.length) {
+            var wrap = document.createElement('div');
+            wrap.className = 'mb-2 fos-nav-group';
+            var gl = document.createElement('div');
+            gl.className = 'small text-secondary text-uppercase px-2 py-1 fw-semibold';
+            gl.style.fontSize = '0.7rem';
+            gl.style.letterSpacing = '0.04em';
+            gl.textContent = item.label || 'Group';
+            wrap.appendChild(gl);
+            for (var j = 0; j < item.children.length; j++) {
+              var ch = item.children[j];
+              var cbtn = document.createElement('button');
+              cbtn.type = 'button';
+              cbtn.className =
+                'btn fos-nav-btn fos-nav-child w-100 border-0 rounded-3 py-2 d-flex align-items-center gap-2 text-start';
+              cbtn.setAttribute('data-nav-id', ch.id);
+              var cIcon = navIconClassForId(ch.id);
+              cbtn.innerHTML =
+                '<i class="bi ' +
+                cIcon +
+                '" aria-hidden="true"></i><span class="flex-grow-1">' +
+                escapeHtml(ch.label) +
+                '</span>';
+              cbtn.addEventListener('click', onNavClick(ch));
+              wrap.appendChild(cbtn);
+            }
+            els.navList.appendChild(wrap);
+            continue;
+          }
           var btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'btn fos-nav-btn w-100 border-0 rounded-3 py-2 d-flex align-items-center gap-2 text-start';
@@ -8413,6 +9726,7 @@
 
         setActiveNav('home');
         showHome();
+        wireLaborHoursControlsOnce_();
         els.loadBanner.classList.add('d-none');
         updateNavHintVisibility();
       }

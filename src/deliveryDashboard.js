@@ -1,5 +1,5 @@
 /**
- * PRD version 1.21.1 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.24.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `delivery`, panel
  * `#panel-delivery`). Two public endpoints, both authorized via

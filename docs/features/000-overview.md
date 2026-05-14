@@ -1,6 +1,6 @@
 # Overview
 
-> **PRD version 1.21.1** — see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js`).
+> **PRD version 1.24.0** — see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js`).
 
 ## Goal
 
@@ -9,6 +9,8 @@ Ship the **Harpin FOS (Finance & Operations Snapshot) Dashboard**: a **Google Ap
 The dashboard **reads and presents** data; it sits alongside—does not replace—pipelines that move data into systems of record (for example Clockify → Sheets → Fibery sync work documented in `docs/PRD.md`).
 
 Requirements baseline: **`docs/FOS-Dashboard-PRD.md`**.
+
+**Shipped:** **[Labor Hours Dashboard](007-labor-hours-dashboard.md)** — **v1.22.0** Phase A, **v1.23.0** Phase B (zero KPI, KPI scroll, company JSON, exclusions), **v1.24.0** Phases **C–D** (expandable project/task breakdown, Copy CSV, print, `labor_hours_*` activity types).
 
 ## Non-goals
 

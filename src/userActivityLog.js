@@ -1,5 +1,5 @@
 /**
- * PRD version 1.21.1 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.24.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * User activity logging — append-only event rows to the "User Activity" tab
  * in the Users spreadsheet (AUTH_SPREADSHEET_ID). Implements §3.8 / FR-60–FR-66.
@@ -45,6 +45,11 @@ var ACTIVITY_VALID_EVENT_TYPES_ = {
   nav_view: true,
   refresh: true,
   server_call: true,
+  labor_hours_week_change: true,
+  labor_hours_export: true,
+  labor_hours_kpi_nav: true,
+  labor_hours_sort: true,
+  labor_hours_refresh: true,
 };
 
 /** @const {number} */

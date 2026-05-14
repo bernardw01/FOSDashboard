@@ -1,5 +1,5 @@
 /**
- * PRD version 1.21.1 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.24.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard constants per
  * docs/features/005-utilization-management-dashboard.md:
@@ -25,6 +25,20 @@
  *   UTILIZATION_HEATMAP_TOP_N_PERSONS     (default 30 — Phase C heatmap row cap)
  *   UTILIZATION_STALE_APPROVAL_WARN_DAYS  (default 7  — Phase C stale-approval rule)
  *   UTILIZATION_STALE_APPROVAL_CRIT_DAYS  (default 14 — Phase C stale-approval rule)
+ *
+ * Labor Hours dashboard (route `labor-hours`, feature 007) reuses the same
+ * labor rows; optional Script Properties (read by `getLaborHoursConfig_()`):
+ *   LABOR_HOURS_DEFAULT_WEEKLY_TARGET       (default 40)
+ *   LABOR_HOURS_PARTNER_WEEKLY_TARGET       (default 45)
+ *   LABOR_HOURS_PARTNER_COMPANY_SUBSTRINGS  (CSV; substring match, case-insensitive,
+ *                                            against `clockifyUserCompany`; default
+ *                                            ret,coherent,kforce)
+ *   LABOR_HOURS_COMPANY_TARGETS_JSON        (optional JSON object: { "Company Name": 42 }
+ *                                            — exact company name match, case-insensitive,
+ *                                            overrides partner substring / default for that company)
+ *   LABOR_HOURS_EXCLUDED_PERSON_SUBSTRINGS (optional CSV; if a person's `userName` contains
+ *                                            any token case-insensitive, they are omitted from
+ *                                            Labor hours tables and the zero-hours chip list)
  *
  * The agreement-dashboard module already defines the §8.5 customer palette
  * (CUSTOMER_PALETTE_), the parsePositiveNumber_ / parseCsvList_ helpers, and
@@ -294,4 +308,68 @@ function buildRoleColorMap_(roleNamesSortedByHoursDesc, palette) {
     out[name] = palette[i % palette.length];
   }
   return out;
+}
+
+/** @const {!Array<string>} Default partner-style company substring hints. */
+var LABOR_HOURS_DEFAULT_PARTNER_SUBSTRINGS_ = ['ret', 'coherent', 'kforce'];
+
+/**
+ * Weekly hour targets for the Labor Hours dashboard (feature 007).
+ * Exposed on `getUtilizationDashboardData` payloads as `laborHours` so the
+ * client stays aligned with Script Property tuning.
+ *
+ * @return {!{
+ *   defaultWeeklyTarget: number,
+ *   partnerWeeklyTarget: number,
+ *   partnerCompanySubstrings: !Array<string>,
+ *   onTargetEpsilonHours: number,
+ *   companyTargetHoursMap: !Object<string, number>,
+ *   excludedPersonSubstrings: !Array<string>
+ * }}
+ */
+function getLaborHoursConfig_() {
+  var props = PropertiesService.getScriptProperties();
+  var def = parsePositiveNumber_(
+    props.getProperty('LABOR_HOURS_DEFAULT_WEEKLY_TARGET'),
+    40
+  );
+  var partner = parsePositiveNumber_(
+    props.getProperty('LABOR_HOURS_PARTNER_WEEKLY_TARGET'),
+    45
+  );
+  var subs = parseCsvList_(props.getProperty('LABOR_HOURS_PARTNER_COMPANY_SUBSTRINGS'));
+  if (!subs.length) {
+    subs = LABOR_HOURS_DEFAULT_PARTNER_SUBSTRINGS_.slice();
+  }
+  var companyMap = {};
+  var rawJson = props.getProperty('LABOR_HOURS_COMPANY_TARGETS_JSON');
+  if (rawJson) {
+    try {
+      var parsed = JSON.parse(rawJson);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        for (var ck in parsed) {
+          if (!Object.prototype.hasOwnProperty.call(parsed, ck)) continue;
+          var num = Number(parsed[ck]);
+          if (isFinite(num) && num > 0) {
+            companyMap[String(ck).trim()] = num;
+          }
+        }
+      }
+    } catch (e) {
+      try {
+        console.warn('getLaborHoursConfig_: invalid LABOR_HOURS_COMPANY_TARGETS_JSON');
+      } catch (_) {
+        /* ignore */
+      }
+    }
+  }
+  var excluded = parseCsvList_(props.getProperty('LABOR_HOURS_EXCLUDED_PERSON_SUBSTRINGS'));
+  return {
+    defaultWeeklyTarget: Math.max(1, def),
+    partnerWeeklyTarget: Math.max(1, partner),
+    partnerCompanySubstrings: subs,
+    onTargetEpsilonHours: 0.01,
+    companyTargetHoursMap: companyMap,
+    excludedPersonSubstrings: excluded,
+  };
 }
