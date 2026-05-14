@@ -1,5 +1,5 @@
 /**
- * PRD version 1.27.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.27.1 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement Dashboard orchestrator (route id `agreement-dashboard`, panel
  * `#panel-agreement-dashboard`). No persistent server-side cache
@@ -471,7 +471,9 @@ function enrichAgreementsWithRevenueItems_(agreements, futureItems, historicalIt
  * they cannot be attributed to a row in the Financial Performance table.
  * Within each agreement the items are sorted by targetDate ascending; rows
  * with a null targetDate sort last so they don't visually crowd the top of
- * the milestones table.
+ * the milestones table. Each bucket row carries agreementId, agreement,
+ * and customer so clients (Revenue review tree, milestones modal) can join
+ * back to agreements without a second fetch.
  *
  * @param {!Array<!Object>} historicalItems Normalized historical items.
  * @param {!Array<!Object>} futureItems Normalized future items.
@@ -495,6 +497,12 @@ function groupRevenueItemsByAgreement_(historicalItems, futureItems) {
       targetDate: item.targetDate,
       recognized: item.recognized === true,
       state: item.state,
+      // Preserve attribution fields for clients (Revenue review milestone
+      // tree, CSV, drill-downs). Omitting them left every row without
+      // agreementId/customer so UI fell back to "(Unknown)" / "—".
+      agreementId: item.agreementId,
+      agreement: item.agreement,
+      customer: item.customer,
     });
   }
   for (var i = 0; i < historicalItems.length; i++) push(historicalItems[i]);

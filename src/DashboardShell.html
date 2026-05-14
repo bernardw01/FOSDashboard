@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 1.27.0 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 1.27.1 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -9798,17 +9798,37 @@
 
       function rrCollectMilestones_(filteredAgreements, revenueMap) {
         var idSet = {};
+        var agreementById = {};
         for (var i = 0; i < filteredAgreements.length; i++) {
-          idSet[filteredAgreements[i].id] = true;
+          var fa = filteredAgreements[i];
+          idSet[fa.id] = true;
+          agreementById[fa.id] = fa;
         }
         var list = [];
         var keys = Object.keys(revenueMap || {});
         for (var k = 0; k < keys.length; k++) {
           var aid = keys[k];
           if (!idSet[aid]) continue;
+          var agRow = agreementById[aid] || {};
           var arr = revenueMap[aid] || [];
           for (var j = 0; j < arr.length; j++) {
-            list.push(arr[j]);
+            var raw = arr[j] || {};
+            // Older cached payloads omitted agreementId/customer on each
+            // milestone (server grouped map used to strip them). Re-attach
+            // from the bucket key + filtered agreement so Revenue review
+            // grouping still works without waiting for cache expiry.
+            list.push({
+              id: raw.id,
+              name: raw.name,
+              targetAmount: raw.targetAmount,
+              actualAmount: raw.actualAmount,
+              targetDate: raw.targetDate,
+              recognized: raw.recognized,
+              state: raw.state,
+              agreementId: raw.agreementId != null && raw.agreementId !== '' ? raw.agreementId : aid,
+              agreement: raw.agreement != null && raw.agreement !== '' ? raw.agreement : agRow.name,
+              customer: raw.customer != null && raw.customer !== '' ? raw.customer : agRow.customer,
+            });
           }
         }
         return list;

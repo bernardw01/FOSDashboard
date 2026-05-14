@@ -1,6 +1,6 @@
 # Feature: Monthly Revenue Review (under Delivery)
 
-> **PRD version 1.27.0** — see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js` when this feature ships).
+> **PRD version 1.27.1** — see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js` when this feature ships).
 
 > **Imported baseline PRD:** `docs/implementation-notes/revenue-review-dashboard-PRD.html` (static generator spec, v2.4 narrative + changelog through 2.1).  
 > **Reference UI (imported example):** `docs/implementation-notes/revenue-review-may-2026.html` (May 2026 report layout, KPIs, tables, alerts, milestone `<details>` hierarchy, pre-recognition banner).  
