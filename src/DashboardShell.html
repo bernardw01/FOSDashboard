@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 1.19.0 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 1.20.0 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -689,6 +689,128 @@
         animation: none;
         border-top-color: rgba(82, 201, 229, 0.65);
       }
+    }
+    /* v1.20.0 (Phase B) Delivery Dashboard additions ----------------------
+       Search input on the Active Projects header (FR-98); view-toggle +
+       Copy CSV toolbar on the P&L card (FR-94 / FR-96); projected-month
+       pill in the table view (FR-94); stacked-bar chart container (FR-94);
+       and the milestone drill-down modal hook (FR-95). */
+    .fos-delivery-search-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      min-width: 220px;
+    }
+    .fos-delivery-search {
+      background: var(--ag-bg-elevated, rgba(255, 255, 255, 0.04));
+      color: var(--ag-text);
+      border: 1px solid var(--ag-border);
+      padding-right: 28px;
+    }
+    .fos-delivery-search::placeholder {
+      color: var(--ag-text-muted);
+      opacity: 0.7;
+    }
+    .fos-delivery-search:focus {
+      border-color: var(--ag-accent);
+      box-shadow: 0 0 0 0.15rem rgba(67, 214, 186, 0.18);
+    }
+    .fos-delivery-search-clear {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--ag-text-muted);
+      font-size: 1.05rem;
+      line-height: 1;
+      padding: 0 6px;
+      cursor: pointer;
+    }
+    .fos-delivery-search-clear:hover,
+    .fos-delivery-search-clear:focus-visible {
+      color: var(--ag-text);
+    }
+    .fos-delivery-pnl-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+    .fos-delivery-view-group .fos-delivery-view-btn {
+      background: transparent;
+      border: 1px solid var(--ag-border);
+      color: var(--ag-text-muted);
+      font-weight: 600;
+      padding: 4px 12px;
+    }
+    .fos-delivery-view-group .fos-delivery-view-btn:hover {
+      color: var(--ag-text);
+      background: rgba(67, 214, 186, 0.06);
+    }
+    .fos-delivery-view-group .fos-delivery-view-btn.active {
+      background: var(--ag-accent);
+      border-color: var(--ag-accent);
+      color: #061b30;
+    }
+    .fos-delivery-csv-btn {
+      background: transparent;
+      color: var(--ag-text);
+      border: 1px solid var(--ag-border);
+      font-weight: 600;
+    }
+    .fos-delivery-csv-btn:hover,
+    .fos-delivery-csv-btn:focus-visible {
+      background: rgba(67, 214, 186, 0.08);
+      border-color: var(--ag-accent);
+      color: var(--ag-text);
+    }
+    .fos-delivery-csv-status {
+      color: var(--ag-text-muted);
+      font-style: italic;
+    }
+    .fos-delivery-monthly tbody tr.is-projected td {
+      color: var(--ag-text-muted);
+    }
+    .fos-delivery-monthly tbody tr.is-projected td:first-child {
+      box-shadow: inset 3px 0 0 rgba(82, 201, 229, 0.45);
+    }
+    .fos-delivery-projected-pill {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 7px;
+      border-radius: 9999px;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: rgba(82, 201, 229, 0.15);
+      color: #b9eaff;
+      border: 1px solid rgba(82, 201, 229, 0.35);
+      vertical-align: middle;
+    }
+    .fos-delivery-monthly tbody td.revenue-cell.is-clickable {
+      cursor: pointer;
+      text-decoration: underline dotted rgba(67, 214, 186, 0.4);
+      text-underline-offset: 3px;
+    }
+    .fos-delivery-monthly tbody td.revenue-cell.is-clickable:hover,
+    .fos-delivery-monthly tbody td.revenue-cell.is-clickable:focus-visible {
+      color: var(--ag-accent);
+      text-decoration-color: var(--ag-accent);
+    }
+    .fos-delivery-pnl-chart-wrap {
+      position: relative;
+      min-height: 320px;
+      padding: 8px 4px 0;
+    }
+    .fos-delivery-pnl-chart-wrap canvas {
+      max-height: 360px;
+      width: 100% !important;
+    }
+    .fos-delivery-chart-hint {
+      color: var(--ag-text-muted);
     }
 
     /* Customer Relationship Cards (§7.6) */
@@ -2209,6 +2331,21 @@
               <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                 <h2 id="delivery-projects-heading" class="mb-0">Active projects</h2>
                 <span class="small" style="color: var(--ag-text-muted)" id="delivery-projects-count">0 active projects</span>
+                <!-- v1.20.0 (Phase B, FR-98) — client-side substring filter
+                     across Project + Customer columns. Persists via the
+                     filters localStorage entry along with sort + selection. -->
+                <div class="ms-auto fos-delivery-search-wrap">
+                  <input
+                    type="search"
+                    class="form-control form-control-sm fos-delivery-search"
+                    id="delivery-search-input"
+                    aria-label="Filter projects by name or customer"
+                    placeholder="Filter projects…"
+                    autocomplete="off"
+                    spellcheck="false"
+                  />
+                  <button type="button" class="fos-delivery-search-clear d-none" id="delivery-search-clear" aria-label="Clear filter">×</button>
+                </div>
               </div>
               <div class="fos-financial-scroll">
                 <table class="fos-financial-table fos-delivery-table" aria-describedby="delivery-projects-heading">
@@ -2230,6 +2367,12 @@
               <p class="small mb-0 mt-2 d-none" id="delivery-projects-empty" style="color: var(--ag-text-muted)">
                 No active projects in the current cache. Refresh to check Fibery.
               </p>
+              <!-- v1.20.0 (Phase B) — surfaced when the search input filters
+                   all rows out of view. Distinct copy from the "no projects
+                   in cache" case so the user knows refresh won't help. -->
+              <p class="small mb-0 mt-2 d-none" id="delivery-projects-no-match" style="color: var(--ag-text-muted)">
+                No projects match the current filter.
+              </p>
             </section>
 
             <section class="fos-section-card fos-delivery-pnl" aria-labelledby="delivery-pnl-heading">
@@ -2239,6 +2382,20 @@
                   <div class="small" style="color: var(--ag-text-muted)" id="delivery-pnl-subtitle">Select a project above to see its monthly P&amp;L.</div>
                 </div>
                 <div class="d-none d-flex flex-wrap gap-2" id="delivery-pnl-kpi-strip" aria-label="Profit &amp; Loss summary"></div>
+              </div>
+              <!-- v1.20.0 (Phase B, FR-94 / FR-96) — view toggle (Table /
+                   Chart) and a Copy CSV button. Hidden until a project is
+                   selected; the empty-state placeholder above the grid
+                   stays the source of truth for "nothing to show". -->
+              <div class="d-none fos-delivery-pnl-toolbar mb-2" id="delivery-pnl-toolbar">
+                <div class="btn-group btn-group-sm fos-delivery-view-group" role="group" aria-label="Profit &amp; Loss view">
+                  <button type="button" class="btn fos-delivery-view-btn active" data-pnl-view="table" aria-pressed="true">Table</button>
+                  <button type="button" class="btn fos-delivery-view-btn" data-pnl-view="chart" aria-pressed="false">Chart</button>
+                </div>
+                <button type="button" class="btn btn-sm fos-delivery-csv-btn" id="delivery-pnl-csv-btn" aria-label="Copy monthly P&amp;L as CSV to clipboard">
+                  Copy CSV
+                </button>
+                <span class="small fos-delivery-csv-status" id="delivery-pnl-csv-status" aria-live="polite"></span>
               </div>
               <div class="d-none" id="delivery-pnl-partial-badge"></div>
               <div class="position-relative">
@@ -2262,6 +2419,15 @@
                     <tbody id="delivery-pnl-grid-body"></tbody>
                     <tfoot id="delivery-pnl-grid-foot"></tfoot>
                   </table>
+                </div>
+                <!-- v1.20.0 (Phase B, FR-94) — Chart.js stacked bar
+                     (Labor + Expenses) with a Revenue overlay line. Same
+                     month time-series as the table view. -->
+                <div class="d-none fos-delivery-pnl-chart-wrap" id="delivery-pnl-chart-wrap">
+                  <canvas id="delivery-pnl-chart" role="img" aria-label="Monthly Revenue, Labor, and Expenses chart"></canvas>
+                  <p class="small mb-0 mt-2 fos-delivery-chart-hint" id="delivery-pnl-chart-hint">
+                    Bars stack labor + expenses per month; the line overlays revenue. Lighter bars indicate projected months.
+                  </p>
                 </div>
                 <p class="small mb-0 mt-2 d-none" id="delivery-pnl-empty" style="color: var(--ag-text-muted)">
                   No monthly activity for this project yet.
@@ -2408,6 +2574,53 @@
     </div>
   </div>
 
+  <!-- v1.20.0 (Phase B, FR-95) — opens when a Revenue cell in the Delivery
+       Dashboard's monthly P&L grid (or chart bar) is clicked. Lists the
+       revenue items that bucketed into that month, plus a recognized /
+       projected split. Data comes from `payload.months[i].revenueItems`
+       (no extra Fibery fetch). -->
+  <div
+    class="modal fade fos-modal"
+    id="deliveryRevenueMonthModal"
+    tabindex="-1"
+    aria-labelledby="deliveryRevenueMonthModalTitle"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+      <div class="modal-content rounded-4">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title fw-semibold" id="deliveryRevenueMonthModalTitle">Revenue items</h5>
+            <div class="small text-secondary" id="deliveryRevenueMonthModalSubtitle">—</div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="fos-financial-scroll">
+            <table class="fos-financial-table" aria-describedby="deliveryRevenueMonthModalTitle">
+              <thead>
+                <tr>
+                  <th scope="col">Milestone</th>
+                  <th scope="col" class="num">Amount</th>
+                  <th scope="col">Date</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody id="deliveryRevenueMonthModalBody"></tbody>
+            </table>
+          </div>
+          <p class="small mb-0 mt-2" id="deliveryRevenueMonthModalEmpty" style="color: var(--ag-text-muted); display: none">
+            No revenue items recorded for this month.
+          </p>
+        </div>
+        <div class="modal-footer border-0 pt-0 d-flex justify-content-between">
+          <span class="small text-secondary" id="deliveryRevenueMonthModalTotals">—</span>
+          <button type="button" class="btn btn-fos-primary px-4" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script
     src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
@@ -2434,9 +2647,13 @@
       // Refresh.
       var DELIVERY_CACHE_KEY = 'fos_delivery_dashboard_v1';
       var DELIVERY_CACHE_SCHEMA_VERSION = 1;
+      // v1.20.0 (Phase B, FR-94 / FR-95). The per-project P&L key suffix is
+      // bumped to `_v2` so any v1.19.0 cache (which had no `projected`
+      // flag or `revenueItems[]` per month) is invalidated cleanly when
+      // the user upgrades.
       var DELIVERY_PNL_KEY_PREFIX = 'fos_delivery_pnl_';
-      var DELIVERY_PNL_KEY_SUFFIX = '_v1';
-      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 1;
+      var DELIVERY_PNL_KEY_SUFFIX = '_v2';
+      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 2;
       var DELIVERY_TTL_PREF_KEY = 'fos_delivery_dashboard_ttl_minutes_v1';
       var DELIVERY_FILTERS_PREF_KEY = 'fos_delivery_filters_v1';
       var DELIVERY_FILTERS_SCHEMA_VERSION = 1;
@@ -2692,6 +2909,22 @@
         deliveryPnlEmpty: document.getElementById('delivery-pnl-empty'),
         deliveryPnlError: document.getElementById('delivery-pnl-error'),
         deliveryPnlReconcile: document.getElementById('delivery-pnl-reconcile'),
+        // v1.20.0 (Phase B) — Delivery Dashboard chart + drill-down + CSV
+        // + search additions (FR-94 .. FR-98).
+        deliverySearchInput: document.getElementById('delivery-search-input'),
+        deliverySearchClear: document.getElementById('delivery-search-clear'),
+        deliveryProjectsNoMatch: document.getElementById('delivery-projects-no-match'),
+        deliveryPnlToolbar: document.getElementById('delivery-pnl-toolbar'),
+        deliveryPnlCsvBtn: document.getElementById('delivery-pnl-csv-btn'),
+        deliveryPnlCsvStatus: document.getElementById('delivery-pnl-csv-status'),
+        deliveryPnlChartWrap: document.getElementById('delivery-pnl-chart-wrap'),
+        deliveryPnlChartCanvas: document.getElementById('delivery-pnl-chart'),
+        deliveryRevenueMonthModal: document.getElementById('deliveryRevenueMonthModal'),
+        deliveryRevenueMonthModalTitle: document.getElementById('deliveryRevenueMonthModalTitle'),
+        deliveryRevenueMonthModalSubtitle: document.getElementById('deliveryRevenueMonthModalSubtitle'),
+        deliveryRevenueMonthModalBody: document.getElementById('deliveryRevenueMonthModalBody'),
+        deliveryRevenueMonthModalEmpty: document.getElementById('deliveryRevenueMonthModalEmpty'),
+        deliveryRevenueMonthModalTotals: document.getElementById('deliveryRevenueMonthModalTotals'),
         settingsLink: document.getElementById('settings-link'),
         comingSoonModal: document.getElementById('comingSoonModal'),
         csBody: document.getElementById('cs-body'),
@@ -6051,10 +6284,16 @@
       var deliveryState = {
         sort: { column: 'contractValue', dir: 'desc' },
         selectedId: null,
+        searchTerm: '',
+        pnlView: 'table',
         projectsByIndex: {},
         lastRenderedFetchedAt: null,
         lastRenderedSelectedId: null,
         pendingPnlAgreementId: null,
+        lastPnlPayload: null,
+        monthsByKey: {},
+        pnlChart: null,
+        csvStatusTimer: null,
       };
       var deliveryRenderState = { lastRenderedFetchedAt: null };
 
@@ -6139,24 +6378,45 @@
       }
       function writeDeliveryFiltersStored() {
         try {
+          // v1.20.0 (Phase B) — additive fields `searchTerm` + `pnlView`.
+          // We keep `schemaVersion: 1` because older saved blobs are still
+          // forward-compatible (missing fields default to '' / 'table').
           var payload = {
             schemaVersion: DELIVERY_FILTERS_SCHEMA_VERSION,
             sort: { column: deliveryState.sort.column, dir: deliveryState.sort.dir },
             selectedId: deliveryState.selectedId,
+            searchTerm: deliveryState.searchTerm || '',
+            pnlView: deliveryState.pnlView === 'chart' ? 'chart' : 'table',
           };
           localStorage.setItem(DELIVERY_FILTERS_PREF_KEY, JSON.stringify(payload));
         } catch (e) { /* ignore */ }
       }
       function applyDeliveryStoredFilters_() {
         var stored = readDeliveryFiltersStored();
-        if (!stored) return;
-        if (stored.sort && stored.sort.column) {
-          deliveryState.sort.column = String(stored.sort.column);
-          deliveryState.sort.dir = stored.sort.dir === 'asc' ? 'asc' : 'desc';
+        if (stored) {
+          if (stored.sort && stored.sort.column) {
+            deliveryState.sort.column = String(stored.sort.column);
+            deliveryState.sort.dir = stored.sort.dir === 'asc' ? 'asc' : 'desc';
+          }
+          if (typeof stored.selectedId === 'string' || stored.selectedId === null) {
+            deliveryState.selectedId = stored.selectedId || null;
+          }
+          if (typeof stored.searchTerm === 'string') {
+            deliveryState.searchTerm = stored.searchTerm;
+          }
+          if (stored.pnlView === 'chart' || stored.pnlView === 'table') {
+            deliveryState.pnlView = stored.pnlView;
+          }
         }
-        if (typeof stored.selectedId === 'string' || stored.selectedId === null) {
-          deliveryState.selectedId = stored.selectedId || null;
+        // v1.20.0 (Phase B) — push restored search + view state into the
+        // DOM so the controls match `deliveryState` after a panel switch.
+        if (els.deliverySearchInput) {
+          els.deliverySearchInput.value = deliveryState.searchTerm || '';
         }
+        if (typeof updateDeliverySearchClearVisibility_ === 'function') {
+          updateDeliverySearchClearVisibility_();
+        }
+        syncDeliveryViewButtons_(deliveryState.pnlView === 'chart' ? 'chart' : 'table');
       }
 
       function setDeliveryLoading(on) {
@@ -6317,6 +6577,22 @@
         }
       }
 
+      // v1.20.0 (Phase B, FR-98) — substring filter on the Active Projects
+      // table. Tokenizes the search input on whitespace and requires every
+      // token to appear in either the Project name or the Customer name
+      // (case-insensitive). Empty input returns the input list unchanged.
+      function filterDeliveryRowsBySearch_(rows) {
+        var term = String(deliveryState.searchTerm || '').trim().toLowerCase();
+        if (!term) return rows;
+        var tokens = term.split(/\s+/);
+        return rows.filter(function (p) {
+          var hay = ((p.name || '') + ' ' + (p.customer || '')).toLowerCase();
+          for (var i = 0; i < tokens.length; i++) {
+            if (hay.indexOf(tokens[i]) < 0) return false;
+          }
+          return true;
+        });
+      }
       function sortDeliveryRows_(rows) {
         var col = deliveryState.sort.column;
         var dir = deliveryState.sort.dir === 'asc' ? 1 : -1;
@@ -6343,19 +6619,32 @@
 
       function renderDeliveryTable(projects) {
         if (!els.deliveryProjectsBody) return;
-        var rows = sortDeliveryRows_(projects || []);
+        var all = projects || [];
+        var sorted = sortDeliveryRows_(all);
+        // Index every project (filtered out or not) so row selection still
+        // works when the search input is showing a subset.
         deliveryState.projectsByIndex = {};
-        for (var i = 0; i < rows.length; i++) {
-          deliveryState.projectsByIndex[rows[i].id] = rows[i];
+        for (var i = 0; i < sorted.length; i++) {
+          deliveryState.projectsByIndex[sorted[i].id] = sorted[i];
         }
+        // v1.20.0 (Phase B, FR-98) — case-insensitive substring match
+        // across Project + Customer columns.
+        var rows = filterDeliveryRowsBySearch_(sorted);
         var body = els.deliveryProjectsBody;
         body.innerHTML = '';
-        if (!rows.length) {
+        if (!all.length) {
           if (els.deliveryProjectsEmpty) els.deliveryProjectsEmpty.classList.remove('d-none');
+          if (els.deliveryProjectsNoMatch) els.deliveryProjectsNoMatch.classList.add('d-none');
           updateDeliverySortIndicators_();
           return;
         }
         if (els.deliveryProjectsEmpty) els.deliveryProjectsEmpty.classList.add('d-none');
+        if (!rows.length) {
+          if (els.deliveryProjectsNoMatch) els.deliveryProjectsNoMatch.classList.remove('d-none');
+          updateDeliverySortIndicators_();
+          return;
+        }
+        if (els.deliveryProjectsNoMatch) els.deliveryProjectsNoMatch.classList.add('d-none');
 
         for (var r = 0; r < rows.length; r++) {
           var p = rows[r];
@@ -6474,6 +6763,13 @@
           els.deliveryPnlReconcile.classList.add('d-none');
           els.deliveryPnlReconcile.textContent = '';
         }
+        // v1.20.0 (Phase B) — tear down chart, toolbar, drill-down state.
+        if (els.deliveryPnlToolbar) els.deliveryPnlToolbar.classList.add('d-none');
+        if (els.deliveryPnlChartWrap) els.deliveryPnlChartWrap.classList.add('d-none');
+        if (els.deliveryPnlCsvStatus) els.deliveryPnlCsvStatus.textContent = '';
+        destroyDeliveryPnLChart_();
+        deliveryState.lastPnlPayload = null;
+        deliveryState.monthsByKey = {};
         setDeliveryPnLLoading(false);
         deliveryState.pendingPnlAgreementId = null;
       }
@@ -6600,31 +6896,66 @@
         setDeliveryPnLLoading(false);
         var months = (payload && payload.months) || [];
         var lifetime = (payload && payload.lifetime) || null;
+        // v1.20.0 (Phase B) — cache the payload + month index so the
+        // Chart / CSV / drill-down handlers can reach the data without
+        // a second cache read. Reset chart-view artifacts whenever a new
+        // payload lands.
+        deliveryState.lastPnlPayload = payload || null;
+        deliveryState.monthsByKey = {};
+        for (var mi = 0; mi < months.length; mi++) {
+          if (months[mi] && months[mi].key) {
+            deliveryState.monthsByKey[months[mi].key] = months[mi];
+          }
+        }
         if (els.deliveryPnlGridBody) els.deliveryPnlGridBody.innerHTML = '';
         if (els.deliveryPnlGridFoot) els.deliveryPnlGridFoot.innerHTML = '';
+        if (els.deliveryPnlCsvStatus) els.deliveryPnlCsvStatus.textContent = '';
         if (!months.length) {
           if (els.deliveryPnlGridWrap) els.deliveryPnlGridWrap.classList.add('d-none');
+          if (els.deliveryPnlChartWrap) els.deliveryPnlChartWrap.classList.add('d-none');
           if (els.deliveryPnlEmpty) els.deliveryPnlEmpty.classList.remove('d-none');
+          if (els.deliveryPnlToolbar) els.deliveryPnlToolbar.classList.add('d-none');
+          destroyDeliveryPnLChart_();
         } else {
           if (els.deliveryPnlEmpty) els.deliveryPnlEmpty.classList.add('d-none');
-          if (els.deliveryPnlGridWrap) els.deliveryPnlGridWrap.classList.remove('d-none');
+          if (els.deliveryPnlToolbar) {
+            els.deliveryPnlToolbar.classList.remove('d-none');
+            els.deliveryPnlToolbar.style.display = 'flex';
+          }
           for (var i = 0; i < months.length; i++) {
             var m = months[i];
             var tr = document.createElement('tr');
             var classes = [];
             if (m.outOfRange) classes.push('is-oor');
             if (!m.hasActivity) classes.push('is-zero');
+            if (m.projected) classes.push('is-projected');
             if (classes.length) tr.className = classes.join(' ');
             var bucket = m.marginBucket || 'neutral';
-            var labelHtml = '<span class="month-label">' + escapeHtml(m.label || m.key || '—') + '</span>';
-            if (m.outOfRange) {
-              labelHtml = '<span class="month-label" title="Activity outside the project Duration window">' +
-                escapeHtml(m.label || m.key || '—') + ' (OOR)</span>';
-            }
+            var rawLabel = m.label || m.key || '—';
+            var labelInner = escapeHtml(rawLabel);
+            if (m.outOfRange) labelInner += ' (OOR)';
+            var labelTitle = m.outOfRange ? ' title="Activity outside the project Duration window"' : '';
+            var projectedPillHtml = m.projected
+              ? ' <span class="fos-delivery-projected-pill" aria-label="Projected month">Projected</span>'
+              : '';
+            var labelHtml = '<span class="month-label"' + labelTitle + '>' + labelInner + '</span>' + projectedPillHtml;
             var grossNegativeClass = (Number(m.grossProfit || 0) < 0) ? ' is-negative' : '';
+            var hasRevItems = !!(m.revenueItems && m.revenueItems.length);
+            var revenueCellClass = 'num revenue-cell';
+            var revenueCellAttrs = '';
+            if (hasRevItems) {
+              revenueCellClass += ' is-clickable';
+              revenueCellAttrs =
+                ' data-month-key="' + escapeHtml(m.key || '') + '"' +
+                ' role="button" tabindex="0"' +
+                ' aria-label="Open revenue items for ' + escapeHtml(rawLabel) + '"' +
+                ' title="Click to see the revenue items for ' + escapeHtml(rawLabel) + '"';
+            }
             tr.innerHTML =
               '<td>' + labelHtml + '</td>' +
-              '<td class="num">' + (Number(m.revenue || 0) === 0 ? '$0' : formatMoneyCompact(m.revenue)) + '</td>' +
+              '<td class="' + revenueCellClass + '"' + revenueCellAttrs + '>' +
+                (Number(m.revenue || 0) === 0 ? '$0' : formatMoneyCompact(m.revenue)) +
+              '</td>' +
               '<td class="num is-negative">' + formatExpense_(m.labor) + '</td>' +
               '<td class="num is-negative">' + formatExpense_(m.expenses) + '</td>' +
               '<td class="num is-negative">' + formatExpense_(m.totalCost) + '</td>' +
@@ -6686,6 +7017,383 @@
         }
         // Make sure the header is in sync with the project that was just rendered.
         if (project) renderDeliveryPnlHeader(project);
+        // v1.20.0 (Phase B) — re-apply the active view + sync the toggle
+        // buttons. When the grid is empty the toolbar was hidden above,
+        // so this is a no-op in that case.
+        applyDeliveryPnLView_();
+      }
+
+      /* ---------------------------------------------------------------
+       * v1.20.0 (Phase B) — Table / Chart view router.
+       * FR-94: stacked bar (Labor + Expenses) with an overlaid Revenue line.
+       * The Chart.js bundle is lazily loaded the first time the user
+       * switches to the Chart view; subsequent toggles reuse the same
+       * instance.
+       * ------------------------------------------------------------- */
+      function applyDeliveryPnLView_() {
+        var view = deliveryState.pnlView === 'chart' ? 'chart' : 'table';
+        syncDeliveryViewButtons_(view);
+        var hasData = !!(deliveryState.lastPnlPayload
+          && deliveryState.lastPnlPayload.months
+          && deliveryState.lastPnlPayload.months.length);
+        if (!hasData) {
+          if (els.deliveryPnlGridWrap) els.deliveryPnlGridWrap.classList.add('d-none');
+          if (els.deliveryPnlChartWrap) els.deliveryPnlChartWrap.classList.add('d-none');
+          return;
+        }
+        if (view === 'chart') {
+          if (els.deliveryPnlGridWrap) els.deliveryPnlGridWrap.classList.add('d-none');
+          if (els.deliveryPnlChartWrap) els.deliveryPnlChartWrap.classList.remove('d-none');
+          ensureDeliveryPnLChart_();
+        } else {
+          if (els.deliveryPnlGridWrap) els.deliveryPnlGridWrap.classList.remove('d-none');
+          if (els.deliveryPnlChartWrap) els.deliveryPnlChartWrap.classList.add('d-none');
+        }
+      }
+      function syncDeliveryViewButtons_(view) {
+        if (!els.deliveryPnlToolbar) return;
+        var btns = els.deliveryPnlToolbar.querySelectorAll('.fos-delivery-view-btn');
+        for (var i = 0; i < btns.length; i++) {
+          var v = btns[i].getAttribute('data-pnl-view');
+          if (v === view) {
+            btns[i].classList.add('active');
+            btns[i].setAttribute('aria-pressed', 'true');
+          } else {
+            btns[i].classList.remove('active');
+            btns[i].setAttribute('aria-pressed', 'false');
+          }
+        }
+      }
+      function setDeliveryPnLView_(view, opts) {
+        opts = opts || {};
+        var next = view === 'chart' ? 'chart' : 'table';
+        if (deliveryState.pnlView === next && !opts.force) return;
+        deliveryState.pnlView = next;
+        writeDeliveryFiltersStored();
+        if (!opts.silent) {
+          logActivity_('delivery_pnl_view_toggle', 'delivery', 'view=' + next);
+        }
+        applyDeliveryPnLView_();
+      }
+      function destroyDeliveryPnLChart_() {
+        if (deliveryState.pnlChart) {
+          try { deliveryState.pnlChart.destroy(); } catch (e) { /* ignore */ }
+          deliveryState.pnlChart = null;
+        }
+      }
+      function ensureDeliveryPnLChart_() {
+        if (!els.deliveryPnlChartCanvas) return;
+        // The Chart.js bundle is lazy-loaded (`loadChartJs()` lives in the
+        // Agreement Dashboard scope). It resolves immediately if the
+        // global `Chart` is already available.
+        loadChartJs()
+          .then(function () { renderDeliveryPnLChart_(); })
+          .catch(function (err) {
+            console && console.warn && console.warn('Delivery P&L chart failed to load Chart.js', err);
+          });
+      }
+      function renderDeliveryPnLChart_() {
+        if (!els.deliveryPnlChartCanvas || typeof Chart === 'undefined') return;
+        var months = (deliveryState.lastPnlPayload && deliveryState.lastPnlPayload.months) || [];
+        if (!months.length) {
+          destroyDeliveryPnLChart_();
+          return;
+        }
+        var labels = [];
+        var revenueData = [];
+        var laborData = [];
+        var expensesData = [];
+        // Per-point background colors so projected months render with a
+        // muted fill while actuals keep the full-tint brand palette.
+        var laborColors = [];
+        var expensesColors = [];
+        var revenuePointColors = [];
+        var laborActual = 'rgba(252, 92, 101, 0.72)';
+        var laborProjected = 'rgba(252, 92, 101, 0.32)';
+        var expActual = 'rgba(249, 199, 79, 0.78)';
+        var expProjected = 'rgba(249, 199, 79, 0.38)';
+        var revActual = '#43D6BA';
+        var revProjected = 'rgba(67, 214, 186, 0.55)';
+        for (var i = 0; i < months.length; i++) {
+          var m = months[i];
+          labels.push(m.label || m.key || '');
+          revenueData.push(Number(m.revenue || 0));
+          laborData.push(Number(m.labor || 0));
+          expensesData.push(Number(m.expenses || 0));
+          laborColors.push(m.projected ? laborProjected : laborActual);
+          expensesColors.push(m.projected ? expProjected : expActual);
+          revenuePointColors.push(m.projected ? revProjected : revActual);
+        }
+        destroyDeliveryPnLChart_();
+        var ctx = els.deliveryPnlChartCanvas.getContext('2d');
+        deliveryState.pnlChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                type: 'bar',
+                label: 'Labor',
+                data: laborData,
+                backgroundColor: laborColors,
+                borderColor: 'rgba(252, 92, 101, 0.9)',
+                borderWidth: 1,
+                stack: 'cost',
+                order: 2,
+              },
+              {
+                type: 'bar',
+                label: 'Expenses',
+                data: expensesData,
+                backgroundColor: expensesColors,
+                borderColor: 'rgba(249, 199, 79, 0.9)',
+                borderWidth: 1,
+                stack: 'cost',
+                order: 2,
+              },
+              {
+                type: 'line',
+                label: 'Revenue',
+                data: revenueData,
+                borderColor: revActual,
+                backgroundColor: 'rgba(67, 214, 186, 0.15)',
+                pointBackgroundColor: revenuePointColors,
+                pointBorderColor: revenuePointColors,
+                fill: false,
+                tension: 0.25,
+                borderWidth: 2,
+                pointRadius: 3.5,
+                pointHoverRadius: 5,
+                order: 1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { color: '#cbd6e6', usePointStyle: true, padding: 14 },
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (ctx) {
+                    var v = Number(ctx.parsed.y || 0);
+                    return ctx.dataset.label + ': ' + formatMoneyCompact(v);
+                  },
+                  afterBody: function (items) {
+                    if (!items || !items.length) return '';
+                    var key = months[items[0].dataIndex] && months[items[0].dataIndex].projected
+                      ? '(Projected month)'
+                      : '';
+                    return key;
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                stacked: true,
+                ticks: { color: '#9aaabd', maxRotation: 0, autoSkip: true },
+                grid: { color: 'rgba(255,255,255,0.04)' },
+              },
+              y: {
+                stacked: true,
+                beginAtZero: true,
+                ticks: {
+                  color: '#9aaabd',
+                  callback: function (v) { return formatMoneyCompact(v); },
+                },
+                grid: { color: 'rgba(255,255,255,0.06)' },
+              },
+            },
+            onClick: function (evt, items) {
+              if (!items || !items.length) return;
+              var idx = items[0].index;
+              var m = months[idx];
+              if (m && m.revenueItems && m.revenueItems.length) {
+                openDeliveryRevenueMonthModal_(m.key);
+              }
+            },
+          },
+        });
+      }
+
+      /* ---------------------------------------------------------------
+       * v1.20.0 (Phase B, FR-95) — Per-month Revenue drill-down modal.
+       * The contributing milestone rows are already on the cached
+       * payload so this never re-hits Fibery.
+       * ------------------------------------------------------------- */
+      function openDeliveryRevenueMonthModal_(monthKey) {
+        var m = (deliveryState.monthsByKey && deliveryState.monthsByKey[monthKey]) || null;
+        if (!m) return;
+        var items = m.revenueItems || [];
+        logActivity_('delivery_pnl_month_drilldown', 'delivery',
+          'monthKey=' + monthKey + ' · itemCount=' + items.length);
+        var modalEl = els.deliveryRevenueMonthModal;
+        if (!modalEl) return;
+        var project = deliveryState.selectedId && deliveryState.projectsByIndex
+          ? deliveryState.projectsByIndex[deliveryState.selectedId] : null;
+        var projectName = project ? (project.name || '') : '';
+        if (els.deliveryRevenueMonthModalTitle) {
+          els.deliveryRevenueMonthModalTitle.textContent =
+            'Revenue items — ' + (m.label || monthKey);
+        }
+        if (els.deliveryRevenueMonthModalSubtitle) {
+          var subParts = [];
+          if (projectName) subParts.push(projectName);
+          subParts.push(items.length + (items.length === 1 ? ' milestone' : ' milestones'));
+          if (m.projected) subParts.push('Projected month');
+          els.deliveryRevenueMonthModalSubtitle.textContent = subParts.join(' · ');
+        }
+        if (els.deliveryRevenueMonthModalBody) {
+          els.deliveryRevenueMonthModalBody.innerHTML = '';
+          for (var i = 0; i < items.length; i++) {
+            var it = items[i];
+            var dateStr = (it.actualDate || it.targetDate || '').slice(0, 10);
+            var statusLabel = it.state || (it.recognized ? 'Recognized' : 'Projected');
+            var statusColor = milestoneStatusColor_(it.state, it.recognized);
+            var tr = document.createElement('tr');
+            tr.innerHTML =
+              '<td class="name-cell" title="' + escapeHtml(it.name || '') + '">' + escapeHtml(it.name || '—') + '</td>' +
+              '<td class="num">' + escapeHtml(formatMoneyCompact(it.amount)) + '</td>' +
+              '<td>' + escapeHtml(dateStr || '—') + '</td>' +
+              '<td><span class="badge-pill" style="background:' + statusColor + '">' + escapeHtml(statusLabel) + '</span></td>';
+            els.deliveryRevenueMonthModalBody.appendChild(tr);
+          }
+        }
+        if (els.deliveryRevenueMonthModalEmpty) {
+          els.deliveryRevenueMonthModalEmpty.style.display = items.length ? 'none' : '';
+        }
+        if (els.deliveryRevenueMonthModalTotals) {
+          if (items.length) {
+            var totalAmt = 0;
+            var recAmt = 0;
+            for (var j = 0; j < items.length; j++) {
+              var v = Number(items[j].amount || 0);
+              totalAmt += v;
+              if (items[j].recognized) recAmt += v;
+            }
+            els.deliveryRevenueMonthModalTotals.textContent =
+              'Total ' + formatMoneyCompact(totalAmt) +
+              ' · recognized ' + formatMoneyCompact(recAmt);
+          } else {
+            els.deliveryRevenueMonthModalTotals.textContent = '—';
+          }
+        }
+        try {
+          var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+          modal.show();
+        } catch (e) {
+          modalEl.classList.add('show');
+          modalEl.style.display = 'block';
+        }
+      }
+
+      /* ---------------------------------------------------------------
+       * v1.20.0 (Phase B, FR-96) — Copy CSV.
+       * Builds a comma-separated payload of the current monthly P&L
+       * grid + lifetime total row and writes it to the clipboard.
+       * Uses navigator.clipboard with a textarea fallback so the
+       * older privacy-mode / non-secure-context case still works.
+       * ------------------------------------------------------------- */
+      function copyDeliveryPnLAsCsv_() {
+        var payload = deliveryState.lastPnlPayload;
+        if (!payload || !payload.months || !payload.months.length) {
+          flashDeliveryCsvStatus_('Nothing to copy');
+          return;
+        }
+        var headers = ['Month', 'Revenue', 'Labor', 'Expenses', 'Total cost',
+          'Gross profit', 'Margin %', 'Projected', 'Out of range'];
+        var rows = [headers.join(',')];
+        var numFmt = function (n) {
+          var x = Number(n);
+          if (!isFinite(x)) return '0';
+          return (Math.round(x * 100) / 100).toFixed(2);
+        };
+        var pctFmt = function (n) {
+          if (n === null || n === undefined || isNaN(n)) return '';
+          return (Math.round(Number(n) * 10) / 10).toFixed(1);
+        };
+        var bool = function (b) { return b ? 'yes' : ''; };
+        var esc = function (s) {
+          var v = String(s == null ? '' : s);
+          if (v.indexOf(',') >= 0 || v.indexOf('"') >= 0 || v.indexOf('\n') >= 0) {
+            v = '"' + v.replace(/"/g, '""') + '"';
+          }
+          return v;
+        };
+        for (var i = 0; i < payload.months.length; i++) {
+          var m = payload.months[i];
+          rows.push([
+            esc(m.label || m.key || ''),
+            numFmt(m.revenue),
+            numFmt(m.labor),
+            numFmt(m.expenses),
+            numFmt(m.totalCost),
+            numFmt(m.grossProfit),
+            pctFmt(m.marginPct),
+            bool(m.projected),
+            bool(m.outOfRange),
+          ].join(','));
+        }
+        if (payload.lifetime) {
+          var L = payload.lifetime;
+          rows.push([
+            'Lifetime total',
+            numFmt(L.revenue),
+            numFmt(L.labor),
+            numFmt(L.expenses),
+            numFmt(L.totalCost),
+            numFmt(L.grossProfit),
+            pctFmt(L.marginPctDerived),
+            '',
+            '',
+          ].join(','));
+        }
+        var text = rows.join('\n');
+        writeTextToClipboard_(text)
+          .then(function () {
+            flashDeliveryCsvStatus_('Copied ' + payload.months.length + ' rows');
+            logActivity_('delivery_pnl_copy_csv', 'delivery',
+              'agreementId=' + (payload.agreementId || '') + ' · rows=' + payload.months.length);
+          })
+          .catch(function () {
+            flashDeliveryCsvStatus_('Copy failed');
+          });
+      }
+      function flashDeliveryCsvStatus_(msg) {
+        if (!els.deliveryPnlCsvStatus) return;
+        els.deliveryPnlCsvStatus.textContent = msg;
+        if (deliveryState.csvStatusTimer) {
+          clearTimeout(deliveryState.csvStatusTimer);
+        }
+        deliveryState.csvStatusTimer = setTimeout(function () {
+          if (els.deliveryPnlCsvStatus) els.deliveryPnlCsvStatus.textContent = '';
+        }, 3000);
+      }
+      function writeTextToClipboard_(text) {
+        if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+          return navigator.clipboard.writeText(text);
+        }
+        return new Promise(function (resolve, reject) {
+          try {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.setAttribute('readonly', '');
+            ta.style.position = 'fixed';
+            ta.style.left = '-10000px';
+            document.body.appendChild(ta);
+            ta.select();
+            var ok = document.execCommand('copy');
+            document.body.removeChild(ta);
+            if (ok) resolve(); else reject(new Error('execCommand failed'));
+          } catch (e) {
+            reject(e);
+          }
+        });
       }
 
       // Delegated row activation + sort header click on the Active Projects
@@ -6736,6 +7444,97 @@
           deliveryRenderState.lastRenderedFetchedAt = null;
           fetchDeliveryFromServer({ manual: true });
         });
+      }
+
+      /* ---------------------------------------------------------------
+       * v1.20.0 (Phase B) — Search + view toggle + drill-down + CSV.
+       * Wired once on initial load.
+       * ------------------------------------------------------------- */
+      if (els.deliveryPnlGridBody) {
+        // Delegated click on Revenue cells to open the drill-down modal.
+        els.deliveryPnlGridBody.addEventListener('click', function (e) {
+          var td = e.target;
+          while (td && td.nodeType === 1 && td.tagName !== 'TD') td = td.parentNode;
+          if (!td || !td.classList || !td.classList.contains('revenue-cell')) return;
+          if (!td.classList.contains('is-clickable')) return;
+          var key = td.getAttribute('data-month-key') || '';
+          if (key) openDeliveryRevenueMonthModal_(key);
+        });
+        els.deliveryPnlGridBody.addEventListener('keydown', function (e) {
+          if (e.key !== 'Enter' && e.key !== ' ' && e.code !== 'Space') return;
+          var td = e.target;
+          while (td && td.nodeType === 1 && td.tagName !== 'TD') td = td.parentNode;
+          if (!td || !td.classList || !td.classList.contains('revenue-cell')) return;
+          if (!td.classList.contains('is-clickable')) return;
+          e.preventDefault();
+          var key = td.getAttribute('data-month-key') || '';
+          if (key) openDeliveryRevenueMonthModal_(key);
+        });
+      }
+      if (els.deliveryPnlToolbar) {
+        var viewBtns = els.deliveryPnlToolbar.querySelectorAll('.fos-delivery-view-btn');
+        for (var dvi = 0; dvi < viewBtns.length; dvi++) {
+          (function (btn) {
+            btn.addEventListener('click', function () {
+              var v = btn.getAttribute('data-pnl-view') || 'table';
+              setDeliveryPnLView_(v);
+            });
+          })(viewBtns[dvi]);
+        }
+      }
+      if (els.deliveryPnlCsvBtn) {
+        els.deliveryPnlCsvBtn.addEventListener('click', function () {
+          copyDeliveryPnLAsCsv_();
+        });
+      }
+      if (els.deliverySearchInput) {
+        // Stage the initial value from persisted prefs (applyDeliveryStoredFilters_
+        // already populated deliveryState.searchTerm); reflect it in the input
+        // so the user can see what's being filtered after a panel switch.
+        els.deliverySearchInput.value = deliveryState.searchTerm || '';
+        updateDeliverySearchClearVisibility_();
+        var deliverySearchDebounce = null;
+        els.deliverySearchInput.addEventListener('input', function () {
+          var v = els.deliverySearchInput.value || '';
+          deliveryState.searchTerm = v;
+          updateDeliverySearchClearVisibility_();
+          // Debounce both the activity log and the persistence write so
+          // typing doesn't generate a row per keystroke.
+          if (deliverySearchDebounce) clearTimeout(deliverySearchDebounce);
+          deliverySearchDebounce = setTimeout(function () {
+            writeDeliveryFiltersStored();
+            var trimmed = v.trim();
+            if (trimmed) {
+              logActivity_('delivery_table_search', 'delivery',
+                'len=' + trimmed.length);
+            }
+          }, 400);
+          var cached = readDeliveryCache();
+          renderDeliveryTable((cached && cached.projects) || []);
+          if (deliveryState.selectedId) markDeliveryRowSelected_(deliveryState.selectedId);
+        });
+      }
+      if (els.deliverySearchClear) {
+        els.deliverySearchClear.addEventListener('click', function () {
+          if (els.deliverySearchInput) {
+            els.deliverySearchInput.value = '';
+            deliveryState.searchTerm = '';
+            updateDeliverySearchClearVisibility_();
+            writeDeliveryFiltersStored();
+            var cached = readDeliveryCache();
+            renderDeliveryTable((cached && cached.projects) || []);
+            if (deliveryState.selectedId) markDeliveryRowSelected_(deliveryState.selectedId);
+            els.deliverySearchInput.focus();
+          }
+        });
+      }
+      function updateDeliverySearchClearVisibility_() {
+        if (!els.deliverySearchClear) return;
+        if (deliveryState.searchTerm) {
+          els.deliverySearchClear.classList.remove('d-none');
+        } else {
+          els.deliverySearchClear.classList.add('d-none');
+        }
       }
       if (els.deliveryTtlSelect) {
         var initialDeliveryTtl = readDeliveryTtlMinutes();

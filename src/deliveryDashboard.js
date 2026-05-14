@@ -1,5 +1,5 @@
 /**
- * PRD version 1.19.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.20.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `delivery`, panel
  * `#panel-delivery`). Two public endpoints, both authorized via
@@ -16,13 +16,26 @@
  *     Fibery queries scoped to the single agreement (no date filter, full
  *     project lifetime):
  *       1. Labor Costs       — Cost + Start Date Time
- *       2. Other Direct Costs — Amount + Date + Status
+ *       2. Other Direct Costs — Amount + Date + Status (Actual + Projected)
  *       3. Revenue Item       — Actual/Target Amount + Actual/Target Date
- *                               + Revenue Recognized
+ *                               + Revenue Recognized + Name + workflow
+ *                               state (recognized AND unrecognized;
+ *                               Phase B FR-94 drives projected-month
+ *                               support)
  *     Aggregates client-ready monthly rows {revenue, labor, expenses,
  *     totalCost, grossProfit, marginPct, marginBucket, outOfRange,
- *     hasActivity}, plus a §M.9 discrepancyCheck block comparing the
- *     summed totals to the agreement's lifetime fields.
+ *     hasActivity, projected, revenueItems[]}, plus a §M.9
+ *     discrepancyCheck block comparing the summed totals to the
+ *     agreement's lifetime fields.
+ *
+ *     Each month carries:
+ *       - `projected: bool` — true when the month key is later than the
+ *         current UTC month. Drives the "Projected" pill on the client
+ *         and a distinct fill in the stacked-area chart view (FR-94).
+ *       - `revenueItems: !Array<!Object>` — the milestone rows that
+ *         contributed to the month's revenue, ready for the FR-95
+ *         drill-down modal. Schema:
+ *           { id, name, amount, recognized, targetDate, actualDate, state }
  *
  * Diagnostics (run from the Apps Script editor):
  *   _diag_sampleDeliveryPayload()
@@ -35,9 +48,10 @@
  *                                         (state ≠ Closed-Lost)
  *   DELIVERY_EXCLUDE_INTERNAL             boolean (default true) — drop
  *                                         Agreement Type = Internal rows
- *   DELIVERY_PNL_INCLUDE_PROJECTED_ODC    boolean (default false) — when
- *                                         true, include Other Direct Costs
- *                                         rows with Status = "Projected"
+ *   DELIVERY_PNL_INCLUDE_PROJECTED_ODC    boolean (default true in
+ *                                         Phase B; opt out by setting
+ *                                         to false to restrict ODC to
+ *                                         Status = "Actual")
  *   DELIVERY_PNL_MAX_LABOR_ROWS           hard cap per project (default
  *                                         10000; set 0 for unlimited)
  */
@@ -45,8 +59,14 @@
 /** @const {number} Bumped when the client cache shape changes. */
 var DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_ = 1;
 
-/** @const {number} Bumped when the per-project monthly P&L cache shape changes. */
-var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 1;
+/**
+ * Per-project monthly P&L cache shape version.
+ *   v1 — Phase A: { months, lifetime, discrepancyCheck, partial, capCounts }
+ *   v2 — Phase B: above + monthly `projected` flag + per-month
+ *        `revenueItems[]` for drill-down (FR-94 / FR-95).
+ * @const {number}
+ */
+var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 2;
 
 /** @const {number} Default TTL (minutes) for the client-side cache. */
 var DELIVERY_DEFAULT_CACHE_TTL_MIN_ = 10;
@@ -227,7 +247,7 @@ function getDeliveryProjectMonthlyPnL(agreementId) {
     return emptyShell;
   }
 
-  var revFetch = fetchRecognizedRevenueItemsForAgreement_(agreementId);
+  var revFetch = fetchRevenueItemsForAgreement_(agreementId);
   if (!revFetch.ok) {
     emptyShell.agreementName = ctx.agreement.name;
     emptyShell.message = revFetch.message || 'Could not load Revenue Items.';
@@ -427,6 +447,10 @@ function buildMonthlyPnL_(args) {
   var laborByMonth = {};
   var odcByMonth = {};
   var revenueByMonth = {};
+  // Phase B (FR-94 / FR-95) — capture the contributing milestone rows
+  // per month so the client can render the drill-down modal without a
+  // second Fibery fetch.
+  var revenueItemsByMonth = {};
   var activityMonths = {};
 
   // Labor cost: month-of-Start Date Time, sum Cost.
@@ -444,7 +468,8 @@ function buildMonthlyPnL_(args) {
   }
 
   // Other Direct Costs (Materials & ODC): month-of-Date, sum Amount.
-  // `fetchOtherDirectCostsForAgreement_` already filtered to the right Status.
+  // `fetchOtherDirectCostsForAgreement_` already filtered to the right
+  // Status (Actual + Projected by default in Phase B).
   var summedExpenses = 0;
   for (var j = 0; j < args.odcRows.length; j++) {
     var o = args.odcRows[j];
@@ -458,8 +483,10 @@ function buildMonthlyPnL_(args) {
   }
 
   // Revenue Items: month-of-Actual Date (fallback Target Date), sum
-  // Actual Amount (fallback Target Amount). Recognized-only rows were
-  // requested by `fetchRecognizedRevenueItemsForAgreement_`.
+  // Actual Amount (fallback Target Amount). Phase B (FR-94) lifted the
+  // recognized-only filter so future-dated unrecognized milestones land
+  // in projected months. The lifetime total now reflects both
+  // recognized actuals and projected forward-revenue.
   var summedRevenue = 0;
   for (var k = 0; k < args.revenueRows.length; k++) {
     var r = args.revenueRows[k];
@@ -470,6 +497,16 @@ function buildMonthlyPnL_(args) {
       : Number(r.targetAmount || 0);
     if (!isFinite(amount)) continue;
     revenueByMonth[keyR] = (revenueByMonth[keyR] || 0) + amount;
+    if (!revenueItemsByMonth[keyR]) revenueItemsByMonth[keyR] = [];
+    revenueItemsByMonth[keyR].push({
+      id: r.id,
+      name: r.name,
+      amount: amount,
+      recognized: r.recognized === true,
+      targetDate: r.targetDate,
+      actualDate: r.actualDate,
+      state: r.state,
+    });
     activityMonths[keyR] = true;
     summedRevenue += amount;
   }
@@ -516,7 +553,10 @@ function buildMonthlyPnL_(args) {
   }
   allMonthKeys.sort();
 
-  // Emit one row per month.
+  // Emit one row per month. Phase B (FR-94) tags `projected` for months
+  // later than the current UTC month so the client can pill them and
+  // render the projected segments of the stacked-area chart with the
+  // muted fill.
   var months = [];
   var lifetimeRevenue = 0;
   var lifetimeLabor = 0;
@@ -534,6 +574,7 @@ function buildMonthlyPnL_(args) {
       : marginVarianceBucket_(marginPct, args.targetMarginPct, args.thresholds.marginVariance);
     var oor = !inRangeSet[mk];
     var hasActivity = rev > 0 || lab > 0 || exp > 0;
+    var monthItems = (revenueItemsByMonth[mk] || []).slice();
     months.push({
       key: mk,
       label: monthLabel_(mk),
@@ -548,6 +589,8 @@ function buildMonthlyPnL_(args) {
         || args.thresholds.marginVariance.color.neutral,
       outOfRange: oor,
       hasActivity: hasActivity,
+      projected: todayMonth ? mk > todayMonth : false,
+      revenueItems: monthItems,
     });
     lifetimeRevenue += rev;
     lifetimeLabor += lab;
@@ -798,34 +841,37 @@ function fetchOtherDirectCostsForAgreement_(agreementId, includeProjected) {
 }
 
 /**
- * Fetches recognized Revenue Items for one agreement.
+ * Fetches ALL Revenue Items for one agreement (recognized and
+ * unrecognized). Phase B (FR-94) widened this from the Phase A
+ * recognized-only fetch so future-dated milestones surface in projected
+ * months. The `recognized` flag and workflow `state` are returned per
+ * row so the client can render the drill-down modal (FR-95) with the
+ * same fidelity as the Agreement Dashboard's milestones modal.
  *
  * @param {string} agreementId
  * @return {!{ ok: true, rows: !Array<!Object> }|
  *          !{ ok: false, reason: string, message: string }}
  * @private
  */
-function fetchRecognizedRevenueItemsForAgreement_(agreementId) {
+function fetchRevenueItemsForAgreement_(agreementId) {
   var q = {
     query: {
       'q/from': 'Agreement Management/Revenue Item',
       'q/select': {
         id: 'fibery/id',
+        name: 'Agreement Management/Name',
         targetAmount: 'Agreement Management/Target Amount',
         actualAmount: 'Agreement Management/Actual Amount',
         targetDate: 'Agreement Management/Target Date',
         actualDate: 'Agreement Management/Actual Date',
         recognized: 'Agreement Management/Revenue Recognized',
+        state: ['workflow/state', 'enum/name'],
       },
-      'q/where': [
-        'q/and',
-        ['=', ['Agreement Management/Agreement', 'fibery/id'], '$agreementId'],
-        ['=', ['Agreement Management/Revenue Recognized'], '$recognized'],
-      ],
+      'q/where': ['=', ['Agreement Management/Agreement', 'fibery/id'], '$agreementId'],
       'q/order-by': [[['Agreement Management/Target Date'], 'q/asc']],
       'q/limit': DELIVERY_QUERY_LIMIT_,
     },
-    params: { $agreementId: agreementId, $recognized: true },
+    params: { $agreementId: agreementId },
   };
   var r = fiberyQuery_(q);
   if (!r.ok) return r;
@@ -834,11 +880,13 @@ function fetchRecognizedRevenueItemsForAgreement_(agreementId) {
   for (var i = 0; i < page.length; i++) {
     rows.push({
       id: stringOr_(page[i].id, ''),
+      name: stringOr_(page[i].name, '(Unnamed milestone)'),
       targetAmount: numberOr_(page[i].targetAmount, 0),
       actualAmount: numberOr_(page[i].actualAmount, 0),
       targetDate: stringOrNull_(page[i].targetDate),
       actualDate: stringOrNull_(page[i].actualDate),
       recognized: page[i].recognized === true,
+      state: stringOrNull_(page[i].state),
     });
   }
   return { ok: true, rows: rows };
@@ -870,11 +918,16 @@ function resolveDeliveryFilters_() {
   return { activeStates: activeStates, excludeInternal: excludeInternal };
 }
 
-/** @private */
+/**
+ * Phase B (FR-94) flipped the default to `true` so projected ODC rows
+ * appear in the monthly P&L by default. Operators can opt out by setting
+ * `DELIVERY_PNL_INCLUDE_PROJECTED_ODC = false` in Script Properties.
+ * @private
+ */
 function resolveIncludeProjectedOdc_() {
   return parseBoolean_(
     PropertiesService.getScriptProperties().getProperty(DELIVERY_PNL_INCLUDE_PROJECTED_ODC_PROP_),
-    false
+    true
   );
 }
 

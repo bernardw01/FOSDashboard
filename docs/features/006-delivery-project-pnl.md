@@ -1,15 +1,15 @@
 # Feature: Delivery Dashboard — Active Projects + Per-Project P&L
 
-> **PRD version 1.19.0** (planning) — **target ship v1.19.0**. Update `src/Code.js`
-> `FOS_PRD_VERSION` and every `src/*` file header in sync with this document
-> when Phase A lands. See `docs/FOS-Dashboard-PRD.md` for the main PRD.
+> **PRD version 1.20.0** — Phase A shipped in v1.19.0; **Phase B shipped in v1.20.0**.
+> `src/Code.js` `FOS_PRD_VERSION` and every `src/*` file header MUST match the
+> version line in `docs/FOS-Dashboard-PRD.md`.
 
 ## Status
 
 | Phase | Scope | Target PRD | Status |
 | --- | --- | --- | --- |
-| **Phase A — activation + project list + monthly P&L** | Delivery panel activation (replaces the v1.0 "coming soon" stub) · Active projects table · row-click → **monthly P&L time-series** (one row per calendar month from project start through current month) with Revenue Recognized · Labor Cost · Expenses · Total Cost · Margin $ · Margin %; per-project lazy fetch of `Labor Costs` + `Other Direct Costs`; rollup KPI strip + lifetime totals row in the same card · refresh + TTL row · `sessionStorage` cache · activity events | v1.19.0 | **Planned** |
-| **Phase B — chart view + drill-down** | Stacked area / line chart toggle on the monthly P&L (Revenue line over Labor + Expenses stack) · drill-down to milestone list (reusing `revenueItemsByAgreement` from FR-86) · projected months (future-dated Revenue Items + Projected ODC) with a "Projected" pill · CSV copy / clipboard · client-side project search input | v1.20.0 | **Planned (not in v1.19.0)** |
+| **Phase A — activation + project list + monthly P&L** | Delivery panel activation (replaces the v1.0 "coming soon" stub) · Active projects table · row-click → **monthly P&L time-series** (one row per calendar month from project start through current month) with Revenue Recognized · Labor Cost · Expenses · Total Cost · Margin $ · Margin %; per-project lazy fetch of `Labor Costs` + `Other Direct Costs`; rollup KPI strip + lifetime totals row in the same card · refresh + TTL row · `sessionStorage` cache · activity events | v1.19.0 | **Shipped** |
+| **Phase B — chart view + drill-down + projected months + CSV + search** | Table / Chart view toggle on the monthly P&L (stacked Labor + Expenses bars with an overlaid Revenue line via Chart.js) · per-month Revenue drill-down modal sourced from the cached `month.revenueItems[]` (zero extra Fibery fetches) · projected months tagged `projected: true` server-side (drops recognized-only filter on Revenue Items; defaults `DELIVERY_PNL_INCLUDE_PROJECTED_ODC` to `true`) and surfaced as a `Projected` pill in the table + muted bar fills in the chart · Copy CSV action on the P&L card · client-side substring search input in the Active Projects header (Project + Customer; persisted + debounced) · four new activity events (`delivery_pnl_view_toggle`, `delivery_pnl_month_drilldown`, `delivery_pnl_copy_csv`, `delivery_table_search`) · cache schema bump (`_v1` → `_v2`) | v1.20.0 | **Shipped** |
 | **Phase C — predictive** | Burn-rate forecast · estimated date-to-completion · pacing alerts (when actual burn outpaces planned recognition) · pipeline-of-margin Sankey | v1.21.0+ | **Speculative** |
 
 ## Goal
