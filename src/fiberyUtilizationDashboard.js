@@ -1,5 +1,5 @@
 /**
- * PRD version 1.27.2 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 1.27.3 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard orchestrator (route id `operations`, panel
  * `#panel-operations`). Reads `Agreement Management/Labor Costs` from Fibery

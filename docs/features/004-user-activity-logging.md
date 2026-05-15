@@ -1,6 +1,6 @@
 # Feature: User activity logging (User Activity tab)
 
-> **PRD version 1.27.2** — see `docs/FOS-Dashboard-PRD.md` (`§3.8`, **FR-60–FR-66**, **NFR-08**, **AC-15–AC-17**).
+> **PRD version 1.27.3** — see `docs/FOS-Dashboard-PRD.md` (`§3.8`, **FR-60–FR-66**, **NFR-08**, **AC-15–AC-17**).
 
 ## Goal
 
