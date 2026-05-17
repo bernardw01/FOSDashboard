@@ -38,6 +38,10 @@ Manifest rows use `payload.cacheSchemaVersion` via `appendManifestDataset_` in t
 - Changing `get*DashboardData()` return shape without verifying snapshot builders return the same shape.
 - Renaming Drive artifacts without updating historical UI plans and feature **009**.
 
+## Admin settings registry (feature 011)
+
+When adding or changing a **Script Property** exposed to dashboards, update **`src/adminSettingsRegistry.js`** (group, label, tooltip, type, default, validation) so the Settings panel stays aligned.
+
 ## Historical UI (feature 010)
 
 When cache shape or `cacheSchemaVersion` changes, also verify:

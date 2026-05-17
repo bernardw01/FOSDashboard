@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.1.0 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.2.0 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -1819,21 +1819,91 @@
       font-size: 14px;
     }
 
+    /* App shell: sidebar fixed to viewport; main column scrolls (md+). */
+    #fosSidebar .offcanvas-body {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .fos-sidebar-nav {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    .fos-sidebar-footer {
+      flex-shrink: 0;
+    }
+
+    .fos-main-column {
+      min-height: 0;
+      min-width: 0;
+    }
+
+    .fos-main-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
     #fosSidebar.offcanvas-md {
       --bs-offcanvas-width: min(280px, 88vw);
     }
 
     /* Keep sidebar in the flex row when Bootstrap makes it static (md+). */
     @media (min-width: 768px) {
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+
+      .fos-app-root {
+        height: 100vh;
+        height: 100dvh;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .fos-main-column {
+        height: 100%;
+        overflow: hidden;
+      }
+
       #fosSidebar.offcanvas-md {
         flex-shrink: 0 !important;
         position: relative !important;
         visibility: visible !important;
         transform: none !important;
-        height: auto !important;
-        max-height: none !important;
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        max-height: 100vh !important;
+        max-height: 100dvh !important;
+        overflow: hidden !important;
         width: min(280px, 34vw);
         max-width: 280px;
+      }
+
+      #fosSidebar.offcanvas-md .offcanvas-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden;
+      }
+    }
+
+    /* Mobile offcanvas drawer: pin Settings to bottom while nav scrolls. */
+    @media (max-width: 767.98px) {
+      #fosSidebar.show .offcanvas-body,
+      #fosSidebar.showing .offcanvas-body {
+        height: 100%;
+        max-height: 100%;
+        overflow: hidden;
       }
     }
 
@@ -1922,6 +1992,61 @@
       color: var(--text);
     }
 
+    .fos-settings-root .fos-settings-group {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+
+    .fos-settings-root .fos-settings-group-header {
+      padding: 0.75rem 1rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text);
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .fos-settings-root .fos-settings-row {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid rgba(26, 64, 96, 0.5);
+    }
+
+    .fos-settings-root .fos-settings-row:last-child {
+      border-bottom: none;
+    }
+
+    .fos-settings-root .fos-settings-key {
+      font-family: ui-monospace, monospace;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+    }
+
+    .fos-settings-root .fos-settings-default-hint {
+      font-size: 0.65rem;
+      color: var(--text-dim);
+    }
+
+    .fos-settings-root .form-control,
+    .fos-settings-root .form-select {
+      background: var(--surface2);
+      border-color: var(--border);
+      color: var(--text);
+      font-size: 0.8125rem;
+    }
+
+    .fos-settings-root .form-check-input {
+      background-color: var(--surface2);
+      border-color: var(--border);
+    }
+
+    #settings-link.active {
+      background: rgba(82, 201, 229, 0.12);
+      color: var(--accent);
+    }
+
     .fos-topbar {
       background: rgba(6, 27, 48, 0.92);
       backdrop-filter: blur(10px);
@@ -1997,9 +2122,9 @@
   </style>
 </head>
 <body>
-  <div class="d-flex min-vh-100">
+  <div class="fos-app-root d-flex min-vh-100 min-h-0">
     <aside
-      class="offcanvas offcanvas-start offcanvas-md fos-sidebar border-end shadow flex-shrink-0 align-self-stretch min-vh-100"
+      class="offcanvas offcanvas-start offcanvas-md fos-sidebar border-end shadow flex-shrink-0"
       tabindex="-1"
       id="fosSidebar"
       aria-labelledby="fosSidebarLabel"
@@ -2008,7 +2133,7 @@
         <h2 class="offcanvas-title h6 mb-0 text-white" id="fosSidebarLabel">Menu</h2>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
       </div>
-      <div class="offcanvas-body d-flex flex-column p-0 flex-grow-1 min-vh-100 min-h-0">
+      <div class="offcanvas-body d-flex flex-column p-0 flex-grow-1 min-h-0">
         <div class="p-3 border-bottom border-secondary border-opacity-25 flex-shrink-0">
           <img
             class="fos-brand-logo mb-2"
@@ -2032,15 +2157,19 @@
           <p id="fos-data-source-hint" class="fos-data-source-hint text-secondary mb-0 mt-1 d-none"></p>
         </div>
 
-        <div class="flex-grow-1 overflow-auto min-h-0 px-2 py-3">
+        <div class="fos-sidebar-nav flex-grow-1 min-h-0 overflow-y-auto px-2 py-3">
           <div class="text-uppercase small text-secondary px-2 mb-2 fw-semibold" style="letter-spacing: 0.06em">
             Dashboards
           </div>
           <nav id="nav-list" class="nav flex-column gap-1 px-2" aria-label="Dashboards"></nav>
         </div>
 
-        <div class="mt-auto flex-shrink-0">
-          <div class="px-2 pt-2 pb-2 border-top" style="border-color: var(--border) !important">
+        <div class="fos-sidebar-footer mt-auto flex-shrink-0">
+          <div
+            id="settings-link-wrap"
+            class="px-2 pt-2 pb-2 border-top d-none"
+            style="border-color: var(--border) !important"
+          >
             <a
               href="#"
               role="button"
@@ -2058,8 +2187,8 @@
       </div>
     </aside>
 
-    <div class="flex-fill d-flex flex-column min-vh-100 min-w-0">
-      <header class="navbar navbar-expand fos-topbar border-bottom sticky-top px-3 py-2">
+    <div class="fos-main-column flex-fill d-flex flex-column min-vh-100 min-w-0 min-h-0">
+      <header class="navbar navbar-expand fos-topbar border-bottom flex-shrink-0 px-3 py-2">
         <button
           class="btn btn-outline-secondary btn-menu-mobile d-md-none me-2 rounded-pill px-3 fw-semibold"
           type="button"
@@ -2075,7 +2204,7 @@
 
       <div
         id="fos-snapshot-banner"
-        class="fos-snapshot-banner d-none px-3 py-2 small border-bottom border-secondary border-opacity-25"
+        class="fos-snapshot-banner d-none flex-shrink-0 px-3 py-2 small border-bottom border-secondary border-opacity-25"
         role="status"
       >
         <strong class="text-warning">Snapshot:</strong>
@@ -2084,7 +2213,7 @@
 
       <div
         id="nav-hint"
-        class="d-none px-3 py-2 small border-bottom border-secondary border-opacity-25 text-secondary bg-opacity-10"
+        class="d-none flex-shrink-0 px-3 py-2 small border-bottom border-secondary border-opacity-25 text-secondary bg-opacity-10"
         style="background: rgba(94, 234, 212, 0.06)"
         role="note"
       >
@@ -2092,12 +2221,13 @@
         left) to open dashboards and Settings.
       </div>
 
-      <div id="load-banner" class="px-3 py-2 small text-secondary border-bottom border-secondary border-opacity-25" role="status">
+      <div id="load-banner" class="flex-shrink-0 px-3 py-2 small text-secondary border-bottom border-secondary border-opacity-25" role="status">
         Loading navigation…
       </div>
-      <div id="error-banner" class="alert alert-danger mx-3 mt-2 mb-0 d-none" role="alert"></div>
+      <div id="error-banner" class="alert alert-danger flex-shrink-0 mx-3 mt-2 mb-0 d-none" role="alert"></div>
 
-      <main id="main-panel" class="flex-grow-1 px-3 px-lg-4 py-4" aria-live="polite">
+      <div class="fos-main-scroll flex-grow-1 min-h-0 overflow-y-auto">
+      <main id="main-panel" class="px-3 px-lg-4 py-4" aria-live="polite">
         <div id="panel-home" class="card fos-card rounded-4">
           <div class="card-body p-4 p-lg-5">
             <h1 class="h4 mb-3 fw-bold text-white">Home</h1>
@@ -2105,6 +2235,28 @@
               Welcome to the FOS Dashboard shell. Use the menu for areas you are authorized to see. Until a
               dashboard is enabled, its link opens a “Coming soon” dialog instead of leaving this page.
             </p>
+          </div>
+        </div>
+
+
+        <div id="panel-settings" class="d-none fos-settings-root">
+          <div class="card fos-card rounded-4 mb-3">
+            <div class="card-body p-4">
+              <h1 class="h4 mb-2 fw-bold text-white">Settings</h1>
+              <p class="text-muted small mb-0">
+                Environment configuration for this deployment. Changes apply to all users after dashboards refresh.
+                Script properties with a built-in default can be reset with <strong>Use default</strong>.
+              </p>
+            </div>
+          </div>
+          <div id="settings-fetch-error" class="alert alert-danger d-none mb-3" role="alert"></div>
+          <div id="settings-save-status" class="alert alert-success d-none mb-3" role="status"></div>
+          <div id="settings-loading" class="text-secondary small py-4 text-center d-none">Loading settings…</div>
+          <div id="settings-groups"></div>
+          <div class="fos-settings-footer sticky-bottom border-top border-secondary border-opacity-25 py-3 mt-3 d-flex flex-wrap align-items-center gap-2">
+            <button type="button" class="btn btn-fos-primary" id="settings-save-btn" disabled>Save changes</button>
+            <button type="button" class="btn btn-outline-secondary" id="settings-discard-btn" disabled>Discard</button>
+            <span id="settings-dirty-hint" class="small text-secondary ms-auto d-none">Unsaved changes</span>
           </div>
         </div>
 
@@ -3218,6 +3370,7 @@
           </div>
         </div>
       </main>
+      </div>
     </div>
   </div>
 
@@ -3416,7 +3569,7 @@
   ></script>
   <script>
     (function () {
-      var navState = { items: [], userLabel: '', activeNavId: 'home' };
+      var navState = { items: [], userLabel: '', activeNavId: 'home', isAdmin: false };
       var AGREEMENT_CACHE_KEY = 'fos_agreement_dashboard_v2';
       var AGREEMENT_CACHE_SCHEMA_VERSION = 3;
       var AGREEMENT_TTL_PREF_KEY = 'fos_agreement_dashboard_ttl_minutes_v1';
@@ -3787,7 +3940,16 @@
         dataSourceHint: document.getElementById('fos-data-source-hint'),
         snapshotBanner: document.getElementById('fos-snapshot-banner'),
         snapshotBannerText: document.getElementById('fos-snapshot-banner-text'),
+        settingsLinkWrap: document.getElementById('settings-link-wrap'),
         settingsLink: document.getElementById('settings-link'),
+        panelSettings: document.getElementById('panel-settings'),
+        settingsGroups: document.getElementById('settings-groups'),
+        settingsLoading: document.getElementById('settings-loading'),
+        settingsFetchError: document.getElementById('settings-fetch-error'),
+        settingsSaveStatus: document.getElementById('settings-save-status'),
+        settingsSaveBtn: document.getElementById('settings-save-btn'),
+        settingsDiscardBtn: document.getElementById('settings-discard-btn'),
+        settingsDirtyHint: document.getElementById('settings-dirty-hint'),
         comingSoonModal: document.getElementById('comingSoonModal'),
         csBody: document.getElementById('cs-body'),
       };
@@ -4178,10 +4340,393 @@
         modal.show();
       }
 
-      els.settingsLink.addEventListener('click', function (event) {
-        event.preventDefault();
-        showComingSoon('Settings is not available yet.');
-      });
+      /* Admin settings panel (v2.2.0 — feature 011) */
+      var adminSettingsState_ = {
+        groups: [],
+        baseline: null,
+        dirty: false,
+        loading: false,
+      };
+
+      function hidePanelSettings_() {
+        if (els.panelSettings) {
+          els.panelSettings.classList.add('d-none');
+        }
+        if (els.settingsLink) {
+          els.settingsLink.classList.remove('active');
+          els.settingsLink.removeAttribute('aria-current');
+        }
+      }
+
+      function setActiveSettingsNav_() {
+        navState.activeNavId = 'settings';
+        var buttons = els.navList.querySelectorAll('.fos-nav-btn');
+        for (var i = 0; i < buttons.length; i++) {
+          buttons[i].classList.remove('active');
+          buttons[i].removeAttribute('aria-current');
+        }
+        if (els.settingsLink) {
+          els.settingsLink.classList.add('active');
+          els.settingsLink.setAttribute('aria-current', 'page');
+        }
+      }
+
+      function clearDashboardCachesAfterSettingsSave_() {
+        try {
+          sessionStorage.removeItem(AGREEMENT_CACHE_KEY);
+          sessionStorage.removeItem(UTIL_CACHE_KEY);
+          sessionStorage.removeItem(DELIVERY_CACHE_KEY);
+        } catch (e) {
+          /* ignore */
+        }
+        agreementRenderState.lastRenderedFetchedAt = null;
+        utilRenderState.lastRenderedFetchedAt = null;
+        deliveryRenderState.lastRenderedFetchedAt = null;
+        revenueReviewRenderState.lastRenderedFetchedAt = null;
+        laborHoursFetchCache_.key = null;
+        laborHoursFetchCache_.payload = null;
+      }
+
+      function adminSettingsBaselineJson_() {
+        return JSON.stringify(adminSettingsState_.groups);
+      }
+
+      function markAdminSettingsDirty_() {
+        var dirty = adminSettingsBaselineJson_() !== adminSettingsState_.baseline;
+        adminSettingsState_.dirty = dirty;
+        if (els.settingsSaveBtn) {
+          els.settingsSaveBtn.disabled = !dirty || adminSettingsState_.loading;
+        }
+        if (els.settingsDiscardBtn) {
+          els.settingsDiscardBtn.disabled = !dirty || adminSettingsState_.loading;
+        }
+        if (els.settingsDirtyHint) {
+          els.settingsDirtyHint.classList.toggle('d-none', !dirty);
+        }
+      }
+
+      function collectAdminSettingsUpdates_() {
+        var updates = [];
+        var groups = adminSettingsState_.groups || [];
+        for (var g = 0; g < groups.length; g++) {
+          var settings = groups[g].settings || [];
+          for (var s = 0; s < settings.length; s++) {
+            var row = settings[s];
+            if (row.readOnly) {
+              continue;
+            }
+            var val = row.value;
+            if (row.type === 'boolean') {
+              val = !!row.value;
+            }
+            updates.push({
+              key: row.key,
+              useDefault: !!row.useDefault,
+              value: val,
+            });
+          }
+        }
+        return updates;
+      }
+
+      function syncAdminSettingsInput_(input, row) {
+        if (row.type === 'boolean') {
+          input.value = row.value ? 'true' : 'false';
+          return;
+        }
+        if (row.type === 'json') {
+          input.value = row.value == null ? '' : String(row.value);
+          return;
+        }
+        if (row.type === 'secret') {
+          input.value = '';
+          return;
+        }
+        input.value = row.value == null ? '' : String(row.value);
+      }
+
+      function readAdminSettingsInput_(input, row) {
+        if (row.type === 'boolean') {
+          row.value = input.value === 'true';
+          return;
+        }
+        if (row.type === 'number') {
+          var n = parseFloat(input.value);
+          row.value = isFinite(n) ? n : input.value;
+          return;
+        }
+        row.value = input.value;
+      }
+
+      function renderAdminSettingsGroups_() {
+        if (!els.settingsGroups) {
+          return;
+        }
+        els.settingsGroups.innerHTML = '';
+        var groups = adminSettingsState_.groups || [];
+        for (var g = 0; g < groups.length; g++) {
+          var grp = groups[g];
+          var card = document.createElement('div');
+          card.className = 'fos-settings-group';
+          var hdr = document.createElement('div');
+          hdr.className = 'fos-settings-group-header';
+          hdr.textContent = grp.title || grp.id;
+          card.appendChild(hdr);
+          var settings = grp.settings || [];
+          for (var s = 0; s < settings.length; s++) {
+            card.appendChild(buildAdminSettingsRow_(settings[s]));
+          }
+          els.settingsGroups.appendChild(card);
+        }
+        if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+          var tips = els.settingsGroups.querySelectorAll('[data-bs-toggle="tooltip"]');
+          for (var ti = 0; ti < tips.length; ti++) {
+            new bootstrap.Tooltip(tips[ti]);
+          }
+        }
+      }
+
+      function buildAdminSettingsRow_(row) {
+        var wrap = document.createElement('div');
+        wrap.className = 'fos-settings-row';
+        var rowId = 'settings-row-' + row.key.replace(/[^a-zA-Z0-9_-]/g, '_');
+        var input;
+
+        var top = document.createElement('div');
+        top.className = 'd-flex flex-wrap align-items-start gap-2 mb-1';
+        var labelWrap = document.createElement('div');
+        labelWrap.className = 'flex-grow-1 min-w-0';
+        var lbl = document.createElement('label');
+        lbl.className = 'form-label mb-0 small fw-semibold text-white';
+        lbl.setAttribute('for', rowId + '-input');
+        lbl.textContent = row.label;
+        labelWrap.appendChild(lbl);
+        var keyEl = document.createElement('div');
+        keyEl.className = 'fos-settings-key';
+        keyEl.textContent = row.key;
+        labelWrap.appendChild(keyEl);
+        top.appendChild(labelWrap);
+        var info = document.createElement('button');
+        info.type = 'button';
+        info.className = 'btn btn-link btn-sm text-secondary p-0';
+        info.setAttribute('data-bs-toggle', 'tooltip');
+        info.setAttribute('data-bs-placement', 'left');
+        info.setAttribute('title', row.description || '');
+        info.setAttribute('aria-label', 'Help for ' + row.label);
+        info.innerHTML = '<i class="bi bi-info-circle" aria-hidden="true"></i>';
+        top.appendChild(info);
+        wrap.appendChild(top);
+
+        if (row.allowDefaultToggle) {
+          var defRow = document.createElement('div');
+          defRow.className = 'form-check form-switch mb-2';
+          var defId = rowId + '-default';
+          var defInp = document.createElement('input');
+          defInp.type = 'checkbox';
+          defInp.className = 'form-check-input';
+          defInp.id = defId;
+          defInp.checked = !!row.useDefault;
+          defInp.addEventListener('change', function () {
+            row.useDefault = defInp.checked;
+            input.disabled = row.readOnly || row.useDefault;
+            if (row.useDefault && row.defaultValue !== null && row.defaultValue !== undefined) {
+              row.value = row.type === 'boolean' ? !!row.defaultValue : row.defaultValue;
+              syncAdminSettingsInput_(input, row);
+            }
+            markAdminSettingsDirty_();
+          });
+          var defLbl = document.createElement('label');
+          defLbl.className = 'form-check-label small text-secondary';
+          defLbl.setAttribute('for', defId);
+          defLbl.textContent = 'Use built-in default';
+          if (row.defaultValue !== null && row.defaultValue !== undefined && row.type !== 'secret') {
+            defLbl.textContent += ' (' + String(row.defaultValue) + ')';
+          }
+          defRow.appendChild(defInp);
+          defRow.appendChild(defLbl);
+          wrap.appendChild(defRow);
+        }
+
+        input = document.createElement('input');
+        input.id = rowId + '-input';
+        input.className = 'form-control form-control-sm';
+        if (row.type === 'secret') {
+          input.type = 'password';
+          input.autocomplete = 'new-password';
+          input.placeholder = row.hasStoredSecret
+            ? 'Enter new token to replace stored value'
+            : 'Enter API token';
+        } else if (row.type === 'boolean') {
+          input = document.createElement('select');
+          input.id = rowId + '-input';
+          input.className = 'form-select form-select-sm';
+          input.innerHTML = '<option value="true">true</option><option value="false">false</option>';
+        } else if (row.type === 'json') {
+          input = document.createElement('textarea');
+          input.id = rowId + '-input';
+          input.className = 'form-control form-control-sm font-monospace';
+          input.rows = 3;
+        } else if (row.type === 'number') {
+          input.type = 'number';
+          if (row.min != null) input.min = String(row.min);
+          if (row.max != null) input.max = String(row.max);
+        } else {
+          input.type = 'text';
+        }
+
+        syncAdminSettingsInput_(input, row);
+        input.disabled = row.readOnly || (!!row.allowDefaultToggle && row.useDefault);
+        if (!row.readOnly) {
+          input.addEventListener('input', function () {
+            readAdminSettingsInput_(input, row);
+            markAdminSettingsDirty_();
+          });
+          input.addEventListener('change', function () {
+            readAdminSettingsInput_(input, row);
+            markAdminSettingsDirty_();
+          });
+        }
+        wrap.appendChild(input);
+
+        if (row.readOnly) {
+          input.classList.add('d-none');
+          var ro = document.createElement('p');
+          ro.className = 'fos-settings-default-hint mb-0 mt-1 text-break';
+          if (row.type === 'secret') {
+            ro.textContent = row.hasStoredSecret ? 'Configured (hidden)' : 'Not set';
+          } else {
+            ro.textContent = row.value ? String(row.value) : '—';
+          }
+          wrap.appendChild(ro);
+        }
+
+        return wrap;
+      }
+
+      function applyAdminSettingsPanelData_(data) {
+        adminSettingsState_.groups = JSON.parse(JSON.stringify(data.groups || []));
+        adminSettingsState_.baseline = adminSettingsBaselineJson_();
+        adminSettingsState_.dirty = false;
+        renderAdminSettingsGroups_();
+        markAdminSettingsDirty_();
+      }
+
+      function loadAdminSettingsPanel_() {
+        if (!els.panelSettings) return;
+        adminSettingsState_.loading = true;
+        if (els.settingsLoading) els.settingsLoading.classList.remove('d-none');
+        if (els.settingsFetchError) els.settingsFetchError.classList.add('d-none');
+        if (els.settingsSaveStatus) els.settingsSaveStatus.classList.add('d-none');
+        markAdminSettingsDirty_();
+        google.script.run
+          .withSuccessHandler(function (data) {
+            adminSettingsState_.loading = false;
+            if (els.settingsLoading) els.settingsLoading.classList.add('d-none');
+            if (!data || data.ok === false) {
+              if (els.settingsFetchError) {
+                els.settingsFetchError.textContent =
+                  (data && data.message) || 'Could not load settings.';
+                els.settingsFetchError.classList.remove('d-none');
+              }
+              return;
+            }
+            applyAdminSettingsPanelData_(data);
+          })
+          .withFailureHandler(function (err) {
+            adminSettingsState_.loading = false;
+            if (els.settingsLoading) els.settingsLoading.classList.add('d-none');
+            var msg = err && err.message ? err.message : 'Could not load settings.';
+            if (msg === 'NOT_AUTHORIZED' || msg === 'FORBIDDEN') {
+              msg = 'Administrator access required.';
+            }
+            if (els.settingsFetchError) {
+              els.settingsFetchError.textContent = msg;
+              els.settingsFetchError.classList.remove('d-none');
+            }
+          })
+          .getAdminSettingsPanel();
+      }
+
+      function showSettingsPanel() {
+        els.panelHome.classList.add('d-none');
+        if (els.panelAgreementDashboard) els.panelAgreementDashboard.classList.add('d-none');
+        if (els.panelOperations) els.panelOperations.classList.add('d-none');
+        if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
+        if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
+        if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        if (els.panelSettings) els.panelSettings.classList.remove('d-none');
+        els.topbarTitle.textContent = 'Settings';
+        loadAdminSettingsPanel_();
+      }
+
+      if (els.settingsSaveBtn) {
+        els.settingsSaveBtn.addEventListener('click', function () {
+          if (!adminSettingsState_.dirty) return;
+          adminSettingsState_.loading = true;
+          markAdminSettingsDirty_();
+          if (els.settingsSaveStatus) els.settingsSaveStatus.classList.add('d-none');
+          if (els.settingsFetchError) els.settingsFetchError.classList.add('d-none');
+          google.script.run
+            .withSuccessHandler(function (res) {
+              adminSettingsState_.loading = false;
+              if (!res || res.ok === false) {
+                var errMsg =
+                  (res && res.errors && res.errors[0] && res.errors[0].message) ||
+                  (res && res.message) ||
+                  'Save failed.';
+                if (els.settingsFetchError) {
+                  els.settingsFetchError.textContent = errMsg;
+                  els.settingsFetchError.classList.remove('d-none');
+                }
+                logActivity_('admin_settings_save_error', 'settings', errMsg);
+                markAdminSettingsDirty_();
+                return;
+              }
+              clearDashboardCachesAfterSettingsSave_();
+              if (els.settingsSaveStatus) {
+                els.settingsSaveStatus.textContent =
+                  'Settings saved. Refresh open dashboards to apply changes.';
+                els.settingsSaveStatus.classList.remove('d-none');
+              }
+              logActivity_('admin_settings_save', 'settings', (res.saved || []).join(','));
+              loadAdminSettingsPanel_();
+            })
+            .withFailureHandler(function (err) {
+              adminSettingsState_.loading = false;
+              var msg = err && err.message ? err.message : 'Save failed.';
+              if (els.settingsFetchError) {
+                els.settingsFetchError.textContent = msg;
+                els.settingsFetchError.classList.remove('d-none');
+              }
+              logActivity_('admin_settings_save_error', 'settings', msg);
+              markAdminSettingsDirty_();
+            })
+            .saveAdminSettings({ updates: collectAdminSettingsUpdates_() });
+        });
+      }
+
+      if (els.settingsDiscardBtn) {
+        els.settingsDiscardBtn.addEventListener('click', function () {
+          if (!adminSettingsState_.baseline) return;
+          adminSettingsState_.groups = JSON.parse(adminSettingsState_.baseline);
+          renderAdminSettingsGroups_();
+          adminSettingsState_.baseline = adminSettingsBaselineJson_();
+          markAdminSettingsDirty_();
+          if (els.settingsSaveStatus) els.settingsSaveStatus.classList.add('d-none');
+        });
+      }
+
+      if (els.settingsLink) {
+        els.settingsLink.addEventListener('click', function (event) {
+          event.preventDefault();
+          if (!navState.isAdmin) return;
+          if (!isLargeViewport()) hideMobileSidebar();
+          logActivity_('settings_panel_open', 'settings', '');
+          setActiveSettingsNav_();
+          showSettingsPanel();
+        });
+      }
+
 
       function readAgreementCache() {
         try {
@@ -5622,6 +6167,7 @@
         if (els.panelRevenueReview) {
           els.panelRevenueReview.classList.add('d-none');
         }
+        hidePanelSettings_();
         els.topbarTitle.textContent = 'Home';
       }
 
@@ -5639,6 +6185,7 @@
         if (els.panelRevenueReview) {
           els.panelRevenueReview.classList.add('d-none');
         }
+        hidePanelSettings_();
         if (els.panelAgreementDashboard) {
           els.panelAgreementDashboard.classList.remove('d-none');
         }
@@ -8070,6 +8617,7 @@
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelOperations) els.panelOperations.classList.remove('d-none');
+        hidePanelSettings_();
         els.topbarTitle.textContent = 'Operations';
         if (els.utilFetchError) els.utilFetchError.classList.add('d-none');
         if (!isLiveDataSource_()) {
@@ -9053,6 +9601,7 @@
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelLaborHours) els.panelLaborHours.classList.remove('d-none');
+        hidePanelSettings_();
         els.topbarTitle.textContent = 'Labor hours';
         if (els.lhFetchError) els.lhFetchError.classList.add('d-none');
         wireLaborHoursControlsOnce_();
@@ -9550,6 +10099,7 @@
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.remove('d-none');
+        hidePanelSettings_();
         els.topbarTitle.textContent = 'Delivery';
         if (els.deliveryFetchError) els.deliveryFetchError.classList.add('d-none');
         logActivity_('delivery_panel_open', 'delivery', '');
@@ -10571,6 +11121,7 @@
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
         els.panelRevenueReview.classList.remove('d-none');
+        hidePanelSettings_();
         els.topbarTitle.textContent = 'Revenue review';
         if (els.rrFetchError) els.rrFetchError.classList.add('d-none');
         if (els.rrTtlSelect) els.rrTtlSelect.value = String(readTtlMinutes());
@@ -11759,6 +12310,14 @@
 
       function renderNav(model) {
         navState = model || { items: [], userLabel: '' };
+        navState.isAdmin = !!model.isAdmin;
+        if (els.settingsLinkWrap) {
+          if (navState.isAdmin) {
+            els.settingsLinkWrap.classList.remove('d-none');
+          } else {
+            els.settingsLinkWrap.classList.add('d-none');
+          }
+        }
         var chipLines = [model.userLabel || model.userEmail || 'Signed-in user'];
         if (model.role) {
           chipLines.push('Role: ' + model.role);

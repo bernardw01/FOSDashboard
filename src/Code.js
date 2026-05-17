@@ -1,11 +1,11 @@
 /**
- * PRD version 2.1.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.2.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard — Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.1.0';
+var FOS_PRD_VERSION = '2.2.0';
 
 /**
  * @return {string}
@@ -60,6 +60,7 @@ function doGet() {
  *   role: string,
  *   team: string,
  *   fiberyAccess: boolean,
+ *   isAdmin: boolean,
  *   fibery?: {
  *     scheme: string,
  *     host: string,
@@ -86,6 +87,7 @@ function getDashboardNavigation() {
  *   role: string,
  *   team: string,
  *   fiberyAccess: boolean,
+ *   isAdmin: boolean,
  *   fibery?: {
  *     scheme: string,
  *     host: string,
@@ -135,6 +137,7 @@ function buildNavigationModel_(auth) {
     role: auth.role,
     team: auth.team,
     fiberyAccess: fiberyAccess,
+    isAdmin: isAdminUser_(auth),
     items: allItems.slice(),
   };
 
