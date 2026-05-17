@@ -1,5 +1,7 @@
 /**
- * PRD version 2.2.0 — Admin settings catalog (feature 011).
+ * PRD version 2.4.1 — sync with docs/FOS-Dashboard-PRD.md
+ *
+ * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
  */
 
@@ -81,6 +83,14 @@ function getAdminSettingsCatalog_() {
       'Sheet tab for append-only usage logging.',
       'string',
       'User Activity'
+    ),
+    adminSettingEntry_(
+      'AUTH_APP_VERSIONS_SHEET_NAME',
+      'platform-activity',
+      'App Versions tab name',
+      'Tab listing PRD releases and deployment URLs (feature 013).',
+      'string',
+      'App Versions'
     ),
     adminSettingEntry_(
       'USER_ACTIVITY_LOGGING_ENABLED',

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.2.0 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.4.1 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -1196,6 +1196,7 @@
       width: 100%;
       min-height: 400px;
       position: relative;
+      overflow: visible;
     }
     .fos-sankey-wrap svg {
       display: block;
@@ -2060,6 +2061,21 @@
       margin-top: 0.75rem;
     }
 
+    .fos-app-version-banner {
+      background: rgba(82, 201, 229, 0.12);
+      border-color: rgba(82, 201, 229, 0.35) !important;
+      color: var(--text);
+    }
+
+    .fos-sidebar-version-link {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .fos-sidebar-version-link:hover {
+      text-decoration: underline;
+    }
+
     .fos-settings-root .fos-settings-row {
       padding: 0.75rem 1rem;
       border-bottom: 1px solid rgba(26, 64, 96, 0.5);
@@ -2231,7 +2247,7 @@
               <span class="flex-grow-1">Settings</span>
             </a>
           </div>
-          <p class="small px-3 pb-2 mb-0" style="font-size: 0.65rem; color: var(--text-muted); opacity: 0.85">
+          <p id="sidebar-version-line" class="small px-3 pb-2 mb-0" style="font-size: 0.65rem; color: var(--text-muted); opacity: 0.85">
             PRD v<?!= prdVersion ?>
           </p>
         </div>
@@ -2252,6 +2268,23 @@
         </button>
         <span id="topbar-title" class="navbar-brand mb-0 h6 fw-semibold fos-topbar-title">Home</span>
       </header>
+
+      <div
+        id="fos-app-version-banner"
+        class="fos-app-version-banner d-none flex-shrink-0 px-3 py-2 small border-bottom"
+        role="status"
+      >
+        <strong>Update available:</strong>
+        <span id="fos-app-version-banner-text"></span>
+        <a
+          id="fos-app-version-banner-link"
+          class="ms-1 fw-semibold"
+          href="#"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Open latest version</a
+        >
+      </div>
 
       <div
         id="fos-snapshot-banner"
@@ -2303,6 +2336,7 @@
           <div id="settings-fetch-error" class="alert alert-danger d-none mb-3" role="alert"></div>
           <div id="settings-save-status" class="alert alert-success d-none mb-3" role="status"></div>
           <div id="settings-loading" class="text-secondary small py-4 text-center d-none">Loading settings…</div>
+          <div id="settings-versions-host"></div>
           <div id="settings-usage-host"></div>
           <div id="settings-groups"></div>
           <div class="fos-settings-footer sticky-bottom border-top border-secondary border-opacity-25 py-3 mt-3 d-flex flex-wrap align-items-center gap-2">
@@ -3995,7 +4029,12 @@
         settingsLinkWrap: document.getElementById('settings-link-wrap'),
         settingsLink: document.getElementById('settings-link'),
         panelSettings: document.getElementById('panel-settings'),
+        settingsVersionsHost: document.getElementById('settings-versions-host'),
         settingsUsageHost: document.getElementById('settings-usage-host'),
+        fosAppVersionBanner: document.getElementById('fos-app-version-banner'),
+        fosAppVersionBannerText: document.getElementById('fos-app-version-banner-text'),
+        fosAppVersionBannerLink: document.getElementById('fos-app-version-banner-link'),
+        sidebarVersionLine: document.getElementById('sidebar-version-line'),
         settingsGroups: document.getElementById('settings-groups'),
         settingsLoading: document.getElementById('settings-loading'),
         settingsFetchError: document.getElementById('settings-fetch-error'),
@@ -4404,6 +4443,7 @@
       };
       var settingsUsageChart_ = null;
       var settingsUsageChartRendered_ = false;
+      var appVersionState_ = { status: null };
       var SETTINGS_USAGE_CHART_COLORS_ = [
         '#4a9eff',
         '#3dd68c',
@@ -4695,6 +4735,106 @@
           });
       }
 
+      function applyAppVersionStatus_(data) {
+        appVersionState_.status = data && data.ok !== false ? data : null;
+        renderAppVersionChrome_();
+      }
+
+      function renderAppVersionChrome_() {
+        var s = appVersionState_.status;
+        var running = (s && s.currentVersion) || '';
+        if (!running && els.sidebarVersionLine) {
+          var m = els.sidebarVersionLine.textContent.match(/v([\d.]+)/);
+          if (m) running = m[1];
+        }
+        if (els.sidebarVersionLine) {
+          if (s && s.ok !== false) {
+            running = s.currentVersion || running;
+          }
+          var lineHtml = 'PRD v' + escapeHtml(running);
+          if (s && s.ok !== false && !s.isLatest && s.latestUrl) {
+            lineHtml +=
+              ' · <a class="fos-sidebar-version-link" href="' +
+              escapeHtml(s.latestUrl) +
+              '" target="_blank" rel="noopener noreferrer">v' +
+              escapeHtml(s.latestVersion) +
+              ' available</a>';
+          } else if (s && s.ok !== false && !s.isLatest) {
+            lineHtml += ' · <span class="text-warning">v' + escapeHtml(s.latestVersion) + ' available</span>';
+          }
+          els.sidebarVersionLine.innerHTML = lineHtml;
+          if (s && s.ok !== false && !s.isLatest && s.latestUrl) {
+            var sideLink = els.sidebarVersionLine.querySelector('a');
+            if (sideLink) {
+              sideLink.addEventListener('click', function () {
+                logActivity_('app_version_update_click', 'shell', 'v=' + s.latestVersion);
+              });
+            }
+          }
+        }
+
+        if (!els.fosAppVersionBanner) return;
+        if (!s || s.ok === false || s.isLatest || !s.catalogAvailable) {
+          els.fosAppVersionBanner.classList.add('d-none');
+          return;
+        }
+        var text =
+          ' You are on PRD v' +
+          (s.currentVersion || running) +
+          '. Latest is v' +
+          (s.latestVersion || '—') +
+          (s.latestDescription ? ' — ' + s.latestDescription : '') +
+          '.';
+        if (els.fosAppVersionBannerText) {
+          els.fosAppVersionBannerText.textContent = text;
+        }
+        if (els.fosAppVersionBannerLink) {
+          if (s.latestUrl) {
+            els.fosAppVersionBannerLink.href = s.latestUrl;
+            els.fosAppVersionBannerLink.classList.remove('d-none');
+            els.fosAppVersionBannerLink.onclick = function () {
+              logActivity_('app_version_update_click', 'shell', 'v=' + s.latestVersion);
+            };
+          } else {
+            els.fosAppVersionBannerLink.href = '#';
+            els.fosAppVersionBannerLink.classList.add('d-none');
+          }
+        }
+        els.fosAppVersionBanner.classList.remove('d-none');
+      }
+
+      function renderAdminAppVersionsRegistry_() {
+        if (!els.settingsVersionsHost || !navState.isAdmin) return;
+        els.settingsVersionsHost.innerHTML = '';
+        var s = appVersionState_.status;
+        if (!s || s.ok === false) return;
+
+        var releases = s.releases || [];
+        els.settingsVersionsHost.appendChild(
+          createSettingsCollapseGroup_('app-versions-registry', 'App versions (registry)', function (body) {
+            var pad = document.createElement('div');
+            pad.className = 'p-3';
+            var intro = document.createElement('p');
+            intro.className = 'fos-settings-usage-summary mb-2';
+            intro.textContent =
+              'Maintained in the App Versions tab of the auth spreadsheet. Add or edit deployment URLs there. ' +
+              'This deployment registers v' +
+              (s.currentVersion || '—') +
+              ' automatically when it is not yet listed.';
+            pad.appendChild(intro);
+            pad.appendChild(
+              buildAdminUsageTable_(releases, [
+                { key: 'prdVersion', label: 'PRD version', align: 'left' },
+                { key: 'releasedAt', label: 'Released', align: 'left' },
+                { key: 'description', label: 'Description', align: 'left' },
+                { key: 'url', label: 'URL', align: 'left' },
+              ])
+            );
+            body.appendChild(pad);
+          })
+        );
+      }
+
       function renderAdminUsageHost_() {
         if (!els.settingsUsageHost) return;
         els.settingsUsageHost.innerHTML = '';
@@ -4945,6 +5085,7 @@
         adminSettingsState_.groups = JSON.parse(JSON.stringify(data.groups || []));
         adminSettingsState_.baseline = adminSettingsBaselineJson_();
         adminSettingsState_.dirty = false;
+        renderAdminAppVersionsRegistry_();
         renderAdminUsageHost_();
         renderAdminSettingsGroups_();
         markAdminSettingsDirty_();
@@ -4961,6 +5102,7 @@
         adminSettingsState_.loading = true;
         adminSettingsState_.usage = null;
         adminSettingsState_.usageError = null;
+        if (els.settingsVersionsHost) els.settingsVersionsHost.innerHTML = '';
         if (els.settingsUsageHost) els.settingsUsageHost.innerHTML = '';
         if (els.settingsLoading) els.settingsLoading.classList.remove('d-none');
         if (els.settingsFetchError) els.settingsFetchError.classList.add('d-none');
@@ -4974,6 +5116,7 @@
           pending -= 1;
           if (pending > 0) return;
           finishAdminSettingsPanelLoad_();
+          renderAdminAppVersionsRegistry_();
           renderAdminUsageHost_();
           if (settingsOk) {
             renderAdminSettingsGroups_();
@@ -5658,14 +5801,13 @@
         var height = Math.max(400, Math.min(900, nodeCount * 28));
         wrap.style.height = height + 'px';
 
-        // Reserve horizontal space so right-column labels are not clipped. When
-        // `layer` is missing post-layout, we still detect the last column via
-        // `depth` (see label positioning below).
-        var marginL = 12;
-        var marginR = 160;
+        // Layout uses the full panel width; right-column labels sit just past
+        // the terminal nodes (overflow: visible on the wrap + svg).
+        var marginL = 10;
+        var marginR = 10;
         var marginT = 12;
         var marginB = 12;
-        var innerW = Math.max(200, width - marginL - marginR);
+        var plotRight = Math.max(marginL + 120, width - marginR);
 
         // d3-sankey mutates the nodes/links arrays in place. Pass shallow
         // copies so a re-render against the same payload still works.
@@ -5676,32 +5818,13 @@
           .nodeWidth(20)
           .nodePadding(12)
           .nodeId(function (d, i) { return i; })
-          .extent([[marginL, marginT], [marginL + innerW, height - marginB]]);
+          .extent([[marginL, marginT], [plotRight, height - marginB]]);
 
         var graph = sankey({ nodes: nodes, links: links });
 
-        var maxDepth = 0;
-        for (var di = 0; di < graph.nodes.length; di++) {
-          var dpt = graph.nodes[di].depth;
-          if (dpt != null && dpt > maxDepth) maxDepth = dpt;
-        }
-        var maxX0 = 0;
-        for (var xi = 0; xi < graph.nodes.length; xi++) {
-          var x0n = graph.nodes[xi].x0;
-          if (x0n != null && x0n > maxX0) maxX0 = x0n;
-        }
-
-        function isLastSankeyColumn_(d) {
-          return (
-            d.layer === 'type' ||
-            (d.depth != null && d.depth === maxDepth && maxDepth > 0) ||
-            (d.x0 != null && maxX0 > 0 && d.x0 >= maxX0 - 0.5)
-          );
-        }
-
         var svg = d3.select(wrap).append('svg')
           .attr('viewBox', '0 0 ' + width + ' ' + height)
-          .attr('preserveAspectRatio', 'xMinYMid meet');
+          .attr('preserveAspectRatio', 'none');
 
         var defs = svg.append('defs');
 
@@ -5755,13 +5878,11 @@
         nodeGroup.append('text')
           .attr('class', 'sankey-label')
           .attr('x', function (d) {
-            return isLastSankeyColumn_(d) ? d.x0 - 10 : d.x1 + 8;
+            return d.x1 + 8;
           })
           .attr('y', function (d) { return (d.y0 + d.y1) / 2; })
           .attr('dy', '0.35em')
-          .attr('text-anchor', function (d) {
-            return isLastSankeyColumn_(d) ? 'end' : 'start';
-          })
+          .attr('text-anchor', 'start')
           .text(function (d) { return d.name + ' · ' + formatMoneyCompact(d.value); });
       }
 
@@ -12789,6 +12910,12 @@
 
       function init() {
         initDataSourceCatalog_();
+        google.script.run
+          .withSuccessHandler(applyAppVersionStatus_)
+          .withFailureHandler(function () {
+            /* version check is best-effort */
+          })
+          .getAppVersionStatus();
         google.script.run
           .withSuccessHandler(renderNav)
           .withFailureHandler(function (err) {

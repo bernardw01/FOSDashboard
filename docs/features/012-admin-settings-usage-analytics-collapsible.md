@@ -1,6 +1,6 @@
 # Admin settings — collapsible groups & usage analytics
 
-> **PRD version 2.3.0** — see `docs/FOS-Dashboard-PRD.md` (**FR-107**, **AC-63**). Builds on [011 — Admin settings environment panel](011-admin-settings-environment-panel.md) and [004 — User activity logging](004-user-activity-logging.md).
+> **PRD version 2.3.0** — see `docs/FOS-Dashboard-PRD.md` (**FR-107**, **AC-63**). *(Current product version is 2.4.0 — see [013](013-app-versions-registry.md).)* Builds on [011 — Admin settings environment panel](011-admin-settings-environment-panel.md) and [004 — User activity logging](004-user-activity-logging.md).
 
 ## Goal
 

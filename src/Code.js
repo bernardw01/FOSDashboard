@@ -1,11 +1,19 @@
 /**
- * PRD version 2.3.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.4.1 — sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard — Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.3.0';
+var FOS_PRD_VERSION = '2.4.1';
+
+/**
+ * Brief release note stored on the App Versions tab when this deployment
+ * registers itself (feature 013). Update on every PRD version bump.
+ * @const {string}
+ */
+var FOS_RELEASE_DESCRIPTION =
+  'Revenue flow Sankey fills the panel width again; right-column labels remain outside the plot.';
 
 /**
  * @return {string}
@@ -38,6 +46,18 @@ function doGet() {
   } catch (e) {
     try {
       console.warn('doGet: recordPageLoad_ threw: ' + (e && e.message ? e.message : e));
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  try {
+    syncCurrentAppVersionToCatalog_();
+  } catch (e) {
+    try {
+      console.warn(
+        'doGet: syncCurrentAppVersionToCatalog_ threw: ' + (e && e.message ? e.message : e)
+      );
     } catch (_) {
       /* ignore */
     }

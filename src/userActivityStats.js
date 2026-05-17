@@ -1,5 +1,5 @@
 /**
- * PRD version 2.3.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.4.1 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin usage analytics (feature 012).
  *

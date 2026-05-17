@@ -25,6 +25,7 @@ Numbered files under [`docs/features/`](docs/features/) are the per-area specs. 
 | [010-dashboard-historical-data-source.md](docs/features/010-dashboard-historical-data-source.md) | Sidebar **Data source** (Live vs snapshot); gates Fibery when viewing history. |
 | [011-admin-settings-environment-panel.md](docs/features/011-admin-settings-environment-panel.md) | **ADMIN** Settings panel for Script Properties (grouped, tooltips, defaults). |
 | [012-admin-settings-usage-analytics-collapsible.md](docs/features/012-admin-settings-usage-analytics-collapsible.md) | Settings **Usage** analytics (30-day User Activity) + collapsible groups. |
+| [013-app-versions-registry.md](docs/features/013-app-versions-registry.md) | **App Versions** tab; deployment URL registry; update banner. |
 
 ---
 
@@ -44,6 +45,8 @@ Cross-cutting **platform** behavior (not tied to a single dashboard route):
 
 | Version | Capabilities | Feature spec |
 | --- | --- | --- |
+| **v2.4.1** | **Sankey layout fix:** Revenue flow (and Delivery portfolio) Sankey fills panel width; right-column labels outside terminal nodes. | [PRD changelog](docs/FOS-Dashboard-PRD.md) |
+| **v2.4.0** | **App Versions registry:** `App Versions` sheet tab; `getAppVersionStatus`; auto-register on deploy; update banner when behind latest URL. | [013](docs/features/013-app-versions-registry.md) |
 | **v2.3.0** | **Settings usage analytics:** `getAdminUsageStats` (30-day User Activity); route + user tables + stacked chart; collapsible config groups (collapsed by default). | [012](docs/features/012-admin-settings-usage-analytics-collapsible.md) |
 | **v2.2.0** | **Admin settings:** `getAdminSettingsPanel` / `saveAdminSettings`; grouped Script Properties; default toggles; non-admins do not see Settings. | [011](docs/features/011-admin-settings-environment-panel.md) |
 | **v2.1.0** | **Data source selector:** `getDashboardSnapshotCatalog` / `CoreBundle` / `Pnl`; sidebar dropdown; snapshot mode gates live Fibery. | [010](docs/features/010-dashboard-historical-data-source.md) |
@@ -150,6 +153,7 @@ Configuration for this Web App lives in the Apps Script project under **Project 
 | `AUTH_COL_FIBERY_ACCESS` | No | Header for per-user **Open in Fibery** on the Operations drawer; blank/missing column → deny. | `fibery_access` |
 | **User activity log** | | | |
 | `AUTH_USER_ACTIVITY_SHEET_NAME` | No | Tab name for append-only usage logging (must exist with documented headers). | `User Activity` |
+| `AUTH_APP_VERSIONS_SHEET_NAME` | No | Tab listing PRD releases and deployment URLs ([feature 013](docs/features/013-app-versions-registry.md)). | `App Versions` |
 | `USER_ACTIVITY_LOGGING_ENABLED` | No | Kill-switch: `false` / `no` / `0` (case-insensitive) disables writes; unset or other → enabled. | *(on)* |
 | **Fibery API (shared)** | | | |
 | `FIBERY_HOST` | **Yes** (for Fibery routes) | Fibery workspace host for REST `/api/commands` (no scheme), e.g. `harpin-ai.fibery.io`. Default host for deep links when `FIBERY_DEEP_LINK_HOST` is unset. | — |
