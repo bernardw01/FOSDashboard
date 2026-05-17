@@ -2001,12 +2001,63 @@
     }
 
     .fos-settings-root .fos-settings-group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      width: 100%;
       padding: 0.75rem 1rem;
       font-size: 0.8125rem;
       font-weight: 600;
       color: var(--text);
       background: var(--surface2);
+      border: none;
       border-bottom: 1px solid var(--border);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .fos-settings-root .fos-settings-group-header:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .fos-settings-root .fos-settings-group-header .fos-settings-chevron {
+      flex-shrink: 0;
+      transition: transform 0.15s ease;
+    }
+
+    .fos-settings-root .fos-settings-group-header[aria-expanded='true'] .fos-settings-chevron {
+      transform: rotate(90deg);
+    }
+
+    .fos-settings-root .fos-settings-group-body {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .fos-settings-root .fos-settings-usage-summary {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .fos-settings-root .fos-settings-usage-table-title {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-dim);
+      margin: 1rem 0 0.5rem;
+    }
+
+    .fos-settings-root .fos-settings-usage-chart-wrap {
+      position: relative;
+      height: 280px;
+      margin-top: 1rem;
+    }
+
+    .fos-settings-root .fos-settings-usage-footnote {
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      margin-top: 0.75rem;
     }
 
     .fos-settings-root .fos-settings-row {
@@ -2252,6 +2303,7 @@
           <div id="settings-fetch-error" class="alert alert-danger d-none mb-3" role="alert"></div>
           <div id="settings-save-status" class="alert alert-success d-none mb-3" role="status"></div>
           <div id="settings-loading" class="text-secondary small py-4 text-center d-none">Loading settings…</div>
+          <div id="settings-usage-host"></div>
           <div id="settings-groups"></div>
           <div class="fos-settings-footer sticky-bottom border-top border-secondary border-opacity-25 py-3 mt-3 d-flex flex-wrap align-items-center gap-2">
             <button type="button" class="btn btn-fos-primary" id="settings-save-btn" disabled>Save changes</button>
@@ -3943,6 +3995,7 @@
         settingsLinkWrap: document.getElementById('settings-link-wrap'),
         settingsLink: document.getElementById('settings-link'),
         panelSettings: document.getElementById('panel-settings'),
+        settingsUsageHost: document.getElementById('settings-usage-host'),
         settingsGroups: document.getElementById('settings-groups'),
         settingsLoading: document.getElementById('settings-loading'),
         settingsFetchError: document.getElementById('settings-fetch-error'),
@@ -4346,7 +4399,22 @@
         baseline: null,
         dirty: false,
         loading: false,
+        usage: null,
+        usageError: null,
       };
+      var settingsUsageChart_ = null;
+      var settingsUsageChartRendered_ = false;
+      var SETTINGS_USAGE_CHART_COLORS_ = [
+        '#4a9eff',
+        '#3dd68c',
+        '#f5a623',
+        '#fc5c65',
+        '#a29bfe',
+        '#00cec9',
+        '#fd79a8',
+        '#ffeaa7',
+        '#636e72',
+      ];
 
       function hidePanelSettings_() {
         if (els.panelSettings) {
@@ -4458,6 +4526,284 @@
         row.value = input.value;
       }
 
+      function wireSettingsCollapseChevron_(collapseEl, headerBtn) {
+        if (!collapseEl || !headerBtn) return;
+        collapseEl.addEventListener('shown.bs.collapse', function () {
+          headerBtn.setAttribute('aria-expanded', 'true');
+          if (collapseEl.id !== 'settings-body-usage-analytics') return;
+          if (!settingsUsageChartRendered_ && adminSettingsState_.usage && adminSettingsState_.usage.ok) {
+            renderAdminUsageChart_(adminSettingsState_.usage);
+          }
+        });
+        collapseEl.addEventListener('hidden.bs.collapse', function () {
+          headerBtn.setAttribute('aria-expanded', 'false');
+        });
+      }
+
+      function createSettingsCollapseGroup_(groupId, title, buildBody) {
+        var card = document.createElement('div');
+        card.className = 'fos-settings-group';
+        card.setAttribute('data-settings-group', groupId);
+        var bodyId = 'settings-body-' + groupId;
+        var hdr = document.createElement('button');
+        hdr.type = 'button';
+        hdr.className = 'fos-settings-group-header';
+        hdr.setAttribute('data-bs-toggle', 'collapse');
+        hdr.setAttribute('data-bs-target', '#' + bodyId);
+        hdr.setAttribute('aria-expanded', 'false');
+        hdr.setAttribute('aria-controls', bodyId);
+        var titleSpan = document.createElement('span');
+        titleSpan.textContent = title;
+        hdr.appendChild(titleSpan);
+        var chev = document.createElement('i');
+        chev.className = 'bi bi-chevron-right fos-settings-chevron';
+        chev.setAttribute('aria-hidden', 'true');
+        hdr.appendChild(chev);
+        card.appendChild(hdr);
+        var body = document.createElement('div');
+        body.id = bodyId;
+        body.className = 'collapse fos-settings-group-body';
+        buildBody(body);
+        card.appendChild(body);
+        wireSettingsCollapseChevron_(body, hdr);
+        return card;
+      }
+
+      function initAdminSettingsTooltips_(root) {
+        if (!root || typeof bootstrap === 'undefined' || !bootstrap.Tooltip) return;
+        var tips = root.querySelectorAll('[data-bs-toggle="tooltip"]');
+        for (var ti = 0; ti < tips.length; ti++) {
+          new bootstrap.Tooltip(tips[ti]);
+        }
+      }
+
+      function buildAdminUsageTable_(rows, columns) {
+        var wrap = document.createElement('div');
+        wrap.className = 'table-responsive';
+        var table = document.createElement('table');
+        table.className = 'table table-sm table-dark table-borderless mb-0 align-middle';
+        var thead = document.createElement('thead');
+        var hr = document.createElement('tr');
+        for (var c = 0; c < columns.length; c++) {
+          var th = document.createElement('th');
+          th.scope = 'col';
+          th.className = 'small text-secondary border-secondary border-opacity-25';
+          if (columns[c].align === 'right') th.className += ' text-end';
+          th.textContent = columns[c].label;
+          hr.appendChild(th);
+        }
+        thead.appendChild(hr);
+        table.appendChild(thead);
+        var tbody = document.createElement('tbody');
+        if (!rows.length) {
+          var emptyTr = document.createElement('tr');
+          var emptyTd = document.createElement('td');
+          emptyTd.colSpan = columns.length;
+          emptyTd.className = 'small text-secondary';
+          emptyTd.textContent = 'No activity in this period.';
+          emptyTr.appendChild(emptyTd);
+          tbody.appendChild(emptyTr);
+        } else {
+          for (var r = 0; r < rows.length; r++) {
+            var row = rows[r];
+            var tr = document.createElement('tr');
+            for (var ci = 0; ci < columns.length; ci++) {
+              var td = document.createElement('td');
+              td.className = 'small';
+              if (columns[ci].align === 'right') td.className += ' text-end font-monospace';
+              var val = row[columns[ci].key];
+              td.textContent = val == null || val === '' ? '—' : String(val);
+              tr.appendChild(td);
+            }
+            tbody.appendChild(tr);
+          }
+        }
+        table.appendChild(tbody);
+        wrap.appendChild(table);
+        return wrap;
+      }
+
+      function usageStatsRouteLabelClient_(route) {
+        var labels = {
+          doget: 'App load',
+          home: 'Home',
+          'agreement-dashboard': 'Agreement Dashboard',
+          operations: 'Utilization',
+          'labor-hours': 'Labor hours',
+          delivery: 'Delivery — Projects & P&L',
+          'revenue-review': 'Revenue review',
+          settings: 'Settings',
+          shell: 'Shell / data source',
+          Other: 'Other',
+        };
+        return labels[route] || route;
+      }
+
+      function renderAdminUsageChart_(data) {
+        var canvas = document.getElementById('settings-usage-chart');
+        if (!canvas || !data || !data.byDay || !data.byDay.length) return;
+        settingsUsageChartRendered_ = true;
+        var days = data.byDay.map(function (d) {
+          return d.date.slice(5);
+        });
+        var routeKeys = (data.topRoutes || []).slice();
+        routeKeys.push('Other');
+        var datasets = [];
+        for (var i = 0; i < routeKeys.length; i++) {
+          var rk = routeKeys[i];
+          datasets.push({
+            label: usageStatsRouteLabelClient_(rk),
+            data: data.byDay.map(function (d) {
+              return (d.byRoute && d.byRoute[rk]) || 0;
+            }),
+            backgroundColor: SETTINGS_USAGE_CHART_COLORS_[i % SETTINGS_USAGE_CHART_COLORS_.length],
+            stack: 'usage',
+          });
+        }
+        loadChartJs()
+          .then(function () {
+            if (settingsUsageChart_) {
+              settingsUsageChart_.destroy();
+            }
+            settingsUsageChart_ = new Chart(canvas.getContext('2d'), {
+              type: 'bar',
+              data: { labels: days, datasets: datasets },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { position: 'bottom', labels: { color: '#9aa8b8', boxWidth: 12 } },
+                },
+                scales: {
+                  x: {
+                    stacked: true,
+                    ticks: { color: '#9aa8b8', maxRotation: 0, autoSkip: true, maxTicksLimit: 15 },
+                    grid: { color: 'rgba(26, 64, 96, 0.5)' },
+                  },
+                  y: {
+                    stacked: true,
+                    beginAtZero: true,
+                    ticks: { color: '#9aa8b8', precision: 0 },
+                    grid: { color: 'rgba(26, 64, 96, 0.5)' },
+                  },
+                },
+              },
+            });
+          })
+          .catch(function () {
+            settingsUsageChartRendered_ = false;
+          });
+      }
+
+      function renderAdminUsageHost_() {
+        if (!els.settingsUsageHost) return;
+        els.settingsUsageHost.innerHTML = '';
+        settingsUsageChartRendered_ = false;
+        if (settingsUsageChart_) {
+          try {
+            settingsUsageChart_.destroy();
+          } catch (e) { /* ignore */ }
+          settingsUsageChart_ = null;
+        }
+        var data = adminSettingsState_.usage;
+        var err = adminSettingsState_.usageError;
+        if (err) {
+          els.settingsUsageHost.appendChild(
+            createSettingsCollapseGroup_('usage-analytics', 'Usage — last 30 days', function (body) {
+              var p = document.createElement('p');
+              p.className = 'small text-danger mb-0 p-3';
+              p.textContent = err;
+              body.appendChild(p);
+            })
+          );
+          return;
+        }
+        if (!data || data.ok === false) {
+          var msg = (data && data.message) || 'Usage data is unavailable.';
+          els.settingsUsageHost.appendChild(
+            createSettingsCollapseGroup_('usage-analytics', 'Usage — last 30 days', function (body) {
+              var p2 = document.createElement('p');
+              p2.className = 'small text-secondary mb-0 p-3';
+              p2.textContent = msg;
+              body.appendChild(p2);
+            })
+          );
+          return;
+        }
+
+        els.settingsUsageHost.appendChild(
+          createSettingsCollapseGroup_('usage-analytics', 'Usage — last 30 days', function (body) {
+            var pad = document.createElement('div');
+            pad.className = 'p-3';
+            var summary = document.createElement('p');
+            summary.className = 'fos-settings-usage-summary mb-0';
+            var sheetLabel = data.sheetName ? data.sheetName : 'User Activity';
+            summary.textContent =
+              'From “' +
+              sheetLabel +
+              '” · ' +
+              data.rangeStart +
+              ' → ' +
+              data.rangeEnd +
+              ' · ' +
+              data.totalEvents +
+              ' events · ' +
+              data.uniqueUsers +
+              ' users';
+            pad.appendChild(summary);
+            if (data.warnings && data.warnings.indexOf('TRUNCATED_ROWS') >= 0) {
+              var warn = document.createElement('p');
+              warn.className = 'small text-warning mb-0 mt-2';
+              warn.textContent = 'Based on the most recent 25,000 log rows only.';
+              pad.appendChild(warn);
+            }
+            var routeTitle = document.createElement('div');
+            routeTitle.className = 'fos-settings-usage-table-title';
+            routeTitle.textContent = 'By dashboard / route';
+            pad.appendChild(routeTitle);
+            pad.appendChild(
+              buildAdminUsageTable_(data.byRoute || [], [
+                { key: 'label', label: 'Route', align: 'left' },
+                { key: 'events', label: 'Events', align: 'right' },
+                { key: 'uniqueUsers', label: 'Users', align: 'right' },
+              ])
+            );
+            var userTitle = document.createElement('div');
+            userTitle.className = 'fos-settings-usage-table-title';
+            userTitle.textContent = 'By user';
+            pad.appendChild(userTitle);
+            pad.appendChild(
+              buildAdminUsageTable_(data.byUser || [], [
+                { key: 'email', label: 'Email', align: 'left' },
+                { key: 'role', label: 'Role', align: 'left' },
+                { key: 'team', label: 'Team', align: 'left' },
+                { key: 'events', label: 'Events', align: 'right' },
+              ])
+            );
+            var chartWrap = document.createElement('div');
+            chartWrap.className = 'fos-settings-usage-chart-wrap';
+            var canvas = document.createElement('canvas');
+            canvas.id = 'settings-usage-chart';
+            canvas.setAttribute('role', 'img');
+            canvas.setAttribute(
+              'aria-label',
+              'Stacked bar chart of dashboard usage by day for the last 30 days'
+            );
+            chartWrap.appendChild(canvas);
+            pad.appendChild(chartWrap);
+            var foot = document.createElement('p');
+            foot.className = 'fos-settings-usage-footnote mb-0';
+            foot.textContent =
+              'Counts include page_load, nav_view, and refresh only. Day buckets use ' +
+              (data.timezone || 'script') +
+              ' timezone.';
+            pad.appendChild(foot);
+            body.appendChild(pad);
+          })
+        );
+        logActivity_('settings_usage_view', 'settings', 'events=' + String(data.totalEvents || 0));
+      }
+
       function renderAdminSettingsGroups_() {
         if (!els.settingsGroups) {
           return;
@@ -4465,25 +4811,17 @@
         els.settingsGroups.innerHTML = '';
         var groups = adminSettingsState_.groups || [];
         for (var g = 0; g < groups.length; g++) {
-          var grp = groups[g];
-          var card = document.createElement('div');
-          card.className = 'fos-settings-group';
-          var hdr = document.createElement('div');
-          hdr.className = 'fos-settings-group-header';
-          hdr.textContent = grp.title || grp.id;
-          card.appendChild(hdr);
-          var settings = grp.settings || [];
-          for (var s = 0; s < settings.length; s++) {
-            card.appendChild(buildAdminSettingsRow_(settings[s]));
-          }
-          els.settingsGroups.appendChild(card);
+          (function (grp) {
+            var card = createSettingsCollapseGroup_(grp.id, grp.title || grp.id, function (body) {
+              var settings = grp.settings || [];
+              for (var s = 0; s < settings.length; s++) {
+                body.appendChild(buildAdminSettingsRow_(settings[s]));
+              }
+            });
+            els.settingsGroups.appendChild(card);
+          })(groups[g]);
         }
-        if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
-          var tips = els.settingsGroups.querySelectorAll('[data-bs-toggle="tooltip"]');
-          for (var ti = 0; ti < tips.length; ti++) {
-            new bootstrap.Tooltip(tips[ti]);
-          }
-        }
+        initAdminSettingsTooltips_(els.settingsGroups);
       }
 
       function buildAdminSettingsRow_(row) {
@@ -4607,34 +4945,59 @@
         adminSettingsState_.groups = JSON.parse(JSON.stringify(data.groups || []));
         adminSettingsState_.baseline = adminSettingsBaselineJson_();
         adminSettingsState_.dirty = false;
+        renderAdminUsageHost_();
         renderAdminSettingsGroups_();
+        markAdminSettingsDirty_();
+      }
+
+      function finishAdminSettingsPanelLoad_() {
+        adminSettingsState_.loading = false;
+        if (els.settingsLoading) els.settingsLoading.classList.add('d-none');
         markAdminSettingsDirty_();
       }
 
       function loadAdminSettingsPanel_() {
         if (!els.panelSettings) return;
         adminSettingsState_.loading = true;
+        adminSettingsState_.usage = null;
+        adminSettingsState_.usageError = null;
+        if (els.settingsUsageHost) els.settingsUsageHost.innerHTML = '';
         if (els.settingsLoading) els.settingsLoading.classList.remove('d-none');
         if (els.settingsFetchError) els.settingsFetchError.classList.add('d-none');
         if (els.settingsSaveStatus) els.settingsSaveStatus.classList.add('d-none');
         markAdminSettingsDirty_();
+
+        var pending = 2;
+        var settingsOk = false;
+
+        function tick() {
+          pending -= 1;
+          if (pending > 0) return;
+          finishAdminSettingsPanelLoad_();
+          renderAdminUsageHost_();
+          if (settingsOk) {
+            renderAdminSettingsGroups_();
+          }
+        }
+
         google.script.run
           .withSuccessHandler(function (data) {
-            adminSettingsState_.loading = false;
-            if (els.settingsLoading) els.settingsLoading.classList.add('d-none');
             if (!data || data.ok === false) {
               if (els.settingsFetchError) {
                 els.settingsFetchError.textContent =
                   (data && data.message) || 'Could not load settings.';
                 els.settingsFetchError.classList.remove('d-none');
               }
+              tick();
               return;
             }
-            applyAdminSettingsPanelData_(data);
+            adminSettingsState_.groups = JSON.parse(JSON.stringify(data.groups || []));
+            adminSettingsState_.baseline = adminSettingsBaselineJson_();
+            adminSettingsState_.dirty = false;
+            settingsOk = true;
+            tick();
           })
           .withFailureHandler(function (err) {
-            adminSettingsState_.loading = false;
-            if (els.settingsLoading) els.settingsLoading.classList.add('d-none');
             var msg = err && err.message ? err.message : 'Could not load settings.';
             if (msg === 'NOT_AUTHORIZED' || msg === 'FORBIDDEN') {
               msg = 'Administrator access required.';
@@ -4643,8 +5006,31 @@
               els.settingsFetchError.textContent = msg;
               els.settingsFetchError.classList.remove('d-none');
             }
+            tick();
           })
           .getAdminSettingsPanel();
+
+        google.script.run
+          .withSuccessHandler(function (usage) {
+            if (!usage || usage.ok === false) {
+              adminSettingsState_.usage = usage || null;
+              adminSettingsState_.usageError = null;
+            } else {
+              adminSettingsState_.usage = usage;
+              adminSettingsState_.usageError = null;
+            }
+            tick();
+          })
+          .withFailureHandler(function (err) {
+            var umsg = err && err.message ? err.message : 'Could not load usage statistics.';
+            if (umsg === 'NOT_AUTHORIZED' || umsg === 'FORBIDDEN') {
+              umsg = 'Administrator access required.';
+            }
+            adminSettingsState_.usage = null;
+            adminSettingsState_.usageError = umsg;
+            tick();
+          })
+          .getAdminUsageStats();
       }
 
       function showSettingsPanel() {

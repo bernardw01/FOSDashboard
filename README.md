@@ -24,6 +24,7 @@ Numbered files under [`docs/features/`](docs/features/) are the per-area specs. 
 | [009-dashboard-historical-snapshots.md](docs/features/009-dashboard-historical-snapshots.md) | Daily Drive snapshot job, manifest, P&L batching, Snapshot Runs log. |
 | [010-dashboard-historical-data-source.md](docs/features/010-dashboard-historical-data-source.md) | Sidebar **Data source** (Live vs snapshot); gates Fibery when viewing history. |
 | [011-admin-settings-environment-panel.md](docs/features/011-admin-settings-environment-panel.md) | **ADMIN** Settings panel for Script Properties (grouped, tooltips, defaults). |
+| [012-admin-settings-usage-analytics-collapsible.md](docs/features/012-admin-settings-usage-analytics-collapsible.md) | Settings **Usage** analytics (30-day User Activity) + collapsible groups. |
 
 ---
 
@@ -36,13 +37,14 @@ Cross-cutting **platform** behavior (not tied to a single dashboard route):
 | **Web App entry** | `doGet` serves `DashboardShell.html` (authorized) or `NotAuthorized.html` (denied / misconfiguration / missing email under the deployment identity). | [001](docs/features/001-dashboard-shell-navigation.md) |
 | **Authorization** | Active user email matched to a **Google Sheet** tab (default `Users`; spreadsheet ID in Script Properties). **Role** and **Team** surface in the sidebar chip. Optional **`fibery_access`** gates Fibery deep-link config in the nav payload. | [002](docs/features/002-spreadsheet-user-authorization.md) |
 | **Server API gate** | `google.script.run` entry points (e.g. `getDashboardNavigation()`, `getAgreementDashboardData()`, `getUtilizationDashboardData()`, `getDeliveryProjectMonthlyPnL()`) use server-side auth helpers so the sheet gate cannot be bypassed from the client. | [002](docs/features/002-spreadsheet-user-authorization.md) |
-| **Shell UI** | Bootstrap **dark** layout: left nav (icons + labels), **Home** welcome card, nested **Operations** and **Delivery** groups; **Settings** (gear) for **ADMIN** only (environment config panel). | [001](docs/features/001-dashboard-shell-navigation.md) · [011](docs/features/011-admin-settings-environment-panel.md) |
+| **Shell UI** | Bootstrap **dark** layout: left nav (icons + labels), **Home** welcome card, nested **Operations** and **Delivery** groups; **Settings** (gear) for **ADMIN** only (environment config + usage analytics). | [001](docs/features/001-dashboard-shell-navigation.md) · [011](docs/features/011-admin-settings-environment-panel.md) · [012](docs/features/012-admin-settings-usage-analytics-collapsible.md) |
 | **PRD version** | Sidebar footer + not-authorized page show **`FOS_PRD_VERSION`** in `[src/Code.js](src/Code.js)` — must match `[docs/FOS-Dashboard-PRD.md](docs/FOS-Dashboard-PRD.md)` and every `src/*` file header. | [PRD](docs/FOS-Dashboard-PRD.md) |
 | **Historical snapshots** | Daily job writes JSON to **Google Drive**; **Snapshot Runs** log tab. | [009](docs/features/009-dashboard-historical-snapshots.md) |
 | **Data source selector** | Sidebar **Live data** vs dated snapshot; all dashboards from Drive bundle without Fibery until Live is selected. | [010](docs/features/010-dashboard-historical-data-source.md) |
 
 | Version | Capabilities | Feature spec |
 | --- | --- | --- |
+| **v2.3.0** | **Settings usage analytics:** `getAdminUsageStats` (30-day User Activity); route + user tables + stacked chart; collapsible config groups (collapsed by default). | [012](docs/features/012-admin-settings-usage-analytics-collapsible.md) |
 | **v2.2.0** | **Admin settings:** `getAdminSettingsPanel` / `saveAdminSettings`; grouped Script Properties; default toggles; non-admins do not see Settings. | [011](docs/features/011-admin-settings-environment-panel.md) |
 | **v2.1.0** | **Data source selector:** `getDashboardSnapshotCatalog` / `CoreBundle` / `Pnl`; sidebar dropdown; snapshot mode gates live Fibery. | [010](docs/features/010-dashboard-historical-data-source.md) |
 | **v2.0.0** | **Daily historical snapshots:** `runDailyDashboardSnapshot_` → Drive folder per date (`manifest.json`, agreement, utilization, delivery-projects, delivery-pnl/*); batched P&L + continuation triggers; `installDailySnapshotTrigger()` / `ensureSnapshotDriveFolder()`. | [009](docs/features/009-dashboard-historical-snapshots.md) |
