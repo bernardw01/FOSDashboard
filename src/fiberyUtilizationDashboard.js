@@ -1,5 +1,5 @@
 /**
- * PRD version 1.27.3 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.1.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard orchestrator (route id `operations`, panel
  * `#panel-operations`). Reads `Agreement Management/Labor Costs` from Fibery
@@ -77,7 +77,18 @@ function getUtilizationCacheTtlMinutes() {
  */
 function getUtilizationDashboardData(rangeStart, rangeEnd) {
   requireAuthForApi_();
+  return buildUtilizationDashboardPayload_(rangeStart, rangeEnd);
+}
 
+/**
+ * Builds the utilization dashboard payload without user authorization.
+ * Used by the daily historical snapshot job (`dashboardSnapshotJob.js`).
+ *
+ * @param {?string=} rangeStart ISO datetime (inclusive).
+ * @param {?string=} rangeEnd ISO datetime (exclusive upper bound).
+ * @return {!Object}
+ */
+function buildUtilizationDashboardPayload_(rangeStart, rangeEnd) {
   var now = new Date();
   var fetchedAtIso = now.toISOString();
   var thresholds = getUtilizationThresholds_();

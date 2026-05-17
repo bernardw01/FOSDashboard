@@ -1,6 +1,6 @@
 # Feature: Dashboard shell and navigation (FOS Web App)
 
-> **PRD version 1.27.3** — see `docs/FOS-Dashboard-PRD.md`.
+> **PRD version 2.1.0** — see `docs/FOS-Dashboard-PRD.md`.
 
 ## Goal
 

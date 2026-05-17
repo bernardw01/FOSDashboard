@@ -1,5 +1,5 @@
 /**
- * PRD version 1.27.3 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.1.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `delivery`, panel
  * `#panel-delivery`). Two public endpoints, both authorized via
@@ -127,10 +127,6 @@ function getDeliveryDashboardData() {
   var fetchedAtIso = new Date().toISOString();
   var ttlMinutes = resolveDeliveryCacheTtlMinutes_();
 
-  // Reuse the Agreement Dashboard's already-normalized agreements list. The
-  // existing function is idempotent and stateless server-side; it
-  // re-fetches Fibery, which is the contract this codebase has consciously
-  // chosen instead of a server-side cache.
   var raw;
   try {
     raw = getAgreementDashboardData();
@@ -147,13 +143,31 @@ function getDeliveryDashboardData() {
       warnings: ['EXCEPTION'],
     };
   }
+  return buildDeliveryDashboardPayloadFromAgreement_(raw, fetchedAtIso, ttlMinutes);
+}
+
+/**
+ * Re-projects a normalized agreement payload into the Delivery projects list.
+ * No Fibery round-trip — used by the historical snapshot job after agreement
+ * data is already fetched.
+ *
+ * @param {!Object} agreementPayload Output of `buildAgreementDashboardPayload_`.
+ * @param {?string=} fetchedAtIso
+ * @param {?number=} ttlMinutes
+ * @return {!Object}
+ */
+function buildDeliveryDashboardPayloadFromAgreement_(agreementPayload, fetchedAtIso, ttlMinutes) {
+  var fetchedAt = fetchedAtIso || new Date().toISOString();
+  var ttl = ttlMinutes != null ? ttlMinutes : resolveDeliveryCacheTtlMinutes_();
+  var raw = agreementPayload;
+
   if (!raw || raw.ok === false) {
     return {
       ok: false,
       source: 'fibery',
-      fetchedAt: fetchedAtIso,
+      fetchedAt: fetchedAt,
       cacheSchemaVersion: DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_,
-      ttlMinutes: ttlMinutes,
+      ttlMinutes: ttl,
       projects: [],
       filtersApplied: {},
       message: (raw && raw.message) || 'Could not load delivery data from Fibery.',
@@ -168,9 +182,9 @@ function getDeliveryDashboardData() {
   return {
     ok: true,
     source: 'fibery',
-    fetchedAt: raw.fetchedAt || fetchedAtIso,
+    fetchedAt: raw.fetchedAt || fetchedAt,
     cacheSchemaVersion: DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_,
-    ttlMinutes: ttlMinutes,
+    ttlMinutes: ttl,
     projects: projects,
     filtersApplied: filtersApplied,
   };
@@ -199,6 +213,16 @@ function getDeliveryDashboardData() {
  */
 function getDeliveryProjectMonthlyPnL(agreementId) {
   requireAuthForApi_();
+  return buildDeliveryProjectMonthlyPnLInternal_(agreementId);
+}
+
+/**
+ * Per-project monthly P&L without user authorization (snapshot job).
+ *
+ * @param {string} agreementId
+ * @return {!Object}
+ */
+function buildDeliveryProjectMonthlyPnLInternal_(agreementId) {
   var fetchedAtIso = new Date().toISOString();
   var emptyShell = {
     ok: false,

@@ -1,6 +1,6 @@
 # Overview
 
-> **PRD version 1.27.3** — see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js`).
+> **PRD version 2.1.0** — see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js`).
 
 ## Goal
 
@@ -10,7 +10,7 @@ The dashboard **reads and presents** data; it sits alongside—does not replace�
 
 Requirements baseline: **`docs/FOS-Dashboard-PRD.md`**.
 
-**Shipped:** **[Labor Hours Dashboard](007-labor-hours-dashboard.md)** — **v1.22.0** Phase A, **v1.23.0** Phase B (zero KPI, KPI scroll, company JSON, exclusions), **v1.24.0** Phases **C–D** (expandable project/task breakdown, Copy CSV, print, `labor_hours_*` activity types). **[Revenue review](008-revenue-review-dashboard.md)** — **v1.25.0** Phases **A–B** (Delivery nav group, `#panel-revenue-review`, Agreement cache + KPI strip, expiry + pre-recognition); **v1.26.0** Phases **C–D** (tables, sort, CSV, print, milestone `<details>` drill-down, `revenue_review_*` events beyond refresh); **v1.27.0** Phase **E** (customer-first milestone grouping, revenue-by-customer row drawer, Fibery Companies deep link + `publicId` on companies query).
+**Shipped:** **[Historical data source selector](010-dashboard-historical-data-source.md)** — **v2.1.0** sidebar Live vs snapshot; all dashboards from Drive bundle without Fibery until Live is selected. **[Dashboard historical snapshots](009-dashboard-historical-snapshots.md)** — **v2.0.0** daily Drive snapshot job (Agreement, Utilization, Delivery list, per-project P&L); historical date UI later. **[Labor Hours Dashboard](007-labor-hours-dashboard.md)** — **v1.22.0** Phase A, **v1.23.0** Phase B (zero KPI, KPI scroll, company JSON, exclusions), **v1.24.0** Phases **C–D** (expandable project/task breakdown, Copy CSV, print, `labor_hours_*` activity types). **[Revenue review](008-revenue-review-dashboard.md)** — **v1.25.0** Phases **A–B** (Delivery nav group, `#panel-revenue-review`, Agreement cache + KPI strip, expiry + pre-recognition); **v1.26.0** Phases **C–D** (tables, sort, CSV, print, milestone `<details>` drill-down, `revenue_review_*` events beyond refresh); **v1.27.0** Phase **E** (customer-first milestone grouping, revenue-by-customer row drawer, Fibery Companies deep link + `publicId` on companies query).
 
 **Planned:** Optional **Revenue review** Phase E (HTML snapshot export) or PRD FR/AC lift per [008](008-revenue-review-dashboard.md).
 

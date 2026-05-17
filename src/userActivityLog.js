@@ -1,5 +1,5 @@
 /**
- * PRD version 1.27.3 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.1.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * User activity logging — append-only event rows to the "User Activity" tab
  * in the Users spreadsheet (AUTH_SPREADSHEET_ID). Implements §3.8 / FR-60–FR-66.
@@ -58,6 +58,10 @@ var ACTIVITY_VALID_EVENT_TYPES_ = {
   revenue_review_print: true,
   revenue_review_drawer_open: true,
   revenue_review_drawer_fibery_click: true,
+  data_source_change: true,
+  snapshot_bundle_load_start: true,
+  snapshot_bundle_load_done: true,
+  snapshot_bundle_load_error: true,
 };
 
 /** @const {number} */

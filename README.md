@@ -21,6 +21,8 @@ Numbered files under [`docs/features/`](docs/features/) are the per-area specs. 
 | [006-delivery-project-pnl.md](docs/features/006-delivery-project-pnl.md) | Delivery **Projects & P&L**, monthly P&L, portfolio Sankey, delivery signals. |
 | [007-labor-hours-dashboard.md](docs/features/007-labor-hours-dashboard.md) | Labor hours panel, week picker, tables, CSV, print. |
 | [008-revenue-review-dashboard.md](docs/features/008-revenue-review-dashboard.md) | Revenue review panel, tables, milestone detail, drawer. |
+| [009-dashboard-historical-snapshots.md](docs/features/009-dashboard-historical-snapshots.md) | Daily Drive snapshot job, manifest, P&L batching, Snapshot Runs log. |
+| [010-dashboard-historical-data-source.md](docs/features/010-dashboard-historical-data-source.md) | Sidebar **Data source** (Live vs snapshot); gates Fibery when viewing history. |
 
 ---
 
@@ -35,6 +37,13 @@ Cross-cutting **platform** behavior (not tied to a single dashboard route):
 | **Server API gate** | `google.script.run` entry points (e.g. `getDashboardNavigation()`, `getAgreementDashboardData()`, `getUtilizationDashboardData()`, `getDeliveryProjectMonthlyPnL()`) use server-side auth helpers so the sheet gate cannot be bypassed from the client. | [002](docs/features/002-spreadsheet-user-authorization.md) |
 | **Shell UI** | Bootstrap **dark** layout: left nav (icons + labels), **Home** welcome card, nested **Operations** and **Delivery** groups, **Settings** (gear) placeholder at bottom of sidebar. | [001](docs/features/001-dashboard-shell-navigation.md) |
 | **PRD version** | Sidebar footer + not-authorized page show **`FOS_PRD_VERSION`** in `[src/Code.js](src/Code.js)` — must match `[docs/FOS-Dashboard-PRD.md](docs/FOS-Dashboard-PRD.md)` and every `src/*` file header. | [PRD](docs/FOS-Dashboard-PRD.md) |
+| **Historical snapshots** | Daily job writes JSON to **Google Drive**; **Snapshot Runs** log tab. | [009](docs/features/009-dashboard-historical-snapshots.md) |
+| **Data source selector** | Sidebar **Live data** vs dated snapshot; all dashboards from Drive bundle without Fibery until Live is selected. | [010](docs/features/010-dashboard-historical-data-source.md) |
+
+| Version | Capabilities | Feature spec |
+| --- | --- | --- |
+| **v2.1.0** | **Data source selector:** `getDashboardSnapshotCatalog` / `CoreBundle` / `Pnl`; sidebar dropdown; snapshot mode gates live Fibery. | [010](docs/features/010-dashboard-historical-data-source.md) |
+| **v2.0.0** | **Daily historical snapshots:** `runDailyDashboardSnapshot_` → Drive folder per date (`manifest.json`, agreement, utilization, delivery-projects, delivery-pnl/*); batched P&L + continuation triggers; `installDailySnapshotTrigger()` / `ensureSnapshotDriveFolder()`. | [009](docs/features/009-dashboard-historical-snapshots.md) |
 
 **Activity logging** (append-only `User Activity` sheet, event whitelists): [004-user-activity-logging.md](docs/features/004-user-activity-logging.md).
 

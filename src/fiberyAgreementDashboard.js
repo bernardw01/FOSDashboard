@@ -1,5 +1,5 @@
 /**
- * PRD version 1.27.3 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.1.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement Dashboard orchestrator (route id `agreement-dashboard`, panel
  * `#panel-agreement-dashboard`). No persistent server-side cache
@@ -67,10 +67,21 @@ function getAgreementCacheTtlMinutes() {
  */
 function getAgreementDashboardData() {
   requireAuthForApi_();
+  return buildAgreementDashboardPayload_(null);
+}
 
+/**
+ * Builds the agreement dashboard payload without user authorization.
+ * Used by the daily historical snapshot job (`dashboardSnapshotJob.js`).
+ *
+ * @param {?string=} asOfDateIso `YYYY-MM-DD` calendar date for "today" in
+ *   future-revenue filtering; omit to use the current UTC date.
+ * @return {!Object}
+ */
+function buildAgreementDashboardPayload_(asOfDateIso) {
   var now = new Date();
   var fetchedAtIso = now.toISOString();
-  var todayIso = formatDateOnlyIso_(now);
+  var todayIso = asOfDateIso || formatDateOnlyIso_(now);
   var ttlMinutes = resolveAgreementCacheTtlMinutes_();
   var thresholds = getAgreementThresholds_();
 

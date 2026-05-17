@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 1.27.3 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.1.0 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -1894,6 +1894,34 @@
       text-decoration: none;
     }
 
+    .fos-data-source-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.04em;
+    }
+
+    .fos-data-source-select {
+      background: var(--surface2);
+      border-color: var(--border);
+      color: var(--text);
+      font-size: 0.8125rem;
+    }
+
+    .fos-data-source-select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 0.15rem rgba(82, 201, 229, 0.25);
+    }
+
+    .fos-data-source-hint {
+      font-size: 0.65rem;
+      line-height: 1.3;
+    }
+
+    .fos-snapshot-banner {
+      background: rgba(252, 92, 101, 0.12);
+      border-color: rgba(252, 92, 101, 0.35) !important;
+      color: var(--text);
+    }
+
     .fos-topbar {
       background: rgba(6, 27, 48, 0.92);
       backdrop-filter: blur(10px);
@@ -1994,6 +2022,16 @@
           <div id="user-chip" class="small text-secondary text-break mt-2">Loading…</div>
         </div>
 
+        <div class="px-3 pb-2 border-bottom border-secondary border-opacity-25 flex-shrink-0">
+          <label for="fos-data-source" class="form-label fos-data-source-label text-secondary text-uppercase fw-semibold mb-1">
+            Data source
+          </label>
+          <select id="fos-data-source" class="form-select form-select-sm fos-data-source-select" aria-label="Data source">
+            <option value="live">Live data</option>
+          </select>
+          <p id="fos-data-source-hint" class="fos-data-source-hint text-secondary mb-0 mt-1 d-none"></p>
+        </div>
+
         <div class="flex-grow-1 overflow-auto min-h-0 px-2 py-3">
           <div class="text-uppercase small text-secondary px-2 mb-2 fw-semibold" style="letter-spacing: 0.06em">
             Dashboards
@@ -2034,6 +2072,15 @@
         </button>
         <span id="topbar-title" class="navbar-brand mb-0 h6 fw-semibold fos-topbar-title">Home</span>
       </header>
+
+      <div
+        id="fos-snapshot-banner"
+        class="fos-snapshot-banner d-none px-3 py-2 small border-bottom border-secondary border-opacity-25"
+        role="status"
+      >
+        <strong class="text-warning">Snapshot:</strong>
+        <span id="fos-snapshot-banner-text">Viewing snapshot (not live data).</span>
+      </div>
 
       <div
         id="nav-hint"
@@ -3369,7 +3416,7 @@
   ></script>
   <script>
     (function () {
-      var navState = { items: [], userLabel: '' };
+      var navState = { items: [], userLabel: '', activeNavId: 'home' };
       var AGREEMENT_CACHE_KEY = 'fos_agreement_dashboard_v2';
       var AGREEMENT_CACHE_SCHEMA_VERSION = 3;
       var AGREEMENT_TTL_PREF_KEY = 'fos_agreement_dashboard_ttl_minutes_v1';
@@ -3736,10 +3783,364 @@
         deliveryRevenueMonthModalBody: document.getElementById('deliveryRevenueMonthModalBody'),
         deliveryRevenueMonthModalEmpty: document.getElementById('deliveryRevenueMonthModalEmpty'),
         deliveryRevenueMonthModalTotals: document.getElementById('deliveryRevenueMonthModalTotals'),
+        dataSourceSelect: document.getElementById('fos-data-source'),
+        dataSourceHint: document.getElementById('fos-data-source-hint'),
+        snapshotBanner: document.getElementById('fos-snapshot-banner'),
+        snapshotBannerText: document.getElementById('fos-snapshot-banner-text'),
         settingsLink: document.getElementById('settings-link'),
         comingSoonModal: document.getElementById('comingSoonModal'),
         csBody: document.getElementById('cs-body'),
       };
+
+      /* Historical data source (v2.1.0 — FR-105) */
+      var FOS_DATA_SOURCE_STORAGE_KEY = 'fos_data_source_v1';
+      var SNAPSHOT_REFRESH_TITLE_ = 'Switch to Live data to refresh from Fibery.';
+      var dataSourceState = {
+        mode: 'live',
+        snapshotDate: null,
+        manifest: null,
+        agreement: null,
+        utilization: null,
+        deliveryProjects: null,
+        pnlByAgreementId: {},
+        bundleLoading: false,
+        catalogSnapshots: [],
+      };
+
+      function isLiveDataSource_() {
+        return dataSourceState.mode !== 'snapshot';
+      }
+
+      function getSnapshotDate_() {
+        return dataSourceState.snapshotDate;
+      }
+
+      function readDataSourcePref_() {
+        try {
+          var raw = localStorage.getItem(FOS_DATA_SOURCE_STORAGE_KEY);
+          if (!raw) return null;
+          var o = JSON.parse(raw);
+          if (!o || o.schemaVersion !== 1) return null;
+          return o;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function writeDataSourcePref_(mode, snapshotDate) {
+        try {
+          localStorage.setItem(
+            FOS_DATA_SOURCE_STORAGE_KEY,
+            JSON.stringify({
+              schemaVersion: 1,
+              mode: mode,
+              snapshotDate: snapshotDate || null,
+            })
+          );
+        } catch (e) {
+          /* ignore */
+        }
+      }
+
+      function formatSnapshotBannerDate_(isoDate) {
+        if (!isoDate) return '—';
+        try {
+          var parts = String(isoDate).split('-');
+          if (parts.length === 3) {
+            var d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+            if (!isNaN(d.getTime())) {
+              return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+            }
+          }
+        } catch (e2) {
+          /* ignore */
+        }
+        return isoDate;
+      }
+
+      function setLiveControlsDisabled_(disabled) {
+        var controls = [
+          els.agreementRefreshBtn,
+          els.ttlSelect,
+          els.utilRefreshBtn,
+          els.utilTtlSelect,
+          els.utilRangePreset,
+          els.utilRangeStart,
+          els.utilRangeEnd,
+          els.utilRangeApply,
+          els.deliveryRefreshBtn,
+          els.deliveryTtlSelect,
+          els.lhRefreshBtn,
+          els.rrRefreshBtn,
+          els.rrTtlSelect,
+        ];
+        for (var i = 0; i < controls.length; i++) {
+          var el = controls[i];
+          if (!el) continue;
+          el.disabled = !!disabled;
+          if (disabled) {
+            el.setAttribute('title', SNAPSHOT_REFRESH_TITLE_);
+          } else {
+            el.removeAttribute('title');
+          }
+        }
+      }
+
+      function updateSnapshotChrome_() {
+        var snap = !isLiveDataSource_();
+        if (els.snapshotBanner) {
+          if (snap) {
+            els.snapshotBanner.classList.remove('d-none');
+          } else {
+            els.snapshotBanner.classList.add('d-none');
+          }
+        }
+        if (els.snapshotBannerText && snap) {
+          var d = getSnapshotDate_();
+          els.snapshotBannerText.textContent =
+            'Viewing snapshot as of ' + formatSnapshotBannerDate_(d) + ' (not live data).';
+        }
+        if (els.dataSourceHint) {
+          if (snap && dataSourceState.manifest && dataSourceState.manifest.status === 'partial') {
+            els.dataSourceHint.textContent = 'This snapshot is partial; some Delivery P&L files may be missing.';
+            els.dataSourceHint.classList.remove('d-none');
+          } else {
+            els.dataSourceHint.classList.add('d-none');
+            els.dataSourceHint.textContent = '';
+          }
+        }
+        setLiveControlsDisabled_(snap);
+        if (snap) {
+          lockUtilRangeToSnapshotManifest_();
+        } else {
+          unlockUtilRangeControls_();
+        }
+      }
+
+      function lockUtilRangeToSnapshotManifest_() {
+        var range = dataSourceState.utilization && dataSourceState.utilization.range;
+        if (els.utilRangePreset) {
+          els.utilRangePreset.disabled = true;
+          els.utilRangePreset.setAttribute('title', SNAPSHOT_REFRESH_TITLE_);
+        }
+        if (els.utilCustomRange) {
+          els.utilCustomRange.classList.add('d-none');
+          els.utilCustomRange.classList.remove('d-flex');
+        }
+        if (range && range.start && range.end && els.utilSubtitle) {
+          var s = new Date(range.start).toLocaleDateString();
+          var e = new Date(range.end).toLocaleDateString();
+          var base = els.utilSubtitle.textContent || '';
+          if (base.indexOf('· snapshot range') < 0) {
+            els.utilSubtitle.textContent = base + ' · snapshot range ' + s + ' – ' + e;
+          }
+        }
+      }
+
+      function unlockUtilRangeControls_() {
+        if (els.utilRangePreset) {
+          els.utilRangePreset.disabled = false;
+          els.utilRangePreset.removeAttribute('title');
+        }
+      }
+
+      function clearSnapshotBundle_() {
+        dataSourceState.mode = 'live';
+        dataSourceState.snapshotDate = null;
+        dataSourceState.manifest = null;
+        dataSourceState.agreement = null;
+        dataSourceState.utilization = null;
+        dataSourceState.deliveryProjects = null;
+        dataSourceState.pnlByAgreementId = {};
+        dataSourceState.bundleLoading = false;
+        writeDataSourcePref_('live', null);
+        if (els.dataSourceSelect) {
+          els.dataSourceSelect.value = 'live';
+        }
+        updateSnapshotChrome_();
+      }
+
+      function applySnapshotBundleToCaches_(bundle) {
+        if (bundle.agreement) {
+          writeAgreementCache(bundle.agreement);
+        }
+        if (bundle.utilization) {
+          writeUtilizationCache(bundle.utilization);
+          utilState.payload = bundle.utilization;
+        }
+        if (bundle.deliveryProjects) {
+          writeDeliveryCache(bundle.deliveryProjects);
+        }
+      }
+
+      function invalidatePanelRenderStateForSnapshot_() {
+        agreementRenderState.lastRenderedFetchedAt = null;
+        utilRenderState.lastRenderedFetchedAt = null;
+        deliveryRenderState.lastRenderedFetchedAt = null;
+        revenueReviewRenderState.lastRenderedFetchedAt = null;
+        laborHoursFetchCache_.key = null;
+        laborHoursFetchCache_.payload = null;
+      }
+
+      function refreshActivePanelAfterDataSource_() {
+        var id = navState.activeNavId || 'home';
+        if (id === 'agreement-dashboard') {
+          showAgreementDashboard();
+        } else if (id === 'operations') {
+          showOperations();
+        } else if (id === 'labor-hours') {
+          showLaborHours();
+        } else if (id === 'revenue-review') {
+          showRevenueReview();
+        } else if (id === 'delivery') {
+          showDelivery();
+        }
+      }
+
+      function populateDataSourceSelect_(catalog) {
+        if (!els.dataSourceSelect) return;
+        var sel = els.dataSourceSelect;
+        var prev = sel.value;
+        sel.innerHTML = '';
+        var liveOpt = document.createElement('option');
+        liveOpt.value = 'live';
+        liveOpt.textContent = (catalog && catalog.live && catalog.live.label) || 'Live data';
+        sel.appendChild(liveOpt);
+        var snaps = (catalog && catalog.snapshots) || [];
+        dataSourceState.catalogSnapshots = snaps;
+        for (var i = 0; i < snaps.length; i++) {
+          var s = snaps[i];
+          if (!s || !s.snapshotDate) continue;
+          var opt = document.createElement('option');
+          opt.value = s.snapshotDate;
+          opt.textContent = s.label || s.snapshotDate;
+          sel.appendChild(opt);
+        }
+        var pref = readDataSourcePref_();
+        var want = 'live';
+        if (pref && pref.mode === 'snapshot' && pref.snapshotDate) {
+          var found = false;
+          for (var j = 0; j < snaps.length; j++) {
+            if (snaps[j].snapshotDate === pref.snapshotDate) {
+              found = true;
+              break;
+            }
+          }
+          if (found) want = pref.snapshotDate;
+          else writeDataSourcePref_('live', null);
+        } else if (prev && prev !== 'live') {
+          for (var k = 0; k < snaps.length; k++) {
+            if (snaps[k].snapshotDate === prev) {
+              want = prev;
+              break;
+            }
+          }
+        }
+        sel.value = want;
+        if (want === 'live') {
+          if (dataSourceState.mode === 'snapshot') {
+            clearSnapshotBundle_();
+          }
+        } else if (dataSourceState.mode !== 'snapshot' || dataSourceState.snapshotDate !== want) {
+          enterSnapshotMode_(want, { rerender: false });
+        }
+      }
+
+      function enterSnapshotMode_(snapshotDate, opts) {
+        opts = opts || {};
+        dataSourceState.mode = 'snapshot';
+        dataSourceState.snapshotDate = snapshotDate;
+        writeDataSourcePref_('snapshot', snapshotDate);
+        updateSnapshotChrome_();
+        loadSnapshotBundle_(snapshotDate, opts.rerender !== false);
+      }
+
+      function loadSnapshotBundle_(snapshotDate, rerender) {
+        if (rerender === undefined) rerender = true;
+        dataSourceState.bundleLoading = true;
+        logActivity_('snapshot_bundle_load_start', 'shell', 'snapshotDate=' + snapshotDate);
+        google.script.run
+          .withSuccessHandler(function (bundle) {
+            dataSourceState.bundleLoading = false;
+            if (!bundle || bundle.ok === false) {
+              var msg = (bundle && bundle.message) || 'Could not load snapshot.';
+              logActivity_('snapshot_bundle_load_error', 'shell', msg);
+              if (els.errorBanner) {
+                els.errorBanner.textContent = msg;
+                els.errorBanner.classList.remove('d-none');
+              }
+              clearSnapshotBundle_();
+              return;
+            }
+            dataSourceState.manifest = bundle.manifest;
+            dataSourceState.agreement = bundle.agreement;
+            dataSourceState.utilization = bundle.utilization;
+            dataSourceState.deliveryProjects = bundle.deliveryProjects;
+            dataSourceState.pnlByAgreementId = {};
+            applySnapshotBundleToCaches_(bundle);
+            invalidatePanelRenderStateForSnapshot_();
+            logActivity_(
+              'snapshot_bundle_load_done',
+              'shell',
+              'snapshotDate=' + snapshotDate + ' · status=' + ((bundle.manifest && bundle.manifest.status) || '')
+            );
+            updateSnapshotChrome_();
+            if (rerender) {
+              refreshActivePanelAfterDataSource_();
+            }
+          })
+          .withFailureHandler(function (err) {
+            dataSourceState.bundleLoading = false;
+            var msg = err && err.message ? err.message : 'Snapshot load failed.';
+            if (msg === 'NOT_AUTHORIZED') {
+              msg = 'Your session is not authorized. Reload the page.';
+            }
+            logActivity_('snapshot_bundle_load_error', 'shell', msg);
+            if (els.errorBanner) {
+              els.errorBanner.textContent = msg;
+              els.errorBanner.classList.remove('d-none');
+            }
+            clearSnapshotBundle_();
+          })
+          .getDashboardSnapshotCoreBundle(snapshotDate);
+      }
+
+      function onDataSourceSelectChange_() {
+        if (!els.dataSourceSelect) return;
+        var val = els.dataSourceSelect.value || 'live';
+        logActivity_('data_source_change', 'shell', val === 'live' ? 'live' : 'snapshotDate=' + val);
+        if (val === 'live') {
+          clearSnapshotBundle_();
+          invalidatePanelRenderStateForSnapshot_();
+          refreshActivePanelAfterDataSource_();
+          return;
+        }
+        enterSnapshotMode_(val, { rerender: true });
+      }
+
+      function initDataSourceCatalog_() {
+        google.script.run
+          .withSuccessHandler(function (catalog) {
+            if (!catalog || catalog.ok === false) {
+              if (els.dataSourceHint && catalog && catalog.message) {
+                els.dataSourceHint.textContent = catalog.message;
+                els.dataSourceHint.classList.remove('d-none');
+              }
+              populateDataSourceSelect_({ ok: true, live: { label: 'Live data' }, snapshots: [] });
+              return;
+            }
+            populateDataSourceSelect_(catalog);
+            updateSnapshotChrome_();
+          })
+          .withFailureHandler(function () {
+            populateDataSourceSelect_({ ok: true, live: { label: 'Live data' }, snapshots: [] });
+          })
+          .getDashboardSnapshotCatalog();
+      }
+
+      if (els.dataSourceSelect) {
+        els.dataSourceSelect.addEventListener('change', onDataSourceSelectChange_);
+      }
 
       function hideMobileSidebar() {
         if (typeof bootstrap === 'undefined' || !bootstrap.Offcanvas) {
@@ -5011,6 +5412,9 @@
       }
 
       function fetchAgreementFromServer(loadingTarget) {
+        if (!isLiveDataSource_()) {
+          return;
+        }
         loadingTarget = loadingTarget || 'agreement';
         var isRr = loadingTarget === 'revenue-review';
         if (isRr) {
@@ -5241,6 +5645,16 @@
         els.topbarTitle.textContent = 'Agreement Dashboard';
         if (els.agreementFetchError) {
           els.agreementFetchError.classList.add('d-none');
+        }
+        if (!isLiveDataSource_()) {
+          if (dataSourceState.agreement) {
+            applyAgreementPayload(dataSourceState.agreement);
+            return;
+          }
+          if (dataSourceState.snapshotDate && !dataSourceState.bundleLoading) {
+            loadSnapshotBundle_(dataSourceState.snapshotDate, true);
+          }
+          return;
         }
         var cached = readAgreementCache();
         var ttlMinutes = readTtlMinutes();
@@ -7397,6 +7811,9 @@
       }
 
       function fetchUtilizationFromServer(rangeStartIso, rangeEndIso) {
+        if (!isLiveDataSource_()) {
+          return;
+        }
         if (els.utilRefreshBtn) els.utilRefreshBtn.disabled = true;
         els.utilFetchError.classList.add('d-none');
         setUtilLoading(true);
@@ -7655,6 +8072,18 @@
         if (els.panelOperations) els.panelOperations.classList.remove('d-none');
         els.topbarTitle.textContent = 'Operations';
         if (els.utilFetchError) els.utilFetchError.classList.add('d-none');
+        if (!isLiveDataSource_()) {
+          if (dataSourceState.utilization) {
+            applyStoredFilters_();
+            applyUtilPayload(dataSourceState.utilization);
+            lockUtilRangeToSnapshotManifest_();
+            return;
+          }
+          if (dataSourceState.snapshotDate && !dataSourceState.bundleLoading) {
+            loadSnapshotBundle_(dataSourceState.snapshotDate, true);
+          }
+          return;
+        }
         var cached = readUtilizationCache();
         var ttlMinutes = readUtilTtlMinutes();
         if (cached && cached.ok !== false) {
@@ -8438,6 +8867,23 @@
           return;
         }
 
+        if (!isLiveDataSource_()) {
+          setLhLoading(false);
+          if (els.lhFetchError) {
+            if (dataSourceState.bundleLoading) {
+              els.lhFetchError.textContent = 'Snapshot is still loading…';
+            } else if (!basePayload) {
+              els.lhFetchError.textContent =
+                'This week is outside the snapshot utilization range, or utilization data is unavailable.';
+            } else {
+              els.lhFetchError.textContent =
+                'This week is outside the snapshot utilization range.';
+            }
+            els.lhFetchError.classList.remove('d-none');
+          }
+          return;
+        }
+
         setLhLoading(true);
         google.script.run
           .withSuccessHandler(function (data) {
@@ -9107,6 +9553,17 @@
         els.topbarTitle.textContent = 'Delivery';
         if (els.deliveryFetchError) els.deliveryFetchError.classList.add('d-none');
         logActivity_('delivery_panel_open', 'delivery', '');
+        if (!isLiveDataSource_()) {
+          if (dataSourceState.deliveryProjects) {
+            applyDeliveryStoredFilters_();
+            applyDeliveryPayload(dataSourceState.deliveryProjects);
+            return;
+          }
+          if (dataSourceState.snapshotDate && !dataSourceState.bundleLoading) {
+            loadSnapshotBundle_(dataSourceState.snapshotDate, true);
+          }
+          return;
+        }
         var cached = readDeliveryCache();
         var ttlMinutes = readDeliveryTtlMinutes();
         if (cached && cached.ok !== false) {
@@ -10118,6 +10575,17 @@
         if (els.rrFetchError) els.rrFetchError.classList.add('d-none');
         if (els.rrTtlSelect) els.rrTtlSelect.value = String(readTtlMinutes());
 
+        if (!isLiveDataSource_()) {
+          if (dataSourceState.agreement) {
+            renderRevenueReview_(dataSourceState.agreement);
+            return;
+          }
+          if (dataSourceState.snapshotDate && !dataSourceState.bundleLoading) {
+            loadSnapshotBundle_(dataSourceState.snapshotDate, true);
+          }
+          return;
+        }
+
         var cached = readAgreementCache();
         var ttlMinutes = readTtlMinutes();
         if (cached) {
@@ -10143,6 +10611,9 @@
       }
 
       function fetchDeliveryFromServer(opts) {
+        if (!isLiveDataSource_()) {
+          return;
+        }
         opts = opts || {};
         if (els.deliveryRefreshBtn) els.deliveryRefreshBtn.disabled = true;
         if (els.deliveryFetchError) els.deliveryFetchError.classList.add('d-none');
@@ -10474,6 +10945,15 @@
           els.deliveryPnlError.classList.add('d-none');
           els.deliveryPnlError.textContent = '';
         }
+        if (!isLiveDataSource_()) {
+          var snapPnl = dataSourceState.pnlByAgreementId[agreementId];
+          if (snapPnl && snapPnl.ok !== false) {
+            renderDeliveryMonthlyPnL_(snapPnl, project);
+            return;
+          }
+          fetchDeliveryPnlFromServer_(project);
+          return;
+        }
         var cached = readDeliveryPnlCache(agreementId);
         var ttlMinutes = readDeliveryTtlMinutes();
         if (cached && cached.ok !== false) {
@@ -10495,7 +10975,8 @@
         if (els.deliveryPnlError) els.deliveryPnlError.classList.add('d-none');
         var t0 = Date.now();
         logActivity_('delivery_pnl_fetch_start', 'delivery', 'agreementId=' + agreementId);
-        google.script.run
+        var snapshotDate = getSnapshotDate_();
+        var run = google.script.run
           .withSuccessHandler(function (data) {
             // Stale-response guard: if the user selected a different
             // project while this fetch was in flight, ignore the result.
@@ -10511,7 +10992,11 @@
                 'agreementId=' + agreementId + ' · code=' + ((data && data.warnings && data.warnings[0]) || 'UNKNOWN'));
               return;
             }
-            writeDeliveryPnlCache(agreementId, data);
+            if (isLiveDataSource_()) {
+              writeDeliveryPnlCache(agreementId, data);
+            } else {
+              dataSourceState.pnlByAgreementId[agreementId] = data;
+            }
             renderDeliveryMonthlyPnL_(data, project);
             var elapsed = Date.now() - t0;
             logActivity_('delivery_pnl_fetch_done', 'delivery',
@@ -10530,8 +11015,12 @@
             }
             logActivity_('delivery_pnl_fetch_error', 'delivery',
               'agreementId=' + agreementId + ' · code=EXCEPTION');
-          })
-          .getDeliveryProjectMonthlyPnL(agreementId);
+          });
+        if (!isLiveDataSource_() && snapshotDate) {
+          run.getDashboardSnapshotPnl(snapshotDate, agreementId);
+        } else {
+          run.getDeliveryProjectMonthlyPnL(agreementId);
+        }
       }
       function renderDeliveryMonthlyPnL_(payload, project) {
         if (!els.deliveryPnlGridBody) return;
@@ -11214,6 +11703,7 @@
       }
 
       function setActiveNav(id) {
+        navState.activeNavId = id;
         var buttons = els.navList.querySelectorAll('.fos-nav-btn');
         for (var i = 0; i < buttons.length; i++) {
           var b = buttons[i];
@@ -11353,6 +11843,7 @@
       });
 
       function init() {
+        initDataSourceCatalog_();
         google.script.run
           .withSuccessHandler(renderNav)
           .withFailureHandler(function (err) {

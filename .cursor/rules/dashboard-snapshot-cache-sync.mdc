@@ -1,0 +1,51 @@
+---
+description: Keep daily Drive snapshots in sync when dashboard cache payloads or schema versions change
+alwaysApply: true
+---
+
+# Dashboard cache ↔ historical snapshot sync
+
+The **daily snapshot job** (`src/dashboardSnapshotJob.js`) persists the **same normalized JSON** the Web App uses. Any change to dashboard **cache shape**, **`cacheSchemaVersion`**, or **how payloads are built** MUST keep snapshots aligned.
+
+## Canonical mapping (do not drift)
+
+| Drive artifact | Snapshot builder (no `requireAuthForApi_`) | Server `cacheSchemaVersion` constant | Client check (`DashboardShell.html`) |
+| --- | --- | --- | --- |
+| `agreement.json` | `buildAgreementDashboardPayload_(asOfDate)` | `AGREEMENT_DASHBOARD_CACHE_SCHEMA_VERSION_` | `AGREEMENT_CACHE_SCHEMA_VERSION` |
+| `utilization.json` | `buildUtilizationDashboardPayload_(start, end)` | `UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_` | `UTIL_CACHE_SCHEMA_VERSION` |
+| `delivery-projects.json` | `buildDeliveryDashboardPayloadFromAgreement_` | `DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_` | `DELIVERY_CACHE_SCHEMA_VERSION` |
+| `delivery-pnl/<id>.json` | `buildDeliveryProjectMonthlyPnLInternal_` | `DELIVERY_PNL_CACHE_SCHEMA_VERSION_` | `DELIVERY_PNL_CACHE_SCHEMA_VERSION` |
+
+Manifest rows use `payload.cacheSchemaVersion` via `appendManifestDataset_` in the job — bump the **server** constant and the job will record the new version automatically.
+
+## Required steps when changing cache structure
+
+1. **Prefer shared builders** — extend `build*Payload_*` / `buildDeliveryProjectMonthlyPnLInternal_`; do **not** duplicate Fibery fetch logic only in the snapshot job.
+2. **Bump `cacheSchemaVersion`** — server constant + matching client constant in `DashboardShell.html` (and invalidate `sessionStorage` keys if the project already does on bump).
+3. **Snapshot job** — confirm `dashboardSnapshotJob.js` still writes the same artifact filenames and calls the updated builders; add a new `writeSnapshotArtifact_` step only when a **new** dashboard dataset is introduced.
+4. **Docs** — update `docs/features/009-dashboard-historical-snapshots.md` dataset table; if behavior is product-visible, update `docs/FOS-Dashboard-PRD.md` **FR-104** / **AC-60** and version per `google-apps-script-core.mdc`.
+5. **Do not** bump `snapshotManifestVersion` unless the manifest envelope shape changes (not for payload-only bumps).
+
+## New dashboard or new payload slice
+
+- Add a row to feature **009** and a job step after core fetches (reuse agreement payload when possible, same as Delivery projects).
+- Register manifest `datasets[].id` and a stable `fileName` (or `delivery-pnl/` pattern).
+- If P&L-like (many entities): use `snapshotPnlRelativePath_` / batch + `processSnapshotPnlBatch_` pattern.
+
+## Anti-patterns
+
+- Bumping only the client `cacheSchemaVersion` without server constant (or vice versa).
+- Changing `get*DashboardData()` return shape without verifying snapshot builders return the same shape.
+- Renaming Drive artifacts without updating historical UI plans and feature **009**.
+
+## Historical UI (feature 010)
+
+When cache shape or `cacheSchemaVersion` changes, also verify:
+
+- `getDashboardSnapshotCoreBundle` / `getDashboardSnapshotPnl` still return payloads the client expects.
+- [`src/DashboardShell.html`](src/DashboardShell.html) snapshot gates (`isLiveDataSource_`, `loadSnapshotBundle_`) still call `apply*Payload` with the right bundle fields.
+- Update [`docs/features/010-dashboard-historical-data-source.md`](docs/features/010-dashboard-historical-data-source.md) if panel mapping changes.
+
+## Quick verification
+
+After cache changes: run `_diag_snapshotPreflight()` then `_diag_runSnapshotForDate('YYYY-MM-DD')` and confirm Drive files open as JSON and `manifest.json` lists expected `cacheSchemaVersion` per dataset. In the Web App, select the snapshot in **Data source** and confirm all panels render without Fibery executions.

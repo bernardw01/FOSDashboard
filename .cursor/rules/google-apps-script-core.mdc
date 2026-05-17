@@ -51,6 +51,10 @@ Follow these standards when generating or changing code in this repository.
 - Compile TypeScript before `clasp push`.
 - Call out Apps Script platform constraints when they affect implementation choices.
 
+## Historical snapshots (cache sync)
+
+When changing dashboard **payload shape**, **`cacheSchemaVersion`**, or server builders (`fiberyAgreementDashboard.js`, `fiberyUtilizationDashboard.js`, `deliveryDashboard.js`, client cache in `DashboardShell.html`), also follow **`.cursor/rules/dashboard-snapshot-cache-sync.mdc`**: keep `dashboardSnapshotJob.js` artifacts and `docs/features/009-dashboard-historical-snapshots.md` aligned so Drive snapshots do not drift from live caches.
+
 ## PRD Change Control
 
 - When editing `docs/PRD.md`, always update the PRD change table at the bottom of the document in the same change.
