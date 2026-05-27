@@ -1,6 +1,6 @@
 # Feature: Expenses dashboard (spreadsheet-backed)
 
-> **PRD version 2.5.5** — shipped in web app **v2.5.0+** with **FR-109** / **AC-65**; nav under **Finance** group (**v2.5.1**); **Finance team / ADMIN only** (**v2.5.3**); chart layout + risk map (**v2.5.5**).
+> **PRD version 2.5.7** — shipped in web app **v2.5.0+** with **FR-109** / **AC-65**; nav under **Finance** group (**v2.5.1**); **Finance team / ADMIN only** (**v2.5.3**); chart layout + risk map (**v2.5.5**–**v2.5.6**); customer table under Sankey (**v2.5.7**).
 
 > **Implementation plan:** [`docs/features/015-expenses-dashboard-implementation-plan.md`](015-expenses-dashboard-implementation-plan.md) — **Status:** implemented (PRD **2.5.0**).
 
@@ -352,6 +352,8 @@ Reuse **`.fos-util-drawer`** pattern (backdrop + `open` class, close affordance,
 
 | Date | Change |
 | --- | --- |
+| 2026-05-27 | **v2.5.7** — **Customer attribution** table directly under Sankey; risk map MoM **0%** when prior month spend is zero. |
+| 2026-05-27 | **v2.5.6** — **Software vendor risk map:** Software category only; bubbles = vendors (color = vendor); **focus-month** range slider; metrics per selected month. |
 | 2026-05-27 | **v2.5.5** — Dept + category monthly charts **side by side**; **software × vendor × month** stacked bar; **category risk map** bubble (MoM % vs YTD, txn size, quadrant interpretation). Script Properties **`EXPENSES_SOFTWARE_CATEGORY_MATCH`**, **`EXPENSES_CHART_VENDOR_TOP_N`**. |
 | 2026-05-27 | **v2.5.3** — **Clear all filters**; **Finance** `Team` or **ADMIN** `Role` required (nav + server). |
 | 2026-05-27 | **v2.5.2** — Removed **Expense lines** table; **Sankey** (dept → attributed/unattributed → customer); checkbox multi-select filters (dept, employee, customer) + summary/chips. |

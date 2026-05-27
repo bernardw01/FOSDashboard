@@ -1,11 +1,11 @@
 /**
- * PRD version 2.5.5 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.5.7 — sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard — Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.5.5';
+var FOS_PRD_VERSION = '2.5.7';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '2.5.5';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'Expenses side-by-side charts, software-by-vendor chart, category risk map.';
+  'Expenses: customer table under Sankey; risk map MoM zero when prior month zero.';
 
 /**
  * @return {string}

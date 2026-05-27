@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.5.5 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.5.7 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -229,6 +229,9 @@
       position: relative;
       min-height: 280px;
       max-height: 420px;
+    }
+    #panel-expenses .exp-risk-month-control .form-range {
+      accent-color: var(--ag-accent);
     }
     #panel-expenses .exp-risk-map-wrap {
       position: relative;
@@ -3598,6 +3601,24 @@
               <div id="exp-sankey-wrap" class="fos-sankey-wrap" role="img" aria-label="Expense flow Sankey diagram"></div>
             </section>
 
+            <section class="fos-section-card mb-3" aria-labelledby="exp-cust-h">
+              <h2 id="exp-cust-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Customer attribution</h2>
+              <div class="table-responsive">
+                <table class="fos-util-detail-table" aria-describedby="exp-cust-h">
+                  <thead>
+                    <tr>
+                      <th scope="col">Customer</th>
+                      <th class="text-end" scope="col">Spend</th>
+                      <th class="text-end" scope="col">% of attributed</th>
+                      <th class="text-end" scope="col">% of total</th>
+                    </tr>
+                  </thead>
+                  <tbody id="exp-cust-tbody"></tbody>
+                </table>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="exp-cust-empty" style="color: var(--ag-text-muted)">No attributed spend in the current filter.</p>
+            </section>
+
             <div class="row g-3 mb-3">
               <div class="col-12 col-xl-6">
                 <section class="fos-section-card h-100" aria-labelledby="exp-chart-dept-h">
@@ -3631,10 +3652,30 @@
             </section>
 
             <section class="fos-section-card mb-3" aria-labelledby="exp-risk-heading">
-              <h2 id="exp-risk-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Expense category risk map</h2>
+              <h2 id="exp-risk-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Software vendor risk map</h2>
               <p class="small mb-2" style="color: var(--ag-text-muted)">
-                Each bubble is one expense category in the current filter. X = month-over-month growth (latest vs prior month in view); Y = calendar year-to-date spend; size = transaction count. Dashed lines mark the median on each axis.
+                <span id="exp-risk-cat-label">Software</span> category only. Each bubble is one <strong>vendor</strong> for the focus month you select below. X = month-over-month growth vs the prior month in view; Y = calendar year-to-date spend through that month; size = transaction count in the focus month. Color = vendor. Dashed lines mark the median on each axis.
               </p>
+              <div class="exp-risk-month-control mb-3 d-none" id="exp-risk-month-control">
+                <label class="small d-flex flex-wrap align-items-center gap-2 mb-0" for="exp-risk-month-slider" style="color: var(--ag-text-muted)">
+                  <span class="text-nowrap">Focus month</span>
+                  <input
+                    type="range"
+                    class="form-range flex-grow-1"
+                    id="exp-risk-month-slider"
+                    min="0"
+                    max="0"
+                    value="0"
+                    step="1"
+                    style="max-width: 28rem"
+                    aria-valuemin="0"
+                    aria-valuemax="0"
+                    aria-valuenow="0"
+                    aria-describedby="exp-risk-month-label"
+                  />
+                  <strong id="exp-risk-month-label" class="text-nowrap" style="color: var(--ag-text); min-width: 5.5rem">—</strong>
+                </label>
+              </div>
               <ul class="exp-risk-interpret list-unstyled small mb-3" aria-label="Risk map interpretation">
                 <li><strong>Top-right</strong> — dangerous growth + high spend</li>
                 <li><strong>Bottom-right</strong> — fast growth but still small</li>
@@ -3642,27 +3683,9 @@
                 <li><strong>Bottom-left</strong> — low spend and stable or declining</li>
               </ul>
               <div class="exp-risk-map-wrap">
-                <canvas id="exp-chart-risk" role="img" aria-label="Expense category risk bubble chart"></canvas>
+                <canvas id="exp-chart-risk" role="img" aria-label="Software vendor risk bubble chart"></canvas>
               </div>
-              <p class="small mb-0 mt-2 d-none" id="exp-risk-empty" style="color: var(--ag-text-muted)">Not enough monthly history to plot categories (need at least one month with spend).</p>
-            </section>
-
-            <section class="fos-section-card mb-3" aria-labelledby="exp-cust-h">
-              <h2 id="exp-cust-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Customer attribution</h2>
-              <div class="table-responsive">
-                <table class="fos-util-detail-table" aria-describedby="exp-cust-h">
-                  <thead>
-                    <tr>
-                      <th scope="col">Customer</th>
-                      <th class="text-end" scope="col">Spend</th>
-                      <th class="text-end" scope="col">% of attributed</th>
-                      <th class="text-end" scope="col">% of total</th>
-                    </tr>
-                  </thead>
-                  <tbody id="exp-cust-tbody"></tbody>
-                </table>
-              </div>
-              <p class="small mb-0 mt-2 d-none" id="exp-cust-empty" style="color: var(--ag-text-muted)">No attributed spend in the current filter.</p>
+              <p class="small mb-0 mt-2 d-none" id="exp-risk-empty" style="color: var(--ag-text-muted)">No software-category spend in the current filter for the selected month.</p>
             </section>
 
           </div>
@@ -4282,6 +4305,10 @@
         expSoftwareEmpty: document.getElementById('exp-software-empty'),
         expSoftwareCatLabel: document.getElementById('exp-software-cat-label'),
         expRiskEmpty: document.getElementById('exp-risk-empty'),
+        expRiskMonthControl: document.getElementById('exp-risk-month-control'),
+        expRiskMonthSlider: document.getElementById('exp-risk-month-slider'),
+        expRiskMonthLabel: document.getElementById('exp-risk-month-label'),
+        expRiskCatLabel: document.getElementById('exp-risk-cat-label'),
         expCustTbody: document.getElementById('exp-cust-tbody'),
         expCustEmpty: document.getElementById('exp-cust-empty'),
         dataSourceSelect: document.getElementById('fos-data-source'),
@@ -12144,6 +12171,9 @@
           customers: {},
           employees: {},
         },
+        riskFocusMonth: '',
+        riskMonthLabels: [],
+        riskSoftwareRows: [],
       };
       var expensesControlsWired_ = false;
 
@@ -12223,65 +12253,101 @@
         return arr.length % 2 ? arr[mid] : (arr[mid - 1] + arr[mid]) / 2;
       }
 
-      /**
-       * @param {!Array<!Object>} filteredRows
-       * @return {{ points: !Array<!Object>, medX: number, medY: number, ytdYear: number }}
-       */
-      function expensesBuildCategoryRiskPoints_(filteredRows) {
-        var ytdYear = new Date().getFullYear();
-        for (var yi = 0; yi < filteredRows.length; yi++) {
-          var isoY = String(filteredRows[yi].effectiveDate || '');
-          if (isoY.length >= 4) {
-            var yr = parseInt(isoY.slice(0, 4), 10);
-            if (isFinite(yr) && yr > ytdYear) ytdYear = yr;
-          }
-        }
-        var monthLabels = expensesMonthLabelsFromRows_(filteredRows);
-        var lastMo = monthLabels.length ? monthLabels[monthLabels.length - 1] : '';
-        var prevMo = monthLabels.length > 1 ? monthLabels[monthLabels.length - 2] : '';
+      function expensesFormatMonthLabel_(ym) {
+        if (!ym || ym.length < 7) return ym || '—';
+        var parts = String(ym).split('-');
+        var y = parseInt(parts[0], 10);
+        var m = parseInt(parts[1], 10);
+        if (!isFinite(y) || !isFinite(m) || m < 1 || m > 12) return ym;
+        var names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return names[m - 1] + ' ' + y;
+      }
 
-        var byCat = {};
-        for (var ri = 0; ri < filteredRows.length; ri++) {
-          var row = filteredRows[ri];
-          var cat = expensesCatLabel_(expensesCatKey_(row));
-          if (!byCat[cat]) {
-            byCat[cat] = { ytd: 0, txn: 0, byMonth: {} };
+      function expensesSoftwareMonthLabelsFromRows_(softwareRows) {
+        return expensesMonthLabelsFromRows_(softwareRows || []);
+      }
+
+      /** @return {!Object<string, string>} */
+      function expensesVendorColorMap_(softwareRows) {
+        var vendors = {};
+        for (var i = 0; i < (softwareRows || []).length; i++) {
+          vendors[expensesVendorKey_(softwareRows[i])] = true;
+        }
+        var list = Object.keys(vendors).sort(function (a, b) {
+          return a.localeCompare(b);
+        });
+        var map = {};
+        for (var vi = 0; vi < list.length; vi++) {
+          map[list[vi]] = expensesPalette_(vi % 12);
+        }
+        return map;
+      }
+
+      /**
+       * @param {!Array<!Object>} softwareRows
+       * @param {string} focusMonth YYYY-MM
+       * @return {{ points: !Array<!Object>, medX: number, medY: number, ytdYear: number, focusMonth: string, prevMonth: string, vendorColors: !Object<string, string> }}
+       */
+      function expensesBuildSoftwareVendorRiskPoints_(softwareRows, focusMonth) {
+        var monthLabels = expensesSoftwareMonthLabelsFromRows_(softwareRows);
+        var focusIdx = monthLabels.indexOf(focusMonth);
+        if (focusIdx < 0 && monthLabels.length) {
+          focusMonth = monthLabels[monthLabels.length - 1];
+          focusIdx = monthLabels.length - 1;
+        }
+        var prevMonth = focusIdx > 0 ? monthLabels[focusIdx - 1] : '';
+        var ytdYear = focusMonth.length >= 4 ? parseInt(focusMonth.slice(0, 4), 10) : new Date().getFullYear();
+        if (!isFinite(ytdYear)) ytdYear = new Date().getFullYear();
+
+        var byVendor = {};
+        for (var ri = 0; ri < (softwareRows || []).length; ri++) {
+          var row = softwareRows[ri];
+          var vendor = expensesVendorKey_(row);
+          if (!byVendor[vendor]) {
+            byVendor[vendor] = { byMonth: {}, txnFocus: 0, ytdThrough: 0 };
           }
-          var bucket = byCat[cat];
-          bucket.txn++;
+          var bucket = byVendor[vendor];
           var amt = Number(row.amount || 0);
           var mo = expenseMonthFromIso(row.effectiveDate);
-          if (mo) bucket.byMonth[mo] = (bucket.byMonth[mo] || 0) + amt;
-          var iso = String(row.effectiveDate || '');
-          if (iso.length >= 4 && parseInt(iso.slice(0, 4), 10) === ytdYear) {
-            bucket.ytd += amt;
+          if (mo) {
+            bucket.byMonth[mo] = (bucket.byMonth[mo] || 0) + amt;
+            if (mo === focusMonth) {
+              bucket.txnFocus++;
+            }
+            if (mo.slice(0, 4) === String(ytdYear) && mo <= focusMonth) {
+              bucket.ytdThrough += amt;
+            }
           }
         }
 
+        var vendorColors = expensesVendorColorMap_(softwareRows);
         var points = [];
         var momVals = [];
         var ytdVals = [];
-        for (var ck in byCat) {
-          if (!Object.prototype.hasOwnProperty.call(byCat, ck)) continue;
-          var st = byCat[ck];
-          if (st.txn < 1) continue;
-          var cur = lastMo ? st.byMonth[lastMo] || 0 : 0;
-          var prev = prevMo ? st.byMonth[prevMo] || 0 : 0;
+        for (var vk in byVendor) {
+          if (!Object.prototype.hasOwnProperty.call(byVendor, vk)) continue;
+          var st = byVendor[vk];
+          var cur = focusMonth ? st.byMonth[focusMonth] || 0 : 0;
+          var prev = prevMonth ? st.byMonth[prevMonth] || 0 : 0;
+          if (cur <= EXPENSES_AMOUNT_EPSILON_CLIENT_ && st.ytdThrough <= EXPENSES_AMOUNT_EPSILON_CLIENT_) {
+            continue;
+          }
           var mom;
           if (prev > EXPENSES_AMOUNT_EPSILON_CLIENT_) {
             mom = ((cur - prev) / prev) * 100;
-          } else if (cur > EXPENSES_AMOUNT_EPSILON_CLIENT_) {
-            mom = 100;
           } else {
             mom = 0;
           }
           momVals.push(mom);
-          ytdVals.push(st.ytd);
+          ytdVals.push(st.ytdThrough);
           points.push({
-            category: ck,
+            vendor: vk,
             momPct: mom,
-            ytd: st.ytd,
-            txn: st.txn,
+            ytd: st.ytdThrough,
+            txn: st.txnFocus,
+            monthSpend: cur,
+            color: vendorColors[vk] || expensesPalette_(0),
+            focusMonth: focusMonth,
           });
         }
 
@@ -12290,8 +12356,7 @@
           if (points[pi].txn > maxTxn) maxTxn = points[pi].txn;
         }
         for (var pj = 0; pj < points.length; pj++) {
-          var p = points[pj];
-          p.radius = 6 + Math.sqrt(p.txn / maxTxn) * 18;
+          points[pj].radius = 6 + Math.sqrt((points[pj].txn || 0) / maxTxn) * 18;
         }
 
         return {
@@ -12299,7 +12364,147 @@
           medX: expensesMedian_(momVals),
           medY: expensesMedian_(ytdVals),
           ytdYear: ytdYear,
+          focusMonth: focusMonth,
+          prevMonth: prevMonth,
+          vendorColors: vendorColors,
         };
+      }
+
+      function expensesSyncRiskMonthSlider_(monthLabels, focusMonth) {
+        if (!els.expRiskMonthSlider) return focusMonth;
+        var labels = monthLabels || [];
+        if (!labels.length) {
+          if (els.expRiskMonthControl) els.expRiskMonthControl.classList.add('d-none');
+          return '';
+        }
+        if (els.expRiskMonthControl) els.expRiskMonthControl.classList.remove('d-none');
+        var idx = labels.indexOf(focusMonth);
+        if (idx < 0) {
+          focusMonth = labels[labels.length - 1];
+          idx = labels.length - 1;
+        }
+        els.expRiskMonthSlider.min = '0';
+        els.expRiskMonthSlider.max = String(Math.max(0, labels.length - 1));
+        els.expRiskMonthSlider.value = String(idx);
+        els.expRiskMonthSlider.setAttribute('aria-valuemin', '0');
+        els.expRiskMonthSlider.setAttribute('aria-valuemax', String(Math.max(0, labels.length - 1)));
+        els.expRiskMonthSlider.setAttribute('aria-valuenow', String(idx));
+        if (els.expRiskMonthLabel) {
+          els.expRiskMonthLabel.textContent = expensesFormatMonthLabel_(focusMonth);
+        }
+        return focusMonth;
+      }
+
+      function renderExpensesRiskChart_() {
+        var softwareRows = expensesState.riskSoftwareRows || [];
+        var monthLabels = expensesState.riskMonthLabels || [];
+        var focusMonth = expensesSyncRiskMonthSlider_(monthLabels, expensesState.riskFocusMonth);
+
+        if (els.expRiskCatLabel) {
+          var matchLbl = String(expensesState.softwareCategoryMatch || 'software').trim();
+          els.expRiskCatLabel.textContent = matchLbl
+            ? matchLbl.charAt(0).toUpperCase() + matchLbl.slice(1)
+            : 'Software';
+        }
+
+        if (chartInstances.expensesRisk) {
+          try { chartInstances.expensesRisk.destroy(); } catch (e) { /* ignore */ }
+          chartInstances.expensesRisk = null;
+        }
+
+        var showRisk = softwareRows.length > 0 && monthLabels.length > 0 && focusMonth;
+        if (els.expChartRisk && els.expChartRisk.parentElement) {
+          els.expChartRisk.parentElement.style.display = showRisk ? '' : 'none';
+        }
+        if (els.expRiskEmpty) els.expRiskEmpty.classList.toggle('d-none', !!showRisk);
+
+        if (!showRisk || !els.expChartRisk || typeof Chart === 'undefined') {
+          return;
+        }
+
+        var riskModel = expensesBuildSoftwareVendorRiskPoints_(softwareRows, focusMonth);
+        expensesState.riskFocusMonth = riskModel.focusMonth;
+        var riskPts = riskModel.points || [];
+        if (!riskPts.length) {
+          if (els.expRiskEmpty) els.expRiskEmpty.classList.remove('d-none');
+          if (els.expChartRisk.parentElement) els.expChartRisk.parentElement.style.display = 'none';
+          return;
+        }
+
+        var bubbleData = [];
+        var bubbleColors = [];
+        for (var rpi = 0; rpi < riskPts.length; rpi++) {
+          var rp = riskPts[rpi];
+          bubbleData.push({
+            x: rp.momPct,
+            y: rp.ytd,
+            r: rp.radius,
+            vendor: rp.vendor,
+          });
+          bubbleColors.push(rp.color);
+        }
+
+        var prevLbl = riskModel.prevMonth
+          ? expensesFormatMonthLabel_(riskModel.prevMonth)
+          : 'prior month';
+        var focusLbl = expensesFormatMonthLabel_(riskModel.focusMonth);
+        var ctxRisk = els.expChartRisk.getContext('2d');
+        chartInstances.expensesRisk = new Chart(ctxRisk, {
+          type: 'bubble',
+          data: {
+            datasets: [{
+              label: 'Vendors · ' + focusLbl,
+              data: bubbleData,
+              backgroundColor: bubbleColors,
+              borderColor: bubbleColors,
+              borderWidth: 1,
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function (ctxTip) {
+                    var raw = ctxTip.raw || {};
+                    var pt = riskPts[ctxTip.dataIndex];
+                    return [
+                      String(raw.vendor || ''),
+                      'Month spend: ' + formatMoneyCompact(Number(pt ? pt.monthSpend : 0)),
+                      'MoM vs ' + prevLbl + ': ' + formatPct(Number(raw.x || 0)) + '%',
+                      'YTD through ' + focusLbl + ': ' + formatMoneyCompact(Number(raw.y || 0)),
+                      'Transactions: ' + (pt ? pt.txn : '—'),
+                    ];
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: 'MoM growth % (' + focusLbl + ' vs ' + prevLbl + ')',
+                },
+                ticks: { callback: function (xv) { return formatPct(Number(xv)) + '%'; } },
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: riskModel.ytdYear + ' YTD spend (through ' + focusLbl + ')',
+                },
+                ticks: {
+                  callback: function (yv) {
+                    return formatMoneyCompact(Number(yv)).replace(/\$/g, '');
+                  },
+                },
+              },
+            },
+          },
+          plugins: [expensesRiskQuadrantPlugin_(riskModel.medX, riskModel.medY)],
+        });
+        expensesAttachRiskChartClick_(chartInstances.expensesRisk, riskPts);
       }
 
       function expensesRiskQuadrantPlugin_(medX, medY) {
@@ -12866,13 +13071,22 @@
           var idx = elsHit[0].index;
           var pt = riskPoints[idx];
           if (!pt) return;
+          var focusMonth = pt.focusMonth || expensesState.riskFocusMonth || '';
           var allRows = ((expensesState.payload && expensesState.payload.rows) || []);
           var base = expensesSliceByDomFilters_(allRows, false);
           var drill = [];
           for (var i = 0; i < base.length; i++) {
-            if (expensesCatLabel_(expensesCatKey_(base[i])) === pt.category) drill.push(base[i]);
+            var row = base[i];
+            if (!expensesIsSoftwareCategory_(row)) continue;
+            if (focusMonth && expenseMonthFromIso(row.effectiveDate) !== focusMonth) continue;
+            if (expensesVendorKey_(row) !== pt.vendor) continue;
+            drill.push(row);
           }
-          openExpensesDrawer_('Category: ' + pt.category, drill, 'risk|' + pt.category);
+          openExpensesDrawer_(
+            (focusMonth ? expensesFormatMonthLabel_(focusMonth) + ' · ' : '') + pt.vendor,
+            drill,
+            'risk|' + focusMonth + '|' + pt.vendor
+          );
         };
         chart.update('none');
       }
@@ -12895,7 +13109,14 @@
         }
         var vendorRank = expensesRankTotals_(softwareRows, expensesVendorKey_, vendorN);
         var vendorTopKeys = vendorRank.map(function (x) { return x.key; });
-        var riskModel = expensesBuildCategoryRiskPoints_(filteredRows);
+        var riskMonthLabels = expensesSoftwareMonthLabelsFromRows_(softwareRows);
+        expensesState.riskSoftwareRows = softwareRows;
+        expensesState.riskMonthLabels = riskMonthLabels;
+        if (!expensesState.riskFocusMonth || riskMonthLabels.indexOf(expensesState.riskFocusMonth) < 0) {
+          expensesState.riskFocusMonth = riskMonthLabels.length
+            ? riskMonthLabels[riskMonthLabels.length - 1]
+            : '';
+        }
 
         if (els.expSoftwareCatLabel) {
           var matchLbl = String(expensesState.softwareCategoryMatch || 'software').trim();
@@ -13112,82 +13333,20 @@
               expensesAttachSoftwareChartClick_(chartInstances.expensesSoftware, monthLabels, vendorTopKeys);
             }
 
-            var riskPts = riskModel.points || [];
-            var showRisk = riskPts.length > 0 && monthLabels.length > 0;
-            if (els.expChartRisk) {
-              if (els.expRiskEmpty) els.expRiskEmpty.classList.toggle('d-none', showRisk);
-              els.expChartRisk.parentElement.style.display = showRisk ? '' : 'none';
-            }
-            if (showRisk && els.expChartRisk) {
-              var bubbleData = [];
-              var bubbleColors = [];
-              for (var rpi = 0; rpi < riskPts.length; rpi++) {
-                var rp = riskPts[rpi];
-                bubbleData.push({ x: rp.momPct, y: rp.ytd, r: rp.radius, category: rp.category });
-                bubbleColors.push(expensesPalette_(rpi));
-              }
-              var medX = riskModel.medX;
-              var medY = riskModel.medY;
-              var ctxRisk = els.expChartRisk.getContext('2d');
-              chartInstances.expensesRisk = new Chart(ctxRisk, {
-                type: 'bubble',
-                data: {
-                  datasets: [{
-                    label: 'Categories (' + riskModel.ytdYear + ' YTD)',
-                    data: bubbleData,
-                    backgroundColor: bubbleColors,
-                    borderColor: bubbleColors.map(function (c) { return c; }),
-                    borderWidth: 1,
-                  }],
-                },
-                options: {
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                      callbacks: {
-                        label: function (ctxTip) {
-                          var raw = ctxTip.raw || {};
-                          return [
-                            String(raw.category || ''),
-                            'MoM: ' + formatPct(Number(raw.x || 0)) + '%',
-                            'YTD: ' + formatMoneyCompact(Number(raw.y || 0)),
-                            'Transactions: ' + (riskPts[ctxTip.dataIndex] ? riskPts[ctxTip.dataIndex].txn : '—'),
-                          ];
-                        },
-                      },
-                    },
-                  },
-                  scales: {
-                    x: {
-                      title: { display: true, text: 'Month-over-month growth %' },
-                      ticks: { callback: function (xv) { return formatPct(Number(xv)) + '%'; } },
-                    },
-                    y: {
-                      title: { display: true, text: riskModel.ytdYear + ' YTD spend' },
-                      ticks: {
-                        callback: function (yv) {
-                          return formatMoneyCompact(Number(yv)).replace(/\$/g, '');
-                        },
-                      },
-                    },
-                  },
-                },
-                plugins: [expensesRiskQuadrantPlugin_(medX, medY)],
-              });
-              expensesAttachRiskChartClick_(chartInstances.expensesRisk, riskPts);
-            }
+            renderExpensesRiskChart_();
           })
           .catch(function (err) {
             console && console.warn && console.warn('Expenses charts: Chart.js load failed', err);
           });
         } else {
+          expensesState.riskSoftwareRows = [];
+          expensesState.riskMonthLabels = [];
           if (els.expSoftwareEmpty) els.expSoftwareEmpty.classList.remove('d-none');
           if (els.expChartSoftware && els.expChartSoftware.parentElement) {
             els.expChartSoftware.parentElement.style.display = 'none';
           }
           if (els.expRiskEmpty) els.expRiskEmpty.classList.remove('d-none');
+          if (els.expRiskMonthControl) els.expRiskMonthControl.classList.add('d-none');
           if (els.expChartRisk && els.expChartRisk.parentElement) {
             els.expChartRisk.parentElement.style.display = 'none';
           }
@@ -13562,6 +13721,26 @@
         if (els.expSearch) els.expSearch.addEventListener('input', expensesScheduleFilterRender_);
         if (els.expClearFiltersBtn) {
           els.expClearFiltersBtn.addEventListener('click', clearExpensesFilters_);
+        }
+        if (els.expRiskMonthSlider) {
+          els.expRiskMonthSlider.addEventListener('input', function () {
+            var labels = expensesState.riskMonthLabels || [];
+            var idx = parseInt(els.expRiskMonthSlider.value, 10);
+            if (!labels.length || !isFinite(idx) || idx < 0 || idx >= labels.length) return;
+            expensesState.riskFocusMonth = labels[idx];
+            if (els.expRiskMonthLabel) {
+              els.expRiskMonthLabel.textContent = expensesFormatMonthLabel_(expensesState.riskFocusMonth);
+            }
+            els.expRiskMonthSlider.setAttribute('aria-valuenow', String(idx));
+            if (typeof Chart === 'undefined') {
+              loadChartJs().then(function () {
+                renderExpensesRiskChart_();
+              });
+            } else {
+              renderExpensesRiskChart_();
+            }
+            logActivity_('expenses_risk_month', 'expenses', expensesState.riskFocusMonth);
+          });
         }
 
         if (els.expCustTbody) {
