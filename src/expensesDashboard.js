@@ -1,5 +1,5 @@
 /**
- * PRD version 2.5.4 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.5.5 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Spreadsheet-backed **Expenses** dashboard (feature 015). Reads expense lines
  * from AUTH_SPREADSHEET_ID tab AUTH_EXPENSES_SHEET_NAME (default `expenses`).
@@ -7,7 +7,8 @@
  * Script Properties (see docs/features/015-expenses-dashboard.md):
  *   AUTH_EXPENSES_SHEET_NAME, AUTH_EXPENSES_MAX_ROWS
  *   AUTH_EXPENSES_COL_* column header overrides
- *   EXPENSES_CHART_CATEGORY_TOP_N, EXPENSES_CHART_DEPT_TOP_N
+ *   EXPENSES_CHART_CATEGORY_TOP_N, EXPENSES_CHART_DEPT_TOP_N,
+ *   EXPENSES_CHART_VENDOR_TOP_N, EXPENSES_SOFTWARE_CATEGORY_MATCH
  */
 
 /** @const {number} */
@@ -105,6 +106,8 @@ function getExpensesProps_() {
     colAttendees: str('AUTH_EXPENSES_COL_ATTENDEES', 'Attendees'),
     categoryTopN: num('EXPENSES_CHART_CATEGORY_TOP_N', 10),
     deptTopN: num('EXPENSES_CHART_DEPT_TOP_N', 10),
+    vendorTopN: num('EXPENSES_CHART_VENDOR_TOP_N', 12),
+    softwareCategoryMatch: str('EXPENSES_SOFTWARE_CATEGORY_MATCH', 'software'),
   };
 }
 
@@ -441,6 +444,8 @@ function buildExpensesDashboardPayload_() {
     chartConfig: {
       categoryTopN: cfg.categoryTopN,
       deptTopN: cfg.deptTopN,
+      vendorTopN: cfg.vendorTopN,
+      softwareCategoryMatch: cfg.softwareCategoryMatch,
     },
   };
 }

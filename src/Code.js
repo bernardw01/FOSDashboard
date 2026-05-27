@@ -1,11 +1,11 @@
 /**
- * PRD version 2.5.4 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.5.5 — sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard — Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.5.4';
+var FOS_PRD_VERSION = '2.5.5';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '2.5.4';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'Labor hours company multi-select filter; zero-hours roster fix (60-day fetch).';
+  'Expenses side-by-side charts, software-by-vendor chart, category risk map.';
 
 /**
  * @return {string}

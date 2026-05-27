@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.5.4 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.5.5 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -222,6 +222,27 @@
       }
       #panel-revenue-review .fos-rr-kpi-jump {
         cursor: default;
+      }
+    }
+
+    #panel-expenses .exp-chart-canvas-wrap {
+      position: relative;
+      min-height: 280px;
+      max-height: 420px;
+    }
+    #panel-expenses .exp-risk-map-wrap {
+      position: relative;
+      min-height: 340px;
+      max-height: 480px;
+    }
+    #panel-expenses .exp-risk-interpret {
+      color: var(--ag-text-muted);
+      display: grid;
+      gap: 0.35rem 1.5rem;
+    }
+    @media (min-width: 768px) {
+      #panel-expenses .exp-risk-interpret {
+        grid-template-columns: 1fr 1fr;
       }
     }
 
@@ -3577,20 +3598,53 @@
               <div id="exp-sankey-wrap" class="fos-sankey-wrap" role="img" aria-label="Expense flow Sankey diagram"></div>
             </section>
 
-            <section class="fos-section-card mb-3" aria-labelledby="exp-chart-dept-h">
-              <h2 id="exp-chart-dept-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Spend by department by month</h2>
-              <p class="small mb-2" style="color: var(--ag-text-muted)">Click a segment to open matching lines in the drawer.</p>
-              <div class="position-relative" style="min-height: 280px; max-height: 420px">
-                <canvas id="exp-chart-dept" role="img" aria-label="Spend by department chart"></canvas>
+            <div class="row g-3 mb-3">
+              <div class="col-12 col-xl-6">
+                <section class="fos-section-card h-100" aria-labelledby="exp-chart-dept-h">
+                  <h2 id="exp-chart-dept-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Spend by department by month</h2>
+                  <p class="small mb-2" style="color: var(--ag-text-muted)">Click a segment to open matching lines in the drawer.</p>
+                  <div class="exp-chart-canvas-wrap">
+                    <canvas id="exp-chart-dept" role="img" aria-label="Spend by department chart"></canvas>
+                  </div>
+                </section>
               </div>
+              <div class="col-12 col-xl-6">
+                <section class="fos-section-card h-100" aria-labelledby="exp-chart-cat-h">
+                  <h2 id="exp-chart-cat-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Spend by category by month</h2>
+                  <p class="small mb-2" style="color: var(--ag-text-muted)">Blank categories appear as Uncategorized. Long tail rolls into Other.</p>
+                  <div class="exp-chart-canvas-wrap">
+                    <canvas id="exp-chart-category" role="img" aria-label="Spend by category chart"></canvas>
+                  </div>
+                </section>
+              </div>
+            </div>
+
+            <section class="fos-section-card mb-3" aria-labelledby="exp-chart-software-h">
+              <h2 id="exp-chart-software-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Software spend by vendor by month</h2>
+              <p class="small mb-2" style="color: var(--ag-text-muted)">
+                <span id="exp-software-cat-label">Software</span> category only; vendors outside the top N roll into Other. Click a segment for line detail.
+              </p>
+              <div class="exp-chart-canvas-wrap">
+                <canvas id="exp-chart-software" role="img" aria-label="Software spend by vendor chart"></canvas>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="exp-software-empty" style="color: var(--ag-text-muted)">No software-category spend in the current filter.</p>
             </section>
 
-            <section class="fos-section-card mb-3" aria-labelledby="exp-chart-cat-h">
-              <h2 id="exp-chart-cat-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Spend by category by month</h2>
-              <p class="small mb-2" style="color: var(--ag-text-muted)">Blank categories appear as Uncategorized. Long tail rolls into Other.</p>
-              <div class="position-relative" style="min-height: 280px; max-height: 420px">
-                <canvas id="exp-chart-category" role="img" aria-label="Spend by category chart"></canvas>
+            <section class="fos-section-card mb-3" aria-labelledby="exp-risk-heading">
+              <h2 id="exp-risk-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Expense category risk map</h2>
+              <p class="small mb-2" style="color: var(--ag-text-muted)">
+                Each bubble is one expense category in the current filter. X = month-over-month growth (latest vs prior month in view); Y = calendar year-to-date spend; size = transaction count. Dashed lines mark the median on each axis.
+              </p>
+              <ul class="exp-risk-interpret list-unstyled small mb-3" aria-label="Risk map interpretation">
+                <li><strong>Top-right</strong> — dangerous growth + high spend</li>
+                <li><strong>Bottom-right</strong> — fast growth but still small</li>
+                <li><strong>Top-left</strong> — expensive but stable</li>
+                <li><strong>Bottom-left</strong> — low spend and stable or declining</li>
+              </ul>
+              <div class="exp-risk-map-wrap">
+                <canvas id="exp-chart-risk" role="img" aria-label="Expense category risk bubble chart"></canvas>
               </div>
+              <p class="small mb-0 mt-2 d-none" id="exp-risk-empty" style="color: var(--ag-text-muted)">Not enough monthly history to plot categories (need at least one month with spend).</p>
             </section>
 
             <section class="fos-section-card mb-3" aria-labelledby="exp-cust-h">
@@ -3862,6 +3916,8 @@
         utilRole: null, utilPerson: null,
         expensesDept: null,
         expensesCategory: null,
+        expensesSoftware: null,
+        expensesRisk: null,
       };
       var currentTablePayload = null;
       var currentTab = 'allActive';
@@ -4221,6 +4277,11 @@
         expKpiDeptsSub: document.getElementById('exp-kpi-depts-sub'),
         expChartDept: document.getElementById('exp-chart-dept'),
         expChartCategory: document.getElementById('exp-chart-category'),
+        expChartSoftware: document.getElementById('exp-chart-software'),
+        expChartRisk: document.getElementById('exp-chart-risk'),
+        expSoftwareEmpty: document.getElementById('exp-software-empty'),
+        expSoftwareCatLabel: document.getElementById('exp-software-cat-label'),
+        expRiskEmpty: document.getElementById('exp-risk-empty'),
         expCustTbody: document.getElementById('exp-cust-tbody'),
         expCustEmpty: document.getElementById('exp-cust-empty'),
         dataSourceSelect: document.getElementById('fos-data-source'),
@@ -12075,6 +12136,8 @@
         payload: null,
         chartDeptTopN: 10,
         chartCategoryTopN: 10,
+        chartVendorTopN: 12,
+        softwareCategoryMatch: 'software',
         drawerCsv: '',
         filters: {
           departments: {},
@@ -12120,6 +12183,150 @@
           try { chartInstances.expensesCategory.destroy(); } catch (e) { /* ignore */ }
           chartInstances.expensesCategory = null;
         }
+        if (chartInstances.expensesSoftware) {
+          try { chartInstances.expensesSoftware.destroy(); } catch (e) { /* ignore */ }
+          chartInstances.expensesSoftware = null;
+        }
+        if (chartInstances.expensesRisk) {
+          try { chartInstances.expensesRisk.destroy(); } catch (e) { /* ignore */ }
+          chartInstances.expensesRisk = null;
+        }
+      }
+
+      function expensesMonthLabelsFromRows_(rows) {
+        var monthSeen = {};
+        for (var m = 0; m < (rows || []).length; m++) {
+          var mk = expenseMonthFromIso(rows[m].effectiveDate);
+          if (mk) monthSeen[mk] = true;
+        }
+        return Object.keys(monthSeen).sort();
+      }
+
+      function expensesIsSoftwareCategory_(row) {
+        var needle = String(expensesState.softwareCategoryMatch || 'software').trim().toLowerCase();
+        if (!needle) return false;
+        var cat = expensesCatLabel_(expensesCatKey_(row)).toLowerCase();
+        return cat.indexOf(needle) >= 0;
+      }
+
+      function expensesVendorKey_(row) {
+        var v = row && row.vendor != null ? String(row.vendor).trim() : '';
+        return v || '(No vendor)';
+      }
+
+      function expensesMedian_(nums) {
+        var arr = (nums || []).filter(function (n) { return isFinite(n); }).sort(function (a, b) {
+          return a - b;
+        });
+        if (!arr.length) return 0;
+        var mid = Math.floor(arr.length / 2);
+        return arr.length % 2 ? arr[mid] : (arr[mid - 1] + arr[mid]) / 2;
+      }
+
+      /**
+       * @param {!Array<!Object>} filteredRows
+       * @return {{ points: !Array<!Object>, medX: number, medY: number, ytdYear: number }}
+       */
+      function expensesBuildCategoryRiskPoints_(filteredRows) {
+        var ytdYear = new Date().getFullYear();
+        for (var yi = 0; yi < filteredRows.length; yi++) {
+          var isoY = String(filteredRows[yi].effectiveDate || '');
+          if (isoY.length >= 4) {
+            var yr = parseInt(isoY.slice(0, 4), 10);
+            if (isFinite(yr) && yr > ytdYear) ytdYear = yr;
+          }
+        }
+        var monthLabels = expensesMonthLabelsFromRows_(filteredRows);
+        var lastMo = monthLabels.length ? monthLabels[monthLabels.length - 1] : '';
+        var prevMo = monthLabels.length > 1 ? monthLabels[monthLabels.length - 2] : '';
+
+        var byCat = {};
+        for (var ri = 0; ri < filteredRows.length; ri++) {
+          var row = filteredRows[ri];
+          var cat = expensesCatLabel_(expensesCatKey_(row));
+          if (!byCat[cat]) {
+            byCat[cat] = { ytd: 0, txn: 0, byMonth: {} };
+          }
+          var bucket = byCat[cat];
+          bucket.txn++;
+          var amt = Number(row.amount || 0);
+          var mo = expenseMonthFromIso(row.effectiveDate);
+          if (mo) bucket.byMonth[mo] = (bucket.byMonth[mo] || 0) + amt;
+          var iso = String(row.effectiveDate || '');
+          if (iso.length >= 4 && parseInt(iso.slice(0, 4), 10) === ytdYear) {
+            bucket.ytd += amt;
+          }
+        }
+
+        var points = [];
+        var momVals = [];
+        var ytdVals = [];
+        for (var ck in byCat) {
+          if (!Object.prototype.hasOwnProperty.call(byCat, ck)) continue;
+          var st = byCat[ck];
+          if (st.txn < 1) continue;
+          var cur = lastMo ? st.byMonth[lastMo] || 0 : 0;
+          var prev = prevMo ? st.byMonth[prevMo] || 0 : 0;
+          var mom;
+          if (prev > EXPENSES_AMOUNT_EPSILON_CLIENT_) {
+            mom = ((cur - prev) / prev) * 100;
+          } else if (cur > EXPENSES_AMOUNT_EPSILON_CLIENT_) {
+            mom = 100;
+          } else {
+            mom = 0;
+          }
+          momVals.push(mom);
+          ytdVals.push(st.ytd);
+          points.push({
+            category: ck,
+            momPct: mom,
+            ytd: st.ytd,
+            txn: st.txn,
+          });
+        }
+
+        var maxTxn = 1;
+        for (var pi = 0; pi < points.length; pi++) {
+          if (points[pi].txn > maxTxn) maxTxn = points[pi].txn;
+        }
+        for (var pj = 0; pj < points.length; pj++) {
+          var p = points[pj];
+          p.radius = 6 + Math.sqrt(p.txn / maxTxn) * 18;
+        }
+
+        return {
+          points: points,
+          medX: expensesMedian_(momVals),
+          medY: expensesMedian_(ytdVals),
+          ytdYear: ytdYear,
+        };
+      }
+
+      function expensesRiskQuadrantPlugin_(medX, medY) {
+        return {
+          id: 'expRiskQuadrants',
+          afterDraw: function (chart) {
+            if (!chart || !chart.scales || !chart.scales.x || !chart.scales.y) return;
+            var xScale = chart.scales.x;
+            var yScale = chart.scales.y;
+            var x0 = xScale.getPixelForValue(medX);
+            var y0 = yScale.getPixelForValue(medY);
+            var ctx = chart.ctx;
+            ctx.save();
+            ctx.setLineDash([5, 5]);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x0, chart.chartArea.top);
+            ctx.lineTo(x0, chart.chartArea.bottom);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(chart.chartArea.left, y0);
+            ctx.lineTo(chart.chartArea.right, y0);
+            ctx.stroke();
+            ctx.restore();
+          },
+        };
       }
 
       function expensesEmployeeKey_(row) {
@@ -12619,9 +12826,61 @@
         chart.update('none');
       }
 
+      function expensesAttachSoftwareChartClick_(chart, monthLabels, vendorTopKeys) {
+        chart.options.onClick = function (evt) {
+          var elsHit = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+          if (!elsHit.length) return;
+          var hi = elsHit[0];
+          var month = monthLabels[hi.index];
+          var dsIdx = hi.datasetIndex;
+          var lbl = chart.data.datasets[dsIdx] ? String(chart.data.datasets[dsIdx].label || '') : '';
+          if (!month || !lbl) return;
+          var allRows = ((expensesState.payload && expensesState.payload.rows) || []);
+          var base = expensesSliceByDomFilters_(allRows, false);
+          var drill = [];
+          for (var i = 0; i < base.length; i++) {
+            var row = base[i];
+            if (!expensesIsSoftwareCategory_(row)) continue;
+            if (expenseMonthFromIso(row.effectiveDate) !== month) continue;
+            var vk = expensesVendorKey_(row);
+            if (lbl === 'Other') {
+              var inTop = false;
+              for (var t = 0; t < vendorTopKeys.length; t++) {
+                if (vendorTopKeys[t] === vk) { inTop = true; break; }
+              }
+              if (!inTop) drill.push(row);
+            } else if (vk === lbl) {
+              drill.push(row);
+            }
+          }
+          openExpensesDrawer_(month + ' · ' + lbl + ' (software)', drill,
+            'software|' + expenseMonthToken_(month) + '|' + lbl);
+        };
+        chart.update('none');
+      }
+
+      function expensesAttachRiskChartClick_(chart, riskPoints) {
+        chart.options.onClick = function (evt) {
+          var elsHit = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+          if (!elsHit.length) return;
+          var idx = elsHit[0].index;
+          var pt = riskPoints[idx];
+          if (!pt) return;
+          var allRows = ((expensesState.payload && expensesState.payload.rows) || []);
+          var base = expensesSliceByDomFilters_(allRows, false);
+          var drill = [];
+          for (var i = 0; i < base.length; i++) {
+            if (expensesCatLabel_(expensesCatKey_(base[i])) === pt.category) drill.push(base[i]);
+          }
+          openExpensesDrawer_('Category: ' + pt.category, drill, 'risk|' + pt.category);
+        };
+        chart.update('none');
+      }
+
       function renderExpensesChartsAndTables_(filteredRows) {
         var deptN = expensesState.chartDeptTopN || 10;
         var catN = expensesState.chartCategoryTopN || 10;
+        var vendorN = expensesState.chartVendorTopN || 12;
         var deptRank = expensesRankTotals_(filteredRows, function (row) {
           return String(row.department || '');
         }, deptN);
@@ -12629,12 +12888,21 @@
         var catRank = expensesRankTotals_(filteredRows, expensesCatKey_, catN);
         var catTopKeys = catRank.map(function (x) { return x.key; });
 
-        var monthSeen = {};
-        for (var m = 0; m < filteredRows.length; m++) {
-          var mk = expenseMonthFromIso(filteredRows[m].effectiveDate);
-          if (mk) monthSeen[mk] = true;
+        var monthLabels = expensesMonthLabelsFromRows_(filteredRows);
+        var softwareRows = [];
+        for (var sr = 0; sr < filteredRows.length; sr++) {
+          if (expensesIsSoftwareCategory_(filteredRows[sr])) softwareRows.push(filteredRows[sr]);
         }
-        var monthLabels = Object.keys(monthSeen).sort();
+        var vendorRank = expensesRankTotals_(softwareRows, expensesVendorKey_, vendorN);
+        var vendorTopKeys = vendorRank.map(function (x) { return x.key; });
+        var riskModel = expensesBuildCategoryRiskPoints_(filteredRows);
+
+        if (els.expSoftwareCatLabel) {
+          var matchLbl = String(expensesState.softwareCategoryMatch || 'software').trim();
+          els.expSoftwareCatLabel.textContent = matchLbl
+            ? matchLbl.charAt(0).toUpperCase() + matchLbl.slice(1)
+            : 'Software';
+        }
 
         expensesDestroyCharts_();
 
@@ -12773,10 +13041,156 @@
               },
             });
             expensesAttachChartClick_(chartInstances.expensesCategory, 'category', monthLabels, catTopKeys);
+
+            var hasSoftware = softwareRows.length > 0 && monthLabels.length > 0;
+            if (els.expChartSoftware) {
+              if (els.expSoftwareEmpty) els.expSoftwareEmpty.classList.toggle('d-none', hasSoftware);
+              els.expChartSoftware.parentElement.style.display = hasSoftware ? '' : 'none';
+            }
+            if (hasSoftware && els.expChartSoftware) {
+              var swDatasets = [];
+              var vkix = 0;
+              for (var vi = 0; vi < vendorTopKeys.length; vi++) {
+                var vlab = vendorTopKeys[vi];
+                var vPts = [];
+                for (var vmi = 0; vmi < monthLabels.length; vmi++) {
+                  var vsum = 0;
+                  for (var vri = 0; vri < softwareRows.length; vri++) {
+                    var sv = softwareRows[vri];
+                    if (expenseMonthFromIso(sv.effectiveDate) !== monthLabels[vmi]) continue;
+                    if (expensesVendorKey_(sv) === vlab) vsum += Number(sv.amount || 0);
+                  }
+                  vPts.push(vsum);
+                }
+                swDatasets.push({
+                  label: vlab,
+                  data: vPts,
+                  backgroundColor: expensesPalette_(vkix++),
+                  stack: 'swStack',
+                });
+              }
+              var otherVPts = [];
+              for (var ovm = 0; ovm < monthLabels.length; ovm++) {
+                var ovs = 0;
+                for (var ovr = 0; ovr < softwareRows.length; ovr++) {
+                  var sx = softwareRows[ovr];
+                  if (expenseMonthFromIso(sx.effectiveDate) !== monthLabels[ovm]) continue;
+                  var vk2 = expensesVendorKey_(sx);
+                  if (vendorTopKeys.indexOf(vk2) < 0) ovs += Number(sx.amount || 0);
+                }
+                otherVPts.push(ovs);
+              }
+              if (otherVPts.some(function (v) { return v > 0.009; })) {
+                swDatasets.push({
+                  label: 'Other',
+                  data: otherVPts,
+                  backgroundColor: 'rgba(160, 160, 176, 0.55)',
+                  stack: 'swStack',
+                });
+              }
+              var ctxSw = els.expChartSoftware.getContext('2d');
+              chartInstances.expensesSoftware = new Chart(ctxSw, {
+                type: 'bar',
+                data: { labels: monthLabels, datasets: swDatasets },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } },
+                  scales: {
+                    x: { stacked: true, ticks: { maxRotation: 45 } },
+                    y: {
+                      stacked: true,
+                      ticks: {
+                        callback: function (vlSw) {
+                          return formatMoneyCompact(Number(vlSw)).replace(/\$/g, '');
+                        },
+                      },
+                    },
+                  },
+                },
+              });
+              expensesAttachSoftwareChartClick_(chartInstances.expensesSoftware, monthLabels, vendorTopKeys);
+            }
+
+            var riskPts = riskModel.points || [];
+            var showRisk = riskPts.length > 0 && monthLabels.length > 0;
+            if (els.expChartRisk) {
+              if (els.expRiskEmpty) els.expRiskEmpty.classList.toggle('d-none', showRisk);
+              els.expChartRisk.parentElement.style.display = showRisk ? '' : 'none';
+            }
+            if (showRisk && els.expChartRisk) {
+              var bubbleData = [];
+              var bubbleColors = [];
+              for (var rpi = 0; rpi < riskPts.length; rpi++) {
+                var rp = riskPts[rpi];
+                bubbleData.push({ x: rp.momPct, y: rp.ytd, r: rp.radius, category: rp.category });
+                bubbleColors.push(expensesPalette_(rpi));
+              }
+              var medX = riskModel.medX;
+              var medY = riskModel.medY;
+              var ctxRisk = els.expChartRisk.getContext('2d');
+              chartInstances.expensesRisk = new Chart(ctxRisk, {
+                type: 'bubble',
+                data: {
+                  datasets: [{
+                    label: 'Categories (' + riskModel.ytdYear + ' YTD)',
+                    data: bubbleData,
+                    backgroundColor: bubbleColors,
+                    borderColor: bubbleColors.map(function (c) { return c; }),
+                    borderWidth: 1,
+                  }],
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                      callbacks: {
+                        label: function (ctxTip) {
+                          var raw = ctxTip.raw || {};
+                          return [
+                            String(raw.category || ''),
+                            'MoM: ' + formatPct(Number(raw.x || 0)) + '%',
+                            'YTD: ' + formatMoneyCompact(Number(raw.y || 0)),
+                            'Transactions: ' + (riskPts[ctxTip.dataIndex] ? riskPts[ctxTip.dataIndex].txn : '—'),
+                          ];
+                        },
+                      },
+                    },
+                  },
+                  scales: {
+                    x: {
+                      title: { display: true, text: 'Month-over-month growth %' },
+                      ticks: { callback: function (xv) { return formatPct(Number(xv)) + '%'; } },
+                    },
+                    y: {
+                      title: { display: true, text: riskModel.ytdYear + ' YTD spend' },
+                      ticks: {
+                        callback: function (yv) {
+                          return formatMoneyCompact(Number(yv)).replace(/\$/g, '');
+                        },
+                      },
+                    },
+                  },
+                },
+                plugins: [expensesRiskQuadrantPlugin_(medX, medY)],
+              });
+              expensesAttachRiskChartClick_(chartInstances.expensesRisk, riskPts);
+            }
           })
           .catch(function (err) {
             console && console.warn && console.warn('Expenses charts: Chart.js load failed', err);
           });
+        } else {
+          if (els.expSoftwareEmpty) els.expSoftwareEmpty.classList.remove('d-none');
+          if (els.expChartSoftware && els.expChartSoftware.parentElement) {
+            els.expChartSoftware.parentElement.style.display = 'none';
+          }
+          if (els.expRiskEmpty) els.expRiskEmpty.classList.remove('d-none');
+          if (els.expChartRisk && els.expChartRisk.parentElement) {
+            els.expChartRisk.parentElement.style.display = 'none';
+          }
         }
 
         if (els.expCustTbody) {
@@ -13003,6 +13417,11 @@
           expensesState.chartDeptTopN = Number(payload.chartConfig.deptTopN) || expensesState.chartDeptTopN;
           expensesState.chartCategoryTopN =
             Number(payload.chartConfig.categoryTopN) || expensesState.chartCategoryTopN;
+          expensesState.chartVendorTopN =
+            Number(payload.chartConfig.vendorTopN) || expensesState.chartVendorTopN;
+          if (payload.chartConfig.softwareCategoryMatch) {
+            expensesState.softwareCategoryMatch = String(payload.chartConfig.softwareCategoryMatch);
+          }
         }
         if (els.expPartialNote && payload.partial) {
           els.expPartialNote.textContent =

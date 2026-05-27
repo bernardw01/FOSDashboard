@@ -1,5 +1,5 @@
 /**
- * PRD version 2.5.4 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.5.5 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -121,6 +121,8 @@ function getAdminSettingsCatalog_() {
     adminSettingEntry_('AUTH_EXPENSES_COL_ATTENDEES', 'expenses-dashboard', 'Attendees header', '', 'string', 'Attendees'),
     adminSettingEntry_('EXPENSES_CHART_CATEGORY_TOP_N', 'expenses-dashboard', 'Category chart top-N', 'Largest categories; remainder merges into Other.', 'number', 10, { min: 3, max: 30 }),
     adminSettingEntry_('EXPENSES_CHART_DEPT_TOP_N', 'expenses-dashboard', 'Department chart top-N', 'Largest departments; remainder merges into Other.', 'number', 10, { min: 3, max: 30 }),
+    adminSettingEntry_('EXPENSES_CHART_VENDOR_TOP_N', 'expenses-dashboard', 'Software vendor chart top-N', 'Largest vendors in the software-category chart; remainder merges into Other.', 'number', 12, { min: 3, max: 30 }),
+    adminSettingEntry_('EXPENSES_SOFTWARE_CATEGORY_MATCH', 'expenses-dashboard', 'Software category match', 'Case-insensitive substring matched against the Category column for the software vendor chart.', 'string', 'software'),
     adminSettingEntry_(
       'FIBERY_HOST',
       'fibery-api',
