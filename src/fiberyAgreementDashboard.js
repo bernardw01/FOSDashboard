@@ -1,5 +1,5 @@
 /**
- * PRD version 2.4.1 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.5.2 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement Dashboard orchestrator (route id `agreement-dashboard`, panel
  * `#panel-agreement-dashboard`). No persistent server-side cache

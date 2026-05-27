@@ -1,5 +1,5 @@
 /**
- * PRD version 2.4.1 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.5.2 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -16,6 +16,7 @@ var ADMIN_SETTINGS_GROUPS_ = [
   { id: 'labor-hours', title: 'Labor hours' },
   { id: 'delivery', title: 'Delivery — Projects & P&L' },
   { id: 'snapshots', title: 'Historical snapshots' },
+  { id: 'expenses-dashboard', title: 'Expenses dashboard' },
 ];
 
 /**
@@ -100,6 +101,26 @@ function getAdminSettingsCatalog_() {
       'boolean',
       true
     ),
+    adminSettingEntry_('AUTH_EXPENSES_SHEET_NAME', 'expenses-dashboard', 'Expenses tab name', 'Sheet tab for expense-line export (`expenses`).', 'string', 'expenses'),
+    adminSettingEntry_('AUTH_EXPENSES_MAX_ROWS', 'expenses-dashboard', 'Expenses row cap', 'Maximum data rows loaded per refresh (protects quotas).', 'number', 20000, { min: 500, max: 200000 }),
+    adminSettingEntry_('AUTH_EXPENSES_COL_PURCHASE_DATE', 'expenses-dashboard', 'Purchase date header', 'Column header for purchase date.', 'string', 'Purchase date'),
+    adminSettingEntry_('AUTH_EXPENSES_COL_POSTED_DATE', 'expenses-dashboard', 'Posted date header', 'Column header for posted date.', 'string', 'Posted Date'),
+    adminSettingEntry_('AUTH_EXPENSES_COL_SUBMISSION_DATE', 'expenses-dashboard', 'Submission date header', 'Column header for submission date.', 'string', 'Submission Date'),
+    adminSettingEntry_('AUTH_EXPENSES_COL_AMOUNT', 'expenses-dashboard', 'Amount column header', 'Numeric amount column.', 'string', 'Amount by category'),
+    adminSettingEntry_('AUTH_EXPENSES_COL_DEPARTMENT', 'expenses-dashboard', 'Department header', 'Department name dimension.', 'string', 'Department Name'),
+    adminSettingEntry_('AUTH_EXPENSES_COL_CUSTOMER', 'expenses-dashboard', 'GL Customer header', 'Customer attribution (blank → unattributed).', 'string', 'GL Customer Name'),
+    adminSettingEntry_('AUTH_EXPENSES_COL_VENDOR', 'expenses-dashboard', 'Vendor header', '', 'string', 'Vendor'),
+    adminSettingEntry_('AUTH_EXPENSES_COL_CATEGORY', 'expenses-dashboard', 'Category header', '', 'string', 'Category'),
+    adminSettingEntry_('AUTH_EXPENSES_COL_MEMO', 'expenses-dashboard', 'Memo header', '', 'string', 'Memo'),
+    adminSettingEntry_('AUTH_EXPENSES_COL_TRANSACTION_ID', 'expenses-dashboard', 'Transaction ID header', '', 'string', 'Transaction ID'),
+    adminSettingEntry_('AUTH_EXPENSES_COL_ACTIVITY_TYPE', 'expenses-dashboard', 'Activity type header', '', 'string', 'Activity type'),
+    adminSettingEntry_('AUTH_EXPENSES_COL_EMPLOYEE_ID', 'expenses-dashboard', 'Employee ID header', '', 'string', 'Employee - ID'),
+    adminSettingEntry_('AUTH_EXPENSES_COL_EMPLOYEE_NAME', 'expenses-dashboard', 'Employee display name header', 'Uses Full name in default schema.', 'string', 'Full name'),
+    adminSettingEntry_('AUTH_EXPENSES_COL_CURRENCY', 'expenses-dashboard', 'Currency header', '`Amount (by category) - Currency` column.', 'string', 'Amount (by category) - Currency'),
+    adminSettingEntry_('AUTH_EXPENSES_COL_APPROVAL', 'expenses-dashboard', 'Approval header', '', 'string', 'Approval state'),
+    adminSettingEntry_('AUTH_EXPENSES_COL_ATTENDEES', 'expenses-dashboard', 'Attendees header', '', 'string', 'Attendees'),
+    adminSettingEntry_('EXPENSES_CHART_CATEGORY_TOP_N', 'expenses-dashboard', 'Category chart top-N', 'Largest categories; remainder merges into Other.', 'number', 10, { min: 3, max: 30 }),
+    adminSettingEntry_('EXPENSES_CHART_DEPT_TOP_N', 'expenses-dashboard', 'Department chart top-N', 'Largest departments; remainder merges into Other.', 'number', 10, { min: 3, max: 30 }),
     adminSettingEntry_(
       'FIBERY_HOST',
       'fibery-api',

@@ -55,44 +55,52 @@ Follow these standards when generating or changing code in this repository.
 
 When changing dashboard **payload shape**, **`cacheSchemaVersion`**, or server builders (`fiberyAgreementDashboard.js`, `fiberyUtilizationDashboard.js`, `deliveryDashboard.js`, client cache in `DashboardShell.html`), also follow **`.cursor/rules/dashboard-snapshot-cache-sync.mdc`**: keep `dashboardSnapshotJob.js` artifacts and `docs/features/009-dashboard-historical-snapshots.md` aligned so Drive snapshots do not drift from live caches.
 
-## PRD Change Control
+## PRD change control (mandatory — FOS Dashboard)
 
-- When editing `docs/PRD.md`, always update the PRD change table at the bottom of the document in the same change.
-- Add one new row per PRD update with date, version, summary of change, and author/owner.
-- If the change table does not exist yet, create it at the bottom of `docs/PRD.md` before completing the PRD edit.
-- For any implemented functionality change (not just docs edits), update `docs/PRD.md` in the same change, including a version bump and change-log row.
-- Keep `src/Code.js` `APP_METADATA_.PRD_VERSION` exactly in sync with the version at the top of `docs/PRD.md` in every change.
-- Any code change is blocked until all three are updated together: `docs/PRD.md` content, PRD version number, and `src/Code.js` `APP_METADATA_.PRD_VERSION`.
+**Every merge-worthy change** in this repo MUST include a **PRD version bump** in the **same** commit/PR as the code or docs change. Do not defer version sync to a follow-up. Do not leave changelog rows with version `—` or omit a bump.
+
+**Product PRD:** `docs/FOS-Dashboard-PRD.md` (not `docs/PRD.md`).
+
+### Completion checklist (required before finishing)
+
+1. **Bump version** in `docs/FOS-Dashboard-PRD.md`: header `**PRD version X.Y.Z**`, body line `Version X.Y.Z - <date>`, and **§13 Change Log** row with the **same** version number.
+2. **`src/Code.js`:** set `FOS_PRD_VERSION` to match exactly; update `FOS_RELEASE_DESCRIPTION` (one-line release note for App Versions registry).
+3. **`src/*` headers:** update the PRD version line in **every** clasp-pushed `.js` and `.html` under `src/` (exclude `appsscript.json`).
+4. **Feature docs touched:** update the `> **PRD version …**` line at the top of any `docs/features/*.md` file you edit; add or extend that feature’s changelog when behavior changes.
+5. **Overview:** if the product version changed, update `docs/features/000-overview.md` PRD version line when it tracks “current”.
+
+**Block completion** if any of the above is missing while `src/` or user-visible behavior changed.
 
 ### PRD version in file headers (clasp / Apps Script)
 
-**FOS Dashboard (`FOSDashboard` repo):** The product PRD is **`docs/FOS-Dashboard-PRD.md`**. Whenever its **version number** (header line `Version X.Y` or `Version X.Y.Z`) changes:
+Whenever `docs/FOS-Dashboard-PRD.md` **version number** changes:
 
 1. Bump **`FOS_PRD_VERSION`** in `src/Code.js` to match **exactly**.
-2. Update the **PRD version line** at the top of **every** clasp-pushed file under `src/` (**all** `.js` and `.html`; **exclude** `appsscript.json`):
-   - **JavaScript:** first line inside the top `/**` block: ` * PRD version X.Y[.Z] — sync with docs/FOS-Dashboard-PRD.md` (examples: **1.5**, **1.9.1**).
-   - **HTML:** immediately after `<!DOCTYPE html>`: `<!-- PRD version X.Y[.Z] — sync with docs/FOS-Dashboard-PRD.md -->` (same **X.Y[.Z]** as the PRD file).
-3. Include these header updates in the **same** change as the PRD version bump and changelog row.
+2. Update the **PRD version line** at the top of **every** file under `src/`:
+   - **JavaScript:** ` * PRD version X.Y.Z — sync with docs/FOS-Dashboard-PRD.md`
+   - **HTML:** `<!-- PRD version X.Y.Z — sync with docs/FOS-Dashboard-PRD.md -->`
+3. Same commit as the PRD bump and changelog row.
 
-### Version-number rules (semver-style, applied to a PRD)
+### Version-number rules (semver-style)
 
-Use a **three-segment `MAJOR.MINOR.PATCH`** scheme for `docs/FOS-Dashboard-PRD.md`. The same number drives `FOS_PRD_VERSION`, the `src/*` headers, and the `docs/features/*` headers.
+Use **`MAJOR.MINOR.PATCH`** for `docs/FOS-Dashboard-PRD.md`. The same number drives `FOS_PRD_VERSION` and all `src/*` headers.
 
 | Segment | Bump when… | Examples |
 | --- | --- | --- |
-| **MAJOR** (`X.0.0`) | A breaking contract change for the product or its consumers — e.g. the auth model is replaced, the dashboard is split into multiple deployments, or a published `google.script.run` signature changes in a way that breaks clients. **Rare**; ask the user before doing this. | `2.0.0` |
-| **MINOR** (`X.Y.0`) | New functionality, a new FR / AC, a new feature spec under `docs/features/`, a new server module, or a meaningful expansion of an existing surface. This is the **default** for everything that ships user-visible behavior. | `1.7` → `1.8`, `1.9` → `1.10` |
-| **PATCH** (`X.Y.Z`) | A correctness fix, schema-path correction, copy fix, lint cleanup, or other change that **does not** add or remove documented behavior. Use this for follow-on commits to the same release once the MINOR has already shipped. | `1.9` → `1.9.1` → `1.9.2` |
+| **MAJOR** (`X.0.0`) | Breaking contract — auth model replaced, multi-deployment split, or breaking `google.script.run` / cache contract. **Rare**; confirm with the user first. | `2.0.0` |
+| **MINOR** (`X.Y.0`) | New feature, new FR/AC, new `docs/features/` spec, new server module, or substantial new surface area. Default when unsure between “small” and “new capability.” | `2.3.0` → `2.4.0` |
+| **PATCH** (`X.Y.Z`) | Minor fix or **small** enhancement to existing behavior (copy, KPI subtext, layout tweak, bugfix, schema-path fix) without a new feature phase. **Use a patch for every shipped change** when the change is intentionally small. | `2.4.2` → `2.4.3` |
 
 Conventions:
 
-- **Two-segment back-compat**: existing `X.Y` versions (no patch segment) are treated as `X.Y.0`. You do **not** need to retroactively rewrite older two-segment versions in the changelog table.
-- **Always add a Changelog row** for any version bump, MAJOR / MINOR / PATCH. Patch rows can be terse (one or two sentences).
-- **Patch-only changes still touch every header.** Even a one-line `q/order-by` fix gets the full header sync — `FOS_PRD_VERSION`, every `src/*` and `docs/features/*` PRD-version line.
-- **Don't combine a MINOR and a PATCH in the same bump.** If you're already shipping new behavior, that's a MINOR; subsequent corrections are patches against that MINOR.
-- **No leading `v`**: write `1.9.1`, not `v1.9.1`.
+- **Two-segment back-compat:** older changelog rows may show `X.Y` only; new bumps use three segments.
+- **Always add a §13 changelog row** with a real version — never `—`.
+- **Patch bumps still sync all `src/*` headers** (full header sweep, not just changed files).
+- **One bump per change set:** do not stack unrelated MINOR + PATCH; ship corrections as the next PATCH.
+- **No leading `v`:** write `2.4.3`, not `v2.4.3`.
+- **Imported / static PRDs** (e.g. `docs/implementation-notes/revenue-review-dashboard-PRD.html`) may keep their own changelog versions; still bump **FOS** `2.4.x` when the Web App ships the change.
 
-**Other harpin Apps Script projects** (e.g. Clockify–Fibery sync): may follow `docs/PRD.md` and `APP_METADATA_.PRD_VERSION` per that project's rules; apply the same “every pushed `src` file” header discipline using **that** repo's PRD path, and the same MAJOR / MINOR / PATCH discipline.
+**Other harpin Apps Script projects** (e.g. Clockify–Fibery sync): use that repo’s PRD path and version constant; apply the same “bump every change + every `src` header” discipline.
 
 ## Feature Spec Template Compliance
 

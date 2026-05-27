@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.4.1 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.5.2 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -112,6 +112,7 @@
     #panel-operations.fos-agreement-root,
     #panel-delivery.fos-agreement-root,
     #panel-revenue-review.fos-agreement-root,
+    #panel-expenses.fos-agreement-root,
     #panel-labor-hours.fos-agreement-root {
       background: var(--ag-bg);
       border-radius: 12px;
@@ -209,7 +210,8 @@
       #panel-labor-hours .fos-lh-kpi-jump {
         cursor: default;
       }
-      #panel-revenue-review.fos-agreement-root {
+      #panel-revenue-review.fos-agreement-root,
+      #panel-expenses.fos-agreement-root {
         break-inside: avoid;
       }
       #panel-revenue-review .fos-rr-cust-detail,
@@ -3242,10 +3244,10 @@
                 </div>
               </div>
               <div class="col">
-                <div class="fos-agreement-kpi kpi-yellow h-100" title="Current calendar month milestones (excludes Not Scheduled).">
+                <div class="fos-agreement-kpi kpi-yellow h-100" title="Current calendar month milestones (excludes Not Scheduled): invoiced or recognized actuals vs sum of target amounts.">
                   <div class="label">Current month invoiced</div>
                   <div class="value" id="rr-kpi-curr">$0</div>
-                  <div class="sub" id="rr-kpi-curr-sub">0% of milestones</div>
+                  <div class="sub" id="rr-kpi-curr-sub">0% of milestones · $0 target · $0 remaining</div>
                 </div>
               </div>
               <div class="col">
@@ -3255,7 +3257,7 @@
                   tabindex="0"
                   role="button"
                   data-rr-scroll-to="rr-section-variance"
-                  title="Jump to variance table. Counts milestones in the prior or current target month with amount variance or a schedule issue (past target, not invoiced)."
+                  title="Jump to variance table. Counts milestones in the prior or current target month that are past target with amount variance, or past target and not invoiced (schedule issue)."
                 >
                   <div class="label">Variances</div>
                   <div class="value" id="rr-kpi-variance">0</div>
@@ -3453,6 +3455,151 @@
               <div id="rr-detail-tree" class="small"></div>
               <p class="small mb-0 mt-2 d-none" id="rr-empty-detail" style="color: var(--ag-text-muted)">No milestones to show.</p>
             </section>
+          </div>
+        </div>
+
+        <!-- Expenses — spreadsheet tab (feature 015, PRD FR-109). -->
+        <div id="panel-expenses" class="d-none fos-agreement-root">
+          <div id="exp-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
+          <div class="fos-agreement-inner shadow-lg">
+            <div class="fos-loading-overlay d-none" id="exp-loading" role="status" aria-live="polite" aria-hidden="true">
+              <div class="fos-loading-spinner" aria-hidden="true"></div>
+              <span class="fos-loading-label">Loading expenses…</span>
+            </div>
+
+            <div class="alert alert-info py-2 px-3 small mb-3 d-none" id="exp-live-only" role="status">
+              Historical snapshots do not include expense lines. Switch to <strong>Live data</strong> in the sidebar to use this dashboard.
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <div class="flex-grow-1 min-w-0">
+                <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Expenses</h1>
+                <p class="small mb-0" id="exp-subtitle" style="color: var(--ag-text-muted)">—</p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 mb-3 pb-3 border-bottom" style="border-color: var(--ag-border) !important">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="exp-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
+                Refresh
+              </button>
+              <span class="small" id="exp-last-refresh" style="color: var(--ag-text-muted)">Last refreshed: —</span>
+              <span class="small d-none text-danger" id="exp-fetch-error" role="alert"></span>
+            </div>
+
+            <p class="small d-none mb-3" id="exp-partial-note" style="color: var(--ag-warn)" role="status"></p>
+
+            <section class="fos-section-card mb-3" aria-labelledby="exp-filters-heading">
+              <h2 id="exp-filters-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Filters</h2>
+              <p class="small mb-2" id="exp-filter-summary" style="color: var(--ag-text-muted)" aria-live="polite">—</p>
+              <div class="fos-util-chip-row mb-3" id="exp-filter-chips" aria-label="Active filters"></div>
+              <div class="row g-2 align-items-end">
+                <div class="col-6 col-md-3">
+                  <label class="small" for="exp-date-start" style="color: var(--ag-text-muted)">From</label>
+                  <input type="date" id="exp-date-start" class="form-control form-control-sm" />
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="small" for="exp-date-end" style="color: var(--ag-text-muted)">Through</label>
+                  <input type="date" id="exp-date-end" class="form-control form-control-sm" />
+                </div>
+                <div class="col-12 col-md-6 col-lg-4">
+                  <label class="small d-block mb-1" style="color: var(--ag-text-muted)">Departments</label>
+                  <div class="fos-util-multi">
+                    <button type="button" class="multi-trigger w-100" id="exp-dept-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">All departments</button>
+                    <ul class="dropdown-menu" id="exp-dept-menu" aria-label="Department filter"></ul>
+                  </div>
+                </div>
+                <div class="col-12 col-md-6 col-lg-4">
+                  <label class="small d-block mb-1" style="color: var(--ag-text-muted)">Employees</label>
+                  <div class="fos-util-multi">
+                    <button type="button" class="multi-trigger w-100" id="exp-employee-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">All employees</button>
+                    <ul class="dropdown-menu" id="exp-employee-menu" aria-label="Employee filter"></ul>
+                  </div>
+                </div>
+                <div class="col-12 col-md-6 col-lg-4">
+                  <label class="small d-block mb-1" style="color: var(--ag-text-muted)">Customers</label>
+                  <div class="fos-util-multi">
+                    <button type="button" class="multi-trigger w-100" id="exp-customer-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">All customers</button>
+                    <ul class="dropdown-menu" id="exp-customer-menu" aria-label="Customer filter"></ul>
+                  </div>
+                </div>
+                <div class="col-12">
+                  <label class="small" for="exp-search" style="color: var(--ag-text-muted)">Search</label>
+                  <input type="search" id="exp-search" class="form-control form-control-sm" placeholder="Vendor, memo, transaction id (all tokens must match)" autocomplete="off" />
+                </div>
+              </div>
+            </section>
+
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 mb-3">
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-blue h-100">
+                  <div class="label">Total spend</div>
+                  <div class="value" id="exp-kpi-total">$0</div>
+                  <div class="sub" id="exp-kpi-total-sub">0 lines</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-green h-100">
+                  <div class="label">Customer-attributed</div>
+                  <div class="value" id="exp-kpi-attr">$0</div>
+                  <div class="sub" id="exp-kpi-attr-sub">0% of total</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-teal h-100">
+                  <div class="label">Unattributed</div>
+                  <div class="value" id="exp-kpi-unattr">$0</div>
+                  <div class="sub" id="exp-kpi-unattr-sub">0% of total</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-yellow h-100">
+                  <div class="label">Departments</div>
+                  <div class="value" id="exp-kpi-depts">0</div>
+                  <div class="sub" id="exp-kpi-depts-sub">Distinct in filter</div>
+                </div>
+              </div>
+            </div>
+
+            <section class="fos-section-card mb-3" aria-labelledby="exp-sankey-heading">
+              <h2 id="exp-sankey-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Expense flow — department · attribution · customer</h2>
+              <p class="small mb-2" style="color: var(--ag-text-muted)">Flows reflect the current filters. Department totals split into attributed vs unattributed spend; attributed amounts continue to GL customer.</p>
+              <div id="exp-sankey-wrap" class="fos-sankey-wrap" role="img" aria-label="Expense flow Sankey diagram"></div>
+            </section>
+
+            <section class="fos-section-card mb-3" aria-labelledby="exp-chart-dept-h">
+              <h2 id="exp-chart-dept-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Spend by department by month</h2>
+              <p class="small mb-2" style="color: var(--ag-text-muted)">Click a segment to open matching lines in the drawer.</p>
+              <div class="position-relative" style="min-height: 280px; max-height: 420px">
+                <canvas id="exp-chart-dept" role="img" aria-label="Spend by department chart"></canvas>
+              </div>
+            </section>
+
+            <section class="fos-section-card mb-3" aria-labelledby="exp-chart-cat-h">
+              <h2 id="exp-chart-cat-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Spend by category by month</h2>
+              <p class="small mb-2" style="color: var(--ag-text-muted)">Blank categories appear as Uncategorized. Long tail rolls into Other.</p>
+              <div class="position-relative" style="min-height: 280px; max-height: 420px">
+                <canvas id="exp-chart-category" role="img" aria-label="Spend by category chart"></canvas>
+              </div>
+            </section>
+
+            <section class="fos-section-card mb-3" aria-labelledby="exp-cust-h">
+              <h2 id="exp-cust-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Customer attribution</h2>
+              <div class="table-responsive">
+                <table class="fos-util-detail-table" aria-describedby="exp-cust-h">
+                  <thead>
+                    <tr>
+                      <th scope="col">Customer</th>
+                      <th class="text-end" scope="col">Spend</th>
+                      <th class="text-end" scope="col">% of attributed</th>
+                      <th class="text-end" scope="col">% of total</th>
+                    </tr>
+                  </thead>
+                  <tbody id="exp-cust-tbody"></tbody>
+                </table>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="exp-cust-empty" style="color: var(--ag-text-muted)">No attributed spend in the current filter.</p>
+            </section>
+
           </div>
         </div>
       </main>
@@ -3684,6 +3831,10 @@
       var DELIVERY_TTL_PREF_KEY = 'fos_delivery_dashboard_ttl_minutes_v1';
       var DELIVERY_FILTERS_PREF_KEY = 'fos_delivery_filters_v1';
       var DELIVERY_FILTERS_SCHEMA_VERSION = 1;
+      var EXPENSES_CACHE_KEY = 'fos_expenses_dashboard_v1';
+      var EXPENSES_CACHE_SCHEMA_VERSION = 1;
+      var EXPENSES_FILTERS_PREF_KEY = 'fos_expenses_filters_v1';
+      var EXPENSES_FILTERS_SCHEMA_VERSION = 1;
       var DEFAULT_TTL_MINUTES = 10;
       var SESSION_ID_KEY = 'fos_session_id_v1';
       var ACTIVITY_THROTTLE_MS = 250;
@@ -3698,6 +3849,8 @@
         status: null, type: null, recognition: null, customer: null,
         utilCustomer: null, utilProject: null, utilWeekly: null, utilBillable: null,
         utilRole: null, utilPerson: null,
+        expensesDept: null,
+        expensesCategory: null,
       };
       var currentTablePayload = null;
       var currentTab = 'allActive';
@@ -3751,6 +3904,7 @@
           rowId: null,
           mode: 'labor',
           customerName: null,
+          expensesContext: null,
         },
       };
 
@@ -3838,6 +3992,7 @@
         'labor-hours': 'bi-clock-history',
         'delivery': 'bi-truck',
         'revenue-review': 'bi-cash-stack',
+        'expenses': 'bi-receipt-cutoff',
       };
 
       function escapeHtml(text) {
@@ -4022,6 +4177,39 @@
         deliveryRevenueMonthModalBody: document.getElementById('deliveryRevenueMonthModalBody'),
         deliveryRevenueMonthModalEmpty: document.getElementById('deliveryRevenueMonthModalEmpty'),
         deliveryRevenueMonthModalTotals: document.getElementById('deliveryRevenueMonthModalTotals'),
+        panelExpenses: document.getElementById('panel-expenses'),
+        expWarn: document.getElementById('exp-warn'),
+        expLoading: document.getElementById('exp-loading'),
+        expLiveOnly: document.getElementById('exp-live-only'),
+        expSubtitle: document.getElementById('exp-subtitle'),
+        expRefreshBtn: document.getElementById('exp-refresh-btn'),
+        expLastRefresh: document.getElementById('exp-last-refresh'),
+        expFetchError: document.getElementById('exp-fetch-error'),
+        expPartialNote: document.getElementById('exp-partial-note'),
+        expDateStart: document.getElementById('exp-date-start'),
+        expDateEnd: document.getElementById('exp-date-end'),
+        expFilterSummary: document.getElementById('exp-filter-summary'),
+        expFilterChips: document.getElementById('exp-filter-chips'),
+        expDeptTrigger: document.getElementById('exp-dept-trigger'),
+        expDeptMenu: document.getElementById('exp-dept-menu'),
+        expEmployeeTrigger: document.getElementById('exp-employee-trigger'),
+        expEmployeeMenu: document.getElementById('exp-employee-menu'),
+        expCustomerTrigger: document.getElementById('exp-customer-trigger'),
+        expCustomerMenu: document.getElementById('exp-customer-menu'),
+        expSearch: document.getElementById('exp-search'),
+        expSankeyWrap: document.getElementById('exp-sankey-wrap'),
+        expKpiTotal: document.getElementById('exp-kpi-total'),
+        expKpiTotalSub: document.getElementById('exp-kpi-total-sub'),
+        expKpiAttr: document.getElementById('exp-kpi-attr'),
+        expKpiAttrSub: document.getElementById('exp-kpi-attr-sub'),
+        expKpiUnattr: document.getElementById('exp-kpi-unattr'),
+        expKpiUnattrSub: document.getElementById('exp-kpi-unattr-sub'),
+        expKpiDepts: document.getElementById('exp-kpi-depts'),
+        expKpiDeptsSub: document.getElementById('exp-kpi-depts-sub'),
+        expChartDept: document.getElementById('exp-chart-dept'),
+        expChartCategory: document.getElementById('exp-chart-category'),
+        expCustTbody: document.getElementById('exp-cust-tbody'),
+        expCustEmpty: document.getElementById('exp-cust-empty'),
         dataSourceSelect: document.getElementById('fos-data-source'),
         dataSourceHint: document.getElementById('fos-data-source-hint'),
         snapshotBanner: document.getElementById('fos-snapshot-banner'),
@@ -4232,6 +4420,7 @@
         utilRenderState.lastRenderedFetchedAt = null;
         deliveryRenderState.lastRenderedFetchedAt = null;
         revenueReviewRenderState.lastRenderedFetchedAt = null;
+        expensesRenderState.lastRenderedFetchedAt = null;
         laborHoursFetchCache_.key = null;
         laborHoursFetchCache_.payload = null;
       }
@@ -4246,6 +4435,8 @@
           showLaborHours();
         } else if (id === 'revenue-review') {
           showRevenueReview();
+        } else if (id === 'expenses') {
+          showExpenses();
         } else if (id === 'delivery') {
           showDelivery();
         }
@@ -4484,6 +4675,7 @@
           sessionStorage.removeItem(AGREEMENT_CACHE_KEY);
           sessionStorage.removeItem(UTIL_CACHE_KEY);
           sessionStorage.removeItem(DELIVERY_CACHE_KEY);
+          sessionStorage.removeItem(EXPENSES_CACHE_KEY);
         } catch (e) {
           /* ignore */
         }
@@ -4491,6 +4683,7 @@
         utilRenderState.lastRenderedFetchedAt = null;
         deliveryRenderState.lastRenderedFetchedAt = null;
         revenueReviewRenderState.lastRenderedFetchedAt = null;
+        expensesRenderState.lastRenderedFetchedAt = null;
         laborHoursFetchCache_.key = null;
         laborHoursFetchCache_.payload = null;
       }
@@ -4667,11 +4860,12 @@
         var labels = {
           doget: 'App load',
           home: 'Home',
-          'agreement-dashboard': 'Agreement Dashboard',
+          'agreement-dashboard': 'Agreements',
           operations: 'Utilization',
           'labor-hours': 'Labor hours',
           delivery: 'Delivery — Projects & P&L',
           'revenue-review': 'Revenue review',
+          expenses: 'Expenses',
           settings: 'Settings',
           shell: 'Shell / data source',
           Other: 'Other',
@@ -5183,6 +5377,7 @@
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
         if (els.panelSettings) els.panelSettings.classList.remove('d-none');
         els.topbarTitle.textContent = 'Settings';
         loadAdminSettingsPanel_();
@@ -5326,6 +5521,7 @@
       // cached payload is identical to what's already on screen. v1.13.1.
       var agreementRenderState = { lastRenderedFetchedAt: null };
       var revenueReviewRenderState = { lastRenderedFetchedAt: null };
+      var expensesRenderState = { lastRenderedFetchedAt: null };
       var utilRenderState = { lastRenderedFetchedAt: null };
 
       function setAgreementLoading(on) {
@@ -5351,6 +5547,19 @@
         } else {
           els.rrLoading.classList.add('d-none');
           els.rrLoading.setAttribute('aria-hidden', 'true');
+        }
+      }
+
+      function setExpensesLoading(on) {
+        if (!els.expLoading) {
+          return;
+        }
+        if (on) {
+          els.expLoading.classList.remove('d-none');
+          els.expLoading.setAttribute('aria-hidden', 'false');
+        } else {
+          els.expLoading.classList.add('d-none');
+          els.expLoading.setAttribute('aria-hidden', 'true');
         }
       }
 
@@ -6674,6 +6883,9 @@
         if (els.panelRevenueReview) {
           els.panelRevenueReview.classList.add('d-none');
         }
+        if (els.panelExpenses) {
+          els.panelExpenses.classList.add('d-none');
+        }
         hidePanelSettings_();
         els.topbarTitle.textContent = 'Home';
       }
@@ -6692,11 +6904,14 @@
         if (els.panelRevenueReview) {
           els.panelRevenueReview.classList.add('d-none');
         }
+        if (els.panelExpenses) {
+          els.panelExpenses.classList.add('d-none');
+        }
         hidePanelSettings_();
         if (els.panelAgreementDashboard) {
           els.panelAgreementDashboard.classList.remove('d-none');
         }
-        els.topbarTitle.textContent = 'Agreement Dashboard';
+        els.topbarTitle.textContent = 'Agreements';
         if (els.agreementFetchError) {
           els.agreementFetchError.classList.add('d-none');
         }
@@ -8537,6 +8752,7 @@
         utilState.detailDrawer.rowId = null;
         utilState.detailDrawer.mode = 'labor';
         utilState.detailDrawer.customerName = null;
+        utilState.detailDrawer.expensesContext = null;
         els.utilDrawer.classList.remove('open');
         els.utilDrawer.setAttribute('aria-hidden', 'true');
         // After the transition completes hide it from the layout entirely.
@@ -9049,6 +9265,9 @@
       if (els.utilDrawerFiberyLink) {
         els.utilDrawerFiberyLink.addEventListener('click', function () {
           var dd = utilState && utilState.detailDrawer ? utilState.detailDrawer : null;
+          if (dd && dd.mode === 'expenses') {
+            return;
+          }
           if (dd && dd.mode === 'rr-customer' && dd.customerName) {
             logActivity_(
               'revenue_review_drawer_fibery_click',
@@ -9123,6 +9342,7 @@
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
         if (els.panelOperations) els.panelOperations.classList.remove('d-none');
         hidePanelSettings_();
         els.topbarTitle.textContent = 'Operations';
@@ -10107,6 +10327,7 @@
         if (els.panelOperations) els.panelOperations.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
         if (els.panelLaborHours) els.panelLaborHours.classList.remove('d-none');
         hidePanelSettings_();
         els.topbarTitle.textContent = 'Labor hours';
@@ -10605,6 +10826,7 @@
         if (els.panelOperations) els.panelOperations.classList.add('d-none');
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.remove('d-none');
         hidePanelSettings_();
         els.topbarTitle.textContent = 'Delivery';
@@ -10744,6 +10966,7 @@
           state: m.state || '—',
           recognized: !!m.recognized,
           scheduleIssue: schedIssue,
+          targetPast: !!(td && td < todayStart),
           daysLate: daysLate,
         };
       }
@@ -11424,6 +11647,7 @@
         var currInvAmt = 0;
         var currInvCt = 0;
         var currTotal = 0;
+        var currTargetAmt = 0;
         var varCt = 0;
         var overdueCt = 0;
         var priorYm = bounds.priorYm;
@@ -11452,6 +11676,7 @@
 
           if (!rrIsNotScheduled_(m.state) && ym === currentYm) {
             currTotal++;
+            currTargetAmt += Number(m.targetAmount || 0);
           }
 
           if (!rrIsNotScheduled_(m.state) && ym === priorYm) {
@@ -11475,7 +11700,11 @@
             var actV = Number(m.actualAmount || 0);
             var variance = actV - tgtV;
             var schedIss = aug.scheduleIssue;
-            if (Math.abs(variance) > 0.005 || schedIss) {
+            // Amount variance only after target date has passed (matches section
+            // subtitle). Future-dated Scheduled rows often have actual << target
+            // and must not appear until the milestone is due.
+            var amountVar = aug.targetPast && Math.abs(variance) > 0.005;
+            if (amountVar || schedIss) {
               varCt++;
               vm.rowsVariance.push({
                 milestone: aug.milestone,
@@ -11535,6 +11764,7 @@
         }
 
         var currPctMilestones = currTotal > 0 ? (currInvCt / currTotal) * 100 : 0;
+        var currRemainingAmt = Math.max(0, currTargetAmt - currInvAmt);
 
         paintRevenueReviewTables_();
         renderRrDetailTree_(milestones, agreementById, todayStart);
@@ -11555,10 +11785,19 @@
         rrSetText_('rr-kpi-curr', formatMoneyCompact(currInvAmt));
         rrSetText_(
           'rr-kpi-curr-sub',
-          formatPct(currPctMilestones) + '% of ' + currTotal + ' milestone' + (currTotal === 1 ? '' : 's')
+          formatPct(currPctMilestones) +
+            '% of ' +
+            currTotal +
+            ' milestone' +
+            (currTotal === 1 ? '' : 's') +
+            ' · ' +
+            formatMoneyCompact(currTargetAmt) +
+            ' target · ' +
+            formatMoneyCompact(currRemainingAmt) +
+            ' remaining'
         );
         rrSetText_('rr-kpi-variance', String(varCt));
-        rrSetText_('rr-kpi-variance-sub', 'Amount or schedule (prior + current month)');
+        rrSetText_('rr-kpi-variance-sub', 'Past target: amount or schedule (prior + current month)');
         rrSetText_('rr-kpi-overdue', String(overdueCt));
         rrSetText_('rr-kpi-overdue-sub', 'Past target, not invoiced');
 
@@ -11627,6 +11866,7 @@
         if (els.panelOperations) els.panelOperations.classList.add('d-none');
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
+        if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
         els.panelRevenueReview.classList.remove('d-none');
         hidePanelSettings_();
         els.topbarTitle.textContent = 'Revenue review';
@@ -11668,6 +11908,1080 @@
         }
       }
 
+      /* ===================================================================
+         Expenses dashboard — spreadsheet-backed (feature 015 / FR-109).
+         ================================================================== */
+      var EXPENSES_EMPTY_CATEGORY = '__exp_empty_cat__';
+      var EXPENSES_UNATTR_CUSTOMER_KEY = '__UNATTR__';
+      var EXPENSES_SANKEY_CUSTOMER_TOP_N = 15;
+      var EXPENSES_AMOUNT_EPSILON_CLIENT_ = 0.005;
+      var expensesState = {
+        payload: null,
+        chartDeptTopN: 10,
+        chartCategoryTopN: 10,
+        drawerCsv: '',
+        filters: {
+          departments: {},
+          customers: {},
+          employees: {},
+        },
+      };
+      var expensesControlsWired_ = false;
+
+      function readExpensesCache() {
+        try {
+          var raw = sessionStorage.getItem(EXPENSES_CACHE_KEY);
+          if (!raw) return null;
+          var o = JSON.parse(raw);
+          if (!o || o.cacheSchemaVersion !== EXPENSES_CACHE_SCHEMA_VERSION) return null;
+          return o;
+        } catch (e) {
+          return null;
+        }
+      }
+      function writeExpensesCache(data) {
+        try {
+          sessionStorage.setItem(EXPENSES_CACHE_KEY, JSON.stringify(data));
+        } catch (e) { /* ignore quota */ }
+      }
+      function expenseMonthFromIso(iso) {
+        if (!iso || String(iso).length < 7) return '';
+        return String(iso).slice(0, 7);
+      }
+      function expensesCatKey_(row) {
+        var c = (row && row.category != null ? String(row.category) : '').trim();
+        return c ? c : EXPENSES_EMPTY_CATEGORY;
+      }
+      function expensesCatLabel_(key) {
+        return key === EXPENSES_EMPTY_CATEGORY ? 'Uncategorized' : key;
+      }
+      function expensesDestroyCharts_() {
+        if (chartInstances.expensesDept) {
+          try { chartInstances.expensesDept.destroy(); } catch (e) { /* ignore */ }
+          chartInstances.expensesDept = null;
+        }
+        if (chartInstances.expensesCategory) {
+          try { chartInstances.expensesCategory.destroy(); } catch (e) { /* ignore */ }
+          chartInstances.expensesCategory = null;
+        }
+      }
+
+      function expensesEmployeeKey_(row) {
+        var n = row && row.employeeName != null ? String(row.employeeName).trim() : '';
+        if (n) return n;
+        var e = row && row.employeeId != null ? String(row.employeeId).trim() : '';
+        if (e) return 'ID ' + e;
+        return '(Unknown employee)';
+      }
+
+      function expensesCustomerFilterKey_(row) {
+        var c = row && row.customer != null ? String(row.customer).trim() : '';
+        return c ? c : EXPENSES_UNATTR_CUSTOMER_KEY;
+      }
+
+      function expensesCustomerFilterLabel_(key) {
+        return key === EXPENSES_UNATTR_CUSTOMER_KEY ? 'Unattributed' : key;
+      }
+
+      function expensesUpdateMultiTrigger_(trigger, defaultLabel, dimLabel, selectedMap) {
+        if (!trigger) return;
+        var n = setFromKeys(selectedMap).length;
+        if (n === 0) {
+          trigger.textContent = defaultLabel;
+          return;
+        }
+        trigger.innerHTML =
+          (n === 1 ? '1 ' + dimLabel : n + ' ' + dimLabel + 's') +
+          ' <span class="count-badge">' + n + '</span>';
+      }
+
+      function expensesPopulateMultiMenu_(menu, items, keyFn, labelFn, selectedMap, onChange) {
+        if (!menu) return;
+        menu.innerHTML = '';
+        if (!items || !items.length) {
+          var liEmpty = document.createElement('li');
+          liEmpty.className = 'empty';
+          liEmpty.textContent = 'No values in data.';
+          menu.appendChild(liEmpty);
+          return;
+        }
+        for (var i = 0; i < items.length; i++) {
+          var it = items[i];
+          var key = keyFn(it);
+          var label = labelFn(it);
+          var li = document.createElement('li');
+          var checkId = 'exp-multi-' + Math.random().toString(36).slice(2, 8);
+          var checked = selectedMap[key] ? ' checked' : '';
+          li.innerHTML =
+            '<div class="form-check">' +
+              '<input class="form-check-input" type="checkbox" id="' + checkId + '"' + checked + ' />' +
+              '<label class="form-check-label" for="' + checkId + '">' + escapeHtml(label) + '</label>' +
+            '</div>';
+          (function (input, k, sm) {
+            input.addEventListener('change', function () {
+              if (input.checked) sm[k] = true;
+              else delete sm[k];
+              if (onChange) onChange();
+            });
+          })(li.querySelector('input'), key, selectedMap);
+          menu.appendChild(li);
+        }
+      }
+
+      function expensesScheduleFilterRender_() {
+        if (expensesFilterTimer) window.clearTimeout(expensesFilterTimer);
+        expensesFilterTimer = window.setTimeout(function () {
+          renderExpensesView_();
+          logActivity_('expenses_filter_change', 'expenses', 'debounced');
+        }, 220);
+      }
+
+      var expensesFilterTimer = null;
+
+      function renderExpensesFilterSummary_(filteredCount, allCount) {
+        var f = expensesState.filters;
+        var deptKeys = setFromKeys(f.departments);
+        var custKeys = setFromKeys(f.customers);
+        var empKeys = setFromKeys(f.employees);
+        var ds = els.expDateStart ? String(els.expDateStart.value || '') : '';
+        var de = els.expDateEnd ? String(els.expDateEnd.value || '') : '';
+        var q = els.expSearch ? String(els.expSearch.value || '').trim() : '';
+        var tokens = q ? q.split(/\s+/).filter(Boolean) : [];
+
+        var parts = [];
+        if (ds || de) {
+          parts.push('Effective ' + (ds || '…') + ' → ' + (de || '…'));
+        }
+        if (deptKeys.length) parts.push(deptKeys.length + ' department(s)');
+        if (empKeys.length) parts.push(empKeys.length + ' employee(s)');
+        if (custKeys.length) parts.push(custKeys.length + ' customer(s)');
+        if (tokens.length) parts.push('search: ' + tokens.join(', '));
+
+        if (els.expFilterSummary) {
+          var base =
+            filteredCount +
+            ' of ' +
+            allCount +
+            ' line(s) in view';
+          els.expFilterSummary.textContent =
+            parts.length ? base + ' · ' + parts.join(' · ') : base + ' · no dimension filters';
+        }
+
+        if (!els.expFilterChips) return;
+        els.expFilterChips.innerHTML = '';
+        var addChip = function (text, onRemove) {
+          var chip = document.createElement('span');
+          chip.className = 'fos-util-chip';
+          chip.innerHTML = escapeHtml(text) + ' <button type="button" aria-label="Remove filter">×</button>';
+          chip.querySelector('button').addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            onRemove();
+          });
+          els.expFilterChips.appendChild(chip);
+        };
+
+        if (ds) {
+          addChip('From ' + ds, function () {
+            if (els.expDateStart) els.expDateStart.value = '';
+            expensesScheduleFilterRender_();
+          });
+        }
+        if (de) {
+          addChip('Through ' + de, function () {
+            if (els.expDateEnd) els.expDateEnd.value = '';
+            expensesScheduleFilterRender_();
+          });
+        }
+        for (var di = 0; di < deptKeys.length; di++) {
+          (function (k) {
+            addChip('Dept: ' + (k || '(blank)'), function () {
+              delete f.departments[k];
+              populateExpensesFilterMenus_((expensesState.payload && expensesState.payload.rows) || []);
+              expensesScheduleFilterRender_();
+            });
+          })(deptKeys[di]);
+        }
+        for (var ei = 0; ei < empKeys.length; ei++) {
+          (function (k) {
+            addChip('Employee: ' + k, function () {
+              delete f.employees[k];
+              populateExpensesFilterMenus_((expensesState.payload && expensesState.payload.rows) || []);
+              expensesScheduleFilterRender_();
+            });
+          })(empKeys[ei]);
+        }
+        for (var ci = 0; ci < custKeys.length; ci++) {
+          (function (k) {
+            addChip('Customer: ' + expensesCustomerFilterLabel_(k), function () {
+              delete f.customers[k];
+              populateExpensesFilterMenus_((expensesState.payload && expensesState.payload.rows) || []);
+              expensesScheduleFilterRender_();
+            });
+          })(custKeys[ci]);
+        }
+        for (var ti = 0; ti < tokens.length; ti++) {
+          (function (tok) {
+            addChip('Search: ' + tok, function () {
+              if (!els.expSearch) return;
+              var rest = tokens.filter(function (x) { return x !== tok; });
+              els.expSearch.value = rest.join(' ');
+              expensesScheduleFilterRender_();
+            });
+          })(tokens[ti]);
+        }
+      }
+
+      /**
+       * Department → Attributed / Unattributed → GL customer (top-N + Other).
+       * @param {!Array<!Object>} rows
+       * @return {!{nodes: !Array, links: !Array, total: number, linkOpacity: number}}
+       */
+      function buildExpensesSankeyModel_(rows) {
+        var total = 0;
+        var deptAttr = {};
+        var deptUnattr = {};
+        var custTotals = {};
+        var deptNames = {};
+
+        for (var i = 0; i < rows.length; i++) {
+          var row = rows[i];
+          var amt = Number(row.amount || 0);
+          if (amt <= EXPENSES_AMOUNT_EPSILON_CLIENT_) continue;
+          total += amt;
+          var dept = String(row.department || '').trim() || '(No department)';
+          deptNames[dept] = true;
+          var cust = String(row.customer || '').trim();
+          if (cust) {
+            deptAttr[dept] = (deptAttr[dept] || 0) + amt;
+            custTotals[cust] = (custTotals[cust] || 0) + amt;
+          } else {
+            deptUnattr[dept] = (deptUnattr[dept] || 0) + amt;
+          }
+        }
+        if (total <= EXPENSES_AMOUNT_EPSILON_CLIENT_) {
+          return { nodes: [], links: [], total: 0, linkOpacity: 0.38 };
+        }
+
+        var custList = [];
+        for (var ck in custTotals) {
+          if (Object.prototype.hasOwnProperty.call(custTotals, ck)) {
+            custList.push({ key: ck, total: custTotals[ck] });
+          }
+        }
+        custList.sort(function (a, b) { return b.total - a.total; });
+        var topCust = custList.slice(0, EXPENSES_SANKEY_CUSTOMER_TOP_N).map(function (x) {
+          return x.key;
+        });
+        var otherCust = 0;
+        for (var oi = EXPENSES_SANKEY_CUSTOMER_TOP_N; oi < custList.length; oi++) {
+          otherCust += custList[oi].total;
+        }
+
+        var nodes = [];
+        var nodeIndex = {};
+        function addNode(name, layer, color) {
+          if (nodeIndex[name] != null) return nodeIndex[name];
+          var idx = nodes.length;
+          nodeIndex[name] = idx;
+          nodes.push({ name: name, layer: layer, color: color });
+          return idx;
+        }
+
+        var attrIdx = addNode('Attributed', 'attribution', '#43D6BA');
+        var unattrIdx = addNode('Unattributed', 'attribution', '#A0AEC0');
+        var links = [];
+        var depts = Object.keys(deptNames).sort(function (a, b) { return a.localeCompare(b); });
+        var di = 0;
+
+        for (var d = 0; d < depts.length; d++) {
+          var deptName = depts[d];
+          var deptIdx = addNode(deptName, 'department', expensesPalette_(di++));
+          var aAmt = deptAttr[deptName] || 0;
+          var uAmt = deptUnattr[deptName] || 0;
+          if (aAmt > EXPENSES_AMOUNT_EPSILON_CLIENT_) {
+            links.push({ source: deptIdx, target: attrIdx, value: aAmt });
+          }
+          if (uAmt > EXPENSES_AMOUNT_EPSILON_CLIENT_) {
+            links.push({ source: deptIdx, target: unattrIdx, value: uAmt });
+          }
+        }
+
+        for (var tc = 0; tc < topCust.length; tc++) {
+          var cname = topCust[tc];
+          var cIdx = addNode(cname, 'customer', expensesPalette_((di + tc) % 12));
+          var cAmt = custTotals[cname] || 0;
+          if (cAmt > EXPENSES_AMOUNT_EPSILON_CLIENT_) {
+            links.push({ source: attrIdx, target: cIdx, value: cAmt });
+          }
+        }
+        if (otherCust > EXPENSES_AMOUNT_EPSILON_CLIENT_) {
+          var otherIdx = addNode('Other customers', 'customer', 'rgba(160, 160, 176, 0.85)');
+          links.push({ source: attrIdx, target: otherIdx, value: otherCust });
+        }
+
+        links = links.filter(function (lk) {
+          return lk.value > EXPENSES_AMOUNT_EPSILON_CLIENT_;
+        });
+
+        return { nodes: nodes, links: links, total: total, linkOpacity: 0.38 };
+      }
+
+      function renderExpensesSankey_(rows) {
+        var wrap = els.expSankeyWrap;
+        if (!wrap) return;
+        wrap.innerHTML = '';
+        var model = buildExpensesSankeyModel_(rows || []);
+        if (!model.links.length) {
+          var emptyEl = document.createElement('div');
+          emptyEl.className = 'empty';
+          emptyEl.textContent = 'No spend in the current filter to chart.';
+          wrap.appendChild(emptyEl);
+          return;
+        }
+        loadD3Sankey()
+          .then(function () {
+            if ((navState.activeNavId || '') !== 'expenses') return;
+            if (typeof window.d3 === 'undefined') return;
+            drawSankey_(window.d3, wrap, model, { gradientPrefix: 'exp-sankey-link-' });
+          })
+          .catch(function (err) {
+            var errEl = document.createElement('div');
+            errEl.className = 'empty';
+            errEl.textContent = err && err.message ? err.message : 'Could not load Sankey chart.';
+            wrap.appendChild(errEl);
+          });
+      }
+      function expensesPalette_(i) {
+        var PAL = [
+          'rgba(82, 201, 229, 0.82)', 'rgba(67, 214, 186, 0.82)', 'rgba(255, 184, 0, 0.78)',
+          'rgba(252, 92, 101, 0.75)', 'rgba(124, 58, 237, 0.72)', 'rgba(162, 213, 171, 0.85)',
+          'rgba(229, 192, 123, 0.85)', 'rgba(129, 178, 154, 0.85)', 'rgba(242, 204, 143, 0.85)',
+          'rgba(129, 140, 248, 0.78)', 'rgba(251, 191, 36, 0.75)', 'rgba(209, 250, 229, 0.35)',
+        ];
+        return PAL[i % PAL.length];
+      }
+
+      /** @return {!Array<{ key: string, total: number }>} */
+      function expensesRankTotals_(rows, keyFn, topN) {
+        var totals = {};
+        for (var i = 0; i < rows.length; i++) {
+          var k = keyFn(rows[i]);
+          totals[k] = (totals[k] || 0) + Number(rows[i].amount || 0);
+        }
+        var list = [];
+        for (var key in totals) {
+          if (Object.prototype.hasOwnProperty.call(totals, key)) {
+            list.push({ key: key, total: totals[key] });
+          }
+        }
+        list.sort(function (a, b) { return b.total - a.total; });
+        return list.slice(0, topN);
+      }
+
+      function expensesSliceByDomFilters_(allRows, skipDept) {
+        var rowsIn = allRows || [];
+        var ds = els.expDateStart ? String(els.expDateStart.value || '') : '';
+        var de = els.expDateEnd ? String(els.expDateEnd.value || '') : '';
+        var f = expensesState.filters;
+        var deptKeys = skipDept ? [] : setFromKeys(f.departments);
+        var custKeys = setFromKeys(f.customers);
+        var empKeys = setFromKeys(f.employees);
+        var q = els.expSearch ? String(els.expSearch.value || '').trim().toLowerCase() : '';
+        var tokens = q ? q.split(/\s+/).filter(Boolean) : [];
+
+        var out = [];
+        for (var r = 0; r < rowsIn.length; r++) {
+          var row = rowsIn[r];
+          var ed = row.effectiveDate || '';
+          if (ds && String(ed) < ds) continue;
+          if (de && String(ed) > de) continue;
+          if (deptKeys.length) {
+            var dk = String(row.department || '');
+            if (deptKeys.indexOf(dk) < 0) continue;
+          }
+          if (custKeys.length) {
+            if (custKeys.indexOf(expensesCustomerFilterKey_(row)) < 0) continue;
+          }
+          if (empKeys.length) {
+            if (empKeys.indexOf(expensesEmployeeKey_(row)) < 0) continue;
+          }
+          if (tokens.length) {
+            var hay = [
+              row.vendor, row.memo, row.transactionId, row.category, row.department,
+            ].map(function (x) { return (x != null ? String(x) : '').toLowerCase(); }).join('\n');
+            var okTok = true;
+            for (var t = 0; t < tokens.length; t++) {
+              if (hay.indexOf(tokens[t]) < 0) { okTok = false; break; }
+            }
+            if (!okTok) continue;
+          }
+          out.push(row);
+        }
+        return out;
+      }
+
+      function expensesBuildDrawerCsv_(rows) {
+        var cols = ['effectiveDate', 'purchaseDate', 'amount', 'currencyCode', 'department',
+          'customer', 'vendor', 'category', 'activityType', 'employeeId', 'employeeName',
+          'postedDate', 'submissionDate', 'approvalState', 'transactionId', 'memo'];
+        var lines = [];
+        lines.push(cols.join(','));
+        for (var i = 0; i < rows.length; i++) {
+          var z = rows[i];
+          var parts = [];
+          for (var ci = 0; ci < cols.length; ci++) {
+            var val = z[cols[ci]] == null ? '' : String(z[cols[ci]]);
+            if (val.indexOf(',') >= 0 || val.indexOf('"') >= 0) {
+              val = '"' + val.replace(/"/g, '""') + '"';
+            }
+            parts.push(val);
+          }
+          lines.push(parts.join(','));
+        }
+        return lines.join('\n');
+      }
+
+      function expenseMonthToken_(ym) {
+        return String(ym || '').replace(/[^0-9\-]/g, '').slice(0, 12);
+      }
+
+      function openExpensesDrawer_(title, rows, activityLabel) {
+        if (!els.utilDrawer) return;
+        rows = rows || [];
+        expensesState.drawerCsv = expensesBuildDrawerCsv_(rows);
+        utilState.detailDrawer.open = true;
+        utilState.detailDrawer.rowId = null;
+        utilState.detailDrawer.mode = 'expenses';
+        utilState.detailDrawer.customerName = null;
+        utilState.detailDrawer.expensesContext = { title: title, count: rows.length };
+        if (els.utilDrawerTitle) els.utilDrawerTitle.textContent = title || 'Expenses';
+        applyUtilDrawerFiberyLink_('');
+        var html = [];
+        html.push(
+          '<div class="d-flex flex-wrap gap-2 mb-2"><button type="button" class="btn btn-sm btn-outline-light" id="exp-drawer-csv">Copy CSV</button>',
+          '<span class="small text-secondary">' + rows.length + ' line(s)</span></div>'
+        );
+        html.push('<div class="table-responsive" style="max-height:70vh"><table class="fos-util-detail-table"><thead><tr>');
+        var heads = ['Effective', 'Amount', 'Dept', 'Customer', 'Vendor', 'Category', 'Txn id'];
+        for (var hi = 0; hi < heads.length; hi++) {
+          html.push('<th>' + escapeHtml(heads[hi]) + '</th>');
+        }
+        html.push('</tr></thead><tbody>');
+        for (var ri = 0; ri < rows.length; ri++) {
+          var x = rows[ri];
+          html.push(
+            '<tr><td>' + escapeHtml(x.effectiveDate || '') + '</td>',
+            '<td class="numeric">' + escapeHtml(formatMoneyCompact(Number(x.amount || 0))) + '</td>',
+            '<td>' + escapeHtml(x.department || '') + '</td>',
+            '<td>' + escapeHtml(x.customer || '') + '</td>',
+            '<td>' + escapeHtml(x.vendor || '') + '</td>',
+            '<td>' + escapeHtml(x.category || '') + '</td>',
+            '<td>' + escapeHtml(x.transactionId || '') + '</td></tr>'
+          );
+        }
+        if (!rows.length) {
+          html.push('<tr><td colspan="7" class="text-secondary">No rows.</td></tr>');
+        }
+        html.push('</tbody></table></div>');
+        if (els.utilDrawerBody) els.utilDrawerBody.innerHTML = html.join('');
+        var btn = document.getElementById('exp-drawer-csv');
+        if (btn) {
+          btn.addEventListener('click', function () {
+            var txt = expensesState.drawerCsv || '';
+            if (!txt) return;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(txt);
+            } else {
+              var ta = document.createElement('textarea');
+              ta.value = txt;
+              document.body.appendChild(ta);
+              ta.select();
+              try { document.execCommand('copy'); } finally { document.body.removeChild(ta); }
+            }
+            logActivity_('expenses_export_csv', 'expenses', 'drawer_csv');
+          });
+        }
+        els.utilDrawer.classList.remove('d-none');
+        els.utilDrawer.setAttribute('aria-hidden', 'false');
+        if (els.utilDrawerBackdrop) els.utilDrawerBackdrop.classList.remove('d-none');
+        requestAnimationFrame(function () { els.utilDrawer.classList.add('open'); });
+        try { els.utilDrawer.focus(); } catch (_) { /* ignore */ }
+        logActivity_('expenses_drawer_open', 'expenses', activityLabel || 'rows');
+      }
+
+      function expensesAttachChartClick_(chart, kind, monthLabels, topKeys) {
+        chart.options.onClick = function (evt) {
+          var elsHit = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+          if (!elsHit.length) return;
+          var hi = elsHit[0];
+          var month = monthLabels[hi.index];
+          var dsIdx = hi.datasetIndex;
+          var lbl = chart.data.datasets[dsIdx] ? String(chart.data.datasets[dsIdx].label || '') : '';
+          if (!month || !lbl) return;
+          var allRows = ((expensesState.payload && expensesState.payload.rows) || []);
+          var base = expensesSliceByDomFilters_(allRows, false);
+          /** @type {!Array<!Object>} */
+          var drill = [];
+
+          if (kind === 'dept') {
+            for (var i = 0; i < base.length; i++) {
+              var row = base[i];
+              if (expenseMonthFromIso(row.effectiveDate) !== month) continue;
+              var d = String(row.department || '');
+              if (lbl === 'Other') {
+                var inTop = false;
+                for (var t = 0; t < topKeys.length; t++) {
+                  if (topKeys[t] === d) { inTop = true; break; }
+                }
+                if (!inTop) drill.push(row);
+              } else if (d === lbl) {
+                drill.push(row);
+              }
+            }
+            openExpensesDrawer_(month + ' · ' + lbl, drill,
+              'dept|' + expenseMonthToken_(month) + '|lbl');
+            return;
+          }
+
+          for (var j = 0; j < base.length; j++) {
+            var rw = base[j];
+            if (expenseMonthFromIso(rw.effectiveDate) !== month) continue;
+            var ck = expensesCatKey_(rw);
+            var inTopCat = topKeys.indexOf(ck) >= 0;
+            if (lbl === 'Other') {
+              if (!inTopCat) drill.push(rw);
+            } else if (lbl === 'Uncategorized') {
+              if (ck === EXPENSES_EMPTY_CATEGORY) drill.push(rw);
+            } else {
+              if (inTopCat && expensesCatLabel_(ck) === lbl) drill.push(rw);
+              else if (!inTopCat && ck === lbl) drill.push(rw);
+            }
+          }
+          openExpensesDrawer_(month + ' · ' + lbl, drill,
+            'cat|' + expenseMonthToken_(month) + '|lbl');
+        };
+        chart.update('none');
+      }
+
+      function renderExpensesChartsAndTables_(filteredRows) {
+        var deptN = expensesState.chartDeptTopN || 10;
+        var catN = expensesState.chartCategoryTopN || 10;
+        var deptRank = expensesRankTotals_(filteredRows, function (row) {
+          return String(row.department || '');
+        }, deptN);
+        var deptTopKeys = deptRank.map(function (x) { return x.key; });
+        var catRank = expensesRankTotals_(filteredRows, expensesCatKey_, catN);
+        var catTopKeys = catRank.map(function (x) { return x.key; });
+
+        var monthSeen = {};
+        for (var m = 0; m < filteredRows.length; m++) {
+          var mk = expenseMonthFromIso(filteredRows[m].effectiveDate);
+          if (mk) monthSeen[mk] = true;
+        }
+        var monthLabels = Object.keys(monthSeen).sort();
+
+        expensesDestroyCharts_();
+
+        if (filteredRows.length && monthLabels.length) {
+          loadChartJs()
+            .then(function () {
+            if (!els.expChartDept || typeof Chart === 'undefined') return;
+            if ((navState.activeNavId || '') !== 'expenses') return;
+            var deptDatasets = [];
+            var dk = 0;
+            for (var di = 0; di < deptTopKeys.length; di++) {
+              var dlab = deptTopKeys[di];
+              var deptDataArr = [];
+              for (var mi = 0; mi < monthLabels.length; mi++) {
+                var sum = 0;
+                for (var ri = 0; ri < filteredRows.length; ri++) {
+                  var rr = filteredRows[ri];
+                  if (expenseMonthFromIso(rr.effectiveDate) !== monthLabels[mi]) continue;
+                  if (String(rr.department || '') === dlab) sum += Number(rr.amount || 0);
+                }
+                deptDataArr.push(sum);
+              }
+              deptDatasets.push({
+                label: dlab,
+                data: deptDataArr,
+                backgroundColor: expensesPalette_(dk++),
+                stack: 'deptStack',
+              });
+            }
+            var otherDeptData = [];
+            for (var omi = 0; omi < monthLabels.length; omi++) {
+              var os = 0;
+              for (var ori = 0; ori < filteredRows.length; ori++) {
+                var rx = filteredRows[ori];
+                if (expenseMonthFromIso(rx.effectiveDate) !== monthLabels[omi]) continue;
+                var dx = String(rx.department || '');
+                var inTopD = false;
+                for (var ti = 0; ti < deptTopKeys.length; ti++) {
+                  if (deptTopKeys[ti] === dx) { inTopD = true; break; }
+                }
+                if (!inTopD) os += Number(rx.amount || 0);
+              }
+              otherDeptData.push(os);
+            }
+            if (otherDeptData.some(function (v) { return v > 0.009; })) {
+              deptDatasets.push({
+                label: 'Other',
+                data: otherDeptData,
+                backgroundColor: 'rgba(160, 160, 176, 0.55)',
+                stack: 'deptStack',
+              });
+            }
+            var ctxD = els.expChartDept.getContext('2d');
+            chartInstances.expensesDept = new Chart(ctxD, {
+              type: 'bar',
+              data: { labels: monthLabels, datasets: deptDatasets },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
+                scales: {
+                  x: { stacked: true, ticks: { maxRotation: 45 } },
+                  y: {
+                    stacked: true,
+                    ticks: {
+                      callback: function (vl) {
+                        return formatMoneyCompact(Number(vl)).replace(/\$/g, '');
+                      },
+                    },
+                  },
+                },
+              },
+            });
+            expensesAttachChartClick_(chartInstances.expensesDept, 'dept', monthLabels, deptTopKeys);
+
+            var catDatasets = [];
+            var ckix = 0;
+            for (var ci = 0; ci < catTopKeys.length; ci++) {
+              var ckey = catTopKeys[ci];
+              var clab = expensesCatLabel_(ckey);
+              var catPts = [];
+              for (var cmi = 0; cmi < monthLabels.length; cmi++) {
+                var csum = 0;
+                for (var cri = 0; cri < filteredRows.length; cri++) {
+                  var rz = filteredRows[cri];
+                  if (expenseMonthFromIso(rz.effectiveDate) !== monthLabels[cmi]) continue;
+                  if (expensesCatKey_(rz) === ckey) csum += Number(rz.amount || 0);
+                }
+                catPts.push(csum);
+              }
+              catDatasets.push({
+                label: clab,
+                data: catPts,
+                backgroundColor: expensesPalette_(ckix++),
+                stack: 'catStack',
+              });
+            }
+            var otherCatPts = [];
+            for (var ocm = 0; ocm < monthLabels.length; ocm++) {
+              var ox = 0;
+              for (var ocr = 0; ocr < filteredRows.length; ocr++) {
+                var rzz = filteredRows[ocr];
+                if (expenseMonthFromIso(rzz.effectiveDate) !== monthLabels[ocm]) continue;
+                var ckk = expensesCatKey_(rzz);
+                if (catTopKeys.indexOf(ckk) < 0) ox += Number(rzz.amount || 0);
+              }
+              otherCatPts.push(ox);
+            }
+            if (otherCatPts.some(function (v) { return v > 0.009; })) {
+              catDatasets.push({
+                label: 'Other',
+                data: otherCatPts,
+                backgroundColor: 'rgba(160, 160, 176, 0.55)',
+                stack: 'catStack',
+              });
+            }
+            var ctxC = els.expChartCategory.getContext('2d');
+            chartInstances.expensesCategory = new Chart(ctxC, {
+              type: 'bar',
+              data: { labels: monthLabels, datasets: catDatasets },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } },
+                scales: {
+                  x: { stacked: true, ticks: { maxRotation: 45 } },
+                  y: {
+                    stacked: true,
+                    ticks: {
+                      callback: function (vl2) {
+                        return formatMoneyCompact(Number(vl2)).replace(/\$/g, '');
+                      },
+                    },
+                  },
+                },
+              },
+            });
+            expensesAttachChartClick_(chartInstances.expensesCategory, 'category', monthLabels, catTopKeys);
+          })
+          .catch(function (err) {
+            console && console.warn && console.warn('Expenses charts: Chart.js load failed', err);
+          });
+        }
+
+        if (els.expCustTbody) {
+          var byC = {};
+          var attrTot = 0;
+          var grand = 0;
+          for (var u = 0; u < filteredRows.length; u++) {
+            var amt = Number(filteredRows[u].amount || 0);
+            grand += amt;
+            var cn = String(filteredRows[u].customer || '').trim();
+            if (cn) {
+              byC[cn] = (byC[cn] || 0) + amt;
+              attrTot += amt;
+            }
+          }
+          var entries = [];
+          for (var ck in byC) {
+            if (Object.prototype.hasOwnProperty.call(byC, ck)) {
+              entries.push({ name: ck, total: byC[ck] });
+            }
+          }
+          entries.sort(function (a, b) { return b.total - a.total; });
+
+          var showUnattribOnly =
+            grand > 0.01 &&
+            filteredRows.length > 0 &&
+            attrTot < 0.01 &&
+            entries.length === 0;
+          if (showUnattribOnly) {
+            if (els.expCustEmpty) els.expCustEmpty.classList.remove('d-none');
+            els.expCustTbody.innerHTML = '';
+          } else {
+            if (els.expCustEmpty) els.expCustEmpty.classList.add('d-none');
+            var unattr = Math.max(0, grand - attrTot);
+            var rowsH = [];
+            for (var ei = 0; ei < entries.length; ei++) {
+              var ent = entries[ei];
+              var pctAttr = attrTot ? (ent.total / attrTot) * 100 : 0;
+              var pctAll = grand ? (ent.total / grand) * 100 : 0;
+              rowsH.push('<tr tabindex="0" role="button" class="fos-exp-cust-row" data-exp-cust="' +
+                escapeAttr_(ent.name) + '" style="cursor:pointer"><td>' + escapeHtml(ent.name) + '</td><td class="text-end">' +
+                escapeHtml(formatMoneyCompact(ent.total)) + '</td><td class="text-end">' +
+                formatPct(pctAttr) + '%</td><td class="text-end">' + formatPct(pctAll) + '%</td></tr>');
+            }
+            rowsH.push('<tr tabindex="0" role="button" class="fos-exp-cust-row" data-exp-cust="__UNATTR__" style="cursor:pointer"><td>Unattributed</td><td class="text-end">' +
+              escapeHtml(formatMoneyCompact(unattr)) + '</td><td class="text-end">—</td><td class="text-end">' +
+              (grand > 0.01 ? formatPct(Math.max(0, unattr) / grand * 100) + '%' : '—') +
+              '</td></tr>');
+            els.expCustTbody.innerHTML = rowsH.join('');
+          }
+        }
+      }
+
+      function renderExpensesView_() {
+        var data = expensesState.payload;
+        if (!data || data.ok === false) {
+          return;
+        }
+        var allRows = (data && data.rows) || [];
+        var filtered = expensesSliceByDomFilters_(allRows, false);
+
+        /** KPIs */
+        var total = 0;
+        var attr = 0;
+        var depts = {};
+        for (var i = 0; i < filtered.length; i++) {
+          var a = Number(filtered[i].amount || 0);
+          total += a;
+          if (String(filtered[i].customer || '').trim()) attr += a;
+          depts[String(filtered[i].department || '')] = true;
+        }
+        var unattr = total - attr;
+        var dk = Object.keys(depts).length;
+
+        if (els.expKpiTotal) els.expKpiTotal.textContent = formatMoneyCompact(total);
+        if (els.expKpiTotalSub) els.expKpiTotalSub.textContent = filtered.length + ' filtered line(s)';
+        if (els.expKpiAttr) els.expKpiAttr.textContent = formatMoneyCompact(attr);
+        if (els.expKpiAttrSub) {
+          els.expKpiAttrSub.textContent = total > 0.01 ? formatPct(attr / total * 100) + '% of total' : '—';
+        }
+        if (els.expKpiUnattr) els.expKpiUnattr.textContent = formatMoneyCompact(Math.max(0, unattr));
+        if (els.expKpiUnattrSub) {
+          els.expKpiUnattrSub.textContent = total > 0.01 ? formatPct(Math.max(0, unattr) / total * 100) + '% of total' : '—';
+        }
+        if (els.expKpiDepts) els.expKpiDepts.textContent = String(dk);
+        if (els.expKpiDeptsSub) els.expKpiDeptsSub.textContent = 'Distinct';
+
+        var minD = '';
+        var maxD = '';
+        for (var j = 0; j < filtered.length; j++) {
+          var ed = String(filtered[j].effectiveDate || '');
+          if (!ed) continue;
+          if (!minD || ed < minD) minD = ed;
+          if (!maxD || ed > maxD) maxD = ed;
+        }
+        if (els.expSubtitle && data) {
+          els.expSubtitle.textContent =
+            filtered.length +
+            ' line(s) in view · Effective ' +
+            (minD && maxD ? minD + ' → ' + maxD : '—') +
+            ' · Last refreshed ' +
+            formatLastRefresh(data.fetchedAt);
+        }
+
+        if (els.expWarn && data && data.warnings && data.warnings.length) {
+          els.expWarn.textContent = data.warnings.join(' ');
+          els.expWarn.classList.remove('d-none');
+        } else if (els.expWarn) {
+          els.expWarn.classList.add('d-none');
+        }
+
+        renderExpensesFilterSummary_(filtered.length, allRows.length);
+        renderExpensesChartsAndTables_(filtered);
+        renderExpensesSankey_(filtered);
+        expensesRenderState.lastRenderedFetchedAt = data && data.fetchedAt ? data.fetchedAt : null;
+      }
+
+      function populateExpensesFilterMenus_(rows) {
+        if (!rows) rows = [];
+        var deptSet = {};
+        var custSet = {};
+        var empSet = {};
+        for (var i = 0; i < rows.length; i++) {
+          deptSet[String(rows[i].department || '')] = true;
+          custSet[expensesCustomerFilterKey_(rows[i])] = true;
+          empSet[expensesEmployeeKey_(rows[i])] = true;
+        }
+        var depts = Object.keys(deptSet).sort(function (a, b) { return a.localeCompare(b); });
+        var emps = Object.keys(empSet).sort(function (a, b) { return a.localeCompare(b); });
+        var custs = Object.keys(custSet).sort(function (a, b) {
+          if (a === EXPENSES_UNATTR_CUSTOMER_KEY) return 1;
+          if (b === EXPENSES_UNATTR_CUSTOMER_KEY) return -1;
+          return a.localeCompare(b);
+        });
+
+        function pruneMap_(map, valid) {
+          var keys = setFromKeys(map);
+          for (var pi = 0; pi < keys.length; pi++) {
+            if (!valid[keys[pi]]) delete map[keys[pi]];
+          }
+        }
+        pruneMap_(expensesState.filters.departments, deptSet);
+        pruneMap_(expensesState.filters.employees, empSet);
+        pruneMap_(expensesState.filters.customers, custSet);
+
+        var onFilterChange = function () {
+          expensesUpdateMultiTrigger_(els.expDeptTrigger, 'All departments', 'department', expensesState.filters.departments);
+          expensesUpdateMultiTrigger_(els.expEmployeeTrigger, 'All employees', 'employee', expensesState.filters.employees);
+          expensesUpdateMultiTrigger_(els.expCustomerTrigger, 'All customers', 'customer', expensesState.filters.customers);
+          expensesScheduleFilterRender_();
+        };
+
+        expensesPopulateMultiMenu_(
+          els.expDeptMenu,
+          depts,
+          function (k) { return k; },
+          function (k) { return k ? k : '(blank)'; },
+          expensesState.filters.departments,
+          onFilterChange
+        );
+        expensesPopulateMultiMenu_(
+          els.expEmployeeMenu,
+          emps,
+          function (k) { return k; },
+          function (k) { return k; },
+          expensesState.filters.employees,
+          onFilterChange
+        );
+        expensesPopulateMultiMenu_(
+          els.expCustomerMenu,
+          custs,
+          function (k) { return k; },
+          function (k) { return expensesCustomerFilterLabel_(k); },
+          expensesState.filters.customers,
+          onFilterChange
+        );
+
+        expensesUpdateMultiTrigger_(els.expDeptTrigger, 'All departments', 'department', expensesState.filters.departments);
+        expensesUpdateMultiTrigger_(els.expEmployeeTrigger, 'All employees', 'employee', expensesState.filters.employees);
+        expensesUpdateMultiTrigger_(els.expCustomerTrigger, 'All customers', 'customer', expensesState.filters.customers);
+      }
+
+      function applyDefaultExpensesDateRange_(rows) {
+        if (!els.expDateStart || !els.expDateEnd) return;
+        if (els.expDateStart.value && els.expDateEnd.value) return;
+        var end = new Date();
+        var start = new Date(end.getFullYear(), end.getMonth() - 12, 1);
+        if (rows && rows.length) {
+          var min = '';
+          var max = '';
+          for (var i = 0; i < rows.length; i++) {
+            var d = String(rows[i].effectiveDate || '');
+            if (!d) continue;
+            if (!min || d < min) min = d;
+            if (!max || d > max) max = d;
+          }
+          if (min && max) {
+            els.expDateStart.value = min;
+            els.expDateEnd.value = max;
+            return;
+          }
+        }
+        els.expDateStart.value = start.toISOString().slice(0, 10);
+        els.expDateEnd.value = end.toISOString().slice(0, 10);
+      }
+
+      function applyExpensesPayload_(payload) {
+        expensesState.payload = payload;
+        if (payload.chartConfig) {
+          expensesState.chartDeptTopN = Number(payload.chartConfig.deptTopN) || expensesState.chartDeptTopN;
+          expensesState.chartCategoryTopN =
+            Number(payload.chartConfig.categoryTopN) || expensesState.chartCategoryTopN;
+        }
+        if (els.expPartialNote && payload.partial) {
+          els.expPartialNote.textContent =
+            'Partial import — some sheet rows were not loaded (AUTH_EXPENSES_MAX_ROWS cap).';
+          els.expPartialNote.classList.remove('d-none');
+        } else if (els.expPartialNote) {
+          els.expPartialNote.classList.add('d-none');
+        }
+        applyDefaultExpensesDateRange_(payload.rows || []);
+        populateExpensesFilterMenus_(payload.rows || []);
+        if (els.expLastRefresh && payload.fetchedAt) {
+          els.expLastRefresh.textContent = 'Last refreshed: ' + formatLastRefresh(payload.fetchedAt);
+        }
+        renderExpensesView_();
+      }
+
+      function fetchExpensesFromServer(manual) {
+        if (!isLiveDataSource_()) return;
+        if (els.expRefreshBtn) els.expRefreshBtn.disabled = true;
+        if (els.expFetchError) els.expFetchError.classList.add('d-none');
+        setExpensesLoading(true);
+        google.script.run
+          .withSuccessHandler(function (data) {
+            setExpensesLoading(false);
+            if (els.expRefreshBtn) els.expRefreshBtn.disabled = false;
+            if (!data || data.ok === false) {
+              if (els.expFetchError) {
+                els.expFetchError.textContent = (data && data.message) || 'Could not load expenses.';
+                els.expFetchError.classList.remove('d-none');
+              }
+              return;
+            }
+            writeExpensesCache(data);
+            applyExpensesPayload_(data);
+          })
+          .withFailureHandler(function (err) {
+            setExpensesLoading(false);
+            if (els.expRefreshBtn) els.expRefreshBtn.disabled = false;
+            var msg = err && err.message ? err.message : 'Refresh failed.';
+            if (msg === 'NOT_AUTHORIZED') {
+              msg = 'Your session is not authorized. Reload the page.';
+            }
+            if (els.expFetchError) {
+              els.expFetchError.textContent = msg;
+              els.expFetchError.classList.remove('d-none');
+            }
+          })
+          .getExpensesDashboardData();
+        if (manual) logActivity_('expenses_refresh', 'expenses', '');
+      }
+
+      function showExpensesMaybeLoad_() {
+        if (!els.panelExpenses) return;
+        var cached = readExpensesCache();
+        var alreadyRendered =
+          expensesRenderState.lastRenderedFetchedAt &&
+          cached &&
+          cached.fetchedAt &&
+          expensesRenderState.lastRenderedFetchedAt === cached.fetchedAt;
+
+        if (cached && cached.ok !== false) {
+          if (!alreadyRendered) {
+            applyExpensesPayload_(cached);
+          }
+          return;
+        }
+        fetchExpensesFromServer(false);
+      }
+
+      function showExpensesLiveOrSnapshot_() {
+        var disableRefresh = !isLiveDataSource_();
+
+        if (els.expLiveOnly) {
+          if (disableRefresh) els.expLiveOnly.classList.remove('d-none');
+          else els.expLiveOnly.classList.add('d-none');
+        }
+        if (els.expRefreshBtn) els.expRefreshBtn.disabled = disableRefresh;
+
+        if (disableRefresh) {
+          expensesDestroyCharts_();
+          if (els.expSankeyWrap) els.expSankeyWrap.innerHTML = '';
+          expensesState.payload = null;
+          if (els.expSubtitle) els.expSubtitle.textContent = 'Select Live data to load expense lines.';
+          if (els.expFetchError) els.expFetchError.classList.add('d-none');
+          if (els.expWarn) els.expWarn.classList.add('d-none');
+          if (els.expPartialNote) els.expPartialNote.classList.add('d-none');
+          if (els.expKpiTotal) els.expKpiTotal.textContent = '$0';
+          if (els.expKpiTotalSub) els.expKpiTotalSub.textContent = '—';
+          if (els.expKpiAttr) els.expKpiAttr.textContent = '$0';
+          if (els.expKpiUnattr) els.expKpiUnattr.textContent = '$0';
+          if (els.expCustTbody) els.expCustTbody.innerHTML = '';
+          if (els.expFilterChips) els.expFilterChips.innerHTML = '';
+          if (els.expFilterSummary) els.expFilterSummary.textContent = '—';
+          return;
+        }
+        showExpensesMaybeLoad_();
+      }
+
+      function showExpenses() {
+        if (!els.panelExpenses) return;
+        els.panelHome.classList.add('d-none');
+        if (els.panelAgreementDashboard) els.panelAgreementDashboard.classList.add('d-none');
+        if (els.panelOperations) els.panelOperations.classList.add('d-none');
+        if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
+        if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
+        if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        els.panelExpenses.classList.remove('d-none');
+        hidePanelSettings_();
+        els.topbarTitle.textContent = 'Expenses';
+        if (els.expFetchError) els.expFetchError.classList.add('d-none');
+        wireExpensesPanelOnce_();
+        showExpensesLiveOrSnapshot_();
+      }
+
+      function wireExpensesPanelOnce_() {
+        if (expensesControlsWired_) return;
+        expensesControlsWired_ = true;
+
+        if (els.expRefreshBtn) {
+          els.expRefreshBtn.addEventListener('click', function () {
+            if (!isLiveDataSource_()) return;
+            fetchExpensesFromServer(true);
+          });
+        }
+        if (els.expDateStart) els.expDateStart.addEventListener('change', expensesScheduleFilterRender_);
+        if (els.expDateEnd) els.expDateEnd.addEventListener('change', expensesScheduleFilterRender_);
+        if (els.expSearch) els.expSearch.addEventListener('input', expensesScheduleFilterRender_);
+
+        if (els.expCustTbody) {
+          els.expCustTbody.addEventListener('click', function (ev) {
+            var tr = ev.target.closest('tr.fos-exp-cust-row[data-exp-cust]');
+            if (!tr) return;
+            var keyCust = tr.getAttribute('data-exp-cust');
+            var sliceRows = expensesSliceByDomFilters_((expensesState.payload && expensesState.payload.rows) || [], false);
+            var drillR = [];
+            if (keyCust === EXPENSES_UNATTR_CUSTOMER_KEY) {
+              for (var i = 0; i < sliceRows.length; i++) {
+                if (!String(sliceRows[i].customer || '').trim()) drillR.push(sliceRows[i]);
+              }
+              openExpensesDrawer_('Unattributed', drillR, 'cust|unattrib');
+              return;
+            }
+            for (var j = 0; j < sliceRows.length; j++) {
+              if (String(sliceRows[j].customer || '').trim() === keyCust) drillR.push(sliceRows[j]);
+            }
+            openExpensesDrawer_(keyCust, drillR, 'cust|pick');
+          });
+        }
+      }
       function fetchDeliveryFromServer(opts) {
         if (!isLiveDataSource_()) {
           return;
@@ -12789,6 +14103,11 @@
           if (item.id === 'agreement-dashboard') {
             setActiveNav('agreement-dashboard');
             showAgreementDashboard();
+            return;
+          }
+          if (item.id === 'expenses') {
+            setActiveNav('expenses');
+            showExpenses();
             return;
           }
           if (item.id === 'operations') {

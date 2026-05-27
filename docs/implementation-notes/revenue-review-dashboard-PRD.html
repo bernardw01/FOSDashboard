@@ -188,7 +188,7 @@
       <tr><td>Total Portfolio Value</td><td>Sum of Target Revenue across all included agreements</td><td>Navy (neutral)</td></tr>
       <tr><td>Revenue Recognized</td><td>Sum of Rev Recognized + % of portfolio</td><td>Green (always)</td></tr>
       <tr><td>Prior Month Close</td><td>Amount invoiced in prior month + milestone count</td><td>Blue (neutral)</td></tr>
-      <tr><td>Current Month Invoiced</td><td>Amount invoiced so far this month + % of milestones</td><td>Green if ≥50%, Yellow if &lt;50%</td></tr>
+      <tr><td>Current Month Invoiced</td><td>Amount invoiced or recognized so far this month (primary value). Subtext: % of milestones invoiced/recognized, <strong>sum of target amounts</strong> for all current-month milestones (excluding Not Scheduled), and <strong>remaining</strong> = max(0, month target − invoiced amount).</td><td>Green if ≥50% milestones, Yellow if &lt;50%</td></tr>
       <tr><td>Amount Variances</td><td>Count of milestones with non-zero variance (March/April only, non-Not-Scheduled only)</td><td>Yellow if &gt;0, Green if 0</td></tr>
       <tr><td>Overdue / At-Risk</td><td>Count of milestones past target date, not invoiced, &gt;$0</td><td>Red if &gt;0, Green if 0</td></tr>
     </tbody>
@@ -236,14 +236,19 @@
   <h2 id="s5"><span class="section-num">5.</span> Business Logic &amp; Calculation Rules</h2>
 
   <h3>5.1 Variance Eligibility</h3>
-  <p>A milestone counts as a variance item (for KPI card, portfolio badges, and table indicators) only if ALL of the following are true:</p>
+  <p>A milestone appears in the in-app <strong>Variance &amp; schedule</strong> table (and counts toward the <strong>Variances</strong> KPI) when <strong>all</strong> of the following are true:</p>
   <ul>
-    <li>Amount Variance ≠ 0</li>
-    <li>Target Date falls in the current or prior review month (e.g., 2026-03 or 2026-04)</li>
     <li>Workflow state ≠ <code>Not Scheduled</code></li>
+    <li>Target Date month falls in the <strong>prior</strong> or <strong>current</strong> review month (calendar month of target date, not invoice date)</li>
+    <li><strong>And either:</strong>
+      <ul>
+        <li><strong>Amount variance:</strong> Target Date is <strong>strictly before</strong> the report date (local midnight) <strong>and</strong> |Actual Amount − Target Amount| &gt; $0.005</li>
+        <li><strong>Schedule issue:</strong> Target Date is before today, Target Amount &gt; $0, Revenue Recognized ≠ true, and workflow state is not invoiced/paid</li>
+      </ul>
+    </li>
   </ul>
   <div class="callout warn">
-    Variances from outside the two-month review window (e.g., a Month 1 prorated billing from November 2024) are intentionally excluded. This keeps the report focused on the current review period.
+    Future-dated milestones in the current review month (e.g. target 2026-05-31 while today is 2026-05-22) MUST NOT appear solely because actual ≠ target while still <strong>Scheduled</strong> — actuals are not meaningful until the milestone is due. Variances outside the two-month review window remain excluded. (FOS Web App v2.4.2.)
   </div>
 
   <h3>5.2 On-Time Indicator</h3>
@@ -498,6 +503,16 @@ The agreement ID is [fibery/id].</code></pre>
   <table>
     <thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead>
     <tbody>
+      <tr>
+        <td><strong>2.6</strong></td>
+        <td>2026-05-26</td>
+        <td><strong>Current Month Invoiced KPI:</strong> §4.2 subtext now includes the month’s <strong>total target</strong> (sum of <code>targetAmount</code> for current-month milestones, excluding Not Scheduled) and <strong>remaining</strong> (target minus invoiced/recognized actuals, floored at $0).</td>
+      </tr>
+      <tr>
+        <td><strong>2.5</strong></td>
+        <td>2026-05-22</td>
+        <td><strong>FOS Web App (v2.4.2):</strong> §5.1 updated — <strong>Variance &amp; schedule</strong> amount variance requires target date strictly before report date; future-dated milestones in the review month no longer appear solely because actual ≠ target while still Scheduled.</td>
+      </tr>
       <tr>
         <td><strong>1.0</strong></td>
         <td>2026-04-14</td>

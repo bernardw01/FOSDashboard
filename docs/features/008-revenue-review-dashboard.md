@@ -1,8 +1,8 @@
 # Feature: Monthly Revenue Review (under Delivery)
 
-> **PRD version 2.1.0** — see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js` when this feature ships).
+> **PRD version 2.4.3** — see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js` when this feature ships).
 
-> **Imported baseline PRD:** `docs/implementation-notes/revenue-review-dashboard-PRD.html` (static generator spec, v2.4 narrative + changelog through 2.1).  
+> **Imported baseline PRD:** `docs/implementation-notes/revenue-review-dashboard-PRD.html` (static generator spec, v2.4 narrative + changelog through **2.5**).  
 > **Reference UI (imported example):** `docs/implementation-notes/revenue-review-may-2026.html` (May 2026 report layout, KPIs, tables, alerts, milestone `<details>` hierarchy, pre-recognition banner).  
 > **Parent product baseline:** `docs/FOS-Dashboard-PRD.md` — **FR/AC to be added** when the feature is scheduled for release (mirror pattern used for Labor hours: **FR-101** / **AC-56** etc.).
 
@@ -11,10 +11,24 @@
 | Phase | Scope | Status |
 | --- | --- | --- |
 | **Phase A — Nav + shell + cache binding** | **Delivery** becomes a **nav group** (label **Delivery**) with children **Delivery** (existing `delivery` route / `#panel-delivery`) and **Revenue review** (new route, e.g. `revenue-review`, `#panel-revenue-review`). New panel uses **Agreement** dark chrome; reads **`fos_agreement_dashboard_v2`** (and in-memory agreement payload if present); **Refresh** triggers `getAgreementDashboardData()` when stale/missing (same auth + TTL patterns as Agreement Dashboard). | **Released (v1.25.0)** |
-| **Phase B — Executive KPIs + alerts** | Six KPI cards per imported §4.2 (portfolio value, recognized, prior month close, current month invoiced, variances, overdue/at-risk); **Agreement expiry** strip §4.3; **Future revenue pre-recognition** banner (example + imported changelog 1.6 — purple callout when recognized + future target date + not invoiced). | **Released (v1.25.0)** |
+| **Phase B — Executive KPIs + alerts** | Six KPI cards per imported §4.2 (portfolio value, recognized, prior month close, **current month invoiced** — subtext shows milestone %, **month target total**, and **remaining**; variances, overdue/at-risk); **Agreement expiry** strip §4.3; **Future revenue pre-recognition** banner (example + imported changelog 1.6 — purple callout when recognized + future target date + not invoiced). | **Released (v1.25.0)** |
 | **Phase C — Tables + portfolio** | Prior-month and current-month **milestone billing** tables §4.4–4.5; **Agreement portfolio** §4.6; **Revenue by customer** §4.7; **Overdue / at-risk** §4.8; client-side **sortable** columns §4.10; optional **Copy CSV** / print (follow Labor hours / Delivery patterns). | **Released (v1.26.0)** |
 | **Phase D — Milestone drill-down + polish** | **Full milestone detail** §4.9 (`<details>` by customer → agreement); variance table / KPI scroll behavior aligned with **latest** imported PRD changelog (combined amount + date variance KPI 2.0+ if product confirms); activity logging (`revenue_review_*` or nested route labels); main PRD + version bump. | **Released (v1.26.0)** |
 | **Phase E — Customer drill + Fibery Companies link (v1.27.0)** | Milestone detail groups strictly by **agreement Customer** then **agreement**; **Revenue by customer** row opens the shared side drawer (company + panel rollups); **Open in Fibery** to Companies when `fibery_access` and `publicId` present. | **Released (v1.27.0)** |
+| **Phase F — Variance & schedule eligibility (v2.4.2)** | **Variance & schedule** table and **Variances** KPI: amount variance requires **target date before today** (`targetPast`); future-dated milestones in the review month no longer appear solely because actual ≠ target while still **Scheduled**. Schedule-issue rows unchanged (past target, target &gt; $0, not recognized, not invoiced). | **Released (v2.4.2)** |
+
+## Variance & schedule eligibility (in-app v2.4.2)
+
+Imported baseline §5.1 is updated in `docs/implementation-notes/revenue-review-dashboard-PRD.html` (changelog **2.5**). In-app rules (`src/DashboardShell.html` → `renderRevenueReview_`):
+
+| Criterion | Rule |
+| --- | --- |
+| Review window | Target date month = **prior** or **current** calendar month |
+| State | Workflow state ≠ `Not Scheduled` |
+| **Amount variance** | `targetPast` (target date &lt; local today) **and** \|actual − target\| &gt; $0.005 |
+| **Schedule issue** | Target before today, target amount &gt; $0, not recognized, not invoiced/paid |
+
+**Bug fixed:** Milestones with a **future** target in the current month (e.g. 2026-05-31 while today is still May) were incorrectly listed when `actualAmount` was $0 and state was **Scheduled**. Those rows are excluded unless a **schedule issue** applies (target already past).
 
 ## Goal
 
@@ -130,6 +144,27 @@ Below is a suggested **sequenced** plan. Phases can be split across PRs (e.g. A+
 4. **Prior month** / **current month** milestone tables match PRD column set and **Not Scheduled** exclusion rules for those tables.
 5. **Expiry** and **pre-recognition** strips match PRD §4.3 / example §1.6 logic (including Contract Complete exemption for expiry).
 6. Visual design matches **dark Operations / Agreement** tokens; no standalone cream theme for the panel body.
+7. **Variance & schedule:** Rows match §5.1 / Phase F — no future-target amount-only variances for **Scheduled** milestones.
+
+## Current month invoiced KPI (subtext)
+
+Imported §4.2 / changelog **2.6**. For milestones with target date in the **current** calendar month (excluding **Not Scheduled**):
+
+| Field | Rule |
+| --- | --- |
+| Primary value | Sum of `actualAmount` where recognized or invoiced/paid workflow state |
+| Milestone % | Invoiced/recognized count ÷ milestone count |
+| Month target | Sum of `targetAmount` for all rows in the current-month set |
+| Remaining | `max(0, month target − invoiced amount)` |
+
+Client: `renderRevenueReview_()` in `src/DashboardShell.html` (`currTargetAmt`, `currRemainingAmt` → `#rr-kpi-curr-sub`).
+
+## Changelog (feature doc)
+
+| Date | Version | Changes |
+| --- | --- | --- |
+| 2026-05-26 | 2.4.3 | **Current month invoiced KPI** — subtext adds month **target** total and **remaining**; imported PRD §4.2 + changelog **2.6**; main PRD PATCH **2.4.3**. |
+| 2026-05-22 | 2.4.2 | **Variance & schedule fix** — amount variance requires `targetPast`; imported PRD §5.1 + changelog 2.5; main PRD PATCH **2.4.2**. |
 
 ## References
 

@@ -1,11 +1,11 @@
 /**
- * PRD version 2.4.1 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.5.2 — sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard — Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.4.1';
+var FOS_PRD_VERSION = '2.5.2';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '2.4.1';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'Revenue flow Sankey fills the panel width again; right-column labels remain outside the plot.';
+  'Expenses: Sankey flow chart, checkbox filters (dept/employee/customer), removed expense-lines table.';
 
 /**
  * @return {string}
@@ -127,13 +127,13 @@ function buildNavigationModel_(auth) {
 
   var allItems = [
     { id: 'home', label: 'Home', active: true },
-    { id: 'agreement-dashboard', label: 'Agreement Dashboard', active: false },
     {
       id: 'operations-group',
       type: 'group',
       label: 'Operations',
       active: false,
       children: [
+        { id: 'agreement-dashboard', label: 'Agreements', active: false },
         { id: 'operations', label: 'Utilization', active: false },
         { id: 'labor-hours', label: 'Labor hours', active: false },
       ],
@@ -146,6 +146,15 @@ function buildNavigationModel_(auth) {
       children: [
         { id: 'delivery', label: 'Projects & P&L', active: false },
         { id: 'revenue-review', label: 'Revenue review', active: false },
+      ],
+    },
+    {
+      id: 'finance-group',
+      type: 'group',
+      label: 'Finance',
+      active: false,
+      children: [
+        { id: 'expenses', label: 'Expenses', active: false },
       ],
     },
   ];
