@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.5.3 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.5.4 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -2859,12 +2859,19 @@
                 <span class="text-nowrap">Week (Mon–Sun)</span>
                 <input type="week" id="lh-week-input" class="form-control form-control-sm" style="width: 11rem; background: var(--ag-surface2); color: var(--ag-text); border-color: var(--ag-border)" />
               </label>
-              <div>
-                <label class="field-label">Internal labor</label>
-                <div class="btn-group" role="group" id="lh-internal-group" aria-label="Internal labor filter">
-                  <button type="button" class="btn btn-sm active" data-value="include">Include</button>
-                  <button type="button" class="btn btn-sm" data-value="exclude">Exclude</button>
-                </div>
+              <div class="fos-util-multi">
+                <label class="field-label">Company</label>
+                <button
+                  type="button"
+                  class="multi-trigger"
+                  id="lh-company-trigger"
+                  data-bs-toggle="dropdown"
+                  data-bs-auto-close="outside"
+                  aria-expanded="false"
+                >
+                  All companies
+                </button>
+                <ul class="dropdown-menu" id="lh-company-menu" aria-label="Company filter"></ul>
               </div>
               <span class="small d-none text-danger" id="lh-fetch-error" role="alert"></span>
             </div>
@@ -2943,7 +2950,7 @@
                 <section class="fos-section-card" id="lh-section-zero" aria-labelledby="lh-zero-heading">
                   <h2 id="lh-zero-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text-muted)">Zero hours this week</h2>
                   <p class="small mb-2" style="color: var(--ag-text-muted)">
-                    From the Utilization <strong>Persons</strong> roster for the loaded date range — people with no qualifying entries in the selected week (after Internal labor filter).
+                    People in the utilization roster (last ~60 days of labor data) with no qualifying entries in the selected week, after the <strong>Company</strong> filter.
                   </p>
                   <div id="lh-zero-chips" class="fos-lh-zero-chips" aria-live="polite"></div>
                 </section>
@@ -4051,7 +4058,8 @@
         lhExpandProjectsBtn: document.getElementById('lh-expand-projects-btn'),
         lhCollapseProjectsBtn: document.getElementById('lh-collapse-projects-btn'),
         lhWeekInput: document.getElementById('lh-week-input'),
-        lhInternalGroup: document.getElementById('lh-internal-group'),
+        lhCompanyTrigger: document.getElementById('lh-company-trigger'),
+        lhCompanyMenu: document.getElementById('lh-company-menu'),
         lhFetchError: document.getElementById('lh-fetch-error'),
         lhKpiWith: document.getElementById('lh-kpi-with'),
         lhKpiOver: document.getElementById('lh-kpi-over'),
@@ -7364,13 +7372,6 @@
             else btns[i].classList.remove('active');
           }
         }
-        if (els.lhInternalGroup) {
-          var btns2 = els.lhInternalGroup.querySelectorAll('button');
-          for (var j = 0; j < btns2.length; j++) {
-            if (btns2[j].getAttribute('data-value') === val) btns2[j].classList.add('active');
-            else btns2[j].classList.remove('active');
-          }
-        }
       }
 
       // KPI + chart renderers ----------------------------------------------
@@ -9470,7 +9471,98 @@
         return rs <= ws && re >= we;
       }
 
-      function laborFilterRowsForWeek_(rows, bounds, excludeInternal) {
+      var LABOR_HOURS_ROSTER_LOOKBACK_DAYS_ = 60;
+
+      var laborHoursState = {
+        filters: {
+          companies: {},
+        },
+      };
+
+      function laborCompanyKey_(r) {
+        var co = r && r.clockifyUserCompany != null ? String(r.clockifyUserCompany).trim() : '';
+        return co || '(Unknown)';
+      }
+
+      function laborRowPassesCompanyFilter_(r, companyMap) {
+        var co = laborCompanyKey_(r);
+        var keys = Object.keys(companyMap || {});
+        if (!keys.length) return true;
+        if (!Object.prototype.hasOwnProperty.call(companyMap, co)) return false;
+        return companyMap[co] !== false;
+      }
+
+      function laborCompanyPassesFilter_(co, companyMap) {
+        var keys = Object.keys(companyMap || {});
+        if (!keys.length) return true;
+        if (!Object.prototype.hasOwnProperty.call(companyMap, co)) return false;
+        return companyMap[co] !== false;
+      }
+
+      function laborUniqueCompaniesFromRows_(rows) {
+        var set = {};
+        for (var i = 0; i < (rows || []).length; i++) {
+          var r = rows[i];
+          if (!r) continue;
+          set[laborCompanyKey_(r)] = true;
+        }
+        var list = Object.keys(set);
+        list.sort(function (a, b) {
+          return String(a).toLowerCase() < String(b).toLowerCase() ? -1 : 1;
+        });
+        return list;
+      }
+
+      function laborInferDimPersonsFromRows_(fullRows, cfg, companyMap) {
+        var seen = {};
+        var out = [];
+        for (var i = 0; i < (fullRows || []).length; i++) {
+          var r = fullRows[i];
+          if (!r) continue;
+          if (!laborRowPassesCompanyFilter_(r, companyMap)) continue;
+          if (laborPersonExcluded_(cfg, r.userName)) continue;
+          var pk = personKeyForRow_(r);
+          if (seen[pk]) continue;
+          seen[pk] = true;
+          out.push({ id: pk, name: r.userName || '(Unknown user)' });
+        }
+        return out;
+      }
+
+      function laborMergePersonDimensions_(dimPersons, inferred) {
+        var byKey = {};
+        var list = dimPersons || [];
+        for (var di = 0; di < list.length; di++) {
+          var dp = list[di];
+          if (!dp) continue;
+          byKey[dp.id || dp.name || '(Unknown user)'] = dp;
+        }
+        var inf = inferred || [];
+        for (var ij = 0; ij < inf.length; ij++) {
+          var item = inf[ij];
+          var k = item.id || item.name || '(Unknown user)';
+          if (!byKey[k]) byKey[k] = item;
+        }
+        var out = [];
+        for (var key in byKey) {
+          if (Object.prototype.hasOwnProperty.call(byKey, key)) out.push(byKey[key]);
+        }
+        return out;
+      }
+
+      function laborRosterFetchRange_(bounds) {
+        var now = new Date();
+        var end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        var start = new Date(end.getTime() - LABOR_HOURS_ROSTER_LOOKBACK_DAYS_ * 86400000);
+        start.setHours(0, 0, 0, 0);
+        if (bounds && bounds.weekStartMs < start.getTime()) {
+          start = new Date(bounds.weekStartMs);
+          start.setHours(0, 0, 0, 0);
+        }
+        return { startIso: start.toISOString(), endIso: end.toISOString() };
+      }
+
+      function laborFilterRowsForWeek_(rows, bounds, companyMap) {
         var out = [];
         for (var i = 0; i < rows.length; i++) {
           var r = rows[i];
@@ -9478,7 +9570,7 @@
           var t = Date.parse(r.startDateTime);
           if (!isFinite(t)) continue;
           if (t < bounds.weekStartMs || t > bounds.weekEndMs) continue;
-          if (excludeInternal && r.isInternal) continue;
+          if (!laborRowPassesCompanyFilter_(r, companyMap)) continue;
           out.push(r);
         }
         return out;
@@ -9695,7 +9787,7 @@
         return { active: list, map: map, epsilon: eps };
       }
 
-      function laborZeroHoursPeople_(dimPersons, personMap, cfg, fullRows) {
+      function laborZeroHoursPeople_(dimPersons, personMap, cfg, fullRows, companyMap) {
         var out = [];
         var eps = cfg.onTargetEpsilonHours != null ? cfg.onTargetEpsilonHours : 0.01;
         if (!dimPersons || !dimPersons.length) {
@@ -9711,6 +9803,7 @@
           var th = agg ? agg.totalHours : 0;
           if (th >= eps) continue;
           var company = laborLookupCompanyForPersonKey_(fullRows || [], pk);
+          if (!laborCompanyPassesFilter_(company, companyMap)) continue;
           var target = laborTargetHoursForCompany_(cfg, company);
           out.push({
             personKey: pk,
@@ -9787,7 +9880,76 @@
       }
 
       function laborWeekCacheKey_(bounds) {
-        return bounds.weekStartIso + '|' + bounds.weekEndIso + '|' + utilState.filters.internalLabor;
+        return bounds.weekStartIso + '|' + bounds.weekEndIso;
+      }
+
+      function laborUpdateCompanyTrigger_(trigger, companyMap) {
+        if (!trigger) return;
+        var keys = Object.keys(companyMap || {});
+        var nOn = 0;
+        for (var i = 0; i < keys.length; i++) {
+          if (companyMap[keys[i]] !== false) nOn++;
+        }
+        if (!keys.length || nOn === keys.length) {
+          trigger.textContent = 'All companies';
+          return;
+        }
+        trigger.innerHTML =
+          nOn + ' companies <span class="count-badge">' + nOn + '</span>';
+      }
+
+      var laborHoursCompanyMenuKey_ = '';
+
+      function populateLaborHoursCompanyMenu_(fullRows) {
+        var companies = laborUniqueCompaniesFromRows_(fullRows);
+        var menuKey = companies.join('\u0001');
+        if (
+          menuKey === laborHoursCompanyMenuKey_ &&
+          els.lhCompanyMenu &&
+          els.lhCompanyMenu.children.length
+        ) {
+          laborUpdateCompanyTrigger_(els.lhCompanyTrigger, laborHoursState.filters.companies);
+          return;
+        }
+        laborHoursCompanyMenuKey_ = menuKey;
+        var prev = laborHoursState.filters.companies;
+        var next = {};
+        for (var ci = 0; ci < companies.length; ci++) {
+          var c = companies[ci];
+          next[c] = prev.hasOwnProperty(c) ? !!prev[c] : true;
+        }
+        laborHoursState.filters.companies = next;
+        laborUpdateCompanyTrigger_(els.lhCompanyTrigger, next);
+        var menu = els.lhCompanyMenu;
+        if (!menu) return;
+        menu.innerHTML = '';
+        if (!companies.length) {
+          var liEmpty = document.createElement('li');
+          liEmpty.className = 'empty';
+          liEmpty.textContent = 'No companies in data.';
+          menu.appendChild(liEmpty);
+          return;
+        }
+        for (var mi = 0; mi < companies.length; mi++) {
+          (function (coKey) {
+            var li = document.createElement('li');
+            var checkId = 'lh-co-' + Math.random().toString(36).slice(2, 8);
+            var checked = next[coKey] !== false ? ' checked' : '';
+            li.innerHTML =
+              '<div class="form-check">' +
+                '<input class="form-check-input" type="checkbox" id="' + checkId + '"' + checked + ' />' +
+                '<label class="form-check-label" for="' + checkId + '">' + escapeHtml(coKey) + '</label>' +
+              '</div>';
+            var input = li.querySelector('input');
+            input.addEventListener('change', function () {
+              laborHoursState.filters.companies[coKey] = !!input.checked;
+              laborUpdateCompanyTrigger_(els.lhCompanyTrigger, laborHoursState.filters.companies);
+              refreshLaborHoursView_();
+              logActivity_('labor_hours_filter_change', 'labor_hours', 'company');
+            });
+            menu.appendChild(li);
+          })(companies[mi]);
+        }
       }
 
       var laborHoursFetchCache_ = { key: null, payload: null };
@@ -9812,7 +9974,7 @@
         var zeros = laborHoursViewModel_.zeros || [];
         if (!zeros.length) {
           el.innerHTML =
-            '<span class="small" style="color: var(--ag-text-muted)">Nobody in the Persons roster is at zero for this week — widen the Utilization date range or refresh if you expect more names.</span>';
+            '<span class="small" style="color: var(--ag-text-muted)">Nobody in the roster is at zero for this week with the current Company filter — adjust filters or refresh if you expect more names.</span>';
           return;
         }
         for (var zi = 0; zi < zeros.length; zi++) {
@@ -10069,15 +10231,21 @@
         var fullRows = meta.fullRows != null ? meta.fullRows : rows;
         var dimPersons =
           meta.dimensions && meta.dimensions.persons ? meta.dimensions.persons : [];
+        var companyMap = laborHoursState.filters.companies;
+        populateLaborHoursCompanyMenu_(fullRows);
+        companyMap = laborHoursState.filters.companies;
+        var inferred = laborInferDimPersonsFromRows_(fullRows, cfg, companyMap);
+        var rosterPersons = laborMergePersonDimensions_(dimPersons, inferred);
         var agg = aggregateLaborHoursByPerson_(rows, cfg);
         var people = agg.active;
         var buckets = laborSplitBuckets_(people);
         laborHoursViewModel_.buckets = buckets;
         laborHoursViewModel_.zeros = laborZeroHoursPeople_(
-          dimPersons,
+          rosterPersons,
           agg.map,
           cfg,
-          fullRows
+          fullRows,
+          companyMap
         );
         laborHoursViewModel_.bounds = bounds;
         laborHoursViewModel_.sourceMsg = sourceMsg || '';
@@ -10106,7 +10274,7 @@
           return;
         }
         if (els.lhFetchError) els.lhFetchError.classList.add('d-none');
-        var excludeInternal = utilState.filters.internalLabor === 'exclude';
+        var companyMap = laborHoursState.filters.companies;
         var cacheKey = laborWeekCacheKey_(bounds);
 
         var memPayload = utilState.payload && utilState.payload.ok !== false ? utilState.payload : null;
@@ -10123,7 +10291,7 @@
           rangeCoversWeekMs_(basePayload.range, bounds.weekStartMs, bounds.weekEndMs)
         ) {
           var cfg0 = cfgFrom(basePayload);
-          var rows0 = laborFilterRowsForWeek_(basePayload.rows, bounds, excludeInternal);
+          var rows0 = laborFilterRowsForWeek_(basePayload.rows, bounds, companyMap);
           refreshLaborHoursViewFromRows_(
             rows0,
             cfg0,
@@ -10138,7 +10306,7 @@
         if (laborHoursFetchCache_.key === cacheKey && laborHoursFetchCache_.payload) {
           var pay = laborHoursFetchCache_.payload;
           var cfg1 = cfgFrom(pay);
-          var rows1 = laborFilterRowsForWeek_(pay.rows || [], bounds, excludeInternal);
+          var rows1 = laborFilterRowsForWeek_(pay.rows || [], bounds, companyMap);
           refreshLaborHoursViewFromRows_(rows1, cfg1, bounds, 'Week data (fetched earlier this session).', {
             dimensions: pay.dimensions,
             fullRows: pay.rows,
@@ -10165,6 +10333,7 @@
         }
 
         setLhLoading(true);
+        var rosterRange = laborRosterFetchRange_(bounds);
         google.script.run
           .withSuccessHandler(function (data) {
             setLhLoading(false);
@@ -10178,8 +10347,8 @@
             laborHoursFetchCache_.key = cacheKey;
             laborHoursFetchCache_.payload = data;
             var cfg2 = cfgFrom(data);
-            var rows2 = laborFilterRowsForWeek_(data.rows || [], bounds, excludeInternal);
-            refreshLaborHoursViewFromRows_(rows2, cfg2, bounds, 'Loaded this week from Fibery.', {
+            var rows2 = laborFilterRowsForWeek_(data.rows || [], bounds, companyMap);
+            refreshLaborHoursViewFromRows_(rows2, cfg2, bounds, 'Loaded roster window from Fibery.', {
               dimensions: data.dimensions,
               fullRows: data.rows,
             });
@@ -10195,7 +10364,7 @@
               els.lhFetchError.classList.remove('d-none');
             }
           })
-          .getUtilizationDashboardData(bounds.weekStartIso, bounds.weekEndIso);
+          .getUtilizationDashboardData(rosterRange.startIso, rosterRange.endIso);
       }
 
       function wireLaborHoursSortOnce_() {
@@ -10307,23 +10476,6 @@
             refreshLaborHoursView_();
           });
         }
-        if (els.lhInternalGroup) {
-          var btns = els.lhInternalGroup.querySelectorAll('button');
-          for (var ii = 0; ii < btns.length; ii++) {
-            (function (btn) {
-              btn.addEventListener('click', function () {
-                utilState.filters.internalLabor = btn.getAttribute('data-value') || 'include';
-                syncInternalButtons();
-                if (utilState.payload) {
-                  renderUtilDashboard();
-                }
-                persistUtilFilters_();
-                refreshLaborHoursView_();
-                logActivity_('util_filter', 'labor_hours', 'internal=' + utilState.filters.internalLabor);
-              });
-            })(btns[ii]);
-          }
-        }
       }
 
       function showLaborHours() {
@@ -10341,7 +10493,6 @@
         if (els.lhWeekInput && !els.lhWeekInput.value) {
           els.lhWeekInput.value = formatWeekInputFromLocalMonday_(lastCompletedWeekMondayLocal_());
         }
-        syncInternalButtons();
         refreshLaborHoursView_();
       }
 

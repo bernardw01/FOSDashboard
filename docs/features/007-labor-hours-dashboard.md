@@ -1,6 +1,6 @@
 # Feature: Labor Hours Dashboard (under Operations)
 
-> **PRD version 2.1.0** — see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js`).
+> **PRD version 2.5.4** — see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js`).
 
 > **PRD baseline (imported):** `docs/implementation-notes/labor-hours-dashboard-PRD (1).html` (v2.4, static Python report spec).  
 > **Reference UI (imported example):** `docs/implementation-notes/labor-hours-week-of-2026-05-04.html` (week-of report with KPIs, tables, zero-hours chips, expandable project breakdown).  
@@ -155,6 +155,12 @@ This plan assumes **nested nav** unless product prefers inner tabs (document in 
 4. Over / under / on-target counts match a **manual spot-check** for ≥3 employees against Fibery for that week.
 5. Visual design uses **existing Operations** tokens (dark theme); no cream-page background from the static HTML prototype.
 6. No Fibery tokens or secrets appear in `sessionStorage` payloads beyond what Utilization already stores.
+
+## Changelog
+
+| Date | Version | Notes |
+| --- | --- | --- |
+| 2026-05-27 | **2.5.4** | **Company** checkbox multi-select replaces shared Internal-labor toggle; all companies checked by default. Roster fetch uses **60-day** window on cache miss; zero-hours merges `dimensions.persons` + inferred persons from rows. **`labor_hours_filter_change`** activity event. |
 
 ## References
 
