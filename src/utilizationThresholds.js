@@ -1,5 +1,5 @@
 /**
- * PRD version 2.5.2 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.5.3 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard constants per
  * docs/features/005-utilization-management-dashboard.md:
@@ -99,7 +99,7 @@ var UTILIZATION_ROLE_PALETTE_ = [
 /** @const {!Object} Default thresholds (overridden via Script Properties). */
 var UTILIZATION_DEFAULTS_ = {
   CACHE_TTL_MINUTES: 10,
-  DEFAULT_RANGE_DAYS: 90,
+  DEFAULT_RANGE_DAYS: 60,
   MAX_RANGE_DAYS: 365,
   WEEKLY_CAPACITY_HOURS: 40,
   TARGET_PERCENT: 85,

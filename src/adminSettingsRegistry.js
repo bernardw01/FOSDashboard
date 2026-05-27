@@ -1,5 +1,5 @@
 /**
- * PRD version 2.5.2 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.5.3 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -257,7 +257,7 @@ function getAdminSettingsCatalog_() {
       'Default range (days)',
       'Default date range when the client does not pass explicit bounds.',
       'number',
-      90,
+      60,
       { min: 1, max: 3650 }
     ),
     adminSettingEntry_(

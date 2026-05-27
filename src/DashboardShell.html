@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.5.2 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.5.3 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -2580,7 +2580,8 @@
                   <label class="field-label" for="util-range-preset">Date range</label>
                   <select id="util-range-preset" aria-label="Date range preset">
                     <option value="30">Last 30 days</option>
-                    <option value="90" selected>Last 90 days</option>
+                    <option value="60" selected>Last 60 days</option>
+                    <option value="90">Last 90 days</option>
                     <option value="180">Last 6 months</option>
                     <option value="ytd">Year to date</option>
                     <option value="custom">Custom…</option>
@@ -3489,7 +3490,10 @@
             <p class="small d-none mb-3" id="exp-partial-note" style="color: var(--ag-warn)" role="status"></p>
 
             <section class="fos-section-card mb-3" aria-labelledby="exp-filters-heading">
-              <h2 id="exp-filters-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Filters</h2>
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="exp-filters-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Filters</h2>
+                <button type="button" class="fos-util-clear-btn ms-auto" id="exp-clear-filters-btn">Clear all filters</button>
+              </div>
               <p class="small mb-2" id="exp-filter-summary" style="color: var(--ag-text-muted)" aria-live="polite">—</p>
               <div class="fos-util-chip-row mb-3" id="exp-filter-chips" aria-label="Active filters"></div>
               <div class="row g-2 align-items-end">
@@ -3870,7 +3874,7 @@
           roles: {},           // Phase B — Set as {roleName: true}
           billable: 'all',     // 'all' | 'billable' | 'non-billable'
           internalLabor: 'include', // 'include' | 'exclude'
-          rangeDays: 90,       // preset value or null when custom
+          rangeDays: 60,       // preset value or null when custom
           rangeStartIso: null, // populated for 'custom' preset
           rangeEndIso: null,
         },
@@ -4196,6 +4200,7 @@
         expEmployeeMenu: document.getElementById('exp-employee-menu'),
         expCustomerTrigger: document.getElementById('exp-customer-trigger'),
         expCustomerMenu: document.getElementById('exp-customer-menu'),
+        expClearFiltersBtn: document.getElementById('exp-clear-filters-btn'),
         expSearch: document.getElementById('exp-search'),
         expSankeyWrap: document.getElementById('exp-sankey-wrap'),
         expKpiTotal: document.getElementById('exp-kpi-total'),
@@ -9112,7 +9117,7 @@
 
       // Date range helpers --------------------------------------------------
       function resolveRangeFromPreset() {
-        var preset = els.utilRangePreset ? els.utilRangePreset.value : '90';
+        var preset = els.utilRangePreset ? els.utilRangePreset.value : '60';
         var now = new Date();
         var end = new Date(now);
         var start;
@@ -9127,7 +9132,7 @@
           };
         } else {
           var days = parseInt(preset, 10);
-          if (!isFinite(days) || days <= 0) days = 90;
+          if (!isFinite(days) || days <= 0) days = 60;
           start = new Date(now.getTime() - days * 86400000);
         }
         return { startIso: start.toISOString(), endIso: end.toISOString() };
@@ -12803,6 +12808,20 @@
         expensesUpdateMultiTrigger_(els.expCustomerTrigger, 'All customers', 'customer', expensesState.filters.customers);
       }
 
+      function clearExpensesFilters_() {
+        expensesState.filters.departments = {};
+        expensesState.filters.customers = {};
+        expensesState.filters.employees = {};
+        if (els.expSearch) els.expSearch.value = '';
+        if (els.expDateStart) els.expDateStart.value = '';
+        if (els.expDateEnd) els.expDateEnd.value = '';
+        var rows = (expensesState.payload && expensesState.payload.rows) || [];
+        applyDefaultExpensesDateRange_(rows);
+        populateExpensesFilterMenus_(rows);
+        renderExpensesView_();
+        logActivity_('expenses_filter_change', 'expenses', 'clear_all');
+      }
+
       function applyDefaultExpensesDateRange_(rows) {
         if (!els.expDateStart || !els.expDateEnd) return;
         if (els.expDateStart.value && els.expDateEnd.value) return;
@@ -12860,7 +12879,11 @@
             if (els.expRefreshBtn) els.expRefreshBtn.disabled = false;
             if (!data || data.ok === false) {
               if (els.expFetchError) {
-                els.expFetchError.textContent = (data && data.message) || 'Could not load expenses.';
+                var errMsg = (data && data.message) || 'Could not load expenses.';
+                if (errMsg === 'FORBIDDEN') {
+                  errMsg = 'Expenses is available to Finance team members and administrators.';
+                }
+                els.expFetchError.textContent = errMsg;
                 els.expFetchError.classList.remove('d-none');
               }
               return;
@@ -12874,6 +12897,9 @@
             var msg = err && err.message ? err.message : 'Refresh failed.';
             if (msg === 'NOT_AUTHORIZED') {
               msg = 'Your session is not authorized. Reload the page.';
+            }
+            if (msg === 'FORBIDDEN') {
+              msg = 'Expenses is available to Finance team members and administrators.';
             }
             if (els.expFetchError) {
               els.expFetchError.textContent = msg;
@@ -12933,6 +12959,10 @@
 
       function showExpenses() {
         if (!els.panelExpenses) return;
+        if (navState.expensesAccess === false) {
+          showComingSoon('Expenses is available to Finance team members and administrators.');
+          return;
+        }
         els.panelHome.classList.add('d-none');
         if (els.panelAgreementDashboard) els.panelAgreementDashboard.classList.add('d-none');
         if (els.panelOperations) els.panelOperations.classList.add('d-none');
@@ -12960,6 +12990,9 @@
         if (els.expDateStart) els.expDateStart.addEventListener('change', expensesScheduleFilterRender_);
         if (els.expDateEnd) els.expDateEnd.addEventListener('change', expensesScheduleFilterRender_);
         if (els.expSearch) els.expSearch.addEventListener('input', expensesScheduleFilterRender_);
+        if (els.expClearFiltersBtn) {
+          els.expClearFiltersBtn.addEventListener('click', clearExpensesFilters_);
+        }
 
         if (els.expCustTbody) {
           els.expCustTbody.addEventListener('click', function (ev) {
@@ -14137,6 +14170,7 @@
       function renderNav(model) {
         navState = model || { items: [], userLabel: '' };
         navState.isAdmin = !!model.isAdmin;
+        navState.expensesAccess = model.expensesAccess !== false;
         if (els.settingsLinkWrap) {
           if (navState.isAdmin) {
             els.settingsLinkWrap.classList.remove('d-none');

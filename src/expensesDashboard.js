@@ -1,5 +1,5 @@
 /**
- * PRD version 2.5.2 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.5.3 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Spreadsheet-backed **Expenses** dashboard (feature 015). Reads expense lines
  * from AUTH_SPREADSHEET_ID tab AUTH_EXPENSES_SHEET_NAME (default `expenses`).
@@ -17,6 +17,18 @@ var EXPENSES_CACHE_SCHEMA_VERSION_ = 1;
 var EXPENSES_AMOUNT_EPSILON_ = 0.005;
 
 /**
+ * @return {{ email: string, role: string, team: string, fiberyAccess: boolean }}
+ * @throws {Error} NOT_AUTHORIZED | FORBIDDEN
+ */
+function requireExpensesAccessForApi_() {
+  var auth = requireAuthForApi_();
+  if (!canAccessExpensesDashboard_(auth)) {
+    throw new Error('FORBIDDEN');
+  }
+  return auth;
+}
+
+/**
  * @return {{
  *   ok: boolean,
  *   source?: string,
@@ -31,13 +43,16 @@ var EXPENSES_AMOUNT_EPSILON_ = 0.005;
  * }}
  */
 function getExpensesDashboardData() {
-  requireAuthForApi_();
+  requireExpensesAccessForApi_();
   try {
     return buildExpensesDashboardPayload_();
   } catch (e) {
     var msg = e && e.message ? String(e.message) : 'Could not load expenses.';
     if (msg === 'NOT_AUTHORIZED') {
       msg = 'Your session is not authorized. Reload the page.';
+    }
+    if (msg === 'FORBIDDEN') {
+      msg = 'Expenses is available to Finance team members and administrators.';
     }
     try {
       console.warn('getExpensesDashboardData: ' + msg);

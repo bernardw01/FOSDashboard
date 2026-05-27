@@ -1,11 +1,11 @@
 /**
- * PRD version 2.5.2 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.5.3 — sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard — Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.5.2';
+var FOS_PRD_VERSION = '2.5.3';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '2.5.2';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'Expenses: Sankey flow chart, checkbox filters (dept/employee/customer), removed expense-lines table.';
+  'Utilization default 60-day range; Expenses clear-filters; Finance team/Admin gate.';
 
 /**
  * @return {string}
@@ -160,14 +160,22 @@ function buildNavigationModel_(auth) {
   ];
 
   var fiberyAccess = !!(auth && auth.fiberyAccess);
+  var expensesAccess = canAccessExpensesDashboard_(auth);
+  var navItems = allItems.slice();
+  if (!expensesAccess) {
+    navItems = navItems.filter(function (item) {
+      return item.id !== 'finance-group';
+    });
+  }
   var model = {
     userEmail: auth.email,
     userLabel: label,
     role: auth.role,
     team: auth.team,
     fiberyAccess: fiberyAccess,
+    expensesAccess: expensesAccess,
     isAdmin: isAdminUser_(auth),
-    items: allItems.slice(),
+    items: navItems,
   };
 
   // Only attach the public Fibery deep-link config when the signed-in user
