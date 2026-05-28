@@ -1,10 +1,10 @@
 # Harpin FOS Dashboard (Google Workspace Web App)
 
-**PRD version 2.5.7** — `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
+**PRD version 2.5.8** — `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
 
 Product Requirements Document
 
-Version 2.5.7 - 2026-05-27
+Version 2.5.8 - 2026-05-27
 
 ## 1) Overview
 
@@ -528,6 +528,7 @@ The **Clockify to Fibery Sync** product (see `docs/PRD.md`) remains the **system
 
 | Date | Version | Change Summary | Author |
 | --- | --- | --- | --- |
+| 2026-05-27 | 2.5.8 | **Loading + expenses drilldown modal + Sankey labels.** Replaced panel/section loading overlays with one blocking **Loading data** modal shown while fetches are in flight. **Expenses** drilldowns now open a sortable **modal table** (no slide-out drawer) with temporary **Data copied to clipboard** alert on CSV copy. Sankey terminal (3rd-column) labels render to the **left** of terminal nodes to avoid overflow. PATCH → **2.5.8**. | Cursor |
 | 2026-05-27 | 2.5.7 | **Expenses layout + risk MoM.** **Customer attribution** table moved directly under the expense-flow **Sankey**; risk map MoM is **0%** when prior-month spend is zero (not 100%). PATCH → **2.5.7**. | Cursor |
 | 2026-05-27 | 2.5.6 | **Expenses software vendor risk map.** Risk bubble chart is **Software-only** (per `EXPENSES_SOFTWARE_CATEGORY_MATCH`); bubbles = **vendors** (color = vendor); **focus-month** range slider for month-by-month view; MoM/YTD/txn metrics recomputed per selected month. **`expenses_risk_month`** activity. PATCH → **2.5.6**. | Cursor |
 | 2026-05-27 | 2.5.5 | **Expenses charts UX.** Department and category monthly stacked bars **side by side**; new **software × vendor × month** chart (`EXPENSES_SOFTWARE_CATEGORY_MATCH`, `EXPENSES_CHART_VENDOR_TOP_N`); **category risk map** bubble chart (MoM growth % vs YTD spend, txn count size, quadrant interpretation). PATCH → **2.5.5**. | Cursor |

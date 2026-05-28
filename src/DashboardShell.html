@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.5.7 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.5.8 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -3711,6 +3711,77 @@
 
   <div
     class="modal fade fos-modal"
+    id="fosLoadingModal"
+    tabindex="-1"
+    aria-labelledby="fosLoadingTitle"
+    aria-hidden="true"
+    data-bs-backdrop="static"
+    data-bs-keyboard="false"
+  >
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4">
+        <div class="modal-body py-4 text-center">
+          <div class="spinner-border text-info mb-3" role="status" aria-hidden="true"></div>
+          <h5 class="modal-title fw-semibold mb-1" id="fosLoadingTitle">Loading data</h5>
+          <p class="mb-0 text-secondary" id="fosLoadingBody">Please wait…</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="modal fade fos-modal"
+    id="expensesDetailModal"
+    tabindex="-1"
+    aria-labelledby="expensesDetailModalTitle"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+      <div class="modal-content rounded-4">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title fw-semibold" id="expensesDetailModalTitle">Expense detail</h5>
+            <div class="small text-secondary" id="expensesDetailModalSubtitle">—</div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-success py-2 px-3 small d-none" id="expensesDetailCopyAlert" role="status">
+            Data copied to clipboard.
+          </div>
+          <div class="fos-financial-scroll">
+            <table class="fos-financial-table" aria-describedby="expensesDetailModalTitle">
+              <thead>
+                <tr>
+                  <th scope="col" role="button" tabindex="0" data-exp-sort="effectiveDate">Effective</th>
+                  <th scope="col" class="num" role="button" tabindex="0" data-exp-sort="amount">Amount</th>
+                  <th scope="col" role="button" tabindex="0" data-exp-sort="department">Department</th>
+                  <th scope="col" role="button" tabindex="0" data-exp-sort="customer">Customer</th>
+                  <th scope="col" role="button" tabindex="0" data-exp-sort="vendor">Vendor</th>
+                  <th scope="col" role="button" tabindex="0" data-exp-sort="category">Category</th>
+                  <th scope="col" role="button" tabindex="0" data-exp-sort="transactionId">Txn id</th>
+                </tr>
+              </thead>
+              <tbody id="expensesDetailModalBody"></tbody>
+            </table>
+          </div>
+          <p class="small mb-0 mt-2" id="expensesDetailModalEmpty" style="color: var(--ag-text-muted); display: none">
+            No expense lines found for this selection.
+          </p>
+        </div>
+        <div class="modal-footer border-0 pt-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <span class="small text-secondary" id="expensesDetailModalTotals">—</span>
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="expensesDetailCopyCsvBtn">Copy CSV</button>
+            <button type="button" class="btn btn-fos-primary px-4" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="modal fade fos-modal"
     id="comingSoonModal"
     tabindex="-1"
     aria-labelledby="comingSoonTitle"
@@ -4311,6 +4382,16 @@
         expRiskCatLabel: document.getElementById('exp-risk-cat-label'),
         expCustTbody: document.getElementById('exp-cust-tbody'),
         expCustEmpty: document.getElementById('exp-cust-empty'),
+        fosLoadingModal: document.getElementById('fosLoadingModal'),
+        fosLoadingBody: document.getElementById('fosLoadingBody'),
+        expensesDetailModal: document.getElementById('expensesDetailModal'),
+        expensesDetailModalTitle: document.getElementById('expensesDetailModalTitle'),
+        expensesDetailModalSubtitle: document.getElementById('expensesDetailModalSubtitle'),
+        expensesDetailModalBody: document.getElementById('expensesDetailModalBody'),
+        expensesDetailModalEmpty: document.getElementById('expensesDetailModalEmpty'),
+        expensesDetailModalTotals: document.getElementById('expensesDetailModalTotals'),
+        expensesDetailCopyCsvBtn: document.getElementById('expensesDetailCopyCsvBtn'),
+        expensesDetailCopyAlert: document.getElementById('expensesDetailCopyAlert'),
         dataSourceSelect: document.getElementById('fos-data-source'),
         dataSourceHint: document.getElementById('fos-data-source-hint'),
         snapshotBanner: document.getElementById('fos-snapshot-banner'),
@@ -5624,70 +5705,45 @@
       var revenueReviewRenderState = { lastRenderedFetchedAt: null };
       var expensesRenderState = { lastRenderedFetchedAt: null };
       var utilRenderState = { lastRenderedFetchedAt: null };
+      var loadingFlags_ = {};
+
+      function setGlobalLoading_(key, on, message) {
+        if (!key) return;
+        loadingFlags_[key] = !!on;
+        var active = false;
+        for (var k in loadingFlags_) {
+          if (Object.prototype.hasOwnProperty.call(loadingFlags_, k) && loadingFlags_[k]) {
+            active = true;
+            break;
+          }
+        }
+        if (els.fosLoadingBody && message && on) {
+          els.fosLoadingBody.textContent = message;
+        }
+        if (!els.fosLoadingModal || typeof bootstrap === 'undefined' || !bootstrap.Modal) return;
+        var modal = bootstrap.Modal.getOrCreateInstance(els.fosLoadingModal);
+        if (active) modal.show();
+        else modal.hide();
+      }
 
       function setAgreementLoading(on) {
-        if (!els.agreementLoading) {
-          return;
-        }
-        if (on) {
-          els.agreementLoading.classList.remove('d-none');
-          els.agreementLoading.setAttribute('aria-hidden', 'false');
-        } else {
-          els.agreementLoading.classList.add('d-none');
-          els.agreementLoading.setAttribute('aria-hidden', 'true');
-        }
+        setGlobalLoading_('agreement', on, 'Loading data');
       }
 
       function setRrLoading(on) {
-        if (!els.rrLoading) {
-          return;
-        }
-        if (on) {
-          els.rrLoading.classList.remove('d-none');
-          els.rrLoading.setAttribute('aria-hidden', 'false');
-        } else {
-          els.rrLoading.classList.add('d-none');
-          els.rrLoading.setAttribute('aria-hidden', 'true');
-        }
+        setGlobalLoading_('revenueReview', on, 'Loading data');
       }
 
       function setExpensesLoading(on) {
-        if (!els.expLoading) {
-          return;
-        }
-        if (on) {
-          els.expLoading.classList.remove('d-none');
-          els.expLoading.setAttribute('aria-hidden', 'false');
-        } else {
-          els.expLoading.classList.add('d-none');
-          els.expLoading.setAttribute('aria-hidden', 'true');
-        }
+        setGlobalLoading_('expenses', on, 'Loading data');
       }
 
       function setUtilLoading(on) {
-        if (!els.utilLoading) {
-          return;
-        }
-        if (on) {
-          els.utilLoading.classList.remove('d-none');
-          els.utilLoading.setAttribute('aria-hidden', 'false');
-        } else {
-          els.utilLoading.classList.add('d-none');
-          els.utilLoading.setAttribute('aria-hidden', 'true');
-        }
+        setGlobalLoading_('utilization', on, 'Loading data');
       }
 
       function setLhLoading(on) {
-        if (!els.lhLoading) {
-          return;
-        }
-        if (on) {
-          els.lhLoading.classList.remove('d-none');
-          els.lhLoading.setAttribute('aria-hidden', 'false');
-        } else {
-          els.lhLoading.classList.add('d-none');
-          els.lhLoading.setAttribute('aria-hidden', 'true');
-        }
+        setGlobalLoading_('laborHours', on, 'Loading data');
       }
 
       function formatMoneyCompact(n) {
@@ -6185,14 +6241,18 @@
             return d.name + '\n' + formatMoneyCompact(d.value) + ' (' + pct + '% of portfolio)';
           });
 
+        var maxNodeX1 = d3.max(graph.nodes, function (d) { return d.x1; }) || 0;
         nodeGroup.append('text')
           .attr('class', 'sankey-label')
           .attr('x', function (d) {
-            return d.x1 + 8;
+            var isTerminal = d.x1 >= maxNodeX1 - 1;
+            return isTerminal ? d.x0 - 8 : d.x1 + 8;
           })
           .attr('y', function (d) { return (d.y0 + d.y1) / 2; })
           .attr('dy', '0.35em')
-          .attr('text-anchor', 'start')
+          .attr('text-anchor', function (d) {
+            return d.x1 >= maxNodeX1 - 1 ? 'end' : 'start';
+          })
           .text(function (d) { return d.name + ' · ' + formatMoneyCompact(d.value); });
       }
 
@@ -10733,24 +10793,10 @@
       }
 
       function setDeliveryLoading(on) {
-        if (!els.deliveryLoading) return;
-        if (on) {
-          els.deliveryLoading.classList.remove('d-none');
-          els.deliveryLoading.setAttribute('aria-hidden', 'false');
-        } else {
-          els.deliveryLoading.classList.add('d-none');
-          els.deliveryLoading.setAttribute('aria-hidden', 'true');
-        }
+        setGlobalLoading_('delivery', on, 'Loading data');
       }
       function setDeliveryPnLLoading(on) {
-        if (!els.deliveryPnlLoading) return;
-        if (on) {
-          els.deliveryPnlLoading.classList.remove('d-none');
-          els.deliveryPnlLoading.setAttribute('aria-hidden', 'false');
-        } else {
-          els.deliveryPnlLoading.classList.add('d-none');
-          els.deliveryPnlLoading.setAttribute('aria-hidden', 'true');
-        }
+        setGlobalLoading_('deliveryPnl', on, 'Loading data');
       }
 
       function formatLastRefresh(fetchedAtIso) {
@@ -12166,6 +12212,9 @@
         chartVendorTopN: 12,
         softwareCategoryMatch: 'software',
         drawerCsv: '',
+        modalRows: [],
+        modalSort: { key: 'effectiveDate', dir: 'desc' },
+        modalCopyTimer: null,
         filters: {
           departments: {},
           customers: {},
@@ -12913,33 +12962,35 @@
         return String(ym || '').replace(/[^0-9\-]/g, '').slice(0, 12);
       }
 
-      function openExpensesDrawer_(title, rows, activityLabel) {
-        if (!els.utilDrawer) return;
-        rows = rows || [];
-        expensesState.drawerCsv = expensesBuildDrawerCsv_(rows);
-        utilState.detailDrawer.open = true;
-        utilState.detailDrawer.rowId = null;
-        utilState.detailDrawer.mode = 'expenses';
-        utilState.detailDrawer.customerName = null;
-        utilState.detailDrawer.expensesContext = { title: title, count: rows.length };
-        if (els.utilDrawerTitle) els.utilDrawerTitle.textContent = title || 'Expenses';
-        applyUtilDrawerFiberyLink_('');
+      function expensesSortValue_(row, key) {
+        if (key === 'amount') return Number(row.amount || 0);
+        if (key === 'effectiveDate') return String(row.effectiveDate || '');
+        return String(row[key] || '').toLowerCase();
+      }
+
+      function expensesSortRows_(rows, sortState) {
+        var out = (rows || []).slice();
+        var key = (sortState && sortState.key) || 'effectiveDate';
+        var dir = (sortState && sortState.dir) || 'desc';
+        out.sort(function (a, b) {
+          var va = expensesSortValue_(a, key);
+          var vb = expensesSortValue_(b, key);
+          if (va < vb) return dir === 'asc' ? -1 : 1;
+          if (va > vb) return dir === 'asc' ? 1 : -1;
+          return 0;
+        });
+        return out;
+      }
+
+      function renderExpensesDetailModalRows_() {
+        if (!els.expensesDetailModalBody) return;
+        var rows = expensesSortRows_(expensesState.modalRows, expensesState.modalSort);
         var html = [];
-        html.push(
-          '<div class="d-flex flex-wrap gap-2 mb-2"><button type="button" class="btn btn-sm btn-outline-light" id="exp-drawer-csv">Copy CSV</button>',
-          '<span class="small text-secondary">' + rows.length + ' line(s)</span></div>'
-        );
-        html.push('<div class="table-responsive" style="max-height:70vh"><table class="fos-util-detail-table"><thead><tr>');
-        var heads = ['Effective', 'Amount', 'Dept', 'Customer', 'Vendor', 'Category', 'Txn id'];
-        for (var hi = 0; hi < heads.length; hi++) {
-          html.push('<th>' + escapeHtml(heads[hi]) + '</th>');
-        }
-        html.push('</tr></thead><tbody>');
         for (var ri = 0; ri < rows.length; ri++) {
           var x = rows[ri];
           html.push(
             '<tr><td>' + escapeHtml(x.effectiveDate || '') + '</td>',
-            '<td class="numeric">' + escapeHtml(formatMoneyCompact(Number(x.amount || 0))) + '</td>',
+            '<td class="num">' + escapeHtml(formatMoneyCompact(Number(x.amount || 0))) + '</td>',
             '<td>' + escapeHtml(x.department || '') + '</td>',
             '<td>' + escapeHtml(x.customer || '') + '</td>',
             '<td>' + escapeHtml(x.vendor || '') + '</td>',
@@ -12947,33 +12998,43 @@
             '<td>' + escapeHtml(x.transactionId || '') + '</td></tr>'
           );
         }
-        if (!rows.length) {
-          html.push('<tr><td colspan="7" class="text-secondary">No rows.</td></tr>');
+        els.expensesDetailModalBody.innerHTML = html.join('');
+        if (els.expensesDetailModalEmpty) {
+          els.expensesDetailModalEmpty.style.display = rows.length ? 'none' : '';
         }
-        html.push('</tbody></table></div>');
-        if (els.utilDrawerBody) els.utilDrawerBody.innerHTML = html.join('');
-        var btn = document.getElementById('exp-drawer-csv');
-        if (btn) {
-          btn.addEventListener('click', function () {
-            var txt = expensesState.drawerCsv || '';
-            if (!txt) return;
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-              navigator.clipboard.writeText(txt);
-            } else {
-              var ta = document.createElement('textarea');
-              ta.value = txt;
-              document.body.appendChild(ta);
-              ta.select();
-              try { document.execCommand('copy'); } finally { document.body.removeChild(ta); }
-            }
-            logActivity_('expenses_export_csv', 'expenses', 'drawer_csv');
-          });
+      }
+
+      function showExpensesCopiedAlert_() {
+        if (!els.expensesDetailCopyAlert) return;
+        if (expensesState.modalCopyTimer) window.clearTimeout(expensesState.modalCopyTimer);
+        els.expensesDetailCopyAlert.classList.remove('d-none');
+        expensesState.modalCopyTimer = window.setTimeout(function () {
+          if (els.expensesDetailCopyAlert) els.expensesDetailCopyAlert.classList.add('d-none');
+          expensesState.modalCopyTimer = null;
+        }, 1400);
+      }
+
+      function openExpensesDrawer_(title, rows, activityLabel) {
+        if (!els.expensesDetailModal || typeof bootstrap === 'undefined' || !bootstrap.Modal) return;
+        rows = rows || [];
+        expensesState.drawerCsv = expensesBuildDrawerCsv_(rows);
+        expensesState.modalRows = rows.slice();
+        expensesState.modalSort = { key: 'effectiveDate', dir: 'desc' };
+        if (els.expensesDetailModalTitle) {
+          els.expensesDetailModalTitle.textContent = title || 'Expense detail';
         }
-        els.utilDrawer.classList.remove('d-none');
-        els.utilDrawer.setAttribute('aria-hidden', 'false');
-        if (els.utilDrawerBackdrop) els.utilDrawerBackdrop.classList.remove('d-none');
-        requestAnimationFrame(function () { els.utilDrawer.classList.add('open'); });
-        try { els.utilDrawer.focus(); } catch (_) { /* ignore */ }
+        if (els.expensesDetailModalSubtitle) {
+          els.expensesDetailModalSubtitle.textContent = rows.length + ' line(s)';
+        }
+        if (els.expensesDetailModalTotals) {
+          var total = 0;
+          for (var i = 0; i < rows.length; i++) total += Number(rows[i].amount || 0);
+          els.expensesDetailModalTotals.textContent = 'Total: ' + formatMoneyCompact(total);
+        }
+        if (els.expensesDetailCopyAlert) els.expensesDetailCopyAlert.classList.add('d-none');
+        renderExpensesDetailModalRows_();
+        var modal = bootstrap.Modal.getOrCreateInstance(els.expensesDetailModal);
+        modal.show();
         logActivity_('expenses_drawer_open', 'expenses', activityLabel || 'rows');
       }
 
@@ -13721,6 +13782,46 @@
         if (els.expSearch) els.expSearch.addEventListener('input', expensesScheduleFilterRender_);
         if (els.expClearFiltersBtn) {
           els.expClearFiltersBtn.addEventListener('click', clearExpensesFilters_);
+        }
+        if (els.expensesDetailCopyCsvBtn) {
+          els.expensesDetailCopyCsvBtn.addEventListener('click', function () {
+            var txt = expensesState.drawerCsv || '';
+            if (!txt) return;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(txt);
+            } else {
+              var ta = document.createElement('textarea');
+              ta.value = txt;
+              document.body.appendChild(ta);
+              ta.select();
+              try { document.execCommand('copy'); } finally { document.body.removeChild(ta); }
+            }
+            showExpensesCopiedAlert_();
+            logActivity_('expenses_export_csv', 'expenses', 'modal_csv');
+          });
+        }
+        if (els.expensesDetailModal) {
+          els.expensesDetailModal.addEventListener('click', function (ev) {
+            var th = ev.target.closest('th[data-exp-sort]');
+            if (!th) return;
+            var key = th.getAttribute('data-exp-sort');
+            if (!key) return;
+            if (expensesState.modalSort.key === key) {
+              expensesState.modalSort.dir =
+                expensesState.modalSort.dir === 'asc' ? 'desc' : 'asc';
+            } else {
+              expensesState.modalSort.key = key;
+              expensesState.modalSort.dir = key === 'amount' ? 'desc' : 'asc';
+            }
+            renderExpensesDetailModalRows_();
+          });
+          els.expensesDetailModal.addEventListener('keydown', function (ev) {
+            if (ev.key !== 'Enter' && ev.key !== ' ') return;
+            var th = ev.target.closest('th[data-exp-sort]');
+            if (!th) return;
+            ev.preventDefault();
+            th.click();
+          });
         }
         if (els.expRiskMonthSlider) {
           els.expRiskMonthSlider.addEventListener('input', function () {
