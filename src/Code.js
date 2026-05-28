@@ -1,11 +1,11 @@
 /**
- * PRD version 2.5.8 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard — Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.5.8';
+var FOS_PRD_VERSION = '2.6.0';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '2.5.8';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'Global loading modal; Expenses drilldown modal; Sankey right labels left.';
+  'New Sales group with Pipeline dashboard (HubSpot deals via Fibery).';
 
 /**
  * @return {string}
@@ -128,6 +128,15 @@ function buildNavigationModel_(auth) {
   var allItems = [
     { id: 'home', label: 'Home', active: true },
     {
+      id: 'sales-group',
+      type: 'group',
+      label: 'Sales',
+      active: false,
+      children: [
+        { id: 'pipeline', label: 'Pipeline', active: false },
+      ],
+    },
+    {
       id: 'operations-group',
       type: 'group',
       label: 'Operations',
@@ -161,10 +170,16 @@ function buildNavigationModel_(auth) {
 
   var fiberyAccess = !!(auth && auth.fiberyAccess);
   var expensesAccess = canAccessExpensesDashboard_(auth);
+  var pipelineAccess = canAccessPipelineDashboard_(auth);
   var navItems = allItems.slice();
   if (!expensesAccess) {
     navItems = navItems.filter(function (item) {
       return item.id !== 'finance-group';
+    });
+  }
+  if (!pipelineAccess) {
+    navItems = navItems.filter(function (item) {
+      return item.id !== 'sales-group';
     });
   }
   var model = {
@@ -174,6 +189,7 @@ function buildNavigationModel_(auth) {
     team: auth.team,
     fiberyAccess: fiberyAccess,
     expensesAccess: expensesAccess,
+    pipelineAccess: pipelineAccess,
     isAdmin: isAdminUser_(auth),
     items: navItems,
   };

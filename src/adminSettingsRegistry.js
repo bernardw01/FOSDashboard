@@ -1,5 +1,5 @@
 /**
- * PRD version 2.5.8 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -17,6 +17,7 @@ var ADMIN_SETTINGS_GROUPS_ = [
   { id: 'delivery', title: 'Delivery — Projects & P&L' },
   { id: 'snapshots', title: 'Historical snapshots' },
   { id: 'expenses-dashboard', title: 'Expenses dashboard' },
+  { id: 'pipeline-dashboard', title: 'Pipeline dashboard (Sales)' },
 ];
 
 /**
@@ -123,6 +124,23 @@ function getAdminSettingsCatalog_() {
     adminSettingEntry_('EXPENSES_CHART_DEPT_TOP_N', 'expenses-dashboard', 'Department chart top-N', 'Largest departments; remainder merges into Other.', 'number', 10, { min: 3, max: 30 }),
     adminSettingEntry_('EXPENSES_CHART_VENDOR_TOP_N', 'expenses-dashboard', 'Software vendor chart top-N', 'Largest vendors in the software-category chart; remainder merges into Other.', 'number', 12, { min: 3, max: 30 }),
     adminSettingEntry_('EXPENSES_SOFTWARE_CATEGORY_MATCH', 'expenses-dashboard', 'Software category match', 'Case-insensitive substring matched against the Category column for the software vendor chart.', 'string', 'software'),
+    adminSettingEntry_(
+      'PIPELINE_MAX_ROWS',
+      'pipeline-dashboard',
+      'Pipeline deal cap',
+      'Maximum HubSpot/Deal rows fetched from Fibery per refresh (protects quotas). Sets the partial flag when hit.',
+      'number',
+      2000,
+      { min: 100, max: 10000 }
+    ),
+    adminSettingEntry_(
+      'PIPELINE_STAGE_BUCKET_MAP_JSON',
+      'pipeline-dashboard',
+      'Stage → bucket map JSON',
+      'JSON object mapping a case-insensitive Deal Stage name to a bucket key (prospecting, discovery, demo, validation, proposing, negotiating, won, lost, onhold, implementation). Merges over built-in defaults; unmapped stages fall into "other".',
+      'json',
+      ''
+    ),
     adminSettingEntry_(
       'FIBERY_HOST',
       'fibery-api',

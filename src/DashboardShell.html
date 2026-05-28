@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.5.8 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.6.0 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -2212,6 +2212,234 @@
       filter: invert(1) grayscale(1);
       opacity: 0.75;
     }
+
+    /* ── Pipeline dashboard (feature 016) ── */
+    #panel-pipeline .fos-pipeline-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      background: var(--ag-surface, #092747);
+      border: 1px solid var(--ag-border);
+      border-radius: 10px;
+      padding: 5px;
+      width: fit-content;
+      max-width: 100%;
+    }
+    #panel-pipeline .fos-pipeline-tab {
+      padding: 6px 16px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--ag-text-muted);
+      transition: background 0.15s, color 0.15s;
+    }
+    #panel-pipeline .fos-pipeline-tab:hover {
+      color: var(--ag-text);
+      background: rgba(255, 255, 255, 0.05);
+    }
+    #panel-pipeline .fos-pipeline-tab.active {
+      background: var(--ag-accent);
+      color: #061b30;
+    }
+    #panel-pipeline .fos-pipeline-chart-wrap {
+      position: relative;
+      height: 320px;
+    }
+
+    /* Stage accordion */
+    #panel-pipeline .fos-pl-stage {
+      border: 1px solid var(--ag-border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      overflow: hidden;
+      border-left: 3px solid transparent;
+    }
+    #panel-pipeline .fos-pl-stage-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 11px 14px;
+      cursor: pointer;
+      user-select: none;
+    }
+    #panel-pipeline .fos-pl-stage-hdr:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+    #panel-pipeline .fos-pl-stage-hdr.is-empty {
+      cursor: default;
+      opacity: 0.6;
+    }
+    #panel-pipeline .fos-pl-hdr-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    #panel-pipeline .fos-pl-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    #panel-pipeline .fos-pl-stage-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ag-text);
+    }
+    #panel-pipeline .fos-pl-count {
+      font-size: 11px;
+      color: var(--ag-text-muted);
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+    #panel-pipeline .fos-pl-hdr-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    #panel-pipeline .fos-pl-total {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ag-accent);
+      font-variant-numeric: tabular-nums;
+    }
+    #panel-pipeline .fos-pl-chevron {
+      font-size: 10px;
+      color: var(--ag-text-muted);
+      transition: transform 0.18s;
+    }
+    #panel-pipeline .fos-pl-stage.open .fos-pl-chevron {
+      transform: rotate(180deg);
+    }
+    #panel-pipeline .fos-pl-body {
+      display: none;
+      border-top: 1px solid var(--ag-border);
+    }
+    #panel-pipeline .fos-pl-stage.open .fos-pl-body {
+      display: block;
+    }
+    #panel-pipeline .fos-pl-deal {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--ag-border);
+      font-size: 12px;
+    }
+    #panel-pipeline .fos-pl-deal:last-child {
+      border-bottom: none;
+    }
+    #panel-pipeline .fos-pl-deal:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+    #panel-pipeline .fos-pl-company {
+      font-weight: 600;
+      color: var(--ag-text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #panel-pipeline .fos-pl-meta {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 3px;
+    }
+    #panel-pipeline .fos-pl-chip {
+      font-size: 11px;
+      color: var(--ag-text-muted);
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 7px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    #panel-pipeline .fos-pl-chip.stale {
+      color: #ffd27a;
+      background: rgba(217, 119, 6, 0.18);
+    }
+    #panel-pipeline .fos-pl-amt {
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      color: var(--ag-accent);
+      text-align: right;
+      white-space: nowrap;
+    }
+    #panel-pipeline .fos-pl-fc {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+    #panel-pipeline .fc-PIPELINE { background: rgba(13, 127, 168, 0.22); color: #7fd4ec; }
+    #panel-pipeline .fc-BEST_CASE { background: rgba(124, 58, 237, 0.22); color: #c4b1f5; }
+    #panel-pipeline .fc-COMMIT { background: rgba(16, 185, 129, 0.22); color: #7ce0bf; }
+    #panel-pipeline .fc-CLOSED { background: rgba(255, 255, 255, 0.08); color: var(--ag-text-muted); }
+    #panel-pipeline .fc-OMIT { background: rgba(220, 38, 38, 0.18); color: #f5a3a3; }
+    #panel-pipeline .days-fresh { color: #5fd0a3; }
+    #panel-pipeline .days-warn { color: #f0b760; }
+    #panel-pipeline .days-stale { color: #f08a8a; }
+
+    /* Funnel */
+    #panel-pipeline .fos-pipeline-funnel {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+    }
+    @media (max-width: 1100px) {
+      #panel-pipeline .fos-pipeline-funnel { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 700px) {
+      #panel-pipeline .fos-pipeline-funnel { grid-template-columns: repeat(2, 1fr); }
+    }
+    #panel-pipeline .fos-funnel-stage {
+      border: 1px solid var(--ag-border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    #panel-pipeline .fos-funnel-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--ag-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 6px;
+    }
+    #panel-pipeline .fos-funnel-deals {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--ag-text);
+    }
+    #panel-pipeline .fos-funnel-deals .unit {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--ag-text-muted);
+      margin-left: 3px;
+    }
+    #panel-pipeline .fos-funnel-amount {
+      font-size: 13px;
+      color: var(--ag-accent);
+      font-weight: 600;
+      margin-top: 2px;
+    }
+    #panel-pipeline .fos-funnel-bar {
+      height: 4px;
+      background: var(--ag-border);
+      border-radius: 2px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+    #panel-pipeline .fos-funnel-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--ag-accent) 0%, #72e7d1 100%);
+    }
   </style>
 </head>
 <body>
@@ -2369,6 +2597,83 @@
             <button type="button" class="btn btn-fos-primary" id="settings-save-btn" disabled>Save changes</button>
             <button type="button" class="btn btn-outline-secondary" id="settings-discard-btn" disabled>Discard</button>
             <span id="settings-dirty-hint" class="small text-secondary ms-auto d-none">Unsaved changes</span>
+          </div>
+        </div>
+
+        <div id="panel-pipeline" class="d-none fos-agreement-root">
+          <div id="pipeline-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
+          <div class="fos-agreement-inner shadow-lg">
+            <div class="alert alert-info py-2 px-3 small mb-3 d-none" id="pipeline-live-only" role="status">
+              Historical snapshots do not include pipeline deals. Switch to <strong>Live data</strong> in the sidebar to use this dashboard.
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <div class="flex-grow-1 min-w-0">
+                <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Pipeline Dashboard</h1>
+                <p class="small mb-0" id="pipeline-subtitle" style="color: var(--ag-text-muted)">Live HubSpot deals · synced via Fibery</p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 mb-3 pb-3 border-bottom" style="border-color: var(--ag-border) !important">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="pipeline-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
+                Refresh
+              </button>
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="pipeline-export-btn" style="background: transparent; color: var(--ag-text); border: 1px solid var(--ag-border)">
+                Export CSV
+              </button>
+              <span class="small d-none" id="pipeline-copy-alert" role="status" style="color: var(--ag-accent)">Data copied to clipboard</span>
+              <span class="small" id="pipeline-last-refresh" style="color: var(--ag-text-muted)">Last refreshed: —</span>
+              <span class="small d-none text-danger" id="pipeline-fetch-error" role="alert"></span>
+            </div>
+
+            <p class="small d-none mb-3" id="pipeline-partial-note" style="color: var(--ag-warn)" role="status"></p>
+
+            <div class="fos-pipeline-tabs mb-3 d-none" id="pipeline-view-tabs" role="tablist" aria-label="Pipeline view"></div>
+
+            <div class="row row-cols-1 row-cols-md-3 g-3 mb-3" id="pipeline-kpi-row">
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-blue h-100">
+                  <div class="label">Total deal amount</div>
+                  <div class="value" id="pipeline-kpi-total">$0</div>
+                  <div class="sub" id="pipeline-kpi-total-sub">0 deals</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-teal h-100">
+                  <div class="label">Commit</div>
+                  <div class="value" id="pipeline-kpi-commit">$0</div>
+                  <div class="sub" id="pipeline-kpi-commit-sub">0 deals</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-green h-100">
+                  <div class="label">Best case (weighted)</div>
+                  <div class="value" id="pipeline-kpi-best">$0</div>
+                  <div class="sub" id="pipeline-kpi-best-sub">0 deals</div>
+                </div>
+              </div>
+            </div>
+
+            <section class="fos-section-card mb-3" aria-labelledby="pipeline-stage-h">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="pipeline-stage-h" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Deals by stage</h2>
+                <span class="small ms-auto" style="color: var(--ag-text-muted)">Click a stage to expand</span>
+              </div>
+              <div id="pipeline-stage-wrap"></div>
+            </section>
+
+            <section class="fos-section-card mb-3" aria-labelledby="pipeline-fc-h">
+              <h2 id="pipeline-fc-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Revenue by quarter</h2>
+              <p class="small mb-2" style="color: var(--ag-text-muted)">Bars = Closed Won · lines = forecast by deal close date.</p>
+              <div class="fos-pipeline-chart-wrap"><canvas id="pipeline-forecast-chart"></canvas></div>
+            </section>
+
+            <section class="fos-section-card mb-3" aria-labelledby="pipeline-funnel-h">
+              <h2 id="pipeline-funnel-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Pipeline shape — deals &amp; dollars by stage</h2>
+              <div class="fos-pipeline-funnel" id="pipeline-funnel"></div>
+            </section>
+
+            <div id="pipeline-empty" class="text-center py-4 d-none" style="color: var(--ag-text-muted)">No active deals in this view.</div>
           </div>
         </div>
 
@@ -4148,6 +4453,7 @@
       /** Bootstrap Icons class suffix (without `bi ` prefix) per nav id. */
       var NAV_ICONS = {
         'home': 'bi-house-door-fill',
+        'pipeline': 'bi-funnel-fill',
         'agreement-dashboard': 'bi-graph-up-arrow',
         'operations': 'bi-kanban-fill',
         'labor-hours': 'bi-clock-history',
@@ -4339,6 +4645,27 @@
         deliveryRevenueMonthModalBody: document.getElementById('deliveryRevenueMonthModalBody'),
         deliveryRevenueMonthModalEmpty: document.getElementById('deliveryRevenueMonthModalEmpty'),
         deliveryRevenueMonthModalTotals: document.getElementById('deliveryRevenueMonthModalTotals'),
+        panelPipeline: document.getElementById('panel-pipeline'),
+        pipelineWarn: document.getElementById('pipeline-warn'),
+        pipelineLiveOnly: document.getElementById('pipeline-live-only'),
+        pipelineSubtitle: document.getElementById('pipeline-subtitle'),
+        pipelineRefreshBtn: document.getElementById('pipeline-refresh-btn'),
+        pipelineExportBtn: document.getElementById('pipeline-export-btn'),
+        pipelineCopyAlert: document.getElementById('pipeline-copy-alert'),
+        pipelineLastRefresh: document.getElementById('pipeline-last-refresh'),
+        pipelineFetchError: document.getElementById('pipeline-fetch-error'),
+        pipelinePartialNote: document.getElementById('pipeline-partial-note'),
+        pipelineViewTabs: document.getElementById('pipeline-view-tabs'),
+        pipelineKpiTotal: document.getElementById('pipeline-kpi-total'),
+        pipelineKpiTotalSub: document.getElementById('pipeline-kpi-total-sub'),
+        pipelineKpiCommit: document.getElementById('pipeline-kpi-commit'),
+        pipelineKpiCommitSub: document.getElementById('pipeline-kpi-commit-sub'),
+        pipelineKpiBest: document.getElementById('pipeline-kpi-best'),
+        pipelineKpiBestSub: document.getElementById('pipeline-kpi-best-sub'),
+        pipelineStageWrap: document.getElementById('pipeline-stage-wrap'),
+        pipelineForecastChart: document.getElementById('pipeline-forecast-chart'),
+        pipelineFunnel: document.getElementById('pipeline-funnel'),
+        pipelineEmpty: document.getElementById('pipeline-empty'),
         panelExpenses: document.getElementById('panel-expenses'),
         expWarn: document.getElementById('exp-warn'),
         expLoading: document.getElementById('exp-loading'),
@@ -5560,6 +5887,7 @@
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         if (els.panelSettings) els.panelSettings.classList.remove('d-none');
         els.topbarTitle.textContent = 'Settings';
         loadAdminSettingsPanel_();
@@ -7047,6 +7375,9 @@
         if (els.panelExpenses) {
           els.panelExpenses.classList.add('d-none');
         }
+        if (els.panelPipeline) {
+          els.panelPipeline.classList.add('d-none');
+        }
         hidePanelSettings_();
         els.topbarTitle.textContent = 'Home';
       }
@@ -7067,6 +7398,9 @@
         }
         if (els.panelExpenses) {
           els.panelExpenses.classList.add('d-none');
+        }
+        if (els.panelPipeline) {
+          els.panelPipeline.classList.add('d-none');
         }
         hidePanelSettings_();
         if (els.panelAgreementDashboard) {
@@ -9497,6 +9831,7 @@
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         if (els.panelOperations) els.panelOperations.classList.remove('d-none');
         hidePanelSettings_();
         els.topbarTitle.textContent = 'Operations';
@@ -10633,6 +10968,7 @@
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         if (els.panelLaborHours) els.panelLaborHours.classList.remove('d-none');
         hidePanelSettings_();
         els.topbarTitle.textContent = 'Labor hours';
@@ -11117,6 +11453,7 @@
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.remove('d-none');
         hidePanelSettings_();
         els.topbarTitle.textContent = 'Delivery';
@@ -12157,6 +12494,7 @@
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         els.panelRevenueReview.classList.remove('d-none');
         hidePanelSettings_();
         els.topbarTitle.textContent = 'Revenue review';
@@ -13700,6 +14038,481 @@
         if (manual) logActivity_('expenses_refresh', 'expenses', '');
       }
 
+      /* ─────────────────────────────────────────────────────────────────
+         Pipeline dashboard (Sales — feature 016)
+         ───────────────────────────────────────────────────────────────── */
+      var PIPELINE_CACHE_KEY = 'fos_pipeline_dashboard_v1';
+      var PIPELINE_CACHE_SCHEMA_VERSION = 1;
+      var PIPELINE_ACTIVE_BUCKETS = ['prospecting', 'discovery', 'demo', 'validation', 'proposing', 'negotiating'];
+      var PIPELINE_COMMIT_BUCKETS = ['proposing', 'negotiating'];
+      var PIPELINE_STAGE_ORDER = [
+        { bucket: 'prospecting', label: 'Prospecting', dot: '#94a3b8', always: true },
+        { bucket: 'discovery', label: 'Discovery', dot: '#0D7FA8', always: true },
+        { bucket: 'demo', label: 'Demo', dot: '#7c3aed', always: true },
+        { bucket: 'validation', label: 'Validation', dot: '#f59e0b', always: true },
+        { bucket: 'proposing', label: 'Proposing', dot: '#d97706', always: true },
+        { bucket: 'negotiating', label: 'Negotiation/Contract', dot: '#dc2626', always: true },
+        { bucket: 'won', label: 'Closed Won', dot: '#10b981', always: true },
+        { bucket: 'lost', label: 'Closed Lost', dot: '#9ca3af', always: true },
+        { bucket: 'onhold', label: 'On Hold', dot: '#a78bfa', always: false },
+        { bucket: 'implementation', label: 'Kickoff / Implementation', dot: '#10b981', always: false },
+        { bucket: 'other', label: 'Other / Unmapped', dot: '#5a6470', always: false },
+      ];
+      var PIPELINE_FUNNEL_LABELS = {
+        prospecting: 'Prospecting', discovery: 'Discovery', demo: 'Demo',
+        validation: 'Validation', proposing: 'Proposing', negotiating: 'Negotiation',
+      };
+
+      var pipelineState = {
+        payload: null,
+        activeView: 'all',
+        openStages: { prospecting: true },
+        forecastChart: null,
+        wired: false,
+        copyTimer: null,
+        lastRenderedFetchedAt: null,
+      };
+
+      function setPipelineLoading(on) {
+        setGlobalLoading_('pipeline', on, 'Loading data');
+      }
+
+      function readPipelineCache() {
+        try {
+          var raw = sessionStorage.getItem(PIPELINE_CACHE_KEY);
+          if (!raw) return null;
+          var o = JSON.parse(raw);
+          if (!o || o.cacheSchemaVersion !== PIPELINE_CACHE_SCHEMA_VERSION) return null;
+          return o;
+        } catch (e) {
+          return null;
+        }
+      }
+      function writePipelineCache(data) {
+        try {
+          sessionStorage.setItem(PIPELINE_CACHE_KEY, JSON.stringify(data));
+        } catch (e) { /* ignore quota */ }
+      }
+
+      function pipelineAllDeals_() {
+        return (pipelineState.payload && pipelineState.payload.deals) || [];
+      }
+
+      function pipelineViewDeals_() {
+        var deals = pipelineAllDeals_();
+        var view = pipelineState.activeView;
+        if (view === 'all') {
+          // All active sales pipelines (Existing Client is a CS motion — excluded).
+          return deals.filter(function (d) {
+            return !/existing client/i.test(d.pipeline || '');
+          });
+        }
+        return deals.filter(function (d) {
+          return (d.pipeline || '') === view;
+        });
+      }
+
+      function pipelineDealBestValue_(d) {
+        if (d.weightedAmount && d.weightedAmount > 0) return d.weightedAmount;
+        return (Number(d.amount) || 0) * (Number(d.probability) || 0);
+      }
+
+      function pipelineQuarterOf_(iso) {
+        if (!iso) return null;
+        var dt = new Date(iso);
+        if (!isFinite(dt.getTime())) return null;
+        return dt.getFullYear() + '-Q' + (Math.floor(dt.getMonth() / 3) + 1);
+      }
+
+      function renderPipelineTabs_() {
+        if (!els.pipelineViewTabs) return;
+        var pipelines = (pipelineState.payload && pipelineState.payload.pipelines) || [];
+        if (pipelines.length <= 1) {
+          els.pipelineViewTabs.classList.add('d-none');
+          els.pipelineViewTabs.innerHTML = '';
+          pipelineState.activeView = 'all';
+          return;
+        }
+        els.pipelineViewTabs.classList.remove('d-none');
+        var tabs = [{ id: 'all', label: 'All sales' }];
+        for (var i = 0; i < pipelines.length; i++) {
+          tabs.push({ id: pipelines[i], label: String(pipelines[i]).replace(/ Sales Pipeline$/i, '').replace(/ Pipeline$/i, '') });
+        }
+        var html = [];
+        for (var j = 0; j < tabs.length; j++) {
+          var active = tabs[j].id === pipelineState.activeView ? ' active' : '';
+          html.push(
+            '<button type="button" class="fos-pipeline-tab' + active + '" role="tab" data-pl-view="' +
+              escapeAttr_(tabs[j].id) + '">' + escapeHtml(tabs[j].label) + '</button>'
+          );
+        }
+        els.pipelineViewTabs.innerHTML = html.join('');
+      }
+
+      function renderPipelineKpis_(deals) {
+        var active = deals.filter(function (d) { return PIPELINE_ACTIVE_BUCKETS.indexOf(d.bucket) >= 0; });
+        var commit = active.filter(function (d) { return PIPELINE_COMMIT_BUCKETS.indexOf(d.bucket) >= 0; });
+        var nonLost = deals.filter(function (d) { return d.bucket !== 'lost'; });
+        var totalAmt = nonLost.reduce(function (s, d) { return s + (Number(d.amount) || 0); }, 0);
+        var commitAmt = commit.reduce(function (s, d) { return s + (Number(d.amount) || 0); }, 0);
+        var bestAmt = active.reduce(function (s, d) { return s + pipelineDealBestValue_(d); }, 0);
+
+        if (els.pipelineKpiTotal) els.pipelineKpiTotal.textContent = formatMoneyCompact(totalAmt);
+        if (els.pipelineKpiTotalSub) els.pipelineKpiTotalSub.textContent = active.length + ' active deal' + (active.length === 1 ? '' : 's');
+        if (els.pipelineKpiCommit) els.pipelineKpiCommit.textContent = formatMoneyCompact(commitAmt);
+        if (els.pipelineKpiCommitSub) els.pipelineKpiCommitSub.textContent = commit.length + ' deal' + (commit.length === 1 ? '' : 's');
+        if (els.pipelineKpiBest) els.pipelineKpiBest.textContent = formatMoneyCompact(bestAmt);
+        if (els.pipelineKpiBestSub) els.pipelineKpiBestSub.textContent = active.length + ' deal' + (active.length === 1 ? '' : 's');
+      }
+
+      function pipelineDaysClass_(days) {
+        if (days == null) return '';
+        if (days >= 60) return 'days-stale';
+        if (days >= 30) return 'days-warn';
+        return 'days-fresh';
+      }
+
+      function renderPipelineStages_(deals) {
+        if (!els.pipelineStageWrap) return;
+        var groups = {};
+        PIPELINE_STAGE_ORDER.forEach(function (s) { groups[s.bucket] = []; });
+        deals.forEach(function (d) {
+          if (groups[d.bucket]) groups[d.bucket].push(d);
+        });
+        Object.keys(groups).forEach(function (b) {
+          groups[b].sort(function (a, c) { return (Number(c.amount) || 0) - (Number(a.amount) || 0); });
+        });
+
+        var html = [];
+        PIPELINE_STAGE_ORDER.forEach(function (s) {
+          var rows = groups[s.bucket] || [];
+          if (!rows.length && !s.always) return;
+          var total = rows.reduce(function (sum, d) { return sum + (Number(d.amount) || 0); }, 0);
+          var isOpen = !!pipelineState.openStages[s.bucket] && rows.length;
+          var countLabel = rows.length ? rows.length + ' deal' + (rows.length === 1 ? '' : 's') : 'No deals';
+          html.push('<div class="fos-pl-stage' + (isOpen ? ' open' : '') + '" data-pl-bucket="' + s.bucket + '" style="border-left-color:' + s.dot + '">');
+          html.push(
+            '<div class="fos-pl-stage-hdr' + (rows.length ? '' : ' is-empty') + '">' +
+              '<div class="fos-pl-hdr-left"><span class="fos-pl-dot" style="background:' + s.dot + '"></span>' +
+              '<span class="fos-pl-stage-name">' + escapeHtml(s.label) + '</span>' +
+              '<span class="fos-pl-count">' + countLabel + '</span></div>' +
+              '<div class="fos-pl-hdr-right"><span class="fos-pl-total">' + (rows.length ? formatMoneyCompact(total) : '') + '</span>' +
+              '<span class="fos-pl-chevron" style="' + (rows.length ? '' : 'visibility:hidden') + '">▼</span></div>' +
+            '</div>'
+          );
+          html.push('<div class="fos-pl-body">');
+          rows.forEach(function (r) {
+            var daysCls = pipelineDaysClass_(r.daysInStage);
+            var meta = [];
+            if (r.daysInStage != null) meta.push('<span class="fos-pl-chip ' + daysCls + '">' + r.daysInStage + 'd in stage</span>');
+            if (r.closeDate) meta.push('<span class="fos-pl-chip">Close: ' + escapeHtml(r.closeDate) + '</span>');
+            meta.push('<span class="fos-pl-chip">' + escapeHtml(r.owner || 'Unassigned') + '</span>');
+            if (r.isStale) meta.push('<span class="fos-pl-chip stale">Stale</span>');
+            var fc = String(r.forecastCategory || 'PIPELINE');
+            html.push('<div class="fos-pl-deal">');
+            html.push('<div><div class="fos-pl-company">' + escapeHtml(r.company || r.name) + '</div><div class="fos-pl-meta">' + meta.join('') + '</div></div>');
+            html.push('<span class="fos-pl-fc fc-' + escapeAttr_(fc) + '">' + escapeHtml(fc.replace('_', ' ')) + '</span>');
+            html.push('<span class="fos-pl-chip">' + escapeHtml(r.stage || '') + '</span>');
+            html.push('<span class="fos-pl-amt">' + formatMoneyCompact(Number(r.amount) || 0) + '</span>');
+            html.push('</div>');
+          });
+          html.push('</div></div>');
+        });
+        els.pipelineStageWrap.innerHTML = html.join('');
+      }
+
+      function renderPipelineFunnel_(deals) {
+        if (!els.pipelineFunnel) return;
+        var active = deals.filter(function (d) { return PIPELINE_ACTIVE_BUCKETS.indexOf(d.bucket) >= 0; });
+        var counts = {};
+        var amounts = {};
+        PIPELINE_ACTIVE_BUCKETS.forEach(function (b) { counts[b] = 0; amounts[b] = 0; });
+        active.forEach(function (d) { counts[d.bucket]++; amounts[d.bucket] += (Number(d.amount) || 0); });
+        var maxCount = 1;
+        PIPELINE_ACTIVE_BUCKETS.forEach(function (b) { if (counts[b] > maxCount) maxCount = counts[b]; });
+        var html = PIPELINE_ACTIVE_BUCKETS.map(function (b) {
+          var pct = (counts[b] / maxCount) * 100;
+          return '<div class="fos-funnel-stage"><div class="fos-funnel-name">' + escapeHtml(PIPELINE_FUNNEL_LABELS[b]) + '</div>' +
+            '<div class="fos-funnel-deals">' + counts[b] + '<span class="unit">deals</span></div>' +
+            '<div class="fos-funnel-amount">' + formatMoneyCompact(amounts[b]) + '</div>' +
+            '<div class="fos-funnel-bar"><div class="fos-funnel-bar-fill" style="width:' + pct + '%"></div></div></div>';
+        }).join('');
+        els.pipelineFunnel.innerHTML = html;
+      }
+
+      function renderPipelineForecastChart_(deals) {
+        if (!els.pipelineForecastChart || typeof Chart === 'undefined') return;
+        var now = new Date();
+        var y = now.getFullYear();
+        var defaultLabels = [y + '-Q1', y + '-Q2', y + '-Q3', y + '-Q4'];
+        var buckets = {};
+        defaultLabels.forEach(function (q) { buckets[q] = { won: 0, commit: 0, best: 0, pipeline: 0 }; });
+
+        deals.filter(function (d) { return d.bucket === 'won' && d.closeDate; }).forEach(function (d) {
+          var q = pipelineQuarterOf_(d.closeDate); if (!q) return;
+          if (!buckets[q]) buckets[q] = { won: 0, commit: 0, best: 0, pipeline: 0 };
+          buckets[q].won += (Number(d.amount) || 0);
+        });
+        deals.filter(function (d) { return PIPELINE_ACTIVE_BUCKETS.indexOf(d.bucket) >= 0 && d.closeDate; }).forEach(function (d) {
+          var q = pipelineQuarterOf_(d.closeDate); if (!q) return;
+          if (!buckets[q]) buckets[q] = { won: 0, commit: 0, best: 0, pipeline: 0 };
+          buckets[q].pipeline += (Number(d.amount) || 0);
+          buckets[q].best += pipelineDealBestValue_(d);
+          if (PIPELINE_COMMIT_BUCKETS.indexOf(d.bucket) >= 0) buckets[q].commit += (Number(d.amount) || 0);
+        });
+
+        var labels = Object.keys(buckets).sort();
+        function get(q, k) { return Math.round((buckets[q] && buckets[q][k]) || 0); }
+
+        if (pipelineState.forecastChart) {
+          pipelineState.forecastChart.destroy();
+          pipelineState.forecastChart = null;
+        }
+        var ctx = els.pipelineForecastChart.getContext('2d');
+        pipelineState.forecastChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              { type: 'bar', label: 'Closed Won', data: labels.map(function (l) { return get(l, 'won'); }), backgroundColor: 'rgba(16,185,129,0.35)', borderColor: '#10b981', borderWidth: 1.5, borderRadius: 4, order: 4 },
+              { type: 'line', label: 'Pipeline', data: labels.map(function (l) { return get(l, 'pipeline'); }), borderColor: '#0D7FA8', backgroundColor: 'transparent', fill: false, tension: 0.25, pointRadius: 3, borderWidth: 2.5, order: 3 },
+              { type: 'line', label: 'Best case', data: labels.map(function (l) { return get(l, 'best'); }), borderColor: '#a78bfa', backgroundColor: 'transparent', fill: false, tension: 0.25, pointRadius: 3, borderWidth: 2.5, borderDash: [5, 4], order: 2 },
+              { type: 'line', label: 'Commit', data: labels.map(function (l) { return get(l, 'commit'); }), borderColor: '#72E7D1', backgroundColor: 'transparent', fill: false, tension: 0.25, pointRadius: 4, borderWidth: 2.5, order: 1 },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'top', labels: { color: '#c8d4e2', boxWidth: 12, font: { size: 12 } } },
+              tooltip: { mode: 'index', intersect: false, callbacks: { label: function (c) { return c.dataset.label + ': ' + formatMoneyCompact(c.parsed.y); } } },
+            },
+            scales: {
+              x: { grid: { display: false }, ticks: { color: '#8aa0b6' } },
+              y: { beginAtZero: true, ticks: { color: '#8aa0b6', callback: function (v) { return formatMoneyCompact(v); } }, grid: { color: 'rgba(255,255,255,0.06)' } },
+            },
+          },
+        });
+      }
+
+      function renderPipelineAll_() {
+        var deals = pipelineViewDeals_();
+        renderPipelineTabs_();
+        renderPipelineKpis_(deals);
+        renderPipelineStages_(deals);
+        renderPipelineFunnel_(deals);
+        if (els.pipelineEmpty) {
+          if (deals.length) els.pipelineEmpty.classList.add('d-none');
+          else els.pipelineEmpty.classList.remove('d-none');
+        }
+        if (typeof Chart === 'undefined') {
+          loadChartJs().then(function () { renderPipelineForecastChart_(deals); }).catch(function () {});
+        } else {
+          renderPipelineForecastChart_(deals);
+        }
+      }
+
+      function applyPipelinePayload_(payload) {
+        pipelineState.payload = payload;
+        pipelineState.lastRenderedFetchedAt = payload.fetchedAt || null;
+        if (els.pipelineWarn) {
+          if (payload.warnings && payload.warnings.length) {
+            els.pipelineWarn.textContent = payload.warnings.join(' ');
+            els.pipelineWarn.classList.remove('d-none');
+          } else {
+            els.pipelineWarn.classList.add('d-none');
+          }
+        }
+        if (els.pipelinePartialNote) {
+          if (payload.partial) {
+            els.pipelinePartialNote.textContent = 'Partial load — some deals were not fetched (PIPELINE_MAX_ROWS cap).';
+            els.pipelinePartialNote.classList.remove('d-none');
+          } else {
+            els.pipelinePartialNote.classList.add('d-none');
+          }
+        }
+        if (els.pipelineLastRefresh && payload.fetchedAt) {
+          els.pipelineLastRefresh.textContent = formatLastRefresh(payload.fetchedAt);
+        }
+        if (els.pipelineSubtitle && payload.meta) {
+          els.pipelineSubtitle.textContent =
+            (payload.meta.dealCount || 0) + ' deals · live HubSpot data via Fibery';
+        }
+        renderPipelineAll_();
+      }
+
+      function fetchPipelineFromServer(manual) {
+        if (!isLiveDataSource_()) return;
+        if (els.pipelineRefreshBtn) els.pipelineRefreshBtn.disabled = true;
+        if (els.pipelineFetchError) els.pipelineFetchError.classList.add('d-none');
+        setPipelineLoading(true);
+        google.script.run
+          .withSuccessHandler(function (data) {
+            setPipelineLoading(false);
+            if (els.pipelineRefreshBtn) els.pipelineRefreshBtn.disabled = false;
+            if (!data || data.ok === false) {
+              if (els.pipelineFetchError) {
+                var errMsg = (data && data.message) || 'Could not load pipeline.';
+                if (errMsg === 'FORBIDDEN') errMsg = 'Pipeline is available to Fibery-cleared users.';
+                els.pipelineFetchError.textContent = errMsg;
+                els.pipelineFetchError.classList.remove('d-none');
+              }
+              return;
+            }
+            writePipelineCache(data);
+            applyPipelinePayload_(data);
+          })
+          .withFailureHandler(function (err) {
+            setPipelineLoading(false);
+            if (els.pipelineRefreshBtn) els.pipelineRefreshBtn.disabled = false;
+            var msg = err && err.message ? err.message : 'Refresh failed.';
+            if (msg === 'NOT_AUTHORIZED') msg = 'Your session is not authorized. Reload the page.';
+            if (msg === 'FORBIDDEN') msg = 'Pipeline is available to Fibery-cleared users.';
+            if (els.pipelineFetchError) {
+              els.pipelineFetchError.textContent = msg;
+              els.pipelineFetchError.classList.remove('d-none');
+            }
+          })
+          .getPipelineDashboardData();
+        if (manual) logActivity_('pipeline_refresh', 'pipeline', '');
+      }
+
+      function showPipelineCopiedAlert_() {
+        if (!els.pipelineCopyAlert) return;
+        if (pipelineState.copyTimer) window.clearTimeout(pipelineState.copyTimer);
+        els.pipelineCopyAlert.classList.remove('d-none');
+        pipelineState.copyTimer = window.setTimeout(function () {
+          if (els.pipelineCopyAlert) els.pipelineCopyAlert.classList.add('d-none');
+          pipelineState.copyTimer = null;
+        }, 1400);
+      }
+
+      function pipelineExportCsv_() {
+        var deals = pipelineViewDeals_();
+        var header = ['Company', 'Deal', 'Pipeline', 'Stage', 'Forecast Category', 'Amount', 'Close Date', 'Days In Stage', 'Owner'];
+        var lines = [header.join(',')];
+        function esc(v) { var s = String(v == null ? '' : v).replace(/"/g, '""'); return /[",\n]/.test(s) ? '"' + s + '"' : s; }
+        for (var i = 0; i < deals.length; i++) {
+          var d = deals[i];
+          lines.push([
+            esc(d.company), esc(d.name), esc(d.pipeline), esc(d.stage), esc(d.forecastCategory),
+            esc(Number(d.amount) || 0), esc(d.closeDate || ''), esc(d.daysInStage == null ? '' : d.daysInStage), esc(d.owner),
+          ].join(','));
+        }
+        var txt = lines.join('\n');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt);
+        } else {
+          var ta = document.createElement('textarea');
+          ta.value = txt;
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand('copy'); } finally { document.body.removeChild(ta); }
+        }
+        showPipelineCopiedAlert_();
+        logActivity_('pipeline_export', 'pipeline', pipelineState.activeView);
+      }
+
+      function wirePipelinePanelOnce_() {
+        if (pipelineState.wired) return;
+        pipelineState.wired = true;
+        if (els.pipelineRefreshBtn) {
+          els.pipelineRefreshBtn.addEventListener('click', function () {
+            if (!isLiveDataSource_()) return;
+            fetchPipelineFromServer(true);
+          });
+        }
+        if (els.pipelineExportBtn) {
+          els.pipelineExportBtn.addEventListener('click', pipelineExportCsv_);
+        }
+        if (els.pipelineViewTabs) {
+          els.pipelineViewTabs.addEventListener('click', function (ev) {
+            var btn = ev.target.closest('button[data-pl-view]');
+            if (!btn) return;
+            var view = btn.getAttribute('data-pl-view');
+            if (!view || view === pipelineState.activeView) return;
+            pipelineState.activeView = view;
+            renderPipelineAll_();
+            logActivity_('pipeline_view_change', 'pipeline', view);
+          });
+        }
+        if (els.pipelineStageWrap) {
+          els.pipelineStageWrap.addEventListener('click', function (ev) {
+            var hdr = ev.target.closest('.fos-pl-stage-hdr');
+            if (!hdr) return;
+            var stage = hdr.closest('.fos-pl-stage');
+            if (!stage) return;
+            var bucket = stage.getAttribute('data-pl-bucket');
+            if (hdr.classList.contains('is-empty')) return;
+            var opening = !stage.classList.contains('open');
+            stage.classList.toggle('open', opening);
+            if (opening) pipelineState.openStages[bucket] = true;
+            else delete pipelineState.openStages[bucket];
+            logActivity_('pipeline_stage_toggle', 'pipeline', bucket + (opening ? ':open' : ':close'));
+          });
+        }
+      }
+
+      function showPipelineLiveOrSnapshot_() {
+        var disableRefresh = !isLiveDataSource_();
+        if (els.pipelineLiveOnly) {
+          if (disableRefresh) els.pipelineLiveOnly.classList.remove('d-none');
+          else els.pipelineLiveOnly.classList.add('d-none');
+        }
+        if (els.pipelineRefreshBtn) els.pipelineRefreshBtn.disabled = disableRefresh;
+        if (els.pipelineExportBtn) els.pipelineExportBtn.disabled = disableRefresh;
+        if (disableRefresh) {
+          if (pipelineState.forecastChart) { pipelineState.forecastChart.destroy(); pipelineState.forecastChart = null; }
+          pipelineState.payload = null;
+          if (els.pipelineSubtitle) els.pipelineSubtitle.textContent = 'Select Live data to load pipeline deals.';
+          if (els.pipelineStageWrap) els.pipelineStageWrap.innerHTML = '';
+          if (els.pipelineFunnel) els.pipelineFunnel.innerHTML = '';
+          if (els.pipelineViewTabs) { els.pipelineViewTabs.innerHTML = ''; els.pipelineViewTabs.classList.add('d-none'); }
+          if (els.pipelineWarn) els.pipelineWarn.classList.add('d-none');
+          if (els.pipelinePartialNote) els.pipelinePartialNote.classList.add('d-none');
+          if (els.pipelineKpiTotal) els.pipelineKpiTotal.textContent = '$0';
+          if (els.pipelineKpiCommit) els.pipelineKpiCommit.textContent = '$0';
+          if (els.pipelineKpiBest) els.pipelineKpiBest.textContent = '$0';
+          return;
+        }
+        showPipelineMaybeLoad_();
+      }
+
+      function showPipelineMaybeLoad_() {
+        if (!els.panelPipeline) return;
+        var cached = readPipelineCache();
+        var alreadyRendered =
+          pipelineState.lastRenderedFetchedAt &&
+          cached && cached.fetchedAt &&
+          pipelineState.lastRenderedFetchedAt === cached.fetchedAt;
+        if (cached && cached.ok !== false) {
+          if (!alreadyRendered) applyPipelinePayload_(cached);
+          return;
+        }
+        fetchPipelineFromServer(false);
+      }
+
+      function showPipeline() {
+        if (!els.panelPipeline) return;
+        if (navState.pipelineAccess === false) {
+          showComingSoon('Pipeline is available to Fibery-cleared users.');
+          return;
+        }
+        els.panelHome.classList.add('d-none');
+        if (els.panelAgreementDashboard) els.panelAgreementDashboard.classList.add('d-none');
+        if (els.panelOperations) els.panelOperations.classList.add('d-none');
+        if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
+        if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
+        if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        els.panelPipeline.classList.remove('d-none');
+        hidePanelSettings_();
+        els.topbarTitle.textContent = 'Pipeline Dashboard';
+        if (els.pipelineFetchError) els.pipelineFetchError.classList.add('d-none');
+        wirePipelinePanelOnce_();
+        showPipelineLiveOrSnapshot_();
+      }
+
       function showExpensesMaybeLoad_() {
         if (!els.panelExpenses) return;
         var cached = readExpensesCache();
@@ -13759,6 +14572,7 @@
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         els.panelExpenses.classList.remove('d-none');
         hidePanelSettings_();
         els.topbarTitle.textContent = 'Expenses';
@@ -14988,6 +15802,11 @@
             showAgreementDashboard();
             return;
           }
+          if (item.id === 'pipeline') {
+            setActiveNav('pipeline');
+            showPipeline();
+            return;
+          }
           if (item.id === 'expenses') {
             setActiveNav('expenses');
             showExpenses();
@@ -15021,6 +15840,7 @@
         navState = model || { items: [], userLabel: '' };
         navState.isAdmin = !!model.isAdmin;
         navState.expensesAccess = model.expensesAccess !== false;
+        navState.pipelineAccess = model.pipelineAccess !== false;
         if (els.settingsLinkWrap) {
           if (navState.isAdmin) {
             els.settingsLinkWrap.classList.remove('d-none');
