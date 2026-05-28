@@ -1,6 +1,6 @@
 # Feature: Expenses dashboard (spreadsheet-backed)
 
-> **PRD version 2.5.8** — shipped in web app **v2.5.0+** with **FR-109** / **AC-65**; nav under **Finance** group (**v2.5.1**); **Finance team / ADMIN only** (**v2.5.3**); chart layout + risk map (**v2.5.5**–**v2.5.6**); customer table under Sankey (**v2.5.7**).
+> **PRD version 2.6.1** — shipped in web app **v2.5.0+** with **FR-109** / **AC-65**; nav under **Finance** group (**v2.5.1**); **Finance team / ADMIN only** (**v2.5.3**, broadened to **FINANCE team / EXEC / ADMIN** in **v2.6.1**); chart layout + risk map (**v2.5.5**–**v2.5.6**); customer table under Sankey (**v2.5.7**).
 
 > **Implementation plan:** [`docs/features/015-expenses-dashboard-implementation-plan.md`](015-expenses-dashboard-implementation-plan.md) — **Status:** implemented (PRD **2.5.0**).
 
@@ -191,7 +191,7 @@ Reuse **`.fos-util-drawer`** pattern (backdrop + `open` class, close affordance,
 *Lift into `docs/FOS-Dashboard-PRD.md` with official FR-/AC- numbers when scheduled.*
 
 1. **Navigation:** `buildNavigationModel_()` adds a **top-level** item `{ id: 'expenses', label: 'Expenses' }` (icon: e.g. `bi-receipt` or `bi-cash-stack`).
-2. **Authorization:** Any user who passes **Users** sheet auth may call the expenses endpoint (no `fibery_access` gate unless product decides otherwise).
+2. **Authorization (v2.6.1):** `canAccessExpensesDashboard_()` allows access when **any** of `Team = FINANCE`, `Role = EXEC`, or `Role = ADMIN` is true; nav omits the **Finance** group and the server returns **FORBIDDEN** otherwise.
 3. **Server endpoint:** e.g. `getExpensesDashboardData()` reads the configured tab from `AUTH_SPREADSHEET_ID`, normalizes rows, returns `{ rows: [...], fetchedAt, warnings?, partial? }` with stable field names. **Normalize excludes zero-amount rows** (see “Zero amounts” under Data source review); returned **`rows`** contain only spends that contribute to KPIs/charts/tables/export.
 4. **Client:** New `#panel-expenses`; lazy fetch on first open; `sessionStorage` cache + TTL optional (key e.g. `fos_expenses_dashboard_v1`, `cacheSchemaVersion: 1`). Client MUST NOT re-introduce discarded zero rows unless product adds an explicit “Raw sheet rows” toggle (out of scope v1). **Charts:** At minimum **two** stacked bar charts (§ C **department** × month, § D **category** × month) using shared **Chart.js** load path; **category** chart **segment click** MUST open the drawer with **transaction-level** rows for that **month + category** (see § G).
 5. **Snapshot / Live data:** If **Live data** is off (FR-105), either hide Expenses with explanation or ship a snapshot artifact in a later phase (recommend: **Phase A = Live only** with clear empty state in snapshot mode).
@@ -357,6 +357,7 @@ Reuse **`.fos-util-drawer`** pattern (backdrop + `open` class, close affordance,
 | 2026-05-27 | **v2.5.6** — **Software vendor risk map:** Software category only; bubbles = vendors (color = vendor); **focus-month** range slider; metrics per selected month. |
 | 2026-05-27 | **v2.5.5** — Dept + category monthly charts **side by side**; **software × vendor × month** stacked bar; **category risk map** bubble (MoM % vs YTD, txn size, quadrant interpretation). Script Properties **`EXPENSES_SOFTWARE_CATEGORY_MATCH`**, **`EXPENSES_CHART_VENDOR_TOP_N`**. |
 | 2026-05-27 | **v2.5.3** — **Clear all filters**; **Finance** `Team` or **ADMIN** `Role` required (nav + server). |
+| 2026-05-28 | **v2.6.1** — Access broadened: visible when **any** of `Team = FINANCE`, `Role = EXEC`, or `Role = ADMIN` (`canAccessExpensesDashboard_`). |
 | 2026-05-27 | **v2.5.2** — Removed **Expense lines** table; **Sankey** (dept → attributed/unattributed → customer); checkbox multi-select filters (dept, employee, customer) + summary/chips. |
 | 2026-05-27 | **Nav v2.5.1** — **Expenses** moved under new sidebar **Finance** group (after **Delivery**); route id unchanged. |
 | 2026-05-27 | **Shipped v2.5.0** — feature doc + plan status updated; implementation checklist marked done (R0 remains operator). |

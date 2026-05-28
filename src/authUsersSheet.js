@@ -1,5 +1,5 @@
 /**
- * PRD version 2.6.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.1 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Spreadsheet-backed user authorization (Users tab).
  * Script Properties: AUTH_SPREADSHEET_ID (required), AUTH_USERS_SHEET_NAME (default Users),
@@ -162,7 +162,8 @@ function requireAuthForApi_() {
 }
 
 /**
- * Expenses dashboard (Finance nav group) — Finance team or ADMIN role.
+ * Expenses dashboard (Finance nav group) — visible when ANY is true:
+ * team = FINANCE, role = EXEC, or role = ADMIN.
  * @param {{ role?: string, team?: string, email?: string }} auth
  * @return {boolean}
  */
@@ -170,8 +171,9 @@ function canAccessExpensesDashboard_(auth) {
   if (!auth || !auth.email) {
     return false;
   }
-  if (typeof isAdminUser_ === 'function' && isAdminUser_(auth)) {
+  var role = String(auth.role || '').trim().toUpperCase();
+  if (role === 'ADMIN' || role === 'EXEC') {
     return true;
   }
-  return String(auth.team || '').trim().toLowerCase() === 'finance';
+  return String(auth.team || '').trim().toUpperCase() === 'FINANCE';
 }

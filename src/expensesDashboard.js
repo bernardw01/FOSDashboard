@@ -1,5 +1,5 @@
 /**
- * PRD version 2.6.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.1 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Spreadsheet-backed **Expenses** dashboard (feature 015). Reads expense lines
  * from AUTH_SPREADSHEET_ID tab AUTH_EXPENSES_SHEET_NAME (default `expenses`).
@@ -53,7 +53,7 @@ function getExpensesDashboardData() {
       msg = 'Your session is not authorized. Reload the page.';
     }
     if (msg === 'FORBIDDEN') {
-      msg = 'Expenses is available to Finance team members and administrators.';
+      msg = 'Expenses is available to the Finance team, Execs, and Admins.';
     }
     try {
       console.warn('getExpensesDashboardData: ' + msg);

@@ -1,5 +1,5 @@
 /**
- * PRD version 2.6.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.1 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Sales **Pipeline** dashboard (feature 016). Reads HubSpot deals synced into
  * Fibery (`HubSpot/Deal`) through fiberyClient.js and returns a normalized,
@@ -61,12 +61,20 @@ function requirePipelineAccessForApi_() {
 }
 
 /**
- * Pipeline dashboard (Sales nav group) — any Fibery-cleared user.
- * @param {{ email?: string, fiberyAccess?: boolean }} auth
+ * Pipeline dashboard (Sales nav group) — visible when ANY is true:
+ * team = CLIENT-ENGAGEMENT, role = EXEC, or role = ADMIN.
+ * @param {{ email?: string, role?: string, team?: string }} auth
  * @return {boolean}
  */
 function canAccessPipelineDashboard_(auth) {
-  return !!(auth && auth.email && auth.fiberyAccess);
+  if (!auth || !auth.email) {
+    return false;
+  }
+  var role = String(auth.role || '').trim().toUpperCase();
+  if (role === 'ADMIN' || role === 'EXEC') {
+    return true;
+  }
+  return String(auth.team || '').trim().toUpperCase() === 'CLIENT-ENGAGEMENT';
 }
 
 /**
@@ -83,7 +91,7 @@ function getPipelineDashboardData() {
       msg = 'Your session is not authorized. Reload the page.';
     }
     if (msg === 'FORBIDDEN') {
-      msg = 'Pipeline is available to Fibery-cleared users.';
+      msg = 'Pipeline is available to the Client Engagement team, Execs, and Admins.';
     }
     try {
       console.warn('getPipelineDashboardData: ' + msg);

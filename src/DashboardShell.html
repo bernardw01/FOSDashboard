@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.6.0 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.6.1 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -14009,7 +14009,7 @@
               if (els.expFetchError) {
                 var errMsg = (data && data.message) || 'Could not load expenses.';
                 if (errMsg === 'FORBIDDEN') {
-                  errMsg = 'Expenses is available to Finance team members and administrators.';
+                  errMsg = 'Expenses is available to the Finance team, Execs, and Admins.';
                 }
                 els.expFetchError.textContent = errMsg;
                 els.expFetchError.classList.remove('d-none');
@@ -14027,7 +14027,7 @@
               msg = 'Your session is not authorized. Reload the page.';
             }
             if (msg === 'FORBIDDEN') {
-              msg = 'Expenses is available to Finance team members and administrators.';
+              msg = 'Expenses is available to the Finance team, Execs, and Admins.';
             }
             if (els.expFetchError) {
               els.expFetchError.textContent = msg;
@@ -14353,7 +14353,7 @@
             if (!data || data.ok === false) {
               if (els.pipelineFetchError) {
                 var errMsg = (data && data.message) || 'Could not load pipeline.';
-                if (errMsg === 'FORBIDDEN') errMsg = 'Pipeline is available to Fibery-cleared users.';
+                if (errMsg === 'FORBIDDEN') errMsg = 'Pipeline is available to the Client Engagement team, Execs, and Admins.';
                 els.pipelineFetchError.textContent = errMsg;
                 els.pipelineFetchError.classList.remove('d-none');
               }
@@ -14367,7 +14367,7 @@
             if (els.pipelineRefreshBtn) els.pipelineRefreshBtn.disabled = false;
             var msg = err && err.message ? err.message : 'Refresh failed.';
             if (msg === 'NOT_AUTHORIZED') msg = 'Your session is not authorized. Reload the page.';
-            if (msg === 'FORBIDDEN') msg = 'Pipeline is available to Fibery-cleared users.';
+            if (msg === 'FORBIDDEN') msg = 'Pipeline is available to the Client Engagement team, Execs, and Admins.';
             if (els.pipelineFetchError) {
               els.pipelineFetchError.textContent = msg;
               els.pipelineFetchError.classList.remove('d-none');
@@ -14495,7 +14495,7 @@
       function showPipeline() {
         if (!els.panelPipeline) return;
         if (navState.pipelineAccess === false) {
-          showComingSoon('Pipeline is available to Fibery-cleared users.');
+          showComingSoon('Pipeline is available to the Client Engagement team, Execs, and Admins.');
           return;
         }
         els.panelHome.classList.add('d-none');
@@ -14563,7 +14563,7 @@
       function showExpenses() {
         if (!els.panelExpenses) return;
         if (navState.expensesAccess === false) {
-          showComingSoon('Expenses is available to Finance team members and administrators.');
+          showComingSoon('Expenses is available to the Finance team, Execs, and Admins.');
           return;
         }
         els.panelHome.classList.add('d-none');
