@@ -1,5 +1,5 @@
 /**
- * PRD version 2.6.5 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.6 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Historical dashboard snapshot storage (Option A): Google Drive folder
  * with per-date subfolders, JSON artifacts, and a manifest per day.

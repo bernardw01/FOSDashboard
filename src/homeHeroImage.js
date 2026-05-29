@@ -1,5 +1,5 @@
 /**
- * PRD version 2.6.5 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.6 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Home hero background image as a data URL (loaded via google.script.run, not inline template).
  * Source file: src/assets/home-hero-deap.png
