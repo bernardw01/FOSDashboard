@@ -213,6 +213,8 @@ Configuration for this Web App lives in the Apps Script project under **Project 
 | Path                         | Purpose                                                                                              |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `[src/](src/)`               | **Only** what **clasp** pushes to Apps Script (`.gs`, `.html`, `appsscript.json`).                   |
+| `[src/assets/](src/assets/)` | Version-controlled binaries for the Web App (e.g. Home hero `home-hero-deap.png`). Embedded into `src/homeHeroImage.js` for HtmlService — see `[src/assets/README.md](src/assets/README.md)`. |
+| `[scripts/embed-home-hero.ps1](scripts/embed-home-hero.ps1)` | Regenerates `homeHeroImage.js` after the hero PNG changes. |
 | `[docs/](docs/)`             | PRDs and feature specs; **not** uploaded to the script project (see `[.claspignore](.claspignore)`). |
 | `[.clasp.json](.clasp.json)` | Links this repo to a Google Apps Script project (`scriptId`) and sets `**rootDir`: `src`**.          |
 

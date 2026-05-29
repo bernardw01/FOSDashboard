@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.6.2 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.6.4 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -2192,6 +2192,70 @@
       color: var(--text-muted) !important;
     }
 
+    /* Home hero — DEAP photo + light scrim (src/assets/home-hero-deap.png). */
+    .fos-home-hero {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background-color: var(--surface);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    }
+    .fos-home-hero-inner {
+      position: relative;
+      min-height: 220px;
+      overflow: hidden;
+    }
+    .fos-home-hero-photo {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 35%;
+    }
+    .fos-home-hero-scrim {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(
+          105deg,
+          rgba(6, 27, 48, 0.52) 0%,
+          rgba(6, 27, 48, 0.22) 48%,
+          rgba(6, 27, 48, 0.06) 100%
+        ),
+        linear-gradient(
+          to top,
+          rgba(6, 27, 48, 0.65) 0%,
+          rgba(6, 27, 48, 0.18) 42%,
+          rgba(255, 254, 252, 0.08) 100%
+        );
+    }
+    .fos-home-hero-copy {
+      position: relative;
+      z-index: 1;
+      min-height: 220px;
+      padding: 2.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+    .fos-home-hero-quote {
+      margin: 0 0 0.65rem;
+      padding: 0;
+      border: none;
+      max-width: 44rem;
+      font-size: clamp(1.05rem, 2.2vw, 1.4rem);
+      font-weight: 700;
+      line-height: 1.35;
+      color: var(--text);
+    }
+    .fos-home-hero-attrib {
+      font-size: 0.9rem;
+      font-style: normal;
+      color: var(--text-muted);
+    }
+
     .fos-modal .modal-content {
       background-color: var(--surface);
       border: 1px solid var(--border);
@@ -2566,12 +2630,35 @@
 
       <div class="fos-main-scroll flex-grow-1 min-h-0 overflow-y-auto">
       <main id="main-panel" class="px-3 px-lg-4 py-4" aria-live="polite">
-        <div id="panel-home" class="card fos-card rounded-4">
-          <div class="card-body p-4 p-lg-5">
-            <h1 class="h4 mb-3 fw-bold text-white">Home</h1>
-            <p class="text-muted mb-0 lh-lg">
-              Welcome to the Finance and Operations Snapshot Dashboard. Use the menu for areas you are authorized to see. If a dashboard is not enabled, its link opens a “Coming soon” dialog instead of leaving this page.
-            </p>
+        <div id="panel-home-root">
+          <section
+            class="fos-home-hero card rounded-4 mb-4"
+            aria-label="Featured quote"
+          >
+            <div class="fos-home-hero-inner">
+              <img
+                class="fos-home-hero-photo"
+                src="<?= homeHeroImageUrl ?>"
+                alt=""
+                aria-hidden="true"
+                decoding="async"
+              />
+              <div class="fos-home-hero-scrim" aria-hidden="true"></div>
+              <div class="fos-home-hero-copy">
+                <blockquote class="fos-home-hero-quote">
+                  Not everything that can be counted counts, and not everything that counts can be counted.
+                </blockquote>
+                <p class="fos-home-hero-attrib mb-0">— William Bruce Cameron</p>
+              </div>
+            </div>
+          </section>
+          <div id="panel-home" class="card fos-card rounded-4">
+            <div class="card-body p-4 p-lg-5">
+              <h1 class="h4 mb-3 fw-bold text-white">Home</h1>
+              <p class="text-muted mb-0 lh-lg">
+                Welcome to the Finance and Operations Snapshot Dashboard. Use the menu for areas you are authorized to see. If a dashboard is not enabled, its link opens a “Coming soon” dialog instead of leaving this page.
+              </p>
+            </div>
           </div>
         </div>
 
@@ -4488,7 +4575,7 @@
         loadBanner: document.getElementById('load-banner'),
         navHint: document.getElementById('nav-hint'),
         errorBanner: document.getElementById('error-banner'),
-        panelHome: document.getElementById('panel-home'),
+        panelHome: document.getElementById('panel-home-root'),
         panelAgreementDashboard: document.getElementById('panel-agreement-dashboard'),
         agreementRefreshBtn: document.getElementById('agreement-refresh-btn'),
         agreementLastRefresh: document.getElementById('agreement-last-refresh'),

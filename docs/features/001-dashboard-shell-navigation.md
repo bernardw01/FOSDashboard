@@ -1,6 +1,6 @@
 # Feature: Dashboard shell and navigation (FOS Web App)
 
-> **PRD version 2.1.0** — see `docs/FOS-Dashboard-PRD.md`.
+> **PRD version 2.6.4** — see `docs/FOS-Dashboard-PRD.md`.
 
 ## Goal
 
@@ -28,6 +28,7 @@ Deliver a **responsive** Google Apps Script Web App shell: **left navigation** (
 - **Routes/pages impacted**: Single-page shell only (`doGet` → `DashboardShell.html`). No additional Html files for Home/Settings/dashboard bodies in this feature.
 - **Components to create/edit**:
   - `src/DashboardShell.html` — layout, nav (icons + labels; **Settings** rendered as a `.fos-nav-btn` `<a>` link at the bottom of the sidebar), main, Bootstrap modal for “coming soon”, responsive offcanvas sidebar. Root CSS variables (`--bg`, `--surface`, `--surface2`, `--border`, `--accent`, `--accent2/3/4`, `--text`, `--text-muted`, `--text-dim`, `--danger`, `--warn`) are declared once at `:root` per `agreement-dashboard-prd-v2.md` §9.5; the `.fos-agreement-root` scope aliases `--ag-*` to those globals.
+  - **Home hero** (`#panel-home-root`, v2.6.3+): quote card above the welcome panel — William Bruce Cameron quote, **DEAP team photo** (`src/assets/home-hero-deap.png`), light scrim (`.fos-home-hero-scrim`). Image is embedded for deploy via `src/homeHeroImage.js` (`getHomeHeroImageDataUrl_()`); `doGet` sets template `homeHeroImageUrl`. **After changing the PNG**, run `powershell -File scripts/embed-home-hero.ps1` then `clasp push`. See `src/assets/README.md`.
   - `src/NotAuthorized.html` — same root tokens (deep navy `--bg`, surface card, 12px radius, Inter typography) so the access-denied page matches the rest of the app.
   - `src/Code.js` — `doGet`, `getDashboardNavigation_()` (or equivalent) for nav + user hints passed to template or client.
 - **Design**: Desktop-first responsive; sidebar **~280px** on large screens; **Bootstrap 5** themed with the **`agreement-dashboard-prd-v2.md` §9.5 design tokens** and **§9.6 brand identity** — deep-navy `#061B30` background, surface `#092747`, cyan `#52C9E5` primary accent, off-white `#FFFEFC` text, **Inter** typography 400–800 at 14px base, **12px** card border-radius and **20px** card padding (§9.7), **1px** borders in `#1a4060`, custom **4px** scrollbars with `var(--border)` track and `var(--accent2)` thumb. The single pill-style action button (`.btn-fos-primary`, used by the “coming soon” modal close button and equivalents) stays pill-shaped; the Settings control at the bottom of the sidebar is a nav-style link (no button chrome) per FR-10b.
@@ -54,7 +55,7 @@ Deliver a **responsive** Google Apps Script Web App shell: **left navigation** (
 1. Deploy (or update deploy) as Web App: **Execute as: Me** or **User accessing web app** per your security model; **Who has access** limited to harpin domain if required.
 2. Open the deployment URL in a browser (not only the editor preview).
 3. Resize to **mobile width** (~375px): open/close sidebar; confirm main content remains usable.
-4. Click **Home**: main panel updates or stays on home; **no** coming soon for Home.
+4. Click **Home**: main panel shows the **hero** (quote + DEAP photo) and welcome card; **no** coming soon for Home.
 5. Click **Delivery**: **coming soon** dialog appears and dismisses cleanly. Click **Agreement Dashboard**: agreement dashboard panel appears (not the coming soon modal). Click **Operations**: the **Utilization Management Dashboard** panel appears (`#panel-operations`, activated in v1.12.0 — see **`docs/features/005-utilization-management-dashboard.md`**), not the coming soon modal.
 6. Click **Settings** (bottom of left nav, rendered as a gear-icon **link** styled like the other nav entries): **coming soon** modal appears; URL hash does **not** change (the click handler calls `preventDefault()`).
 

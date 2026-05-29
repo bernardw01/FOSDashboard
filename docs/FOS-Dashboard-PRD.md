@@ -1,10 +1,10 @@
 # Harpin FOS Dashboard (Google Workspace Web App)
 
-**PRD version 2.6.2** — `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
+**PRD version 2.6.4** — `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
 
 Product Requirements Document
 
-Version 2.6.2 - 2026-05-29
+Version 2.6.4 - 2026-05-29
 
 ## 1) Overview
 
@@ -531,6 +531,8 @@ The **Clockify to Fibery Sync** product (see `docs/PRD.md`) remains the **system
 
 | Date | Version | Change Summary | Author |
 | --- | --- | --- | --- |
+| 2026-05-29 | 2.6.4 | **Home hero — canonical DEAP asset.** `src/assets/home-hero-deap.png` + `scripts/embed-home-hero.ps1` → `homeHeroImage.js`; template `homeHeroImageUrl` in `doGet`; light scrim over photo (no external stock URL). Documented in feature **001** and `src/assets/README.md`. PATCH → **2.6.4**. | Cursor |
+| 2026-05-29 | 2.6.3 | **Home hero restored.** **`#panel-home-root`** wraps the quote hero (William Bruce Cameron) and welcome card; hero uses dark overlay + office imagery per shell branding. PATCH → **2.6.3**. | Cursor |
 | 2026-05-29 | 2.6.2 | **Delivery P&L — forecast revenue in projected months.** **`buildMonthlyPnL_()`** (`src/deliveryDashboard.js`) now buckets unrecognized future milestones by **Target Date** and sums **Target Amount** (fixes Actual Amount = 0 suppressing forecast). **`lifetime`** adds **`revenueRecognized`** + **`revenueForecast`**; combined **`revenue`** drives the Lifetime total row (actual + forecast subtext). Pacing strip uses recognized only; §M.9 margin reconciliation unchanged on recognized basis. **`DELIVERY_PNL_CACHE_SCHEMA_VERSION_`** **2 → 3** (client **`_v3`**); snapshot **`delivery-pnl`** expected schema **3**. PATCH → **2.6.2**. | Cursor |
 | 2026-05-28 | 2.6.1 | **Sales + Finance group access rules.** **Sales / Pipeline** (`canAccessPipelineDashboard_`) is now visible when **any** of **`Team = CLIENT-ENGAGEMENT`**, **`Role = EXEC`**, or **`Role = ADMIN`** (replaces the v2.6.0 per-user Fibery-access gate). **Finance / Expenses** (`canAccessExpensesDashboard_`) is now visible when **any** of **`Team = FINANCE`**, **`Role = EXEC`**, or **`Role = ADMIN`** (adds **EXEC** to the prior Finance-team / ADMIN rule). Nav (`buildNavigationModel_`) and server endpoints enforce identically; FORBIDDEN messages updated. **FR-109**, **FR-110**, **AC-65**, **AC-66** revised. PATCH → **2.6.1**. | Cursor |
 | 2026-05-28 | 2.6.0 | **Pipeline dashboard (Sales group).** New **Sales** nav group beneath **Home** with a single **Pipeline** route (`#panel-pipeline`), gated to users with the per-user **Fibery-access** flag. New server module **`src/pipelineDashboard.js`** + **`getPipelineDashboardData()`** reads **`HubSpot/Deal`** from Fibery (paginated, **`PIPELINE_MAX_ROWS`** cap with `partial`), excludes `Test`-prefixed deals, flags `STALE` deals, coerces string amounts/probability, and derives won/lost/closed + forecast category from a configurable **stage→bucket** map (**`PIPELINE_STAGE_BUCKET_MAP_JSON`**; unmapped → `other` with warning). Payload `cacheSchemaVersion: 1` + client cache **`fos_pipeline_dashboard_v1`**. **Client:** dark `.fos-agreement-root` chrome, per-pipeline **view tabs** (default All sales), KPI strip (total/commit/best-case), **deals-by-stage accordion**, **revenue-by-quarter** Chart.js (Won bars + Pipeline/Best/Commit lines), pipeline-shape **funnel**, **Export CSV** with transient copied alert; **Live-only** under FR-105. **Settings:** `PIPELINE_MAX_ROWS`, `PIPELINE_STAGE_BUCKET_MAP_JSON` in `adminSettingsRegistry.js`. **Activity:** **`pipeline_*`** whitelist. **Docs:** **FR-110**, **AC-66**, feature **`docs/features/016-pipeline-dashboard.md`**. MINOR → **2.6.0**. | Cursor |

@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Web App hero and other clasp assets
+src/assets/*.png binary
