@@ -1,5 +1,5 @@
 /**
- * PRD version 2.6.1 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.2 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `delivery`, panel
  * `#panel-delivery`). Two public endpoints, both authorized via
@@ -35,7 +35,12 @@
  *       - `revenueItems: !Array<!Object>` — the milestone rows that
  *         contributed to the month's revenue, ready for the FR-95
  *         drill-down modal. Schema:
- *           { id, name, amount, recognized, targetDate, actualDate, state }
+ *           { id, name, amount, targetAmount, recognized, targetDate,
+ *             actualDate, state }
+ *
+ *     `lifetime` includes `revenue` (actual + forecast),
+ *     `revenueRecognized`, and `revenueForecast` (v2.6.2).
+ *     `cacheSchemaVersion: 3` (client key suffix `_v3`).
  *
  * Diagnostics (run from the Apps Script editor):
  *   _diag_sampleDeliveryPayload()
@@ -66,7 +71,7 @@ var DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_ = 1;
  *        `revenueItems[]` for drill-down (FR-94 / FR-95).
  * @const {number}
  */
-var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 2;
+var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 3;
 
 /** @const {number} Default TTL (minutes) for the client-side cache. */
 var DELIVERY_DEFAULT_CACHE_TTL_MIN_ = 10;
@@ -449,6 +454,41 @@ function buildActiveProjects_(agreements, thresholds, filters) {
 /* ------------------------------------------------------------------------- */
 
 /**
+ * Revenue amount for one P&L month bucket. Recognized milestones prefer
+ * non-zero Actual Amount, then Target Amount; unrecognized (forecast)
+ * milestones always use Target Amount (v2.6.2 fix — Actual Amount = 0
+ * must not suppress forecast).
+ *
+ * @param {!Object} row
+ * @return {number}
+ * @private
+ */
+function resolvePnlRevenueItemAmount_(row) {
+  var target = Number(row.targetAmount || 0);
+  if (row.recognized === true) {
+    var actual = Number(row.actualAmount || 0);
+    if (isFinite(actual) && actual !== 0) return actual;
+    return isFinite(target) ? target : 0;
+  }
+  return isFinite(target) ? target : 0;
+}
+
+/**
+ * Month key for revenue bucketing. Unrecognized milestones bucket by
+ * Target Date so future forecast lands in the planned month.
+ *
+ * @param {!Object} row
+ * @return {?string}
+ * @private
+ */
+function resolvePnlRevenueItemMonthKey_(row) {
+  if (row.recognized === true) {
+    return monthKeyFromIso_(row.actualDate || row.targetDate);
+  }
+  return monthKeyFromIso_(row.targetDate || row.actualDate);
+}
+
+/**
  * Aggregates raw lifetime Labor Costs + Other Direct Costs + Revenue Items
  * into a monthly time-series for one project.
  *
@@ -506,19 +546,18 @@ function buildMonthlyPnL_(args) {
     summedExpenses += amt;
   }
 
-  // Revenue Items: month-of-Actual Date (fallback Target Date), sum
-  // Actual Amount (fallback Target Amount). Phase B (FR-94) lifted the
-  // recognized-only filter so future-dated unrecognized milestones land
-  // in projected months. The lifetime total now reflects both
-  // recognized actuals and projected forward-revenue.
+  // Revenue Items: recognized → Actual Amount (fallback Target); forecast
+  // milestones → Target Amount only. Phase B (FR-94) lifted the
+  // recognized-only filter so future-dated milestones land in projected
+  // months; v2.6.2 ensures Target Amount is used when Actual is zero.
   var summedRevenue = 0;
+  var summedRevenueRecognized = 0;
+  var summedRevenueForecast = 0;
   for (var k = 0; k < args.revenueRows.length; k++) {
     var r = args.revenueRows[k];
-    var keyR = monthKeyFromIso_(r.actualDate || r.targetDate);
+    var keyR = resolvePnlRevenueItemMonthKey_(r);
     if (!keyR) continue;
-    var amount = (r.actualAmount !== null && r.actualAmount !== undefined && r.actualAmount !== '')
-      ? Number(r.actualAmount)
-      : Number(r.targetAmount || 0);
+    var amount = resolvePnlRevenueItemAmount_(r);
     if (!isFinite(amount)) continue;
     revenueByMonth[keyR] = (revenueByMonth[keyR] || 0) + amount;
     if (!revenueItemsByMonth[keyR]) revenueItemsByMonth[keyR] = [];
@@ -526,6 +565,7 @@ function buildMonthlyPnL_(args) {
       id: r.id,
       name: r.name,
       amount: amount,
+      targetAmount: Number(r.targetAmount || 0),
       recognized: r.recognized === true,
       targetDate: r.targetDate,
       actualDate: r.actualDate,
@@ -533,6 +573,11 @@ function buildMonthlyPnL_(args) {
     });
     activityMonths[keyR] = true;
     summedRevenue += amount;
+    if (r.recognized === true) {
+      summedRevenueRecognized += amount;
+    } else {
+      summedRevenueForecast += amount;
+    }
   }
 
   // Resolve the month window: max(durStart-month, earliest-activity-month)
@@ -628,8 +673,15 @@ function buildMonthlyPnL_(args) {
     ? (lifetimeGrossProfit / lifetimeRevenue) * 100
     : null;
 
+  var lifetimeGrossProfitRecognized = summedRevenueRecognized - lifetimeTotalCost;
+  var lifetimeMarginRecognized = summedRevenueRecognized > 0
+    ? (lifetimeGrossProfitRecognized / summedRevenueRecognized) * 100
+    : null;
+
   var lifetime = {
     revenue: lifetimeRevenue,
+    revenueRecognized: summedRevenueRecognized,
+    revenueForecast: summedRevenueForecast,
     labor: lifetimeLabor,
     expenses: lifetimeExpenses,
     totalCost: lifetimeTotalCost,
@@ -640,11 +692,12 @@ function buildMonthlyPnL_(args) {
     laborSkipped: laborSkipped,
   };
 
-  // §M.9 Discrepancy check — 5% threshold, per decision M.5.
+  // §M.9 Discrepancy check — 5% threshold, per decision M.5. Margin
+  // compares recognized revenue only (agreement.margin is recognized basis).
   var discrepancyCheck = computeDiscrepancyCheck_({
     summedLabor: summedLabor,
     summedExpenses: summedExpenses,
-    summedMarginPct: lifetimeMarginDerived,
+    summedMarginPct: lifetimeMarginRecognized,
     lifetimeLabor: Number(args.lifetimeLabor || 0),
     lifetimeExpenses: Number(args.lifetimeExpenses || 0),
     lifetimeMarginPct: args.lifetimeMarginPct,
@@ -1032,8 +1085,13 @@ function monthLabel_(key) {
 /** @private */
 function emptyLifetime_() {
   return {
-    revenue: 0, labor: 0, expenses: 0,
-    totalCost: 0, grossProfit: 0,
+    revenue: 0,
+    revenueRecognized: 0,
+    revenueForecast: 0,
+    labor: 0,
+    expenses: 0,
+    totalCost: 0,
+    grossProfit: 0,
     marginPctDerived: null,
     marginPctFromAgreement: null,
     laborSkipped: 0,

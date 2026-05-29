@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.6.1 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.6.2 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -2570,8 +2570,7 @@
           <div class="card-body p-4 p-lg-5">
             <h1 class="h4 mb-3 fw-bold text-white">Home</h1>
             <p class="text-muted mb-0 lh-lg">
-              Welcome to the FOS Dashboard shell. Use the menu for areas you are authorized to see. Until a
-              dashboard is enabled, its link opens a “Coming soon” dialog instead of leaving this page.
+              Welcome to the Finance and Operations Snapshot Dashboard. Use the menu for areas you are authorized to see. If a dashboard is not enabled, its link opens a “Coming soon” dialog instead of leaving this page.
             </p>
           </div>
         </div>
@@ -4290,8 +4289,8 @@
       // flag or `revenueItems[]` per month) is invalidated cleanly when
       // the user upgrades.
       var DELIVERY_PNL_KEY_PREFIX = 'fos_delivery_pnl_';
-      var DELIVERY_PNL_KEY_SUFFIX = '_v2';
-      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 2;
+      var DELIVERY_PNL_KEY_SUFFIX = '_v3';
+      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 3;
       var DELIVERY_TTL_PREF_KEY = 'fos_delivery_dashboard_ttl_minutes_v1';
       var DELIVERY_FILTERS_PREF_KEY = 'fos_delivery_filters_v1';
       var DELIVERY_FILTERS_SCHEMA_VERSION = 1;
@@ -11316,7 +11315,9 @@
           }
         }
         var recognized = 0;
-        if (payload.lifetime && payload.lifetime.revenue != null) {
+        if (payload.lifetime && payload.lifetime.revenueRecognized != null) {
+          recognized = Number(payload.lifetime.revenueRecognized) || 0;
+        } else if (payload.lifetime && payload.lifetime.revenue != null) {
           recognized = Number(payload.lifetime.revenue) || 0;
         } else {
           for (var ri = 0; ri < months.length; ri++) {
@@ -15165,11 +15166,23 @@
           }
           if (lifetime && els.deliveryPnlGridFoot) {
             var totalGrossNegClass = Number(lifetime.grossProfit || 0) < 0 ? ' is-negative' : '';
+            var revForecast = Number(lifetime.revenueForecast || 0);
+            var revRecognized = lifetime.revenueRecognized != null
+              ? Number(lifetime.revenueRecognized)
+              : null;
+            var revSubHtml = '';
+            if (revForecast > 0 && revRecognized != null && isFinite(revRecognized)) {
+              revSubHtml =
+                '<div class="small" style="color: var(--ag-text-muted); margin-top: 2px;">' +
+                  escapeHtml(formatMoneyCompact(revRecognized) + ' recognized · ' +
+                    formatMoneyCompact(revForecast) + ' forecast') +
+                '</div>';
+            }
             var totalRow = document.createElement('tr');
             totalRow.className = 'is-total';
             totalRow.innerHTML =
               '<td><strong>Lifetime total</strong></td>' +
-              '<td class="num">' + formatMoneyCompact(lifetime.revenue) + '</td>' +
+              '<td class="num">' + formatMoneyCompact(lifetime.revenue) + revSubHtml + '</td>' +
               '<td class="num is-negative">' + formatExpense_(lifetime.labor) + '</td>' +
               '<td class="num is-negative">' + formatExpense_(lifetime.expenses) + '</td>' +
               '<td class="num is-negative">' + formatExpense_(lifetime.totalCost) + '</td>' +
@@ -15472,14 +15485,21 @@
           if (items.length) {
             var totalAmt = 0;
             var recAmt = 0;
+            var forecastAmt = 0;
             for (var j = 0; j < items.length; j++) {
               var v = Number(items[j].amount || 0);
               totalAmt += v;
               if (items[j].recognized) recAmt += v;
+              else forecastAmt += v;
             }
-            els.deliveryRevenueMonthModalTotals.textContent =
-              'Total ' + formatMoneyCompact(totalAmt) +
-              ' · recognized ' + formatMoneyCompact(recAmt);
+            var totalsParts = [
+              'Total ' + formatMoneyCompact(totalAmt),
+              'recognized ' + formatMoneyCompact(recAmt),
+            ];
+            if (forecastAmt > 0) {
+              totalsParts.push('forecast ' + formatMoneyCompact(forecastAmt));
+            }
+            els.deliveryRevenueMonthModalTotals.textContent = totalsParts.join(' · ');
           } else {
             els.deliveryRevenueMonthModalTotals.textContent = '—';
           }

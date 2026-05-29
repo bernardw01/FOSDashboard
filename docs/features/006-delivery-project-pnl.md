@@ -1,6 +1,6 @@
 # Feature: Delivery Dashboard — Active Projects + Per-Project P&L
 
-> **PRD version 2.1.0** — Phase A shipped in v1.19.0; **Phase B** in v1.20.0; **Phase C (pacing strip, delivery signals, portfolio Sankey)** in v1.21.0.
+> **PRD version 2.6.2** — Phase A shipped in v1.19.0; **Phase B** in v1.20.0; **Phase C (pacing strip, delivery signals, portfolio Sankey)** in v1.21.0; **forecast revenue patch** in v2.6.2.
 > `src/Code.js` `FOS_PRD_VERSION` and every `src/*` file header MUST match the
 > version line in `docs/FOS-Dashboard-PRD.md`.
 
@@ -189,7 +189,7 @@ is the reconciliation source of truth.
 | Id | Definition | Notes |
 | --- | --- | --- |
 | **§M.1 Project month list** | every yyyy-mm key from `max(durStart-month, earliest-activity-month)` through `min(today-month, durEnd-month)` | Inclusive on both ends. Months with zero activity within this window ARE shown (zero rows, no special styling) so pacing gaps are visible. Months outside this window with stray activity (e.g. labor logged after `durEnd`) ARE included and tagged with an "OOR" tooltip on the month label. |
-| **§M.2 Month revenue** | sum of `Revenue Item.Actual Amount` (fallback `Target Amount` when `Actual Amount` is null) where `Revenue Recognized = true` AND month-of-`Actual Date` (fallback `Target Date`) = key | Recognized-only — projected revenue is out of scope for Phase A. |
+| **§M.2 Month revenue** | Recognized: sum **Actual Amount** (fallback **Target Amount** when actual is zero). Unrecognized (forecast): sum **Target Amount** by **Target Date** month. Combined month revenue = actual + forecast. **`lifetime.revenueRecognized`** / **`lifetime.revenueForecast`** on payload (v2.6.2). | Phase B lifted recognized-only filter; v2.6.2 fixes Actual = 0 suppressing target on future milestones. |
 | **§M.3 Month labor cost** | sum of `Labor Costs.Cost` where month-of-`Start Date Time` = key | Rows with null/zero `Cost` are skipped and counted in the server-side warning log. |
 | **§M.4 Month expenses (Materials & ODC)** | sum of `Other Direct Costs.Amount` where month-of-`Date` = key AND `Status = "Actual"` | Set `DELIVERY_PNL_INCLUDE_PROJECTED_ODC = true` to also include `Status = "Projected"` (Phase B forecast view). |
 | **§M.5 Month total cost** | `monthLabor + monthExpenses` | Rendered with parentheses + red tone in the grid. |

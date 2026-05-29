@@ -1,11 +1,11 @@
 /**
- * PRD version 2.6.1 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.2 — sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard — Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.6.1';
+var FOS_PRD_VERSION = '2.6.2';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '2.6.1';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'Role/team access rules for Sales (Pipeline) and Finance (Expenses) groups.';
+  'Delivery P&L projected months show milestone target amounts; lifetime total includes forecast.';
 
 /**
  * @return {string}
