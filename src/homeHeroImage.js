@@ -1,7 +1,7 @@
 /**
- * PRD version 2.6.6 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.7 — sync with docs/FOS-Dashboard-PRD.md
  *
- * Home hero background image as a data URL (loaded via google.script.run, not inline template).
+ * Home hero background image as a data URL (embedded in doGet HtmlService template).
  * Source file: src/assets/home-hero-deap.png
  * Regenerate: powershell -File scripts/embed-home-hero.ps1
  */
@@ -17,7 +17,7 @@ function getHomeHeroImageDataUrl_() {
 }
 
 /**
- * Client-callable hero image (large payload; do not inject into HtmlService template).
+ * Optional client-callable hero image (same bytes as template embed).
  * @return {string}
  */
 function getHomeHeroImageDataUrl() {

@@ -1,10 +1,10 @@
 # Harpin FOS Dashboard (Google Workspace Web App)
 
-**PRD version 2.6.6** — `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
+**PRD version 2.6.7** — `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
 
 Product Requirements Document
 
-Version 2.6.6 - 2026-05-29
+Version 2.6.7 - 2026-05-29
 
 ## 1) Overview
 
@@ -531,6 +531,7 @@ The **Clockify to Fibery Sync** product (see `docs/PRD.md`) remains the **system
 
 | Date | Version | Change Summary | Author |
 | --- | --- | --- | --- |
+| 2026-05-29 | 2.6.7 | **Home hero first-paint embed.** DEAP photo data URL injected via HtmlService template (`homeHeroImageUrl` on `<img src>` in `doGet`); removed deferred `google.script.run.getHomeHeroImageDataUrl()` load. PATCH → **2.6.7**. | Cursor |
 | 2026-05-29 | 2.6.6 | **Home hero light fade.** Single lighter diagonal scrim over the DEAP photo; slight brightness/saturation on the image layer. PATCH → **2.6.6**. | Cursor |
 | 2026-05-29 | 2.6.5 | **Home hero load fix.** Hero image loaded via **`getHomeHeroImageDataUrl()`** + `google.script.run` (not inline template); embed script sets correct **JPEG/PNG** MIME from file bytes. PATCH → **2.6.5**. | Cursor |
 | 2026-05-29 | 2.6.4 | **Home hero — canonical DEAP asset.** `src/assets/home-hero-deap.png` + `scripts/embed-home-hero.ps1` → `homeHeroImage.js`; template `homeHeroImageUrl` in `doGet`; light scrim over photo (no external stock URL). Documented in feature **001** and `src/assets/README.md`. PATCH → **2.6.4**. | Cursor |

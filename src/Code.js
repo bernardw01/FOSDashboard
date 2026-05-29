@@ -1,11 +1,11 @@
 /**
- * PRD version 2.6.6 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.7 — sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard — Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.6.6';
+var FOS_PRD_VERSION = '2.6.7';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '2.6.6';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'Home hero light fade — lighter scrim over DEAP photo.';
+  'Home hero image embedded at first paint via HtmlService template.';
 
 /**
  * @return {string}
@@ -65,6 +65,7 @@ function doGet() {
 
   var template = HtmlService.createTemplateFromFile('DashboardShell');
   template.prdVersion = getFosPrdVersion_();
+  template.homeHeroImageUrl = getHomeHeroImageDataUrl_();
   return template
     .evaluate()
     .setTitle('harpin AI Ops Dashboards')
