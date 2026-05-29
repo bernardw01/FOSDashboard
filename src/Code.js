@@ -1,11 +1,11 @@
 /**
- * PRD version 2.6.7 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.8 — sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard — Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.6.7';
+var FOS_PRD_VERSION = '2.6.8';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '2.6.7';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'Home hero image embedded at first paint via HtmlService template.';
+  'Delivery P&L chart stacks labor costs by role (stacked bars per month).';
 
 /**
  * @return {string}

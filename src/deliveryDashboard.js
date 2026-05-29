@@ -1,5 +1,5 @@
 /**
- * PRD version 2.6.7 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.8 — sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `delivery`, panel
  * `#panel-delivery`). Two public endpoints, both authorized via
@@ -15,7 +15,7 @@
  *     Returns a per-project monthly P&L time-series. Issues THREE small
  *     Fibery queries scoped to the single agreement (no date filter, full
  *     project lifetime):
- *       1. Labor Costs       — Cost + Start Date Time
+ *       1. Labor Costs       — Cost + Start Date Time + User Role
  *       2. Other Direct Costs — Amount + Date + Status (Actual + Projected)
  *       3. Revenue Item       — Actual/Target Amount + Actual/Target Date
  *                               + Revenue Recognized + Name + workflow
@@ -40,7 +40,8 @@
  *
  *     `lifetime` includes `revenue` (actual + forecast),
  *     `revenueRecognized`, and `revenueForecast` (v2.6.2).
- *     `cacheSchemaVersion: 3` (client key suffix `_v3`).
+ *     `laborRoles: !Array<string>` + per-month `laborByRole` map (v2.6.8).
+ *     `cacheSchemaVersion: 4` (client key suffix `_v4`).
  *
  * Diagnostics (run from the Apps Script editor):
  *   _diag_sampleDeliveryPayload()
@@ -69,9 +70,11 @@ var DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_ = 1;
  *   v1 — Phase A: { months, lifetime, discrepancyCheck, partial, capCounts }
  *   v2 — Phase B: above + monthly `projected` flag + per-month
  *        `revenueItems[]` for drill-down (FR-94 / FR-95).
+ *   v3 — v2.6.2: forecast revenue in projected months.
+ *   v4 — v2.6.8: per-month `laborByRole` + payload `laborRoles[]`.
  * @const {number}
  */
-var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 3;
+var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 4;
 
 /** @const {number} Default TTL (minutes) for the client-side cache. */
 var DELIVERY_DEFAULT_CACHE_TTL_MIN_ = 10;
@@ -238,6 +241,7 @@ function buildDeliveryProjectMonthlyPnLInternal_(agreementId) {
     agreementName: null,
     currency: 'USD',
     months: [],
+    laborRoles: [],
     lifetime: emptyLifetime_(),
     discrepancyCheck: emptyDiscrepancy_(),
     partial: false,
@@ -307,6 +311,7 @@ function buildDeliveryProjectMonthlyPnLInternal_(agreementId) {
     agreementName: ctx.agreement.name,
     currency: 'USD',
     months: built.months,
+    laborRoles: built.laborRoles,
     lifetime: built.lifetime,
     discrepancyCheck: built.discrepancyCheck,
     partial: laborFetch.partial,
@@ -509,6 +514,8 @@ function resolvePnlRevenueItemMonthKey_(row) {
  */
 function buildMonthlyPnL_(args) {
   var laborByMonth = {};
+  var laborByMonthByRole = {};
+  var laborRoleTotals = {};
   var odcByMonth = {};
   var revenueByMonth = {};
   // Phase B (FR-94 / FR-95) — capture the contributing milestone rows
@@ -526,10 +533,18 @@ function buildMonthlyPnL_(args) {
     if (!key) { laborSkipped++; continue; }
     var cost = Number(l.cost || 0);
     if (!isFinite(cost)) { laborSkipped++; continue; }
+    var roleName = l.userRole || l.clockifyUserRole || '(No role)';
     laborByMonth[key] = (laborByMonth[key] || 0) + cost;
+    if (!laborByMonthByRole[key]) laborByMonthByRole[key] = {};
+    laborByMonthByRole[key][roleName] = (laborByMonthByRole[key][roleName] || 0) + cost;
+    laborRoleTotals[roleName] = (laborRoleTotals[roleName] || 0) + cost;
     activityMonths[key] = true;
     summedLabor += cost;
   }
+
+  var laborRoles = Object.keys(laborRoleTotals).sort(function (a, b) {
+    return (laborRoleTotals[b] || 0) - (laborRoleTotals[a] || 0);
+  });
 
   // Other Direct Costs (Materials & ODC): month-of-Date, sum Amount.
   // `fetchOtherDirectCostsForAgreement_` already filtered to the right
@@ -649,6 +664,7 @@ function buildMonthlyPnL_(args) {
       label: monthLabel_(mk),
       revenue: rev,
       labor: lab,
+      laborByRole: laborByMonthByRole[mk] ? Object.assign({}, laborByMonthByRole[mk]) : {},
       expenses: exp,
       totalCost: totalCost,
       grossProfit: grossProfit,
@@ -705,6 +721,7 @@ function buildMonthlyPnL_(args) {
 
   return {
     months: months,
+    laborRoles: laborRoles,
     lifetime: lifetime,
     discrepancyCheck: discrepancyCheck,
   };
@@ -836,6 +853,8 @@ function fetchLaborCostsForAgreement_(agreementId, maxRows) {
           id: 'fibery/id',
           cost: 'Agreement Management/Cost',
           startDateTime: 'Agreement Management/Start Date Time',
+          userRole: ['Agreement Management/User Role', 'Agreement Management/Name'],
+          clockifyUserRole: ['Agreement Management/Clockify User Role', 'enum/name'],
         },
         'q/where': ['=', ['Agreement Management/Agreement', 'fibery/id'], '$agreementId'],
         'q/order-by': [[['Agreement Management/Start Date Time'], 'q/asc']],
@@ -852,6 +871,8 @@ function fetchLaborCostsForAgreement_(agreementId, maxRows) {
         id: stringOr_(page[i].id, ''),
         cost: numberOr_(page[i].cost, 0),
         startDateTime: stringOrNull_(page[i].startDateTime),
+        userRole: stringOrNull_(page[i].userRole),
+        clockifyUserRole: stringOrNull_(page[i].clockifyUserRole),
       });
       if (maxRows && rows.length >= maxRows) {
         partial = true;
