@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.6.4 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.6.5 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -2637,8 +2637,9 @@
           >
             <div class="fos-home-hero-inner">
               <img
+                id="fos-home-hero-photo"
                 class="fos-home-hero-photo"
-                src="<?= homeHeroImageUrl ?>"
+                src=""
                 alt=""
                 aria-hidden="true"
                 decoding="async"
@@ -7441,8 +7442,41 @@
         });
       }
 
+      var homeHeroImageLoadStarted_ = false;
+
+      /** Loads DEAP hero photo after first paint (avoids huge data URL in HtmlService template). */
+      function ensureHomeHeroImage_() {
+        if (homeHeroImageLoadStarted_) {
+          return;
+        }
+        homeHeroImageLoadStarted_ = true;
+        var img = document.getElementById('fos-home-hero-photo');
+        if (!img) {
+          return;
+        }
+        google.script.run
+          .withSuccessHandler(function (url) {
+            if (url && img) {
+              img.src = url;
+              var hero = img.closest('.fos-home-hero');
+              if (hero) {
+                hero.classList.add('is-photo-ready');
+              }
+            }
+          })
+          .withFailureHandler(function (err) {
+            try {
+              console.warn('Home hero image failed to load', err);
+            } catch (e) {
+              /* ignore */
+            }
+          })
+          .getHomeHeroImageDataUrl();
+      }
+
       function showHome() {
         els.panelHome.classList.remove('d-none');
+        ensureHomeHeroImage_();
         if (els.panelAgreementDashboard) {
           els.panelAgreementDashboard.classList.add('d-none');
         }

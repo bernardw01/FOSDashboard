@@ -6,6 +6,8 @@ Binary files here are **version-controlled sources** for the clasp project (`roo
 | --- | --- | --- |
 | `home-hero-deap.png` | Home hero (`#panel-home-root` → `.fos-home-hero`) | `powershell -File scripts/embed-home-hero.ps1` → updates `src/homeHeroImage.js` |
 
-**Do not** point the hero at external stock URLs or edit `homeHeroImage.js` by hand — replace the PNG and run the script.
+**Do not** point the hero at external stock URLs, inject the data URL into `DashboardShell.html` (breaks `doGet`), or edit `homeHeroImage.js` by hand. The client loads the image via `google.script.run.getHomeHeroImageDataUrl()` after first paint.
+
+**Note:** The committed file may be JPEG content with a `.png` extension; the embed script sets `data:image/jpeg` or `data:image/png` from file magic bytes.
 
 Normative spec: `docs/features/001-dashboard-shell-navigation.md` (Home hero).

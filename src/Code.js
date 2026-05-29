@@ -1,11 +1,11 @@
 /**
- * PRD version 2.6.4 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.5 — sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard — Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.6.4';
+var FOS_PRD_VERSION = '2.6.5';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '2.6.4';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'Home hero uses canonical DEAP photo from src/assets with light scrim overlay.';
+  'Home hero loads DEAP photo via server call (fixes missing hero after deploy).';
 
 /**
  * @return {string}
@@ -65,7 +65,6 @@ function doGet() {
 
   var template = HtmlService.createTemplateFromFile('DashboardShell');
   template.prdVersion = getFosPrdVersion_();
-  template.homeHeroImageUrl = getHomeHeroImageDataUrl_();
   return template
     .evaluate()
     .setTitle('harpin AI Ops Dashboards')
