@@ -1,10 +1,10 @@
 # Harpin FOS Dashboard (Google Workspace Web App)
 
-**PRD version 2.6.10** — `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
+**PRD version 2.6.11** — `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
 
 Product Requirements Document
 
-Version 2.6.10 - 2026-05-29
+Version 2.6.11 - 2026-05-29
 
 ## 1) Overview
 
@@ -531,6 +531,7 @@ The **Clockify to Fibery Sync** product (see `docs/PRD.md`) remains the **system
 
 | Date | Version | Change Summary | Author |
 | --- | --- | --- | --- |
+| 2026-05-29 | 2.6.11 | **Web App favicon — PNG for Apps Script.** `setFaviconUrl` rejects SVG; embed pipeline rasterizes **`favicon.svg`** → **`favicon.png`** (32px) and embeds **`data:image/png`**. PATCH → **2.6.11**. | Cursor |
 | 2026-05-29 | 2.6.10 | **Web App favicon.** Bundled harpin **`favicon.svg`** in `src/assets/` → `faviconAsset.js` data URL; **`applyWebAppHtmlChrome_`** sets **`setFaviconUrl`** on dashboard and not-authorized pages (no external harpin.ai CDN). **`scripts/embed-favicon.ps1`**. PATCH → **2.6.10**. | Cursor |
 | 2026-05-29 | 2.6.9 | **Delivery P&L chart — month tooltip + click modal.** Chart tooltips show the hovered segment plus month rollup (revenue, labor-by-role, expenses, gross profit, margin). Click opens **`#deliveryPnlMonthModal`** with that month's P&L. Revenue milestone drill-down stays on table Revenue cells. Activity **`delivery_pnl_chart_month_click`**. PATCH → **2.6.9**. | Cursor |
 | 2026-05-29 | 2.6.8 | **Delivery P&L chart — labor stacked by role.** **`fetchLaborCostsForAgreement_()`** selects User Role + Clockify User Role; **`buildMonthlyPnL_()`** emits per-month **`laborByRole`** and payload **`laborRoles[]`** (sorted by lifetime cost). Chart view renders one stacked bar segment per role (Utilization palette) plus Expenses + Revenue line. **`DELIVERY_PNL_CACHE_SCHEMA_VERSION_`** **3 → 4** (client **`_v4`**); snapshot **`delivery-pnl`** expected schema **4**. PATCH → **2.6.8**. | Cursor |

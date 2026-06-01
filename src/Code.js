@@ -1,11 +1,11 @@
 /**
- * PRD version 2.6.10 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.11 — sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard — Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.6.10';
+var FOS_PRD_VERSION = '2.6.11';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '2.6.10';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'Web App favicon uses bundled harpin brand SVG (no external CDN).';
+  'Web App favicon uses bundled PNG raster of harpin brand mark (Apps Script rejects SVG).';
 
 /**
  * @return {string}
