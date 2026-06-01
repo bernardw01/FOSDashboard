@@ -1,11 +1,11 @@
 /**
- * PRD version 2.6.9 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.10 — sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard — Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.6.9';
+var FOS_PRD_VERSION = '2.6.10';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,13 +13,29 @@ var FOS_PRD_VERSION = '2.6.9';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'Delivery P&L chart tooltips show month detail; click opens monthly P&L modal.';
+  'Web App favicon uses bundled harpin brand SVG (no external CDN).';
 
 /**
  * @return {string}
  */
 function getFosPrdVersion_() {
   return FOS_PRD_VERSION;
+}
+
+/**
+ * Shared HtmlService chrome for Web App pages (favicon, viewport, sandbox).
+ *
+ * @param {GoogleAppsScript.HTML.HtmlOutput} output
+ * @param {string} title
+ * @return {GoogleAppsScript.HTML.HtmlOutput}
+ * @private
+ */
+function applyWebAppHtmlChrome_(output, title) {
+  return output
+    .setTitle(title)
+    .setFaviconUrl(getFaviconDataUrl_())
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
 }
 
 /**
@@ -32,11 +48,7 @@ function doGet() {
     var deny = HtmlService.createTemplateFromFile('NotAuthorized');
     deny.reason = auth.reason;
     deny.prdVersion = getFosPrdVersion_();
-    return deny
-      .evaluate()
-      .setTitle('Access not granted')
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
+    return applyWebAppHtmlChrome_(deny.evaluate(), 'Access not granted');
   }
 
   // Append a `page_load` row to the User Activity tab (FR-60–FR-66).
@@ -66,11 +78,7 @@ function doGet() {
   var template = HtmlService.createTemplateFromFile('DashboardShell');
   template.prdVersion = getFosPrdVersion_();
   template.homeHeroImageUrl = getHomeHeroImageDataUrl_();
-  return template
-    .evaluate()
-    .setTitle('harpin AI Ops Dashboards')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
+  return applyWebAppHtmlChrome_(template.evaluate(), 'harpin AI Ops Dashboards');
 }
 
 /**
