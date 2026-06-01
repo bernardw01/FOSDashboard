@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.6.8 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.6.9 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -1021,6 +1021,10 @@
       width: 100% !important;
     }
     .fos-delivery-chart-hint {
+      color: var(--ag-text-muted);
+    }
+    .fos-delivery-pnl-month-role td:first-child {
+      padding-left: 1.25rem;
       color: var(--ag-text-muted);
     }
     .fos-delivery-pacing {
@@ -3591,7 +3595,7 @@
                 <div class="d-none fos-delivery-pnl-chart-wrap" id="delivery-pnl-chart-wrap">
                   <canvas id="delivery-pnl-chart" role="img" aria-label="Monthly Revenue, Labor by role, and Expenses chart"></canvas>
                   <p class="small mb-0 mt-2 fos-delivery-chart-hint" id="delivery-pnl-chart-hint">
-                    Bars stack labor by role + expenses per month; the line overlays revenue. Lighter bars indicate projected months.
+                    Bars stack labor by role + expenses per month; the line overlays revenue. Lighter bars indicate projected months. Hover for details; click a month to open its P&amp;L.
                   </p>
                 </div>
                 <p class="small mb-0 mt-2 d-none" id="delivery-pnl-empty" style="color: var(--ag-text-muted)">
@@ -4295,11 +4299,50 @@
     </div>
   </div>
 
+  <!-- v2.6.9 — opens when a month bar/point is clicked in the Delivery P&L
+       chart. Shows revenue, labor by role, expenses, and margin for that
+       month only (cached payload; no extra Fibery fetch). -->
+  <div
+    class="modal fade fos-modal"
+    id="deliveryPnlMonthModal"
+    tabindex="-1"
+    aria-labelledby="deliveryPnlMonthModalTitle"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+      <div class="modal-content rounded-4">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title fw-semibold" id="deliveryPnlMonthModalTitle">Monthly P&amp;L</h5>
+            <div class="small text-secondary" id="deliveryPnlMonthModalSubtitle">—</div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="fos-financial-scroll">
+            <table class="fos-financial-table" aria-describedby="deliveryPnlMonthModalTitle">
+              <thead>
+                <tr>
+                  <th scope="col">Line item</th>
+                  <th scope="col" class="num">Amount</th>
+                </tr>
+              </thead>
+              <tbody id="deliveryPnlMonthModalBody"></tbody>
+              <tfoot id="deliveryPnlMonthModalFoot"></tfoot>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-fos-primary px-4" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- v1.20.0 (Phase B, FR-95) — opens when a Revenue cell in the Delivery
-       Dashboard's monthly P&L grid (or chart bar) is clicked. Lists the
-       revenue items that bucketed into that month, plus a recognized /
-       projected split. Data comes from `payload.months[i].revenueItems`
-       (no extra Fibery fetch). -->
+       Dashboard's monthly P&L grid is clicked. Lists the revenue items that
+       bucketed into that month, plus a recognized / projected split. Data
+       comes from `payload.months[i].revenueItems` (no extra Fibery fetch). -->
   <div
     class="modal fade fos-modal"
     id="deliveryRevenueMonthModal"
@@ -4727,6 +4770,11 @@
         deliveryPnlCsvStatus: document.getElementById('delivery-pnl-csv-status'),
         deliveryPnlChartWrap: document.getElementById('delivery-pnl-chart-wrap'),
         deliveryPnlChartCanvas: document.getElementById('delivery-pnl-chart'),
+        deliveryPnlMonthModal: document.getElementById('deliveryPnlMonthModal'),
+        deliveryPnlMonthModalTitle: document.getElementById('deliveryPnlMonthModalTitle'),
+        deliveryPnlMonthModalSubtitle: document.getElementById('deliveryPnlMonthModalSubtitle'),
+        deliveryPnlMonthModalBody: document.getElementById('deliveryPnlMonthModalBody'),
+        deliveryPnlMonthModalFoot: document.getElementById('deliveryPnlMonthModalFoot'),
         deliveryRevenueMonthModal: document.getElementById('deliveryRevenueMonthModal'),
         deliveryRevenueMonthModalTitle: document.getElementById('deliveryRevenueMonthModalTitle'),
         deliveryRevenueMonthModalSubtitle: document.getElementById('deliveryRevenueMonthModalSubtitle'),
@@ -15406,6 +15454,147 @@
         return 'rgba(' + r + ',' + g + ',' + b + ',' + (projected ? 0.32 : 0.78) + ')';
       }
 
+      function resolveDeliveryPnlLaborRoles_(payload, months) {
+        var laborRoles = (payload && payload.laborRoles) || [];
+        if (laborRoles.length) return laborRoles.slice();
+        var roleSet = {};
+        for (var rs = 0; rs < months.length; rs++) {
+          var byRole = months[rs].laborByRole || {};
+          for (var rk in byRole) {
+            if (Object.prototype.hasOwnProperty.call(byRole, rk)) roleSet[rk] = true;
+          }
+        }
+        return Object.keys(roleSet).sort();
+      }
+
+      function buildDeliveryPnlMonthTooltipLines_(m, laborRoles) {
+        if (!m) return [];
+        var lines = [''];
+        lines.push('Revenue: ' + formatMoneyCompact(m.revenue));
+        var roleLines = 0;
+        for (var ri = 0; ri < laborRoles.length; ri++) {
+          var roleName = laborRoles[ri];
+          var roleAmt = (m.laborByRole && m.laborByRole[roleName])
+            ? Number(m.laborByRole[roleName]) : 0;
+          if (!roleAmt) continue;
+          roleLines++;
+          lines.push('  ' + roleName + ': ' + formatExpense_(roleAmt));
+        }
+        if (!roleLines && Number(m.labor || 0) > 0) {
+          lines.push('  Labor: ' + formatExpense_(m.labor));
+        }
+        if (Number(m.expenses || 0) > 0) {
+          lines.push('  Expenses: ' + formatExpense_(m.expenses));
+        }
+        lines.push('Total cost: ' + formatExpense_(m.totalCost));
+        lines.push('Gross profit: ' + formatMoneyParenIfNegative_(m.grossProfit));
+        lines.push('Margin: ' + formatMarginPct(m.marginPct));
+        return lines;
+      }
+
+      function appendDeliveryPnlMonthModalRow_(tbody, label, amountHtml, rowClass) {
+        var tr = document.createElement('tr');
+        if (rowClass) tr.className = rowClass;
+        tr.innerHTML =
+          '<td>' + label + '</td>' +
+          '<td class="num">' + amountHtml + '</td>';
+        tbody.appendChild(tr);
+        return tr;
+      }
+
+      function openDeliveryPnlMonthModal_(monthKey) {
+        var m = (deliveryState.monthsByKey && deliveryState.monthsByKey[monthKey]) || null;
+        if (!m) return;
+        var payload = deliveryState.lastPnlPayload || {};
+        var laborRoles = resolveDeliveryPnlLaborRoles_(payload, payload.months || []);
+        logActivity_('delivery_pnl_chart_month_click', 'delivery',
+          'monthKey=' + monthKey + ' · projected=' + (m.projected ? 'yes' : 'no'));
+        var modalEl = els.deliveryPnlMonthModal;
+        if (!modalEl) return;
+        var project = deliveryState.selectedId && deliveryState.projectsByIndex
+          ? deliveryState.projectsByIndex[deliveryState.selectedId] : null;
+        var projectName = project ? (project.name || '') : '';
+        if (els.deliveryPnlMonthModalTitle) {
+          els.deliveryPnlMonthModalTitle.textContent =
+            'P&L — ' + (m.label || monthKey);
+        }
+        if (els.deliveryPnlMonthModalSubtitle) {
+          var subParts = [];
+          if (projectName) subParts.push(projectName);
+          if (m.projected) subParts.push('Projected month');
+          if (m.outOfRange) subParts.push('Out of range');
+          els.deliveryPnlMonthModalSubtitle.textContent = subParts.length
+            ? subParts.join(' · ') : '—';
+        }
+        if (els.deliveryPnlMonthModalBody) {
+          var body = els.deliveryPnlMonthModalBody;
+          body.innerHTML = '';
+          appendDeliveryPnlMonthModalRow_(
+            body,
+            'Revenue',
+            Number(m.revenue || 0) === 0 ? '$0' : formatMoneyCompact(m.revenue)
+          );
+          var roleCount = 0;
+          for (var ri = 0; ri < laborRoles.length; ri++) {
+            var roleName = laborRoles[ri];
+            var roleAmt = (m.laborByRole && m.laborByRole[roleName])
+              ? Number(m.laborByRole[roleName]) : 0;
+            if (!roleAmt) continue;
+            roleCount++;
+            appendDeliveryPnlMonthModalRow_(
+              body,
+              escapeHtml(roleName),
+              formatExpense_(roleAmt),
+              'fos-delivery-pnl-month-role'
+            );
+          }
+          if (!roleCount) {
+            appendDeliveryPnlMonthModalRow_(
+              body,
+              'Labor',
+              Number(m.labor || 0) === 0 ? '$0' : formatExpense_(m.labor)
+            );
+          }
+          appendDeliveryPnlMonthModalRow_(
+            body,
+            'Expenses',
+            Number(m.expenses || 0) === 0 ? '$0' : formatExpense_(m.expenses)
+          );
+        }
+        if (els.deliveryPnlMonthModalFoot) {
+          var foot = els.deliveryPnlMonthModalFoot;
+          foot.innerHTML = '';
+          var grossNegClass = Number(m.grossProfit || 0) < 0 ? ' is-negative' : '';
+          var bucket = m.marginBucket || 'neutral';
+          foot.innerHTML =
+            '<tr class="is-total">' +
+              '<td><strong>Total cost</strong></td>' +
+              '<td class="num is-negative"><strong>' +
+                (Number(m.totalCost || 0) === 0 ? '$0' : formatExpense_(m.totalCost)) +
+              '</strong></td>' +
+            '</tr>' +
+            '<tr class="is-total">' +
+              '<td><strong>Gross profit</strong></td>' +
+              '<td class="num' + grossNegClass + '"><strong>' +
+                formatMoneyParenIfNegative_(m.grossProfit) +
+              '</strong></td>' +
+            '</tr>' +
+            '<tr class="is-total">' +
+              '<td><strong>Margin</strong></td>' +
+              '<td class="num margin-cell bucket-' + bucket + '"><strong>' +
+                formatMarginPct(m.marginPct) +
+              '</strong></td>' +
+            '</tr>';
+        }
+        try {
+          var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+          modal.show();
+        } catch (e) {
+          modalEl.classList.add('show');
+          modalEl.style.display = 'block';
+        }
+      }
+
       function renderDeliveryPnLChart_() {
         if (!els.deliveryPnlChartCanvas || typeof Chart === 'undefined') return;
         var payload = deliveryState.lastPnlPayload || {};
@@ -15414,17 +15603,7 @@
           destroyDeliveryPnLChart_();
           return;
         }
-        var laborRoles = payload.laborRoles || [];
-        if (!laborRoles.length) {
-          var roleSet = {};
-          for (var rs = 0; rs < months.length; rs++) {
-            var byRole = months[rs].laborByRole || {};
-            for (var rk in byRole) {
-              if (Object.prototype.hasOwnProperty.call(byRole, rk)) roleSet[rk] = true;
-            }
-          }
-          laborRoles = Object.keys(roleSet).sort();
-        }
+        var laborRoles = resolveDeliveryPnlLaborRoles_(payload, months);
         var labels = [];
         var revenueData = [];
         var expensesData = [];
@@ -15502,24 +15681,37 @@
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
+            interaction: { mode: 'nearest', intersect: true },
             plugins: {
               legend: {
                 position: 'bottom',
                 labels: { color: '#cbd6e6', usePointStyle: true, padding: 14 },
               },
               tooltip: {
+                filter: function (item) {
+                  var v = Number(item.parsed.y || 0);
+                  return isFinite(v) && v !== 0;
+                },
                 callbacks: {
+                  title: function (items) {
+                    if (!items || !items.length) return '';
+                    var m = months[items[0].dataIndex];
+                    if (!m) return '';
+                    var t = m.label || m.key || '';
+                    if (m.projected) t += ' (Projected)';
+                    return t;
+                  },
                   label: function (ctx) {
                     var v = Number(ctx.parsed.y || 0);
+                    if (ctx.dataset.stack === 'cost') {
+                      return ctx.dataset.label + ': ' + formatExpense_(v);
+                    }
                     return ctx.dataset.label + ': ' + formatMoneyCompact(v);
                   },
                   afterBody: function (items) {
-                    if (!items || !items.length) return '';
-                    var key = months[items[0].dataIndex] && months[items[0].dataIndex].projected
-                      ? '(Projected month)'
-                      : '';
-                    return key;
+                    if (!items || !items.length) return [];
+                    var m = months[items[0].dataIndex];
+                    return buildDeliveryPnlMonthTooltipLines_(m, laborRoles);
                   },
                 },
               },
@@ -15544,8 +15736,8 @@
               if (!items || !items.length) return;
               var idx = items[0].index;
               var m = months[idx];
-              if (m && m.revenueItems && m.revenueItems.length) {
-                openDeliveryRevenueMonthModal_(m.key);
+              if (m && m.key) {
+                openDeliveryPnlMonthModal_(m.key);
               }
             },
           },
