@@ -1,6 +1,6 @@
 # App Versions registry (auth spreadsheet)
 
-> **PRD version 2.4.0** — see `docs/FOS-Dashboard-PRD.md` (**FR-108**, **AC-64**). Builds on [002 — Spreadsheet user authorization](002-spreadsheet-user-authorization.md).
+> **PRD version 2.6.14** — see `docs/FOS-Dashboard-PRD.md` (**FR-108**, **AC-64**). Builds on [002 — Spreadsheet user authorization](002-spreadsheet-user-authorization.md).
 
 ## Goal
 
@@ -24,18 +24,19 @@ Track **PRD / deployment versions** in the same spreadsheet as user authorizatio
 | **Released At** | Yes | ISO timestamp; server sets on auto-register. |
 | **Description** | Yes | Brief release note; from `FOS_RELEASE_DESCRIPTION` in `Code.js` on auto-register. |
 | **PRD Version** | Yes | Semver `MAJOR.MINOR.PATCH` (e.g. `2.4.0`). |
-| **URL** | No (initially empty) | Full Web App `/exec` URL for that deployment — **filled in by admin**. |
+| **URL** | Yes on auto-register | Full Web App `/exec` URL; server copies this deployment’s URL on first register. |
+| **Available** | Yes on auto-register | `TRUE` or `FALSE` (sheet boolean). Server sets **`FALSE`** on auto-register. Only **`TRUE`** rows count as “latest” for update banners. Set **`TRUE`** when the release is ready to notify users. |
 
 - **Tab name:** default **`App Versions`**; override with Script Property **`AUTH_APP_VERSIONS_SHEET_NAME`**.
 - **Header row:** row 1 (names resolved case-insensitively like other auth tabs).
-- **Latest version:** highest semver among rows with a **PRD Version** value.
+- **Latest version (for notifications):** highest semver among rows with **PRD Version** and **Available** = **`TRUE`** (or blank/missing **Available** column → treated as available for backward compatibility).
 - **Historical rows:** add manually for past releases (2.3.0, 2.2.0, …) with URLs; only the **running** version is auto-appended when missing.
 
 ## Server behavior
 
 | API / hook | Behavior |
 |------------|----------|
-| `syncCurrentAppVersionToCatalog_()` | On authorized `doGet`, if `FOS_PRD_VERSION` is not in the sheet, **append** one row (URL blank). Uses `LockService`. |
+| `syncCurrentAppVersionToCatalog_()` | On authorized `doGet`, if `FOS_PRD_VERSION` is not in the sheet, **append** one row (**URL** = this deployment; **Available** = `FALSE`). Uses `LockService`. |
 | `getAppVersionStatus()` | Authorized `google.script.run`; syncs then returns compare result + full `releases[]`. |
 | `getFosPrdVersion_()` / `getFosReleaseDescription_()` | From `Code.js` constants (update both on every release). |
 
@@ -52,7 +53,7 @@ Track **PRD / deployment versions** in the same spreadsheet as user authorizatio
   latestUrl: 'https://script.google.com/.../exec',
   latestDescription: '…',
   latestReleasedAt: '2026-05-16T…',
-  releases: [ { releasedAt, description, prdVersion, url }, … ]
+  releases: [ { releasedAt, description, prdVersion, url, available }, … ]
 }
 ```
 
@@ -69,15 +70,16 @@ Track **PRD / deployment versions** in the same spreadsheet as user authorizatio
 
 1. Bump `FOS_PRD_VERSION` and `FOS_RELEASE_DESCRIPTION` in `src/Code.js` (and PRD / headers per project rules).
 2. Deploy Web App (`clasp push` + new deployment version in Apps Script).
-3. Open the app once (or wait for first user) — row appears on **App Versions** with empty **URL**.
-4. Paste the new deployment **`/exec` URL** into the **URL** column for that version.
-5. Optionally add rows for older versions with their historical URLs.
+3. Open the app once (or wait for first user) — row appears with **URL** filled and **Available** = `FALSE`.
+4. When ready to notify users, set **Available** to `TRUE` for that version (and confirm **URL**).
+5. Optionally add rows for older versions with their historical URLs and **Available** as needed.
 
 ## Acceptance criteria
 
 - [x] **App Versions** tab with required headers; missing tab → graceful message, app still loads.
-- [x] First `doGet` on a new `FOS_PRD_VERSION` appends one row if version absent.
-- [x] User on older semver sees update banner; user on latest does not.
+- [x] First `doGet` on a new `FOS_PRD_VERSION` appends one row if version absent (**URL** + **Available=FALSE**).
+- [x] User on older semver sees update banner only when a newer row has **Available=TRUE**; user on latest does not.
+- [x] Rows with **Available=FALSE** do not count as “latest” for update notifications.
 - [x] ADMIN Settings shows registry table.
 - [x] `app_version_update_click` logged when upgrade link used.
 

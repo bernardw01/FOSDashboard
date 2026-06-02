@@ -13,9 +13,9 @@
 
 ## Ops setup
 
-1. In the auth spreadsheet, add tab **`App Versions`** with headers: `Released At`, `Description`, `PRD Version`, `URL`.
-2. Optionally backfill rows for `2.3.0`, `2.2.0`, … with descriptions and deployment URLs.
-3. Deploy v2.4.0; confirm a `2.4.0` row appears; paste the live `/exec` URL.
+1. In the auth spreadsheet, add tab **`App Versions`** with headers: `Released At`, `Description`, `PRD Version`, `URL`, `Available`.
+2. Optionally backfill rows for older versions; set **Available** to `TRUE` when that release should prompt users to upgrade.
+3. Deploy; confirm a new row appears with **URL** filled and **Available** = `FALSE`; set **Available** to `TRUE` when ready to notify.
 
 ## Test plan
 
@@ -23,5 +23,6 @@
 |------|----------|
 | User on latest URL | No banner |
 | User on older deployment, sheet has higher semver + URL | Banner + sidebar link |
-| New version deploy, first load | New sheet row, URL empty |
+| New version deploy, first load | New sheet row, URL = deployment, Available = FALSE |
+| Higher semver row with Available=FALSE | No update banner for users on older *available* latest |
 | ADMIN → Settings | Registry table visible |

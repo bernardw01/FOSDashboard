@@ -1,6 +1,6 @@
 # Feature: Dashboard shell and navigation (FOS Web App)
 
-> **PRD version 2.6.11** — see `docs/FOS-Dashboard-PRD.md`.
+> **PRD version 2.6.13** — see `docs/FOS-Dashboard-PRD.md`.
 
 ## Goal
 
@@ -28,7 +28,7 @@ Deliver a **responsive** Google Apps Script Web App shell: **left navigation** (
 - **Routes/pages impacted**: Single-page shell only (`doGet` → `DashboardShell.html`). No additional Html files for Home/Settings/dashboard bodies in this feature.
 - **Components to create/edit**:
   - `src/DashboardShell.html` — layout, nav (icons + labels; **Settings** rendered as a `.fos-nav-btn` `<a>` link at the bottom of the sidebar), main, Bootstrap modal for “coming soon”, responsive offcanvas sidebar. Root CSS variables (`--bg`, `--surface`, `--surface2`, `--border`, `--accent`, `--accent2/3/4`, `--text`, `--text-muted`, `--text-dim`, `--danger`, `--warn`) are declared once at `:root` per `agreement-dashboard-prd-v2.md` §9.5; the `.fos-agreement-root` scope aliases `--ag-*` to those globals.
-  - **Favicon** (v2.6.10+): harpin brand **`src/assets/favicon.svg`** rasterized to **`favicon.png`** (Apps Script **`setFaviconUrl`** does not support SVG); PNG embedded in **`src/faviconAsset.js`**. `doGet` / not-authorized call **`setFaviconUrl`** via `applyWebAppHtmlChrome_` in `Code.js` (not a `<link>` in HTML). Regenerate: `powershell -File scripts/embed-favicon.ps1` (requires Node/`npx` when SVG changes).
+  - **Favicon** (v2.6.13+): harpin **`favicon.svg`** → **`favicon.png`** (32px) in **`faviconAsset.js`**; **`<link rel="icon">`** in **`DashboardShell.html`** / **`NotAuthorized.html`** via template **`faviconDataUrl`** (`data:image/png;base64,…` — Apps Script **`setFaviconUrl`** and **`ContentService`** cannot serve raw PNG). Legacy **`doGet?favicon=1`** returns minimal HTML (no auth). Regenerate: `powershell -File scripts/embed-favicon.ps1`.
   - **Home hero** (`#panel-home-root`, v2.6.3+): quote card above the welcome panel — William Bruce Cameron quote, **DEAP team photo** (`src/assets/home-hero-deap.png`), light scrim (`.fos-home-hero-scrim`). Image bytes live in `src/homeHeroImage.js`; **`doGet`** sets `template.homeHeroImageUrl` so the photo is in the first HTML response (`<img src="<?!= homeHeroImageUrl ?>">`). **After changing the asset**, run `powershell -File scripts/embed-home-hero.ps1` then `clasp push`. See `src/assets/README.md`.
   - `src/NotAuthorized.html` — same root tokens (deep navy `--bg`, surface card, 12px radius, Inter typography) so the access-denied page matches the rest of the app.
   - `src/Code.js` — `doGet`, `getDashboardNavigation_()` (or equivalent) for nav + user hints passed to template or client.

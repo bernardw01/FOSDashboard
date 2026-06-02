@@ -1,6 +1,6 @@
 # Regenerates src/faviconAsset.js from src/assets/favicon.png.
-# Source art: src/assets/favicon.svg (rasterized here). Apps Script setFaviconUrl
-# accepts PNG/ICO/GIF only — not SVG data URLs.
+# Source art: src/assets/favicon.svg (rasterized here). Served via doGet?favicon=1;
+# setFaviconUrl needs an HTTPS URL with a .png suffix (not a data: URL).
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $svg = Join-Path $root 'src\assets\favicon.svg'
@@ -32,24 +32,36 @@ Ensure-FaviconPng_ -SvgPath $svg -PngPath $png
 
 $bytes = [IO.File]::ReadAllBytes($png)
 $b64 = [Convert]::ToBase64String($bytes)
-$dataUrl = "data:image/png;base64,$b64"
 $js = @"
 /**
- * PRD version 2.6.11 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.13 - sync with docs/FOS-Dashboard-PRD.md
  *
- * harpin favicon as a PNG data URL for HtmlOutput.setFaviconUrl (no external CDN).
- * Apps Script does not support SVG favicons — source SVG is rasterized to favicon.png.
+ * Bundled favicon PNG bytes (base64). Injected in HTML via getFaviconDataUrl_() (Apps Script
+ * ContentService cannot serve raw PNG; setFaviconUrl rejects data: URLs).
  * Regenerate: powershell -File scripts/embed-favicon.ps1
  */
 
 /** @const {string} */
-var FOS_FAVICON_DATA_URL_ = '$dataUrl';
+var FOS_FAVICON_PNG_BASE64_ = '$b64';
 
 /**
+ * Data URL for <link rel="icon"> in HtmlService templates (first-paint tab icon).
+ *
  * @return {string}
  */
 function getFaviconDataUrl_() {
-  return FOS_FAVICON_DATA_URL_;
+  return 'data:image/png;base64,' + FOS_FAVICON_PNG_BASE64_;
+}
+
+/**
+ * @return {GoogleAppsScript.Base.Blob}
+ */
+function getFaviconPngBlob_() {
+  return Utilities.newBlob(
+    Utilities.base64Decode(FOS_FAVICON_PNG_BASE64_),
+    'image/png',
+    'favicon.png'
+  );
 }
 
 "@

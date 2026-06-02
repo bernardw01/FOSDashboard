@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<!-- PRD version 2.6.11 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.6.14 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <base target="_top" />
   <title>harpin AI Ops Dashboards</title>
+  <link rel="icon" type="image/png" href="<?!= faviconDataUrl ?>" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -5490,7 +5491,11 @@
               td.className = 'small';
               if (columns[ci].align === 'right') td.className += ' text-end font-monospace';
               var val = row[columns[ci].key];
-              td.textContent = val == null || val === '' ? '—' : String(val);
+              if (typeof columns[ci].format === 'function') {
+                td.textContent = columns[ci].format(val, row);
+              } else {
+                td.textContent = val == null || val === '' ? '—' : String(val);
+              }
               tr.appendChild(td);
             }
             tbody.appendChild(tr);
@@ -5656,10 +5661,11 @@
             var intro = document.createElement('p');
             intro.className = 'fos-settings-usage-summary mb-2';
             intro.textContent =
-              'Maintained in the App Versions tab of the auth spreadsheet. Add or edit deployment URLs there. ' +
-              'This deployment registers v' +
+              'Maintained in the App Versions tab of the auth spreadsheet. New deployments register with ' +
+              'Available=FALSE (no user update banner) until you set Available=TRUE. ' +
+              'This deployment is v' +
               (s.currentVersion || '—') +
-              ' automatically when it is not yet listed.';
+              '.';
             pad.appendChild(intro);
             pad.appendChild(
               buildAdminUsageTable_(releases, [
@@ -5667,6 +5673,14 @@
                 { key: 'releasedAt', label: 'Released', align: 'left' },
                 { key: 'description', label: 'Description', align: 'left' },
                 { key: 'url', label: 'URL', align: 'left' },
+                {
+                  key: 'available',
+                  label: 'Available',
+                  align: 'left',
+                  format: function (val) {
+                    return val === false ? 'FALSE' : 'TRUE';
+                  },
+                },
               ])
             );
             body.appendChild(pad);

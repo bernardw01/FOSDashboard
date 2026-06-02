@@ -1,11 +1,11 @@
 /**
- * PRD version 2.6.11 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.14 — sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard — Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.6.11';
+var FOS_PRD_VERSION = '2.6.14';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '2.6.11';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'Web App favicon uses bundled PNG raster of harpin brand mark (Apps Script rejects SVG).';
+  'App Versions Available column: new rows hidden from update prompts until set TRUE.';
 
 /**
  * @return {string}
@@ -23,7 +23,9 @@ function getFosPrdVersion_() {
 }
 
 /**
- * Shared HtmlService chrome for Web App pages (favicon, viewport, sandbox).
+ * Shared HtmlService chrome for Web App pages (viewport, sandbox).
+ * Favicon is set via <link rel="icon"> in templates (faviconDataUrl); setFaviconUrl
+ * rejects data: URLs and ContentService cannot serve raw PNG bytes.
  *
  * @param {GoogleAppsScript.HTML.HtmlOutput} output
  * @param {string} title
@@ -33,21 +35,42 @@ function getFosPrdVersion_() {
 function applyWebAppHtmlChrome_(output, title) {
   return output
     .setTitle(title)
-    .setFaviconUrl(getFaviconDataUrl_())
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
 }
 
 /**
- * Serves the dashboard Web App HTML shell, or the not-authorized page.
+ * Legacy ?favicon=1 URL — minimal HTML with the same icon (no auth; before dashboard gate).
+ * Raw PNG via ContentService is not supported (no createBlobOutput / MimeType.PNG).
+ *
  * @return {GoogleAppsScript.HTML.HtmlOutput}
+ * @private
  */
-function doGet() {
+function serveFaviconHtml_() {
+  var icon = getFaviconDataUrl_().replace(/"/g, '&quot;');
+  return HtmlService.createHtmlOutput(
+    '<!DOCTYPE html><html><head><link rel="icon" type="image/png" href="' +
+      icon +
+      '"></head><body></body></html>'
+  );
+}
+
+/**
+ * Serves the dashboard Web App HTML shell, or the not-authorized page.
+ * @param {GoogleAppsScript.Events.DoGet} [e]
+ * @return {GoogleAppsScript.HTML.HtmlOutput|GoogleAppsScript.Content.TextOutput}
+ */
+function doGet(e) {
+  if (e && e.parameter && String(e.parameter.favicon) === '1') {
+    return serveFaviconHtml_();
+  }
+
   var auth = getAuthorizationForActiveUser_();
   if (!auth.ok) {
     var deny = HtmlService.createTemplateFromFile('NotAuthorized');
     deny.reason = auth.reason;
     deny.prdVersion = getFosPrdVersion_();
+    deny.faviconDataUrl = getFaviconDataUrl_();
     return applyWebAppHtmlChrome_(deny.evaluate(), 'Access not granted');
   }
 
@@ -78,6 +101,7 @@ function doGet() {
   var template = HtmlService.createTemplateFromFile('DashboardShell');
   template.prdVersion = getFosPrdVersion_();
   template.homeHeroImageUrl = getHomeHeroImageDataUrl_();
+  template.faviconDataUrl = getFaviconDataUrl_();
   return applyWebAppHtmlChrome_(template.evaluate(), 'harpin AI Ops Dashboards');
 }
 

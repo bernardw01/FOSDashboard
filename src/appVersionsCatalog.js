@@ -1,5 +1,5 @@
 /**
- * PRD version 2.6.11 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.14 — sync with docs/FOS-Dashboard-PRD.md
  *
  * App Versions tab in the auth spreadsheet — tracks PRD releases and deployment URLs.
  * Feature 013.
@@ -18,7 +18,13 @@
 var APP_VERSIONS_DEFAULT_SHEET_NAME_ = 'App Versions';
 
 /** @const {string[]} */
-var APP_VERSIONS_COLUMNS_ = ['Released At', 'Description', 'PRD Version', 'URL'];
+var APP_VERSIONS_COLUMNS_ = [
+  'Released At',
+  'Description',
+  'PRD Version',
+  'URL',
+  'Available',
+];
 
 /** @const {number} */
 var APP_VERSIONS_LOCK_WAIT_MS_ = 2000;
@@ -93,15 +99,55 @@ function compareSemver_(a, b) {
 }
 
 /**
+ * @param {*} raw
+ * @return {boolean} When true, this release counts toward "latest" / update notifications.
+ * @private
+ */
+function parseAvailableCell_(raw) {
+  if (raw === true) {
+    return true;
+  }
+  if (raw === false) {
+    return false;
+  }
+  if (raw === null || raw === undefined || raw === '') {
+    return true;
+  }
+  var s = String(raw).trim().toUpperCase();
+  if (s === 'FALSE' || s === 'F' || s === 'NO' || s === '0') {
+    return false;
+  }
+  if (s === 'TRUE' || s === 'T' || s === 'YES' || s === '1') {
+    return true;
+  }
+  return true;
+}
+
+/**
+ * @return {string} Web App /exec URL for this deployment, or empty in the editor.
+ * @private
+ */
+function getWebAppDeploymentUrl_() {
+  var service = ScriptApp.getService();
+  if (!service) {
+    return '';
+  }
+  var url = service.getUrl();
+  return url ? String(url).trim() : '';
+}
+
+/**
+ * Highest semver among rows marked Available (FALSE rows are ignored for update prompts).
+ *
  * @param {!Array<!Object>} rows
- * @return {?{ prdVersion: string, releasedAt: string, description: string, url: string }}
+ * @return {?{ prdVersion: string, releasedAt: string, description: string, url: string, available: boolean }}
  * @private
  */
 function pickLatestAppVersionRow_(rows) {
   var best = null;
   for (var i = 0; i < rows.length; i++) {
     var row = rows[i];
-    if (!row.prdVersion) {
+    if (!row.prdVersion || row.available === false) {
       continue;
     }
     if (!best || compareSemver_(row.prdVersion, best.prdVersion) > 0) {
@@ -129,6 +175,7 @@ function readAppVersionsCatalog_(sheet) {
     description: findHeaderIndex_(headers, 'Description'),
     prdVersion: findHeaderIndex_(headers, 'PRD Version'),
     url: findHeaderIndex_(headers, 'URL'),
+    available: findHeaderIndex_(headers, 'Available'),
   };
 
   if (idx.prdVersion < 0) {
@@ -165,6 +212,10 @@ function readAppVersionsCatalog_(sheet) {
           : '',
       prdVersion: versionRaw,
       url: idx.url >= 0 && line[idx.url] != null ? String(line[idx.url]).trim() : '',
+      available:
+        idx.available >= 0
+          ? parseAvailableCell_(line[idx.available])
+          : true,
     });
   }
 
@@ -196,7 +247,9 @@ function catalogHasVersion_(version, rows) {
 
 /**
  * Appends the running deployment version when it is not yet listed.
- * Admin fills in the deployment URL in the sheet afterward.
+ * New rows set **Available** to FALSE and **URL** to this deployment's /exec URL;
+ * set **Available** to TRUE when the release is ready to notify users.
+ *
  * @return {{ ok: boolean, appended?: boolean, reason?: string }}
  */
 function syncCurrentAppVersionToCatalog_() {
@@ -252,7 +305,8 @@ function syncCurrentAppVersionToCatalog_() {
       'Released At': nowIso,
       Description: description,
       'PRD Version': currentVersion,
-      URL: '',
+      URL: getWebAppDeploymentUrl_(),
+      Available: false,
     };
     var row = new Array(headers.length);
     for (var c = 0; c < headers.length; c++) {

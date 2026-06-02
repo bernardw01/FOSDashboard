@@ -1,10 +1,10 @@
 # Harpin FOS Dashboard (Google Workspace Web App)
 
-**PRD version 2.6.11** — `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
+**PRD version 2.6.14** — `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
 
 Product Requirements Document
 
-Version 2.6.11 - 2026-05-29
+Version 2.6.14 - 2026-06-01
 
 ## 1) Overview
 
@@ -119,7 +119,7 @@ As of **version 1.27.3**, spreadsheet authorization (FR-05–FR-08a + the **per-
 
 - FR-50 **[Released]**: The published HTML UI MUST follow **`agreement-dashboard-prd-v2.md` §9.5 (Design System)**, **§9.6 (Brand Identity)**, and **§9.7 (Layout)** across the **entire** application surface — sidebar, topbar, Home view, modals, not-authorized page, the Agreement Dashboard panel, and the Operations panel — using a single set of root CSS variables (`--bg #061B30`, `--surface #092747`, `--surface2 #0d2e4a`, `--border #1a4060`, `--accent #52C9E5`, `--accent2 #007FA7`, `--accent3 #20B4C4`, `--accent4 #43D6BA`, `--text #FFFEFC`, `--text-muted #A0AEC0`, `--text-dim #2a5a7a`, `--danger #fc5c65`) and the **Inter** typeface at **14px** base. Surface-specific tokens (e.g. the `--ag-*` family inside `.fos-agreement-root`) MUST resolve to those root variables via aliases rather than introduce parallel palettes. The **Agreement Dashboard** and **Operations** surfaces additionally MUST meet **`## 7)`** subsection **7.2** (Agreement Dashboard) and **`## 8)`** subsection **8.2** (Operations) for header / KPI semantics. The **harpin logo** is rendered exactly once per page, in the sidebar (`.fos-brand-logo`); as of v1.13.0 the dashboard panels (`#panel-agreement-dashboard` and `#panel-operations`) MUST NOT carry an in-panel logo or `.agreement-logo-sep` divider — the sidebar is the single brand surface. The dashboard page-heading + subtitle remain inside each panel.
 - FR-51 **[Released]**: The Web App SHOULD display the **current PRD version** (this document’s version string) so stakeholders can align feedback with the documented baseline (sidebar footer + not-authorized page; `FOS_PRD_VERSION` in `src/Code.js` must match this document’s version line).
-- FR-108 **[Released]**: The auth spreadsheet MUST include an **`App Versions`** tab (name overridable via **`AUTH_APP_VERSIONS_SHEET_NAME`**, default `App Versions`) with columns **Released At**, **Description**, **PRD Version**, and **URL**. On each authorized `doGet`, the server MUST append a row when the running **`FOS_PRD_VERSION`** is not yet listed (description from **`FOS_RELEASE_DESCRIPTION`** in `Code.js`; **URL** left blank for the admin). **`getAppVersionStatus()`** MUST compare the running version to the **latest semver** in the tab and return whether the user is current, the latest deployment **URL**, and the release list. The client MUST show an **update available** banner and sidebar hint when behind; **ADMIN** Settings MUST show a read-only registry table.
+- FR-108 **[Released]**: The auth spreadsheet MUST include an **`App Versions`** tab (name overridable via **`AUTH_APP_VERSIONS_SHEET_NAME`**, default `App Versions`) with columns **Released At**, **Description**, **PRD Version**, **URL**, and **Available** (`TRUE` / `FALSE`). On each authorized `doGet`, the server MUST append a row when the running **`FOS_PRD_VERSION`** is not yet listed (description from **`FOS_RELEASE_DESCRIPTION`** in `Code.js`; **URL** set to this deployment’s `/exec` URL; **Available** set to **`FALSE`**). Only rows with **Available** **`TRUE`** count toward the **latest semver** for update notifications. **`getAppVersionStatus()`** MUST compare the running version to that latest available release and return whether the user is current, the latest deployment **URL**, and the release list. The client MUST show an **update available** banner and sidebar hint when behind; **ADMIN** Settings MUST show a read-only registry table (including **Available**).
 
 ### 3.7 Agreement dashboard (Fibery + client cache)
 
@@ -531,6 +531,9 @@ The **Clockify to Fibery Sync** product (see `docs/PRD.md`) remains the **system
 
 | Date | Version | Change Summary | Author |
 | --- | --- | --- | --- |
+| 2026-06-01 | 2.6.14 | **App Versions — Available column.** New **Available** (`TRUE`/`FALSE`) on **App Versions** tab; auto-registered rows get **FALSE** + deployment **URL**; only **Available=TRUE** rows drive update banner / latest semver. PATCH → **2.6.14**. | Cursor |
+| 2026-06-01 | 2.6.13 | **Web App favicon — fix `?favicon=1` crash.** `ContentService.createBlobOutput` / **`MimeType.PNG`** are not valid Apps Script APIs; tab icon uses **`<link rel="icon">`** with bundled **`data:image/png`** in templates (same pattern as Home hero). Legacy **`?favicon=1`** returns minimal HTML instead of erroring. PATCH → **2.6.13**. | Cursor |
+| 2026-05-29 | 2.6.12 | **Web App favicon — serve from doGet.** `setFaviconUrl` rejects **`data:`** URLs; bundled PNG served at **`?favicon=1&.png`** on the deployment URL. PATCH → **2.6.12**. | Cursor |
 | 2026-05-29 | 2.6.11 | **Web App favicon — PNG for Apps Script.** `setFaviconUrl` rejects SVG; embed pipeline rasterizes **`favicon.svg`** → **`favicon.png`** (32px) and embeds **`data:image/png`**. PATCH → **2.6.11**. | Cursor |
 | 2026-05-29 | 2.6.10 | **Web App favicon.** Bundled harpin **`favicon.svg`** in `src/assets/` → `faviconAsset.js` data URL; **`applyWebAppHtmlChrome_`** sets **`setFaviconUrl`** on dashboard and not-authorized pages (no external harpin.ai CDN). **`scripts/embed-favicon.ps1`**. PATCH → **2.6.10**. | Cursor |
 | 2026-05-29 | 2.6.9 | **Delivery P&L chart — month tooltip + click modal.** Chart tooltips show the hovered segment plus month rollup (revenue, labor-by-role, expenses, gross profit, margin). Click opens **`#deliveryPnlMonthModal`** with that month's P&L. Revenue milestone drill-down stays on table Revenue cells. Activity **`delivery_pnl_chart_month_click`**. PATCH → **2.6.9**. | Cursor |
