@@ -1,13 +1,13 @@
 /**
- * PRD version 2.6.14 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.15 â€” sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard constants per
  * docs/features/005-utilization-management-dashboard.md:
- *   - §U.9 Weekly capacity baseline.
- *   - §U.10 Utilization color buckets.
- *   - §U.11 Internal-company detection rules.
+ *   - Â§U.9 Weekly capacity baseline.
+ *   - Â§U.10 Utilization color buckets.
+ *   - Â§U.11 Internal-company detection rules.
  *   - Date-range defaults / caps.
- *   - Top-N caps for the §N.4 / §N.5 / §N.7 horizontal bars.
+ *   - Top-N caps for the Â§N.4 / Â§N.5 / Â§N.7 horizontal bars.
  *
  * Defaults live in code. Optional Script Properties (overlaid by
  * getUtilizationThresholds_) allow ops tuning without a code change:
@@ -22,9 +22,9 @@
  *   UTILIZATION_TOP_N_PERSONS             (default 20)
  *   UTILIZATION_TOP_N_PROJECTS            (default 20)
  *   UTILIZATION_TOP_N_CUSTOMERS           (default 20)
- *   UTILIZATION_HEATMAP_TOP_N_PERSONS     (default 30 — Phase C heatmap row cap)
- *   UTILIZATION_STALE_APPROVAL_WARN_DAYS  (default 7  — Phase C stale-approval rule)
- *   UTILIZATION_STALE_APPROVAL_CRIT_DAYS  (default 14 — Phase C stale-approval rule)
+ *   UTILIZATION_HEATMAP_TOP_N_PERSONS     (default 30 â€” Phase C heatmap row cap)
+ *   UTILIZATION_STALE_APPROVAL_WARN_DAYS  (default 7  â€” Phase C stale-approval rule)
+ *   UTILIZATION_STALE_APPROVAL_CRIT_DAYS  (default 14 â€” Phase C stale-approval rule)
  *
  * Labor Hours dashboard (route `labor-hours`, feature 007) reuses the same
  * labor rows; optional Script Properties (read by `getLaborHoursConfig_()`):
@@ -34,15 +34,15 @@
  *                                            against `clockifyUserCompany`; default
  *                                            ret,coherent,kforce)
  *   LABOR_HOURS_COMPANY_TARGETS_JSON        (optional JSON object: { "Company Name": 42 }
- *                                            — exact company name match, case-insensitive,
+ *                                            â€” exact company name match, case-insensitive,
  *                                            overrides partner substring / default for that company)
  *   LABOR_HOURS_EXCLUDED_PERSON_SUBSTRINGS (optional CSV; if a person's `userName` contains
  *                                            any token case-insensitive, they are omitted from
  *                                            Labor hours tables and the zero-hours chip list)
  *
- * The agreement-dashboard module already defines the §8.5 customer palette
+ * The agreement-dashboard module already defines the Â§8.5 customer palette
  * (CUSTOMER_PALETTE_), the parsePositiveNumber_ / parseCsvList_ helpers, and
- * the WORKFLOW/Agreement-Type color maps — we reuse them here so the
+ * the WORKFLOW/Agreement-Type color maps â€” we reuse them here so the
  * Utilization panel renders with the same customer hue per name as the
  * Agreement panel.
  */
@@ -57,7 +57,7 @@ var UTILIZATION_QUERY_PAGE_LIMIT_ = 1000;
 /** @const {number} Hard ceiling on paginated pages to keep round-trip bounded. */
 var UTILIZATION_QUERY_MAX_PAGES_ = 20;
 
-/** @const {!Object} §U.10 utilization buckets — same hues as the spec. */
+/** @const {!Object} Â§U.10 utilization buckets â€” same hues as the spec. */
 var UTILIZATION_BUCKET_COLORS_ = {
   UNDER: '#fc5c65',
   BUILDING: '#f9c74f',
@@ -108,10 +108,10 @@ var UTILIZATION_DEFAULTS_ = {
   TOP_N_PERSONS: 20,
   TOP_N_PROJECTS: 20,
   TOP_N_CUSTOMERS: 20,
-  // Phase C — heatmap row cap (separate from TOP_N_PERSONS so the donut/bar
+  // Phase C â€” heatmap row cap (separate from TOP_N_PERSONS so the donut/bar
   // and the heatmap can scale independently).
   HEATMAP_TOP_N_PERSONS: 30,
-  // Phase C — stale-approval bucket boundaries in days.
+  // Phase C â€” stale-approval bucket boundaries in days.
   STALE_APPROVAL_WARN_DAYS: 7,
   STALE_APPROVAL_CRIT_DAYS: 14,
   INTERNAL_COMPANY_NAMES: ['harpin.ai', 'Harpin'],
@@ -230,12 +230,12 @@ function getUtilizationThresholds_() {
 }
 
 /**
- * §U.10 utilization-bucket color for a numeric percent.
- *   < underPercent     → UNDER  (red)
- *   < targetPercent    → BUILDING (yellow)
- *   ≤ overPercent      → TARGET (green)
- *   > overPercent      → OVER   (orange)
- *   null / NaN         → UNKNOWN (grey)
+ * Â§U.10 utilization-bucket color for a numeric percent.
+ *   < underPercent     â†’ UNDER  (red)
+ *   < targetPercent    â†’ BUILDING (yellow)
+ *   â‰¤ overPercent      â†’ TARGET (green)
+ *   > overPercent      â†’ OVER   (orange)
+ *   null / NaN         â†’ UNKNOWN (grey)
  *
  * @param {?number} pct
  * @param {!{underPercent:number, targetPercent:number, overPercent:number, bucketColors:!Object}} t
@@ -258,7 +258,7 @@ function utilizationBucketColor_(pct, t) {
 }
 
 /**
- * §U.11 "is this row internal labor?" predicate. Returns true when:
+ * Â§U.11 "is this row internal labor?" predicate. Returns true when:
  *   - row.clockifyUserCompany matches the configured internal-company list
  *     (case-insensitive), OR
  *   - row.agreementType === 'Internal'

@@ -1,6 +1,6 @@
 # Regenerates src/faviconAsset.js from src/assets/favicon.png.
-# Source art: src/assets/favicon.svg (rasterized here). Served via doGet?favicon=1;
-# setFaviconUrl needs an HTTPS URL with a .png suffix (not a data: URL).
+# Source art: src/assets/favicon.svg (rasterized here). Tab icon uses HtmlOutput.setFaviconUrl
+# with a Drive mirror URL (Apps Script ignores <link rel="icon"> in HTML files).
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $svg = Join-Path $root 'src\assets\favicon.svg'
@@ -32,39 +32,29 @@ Ensure-FaviconPng_ -SvgPath $svg -PngPath $png
 
 $bytes = [IO.File]::ReadAllBytes($png)
 $b64 = [Convert]::ToBase64String($bytes)
-$js = @"
+
+# Preserve hand-written Drive mirror helpers after the base64 constant.
+$existing = Get-Content -Raw $out -ErrorAction SilentlyContinue
+$helperStart = $existing.IndexOf('/** @const {string} Script property: Drive file id')
+if ($helperStart -lt 0) {
+  Write-Error "Could not find Drive mirror helpers in $out — restore faviconAsset.js from git and re-run."
+}
+$helpers = $existing.Substring($helperStart)
+
+$header = @"
 /**
- * PRD version 2.6.13 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.15 - sync with docs/FOS-Dashboard-PRD.md
  *
- * Bundled favicon PNG bytes (base64). Injected in HTML via getFaviconDataUrl_() (Apps Script
- * ContentService cannot serve raw PNG; setFaviconUrl rejects data: URLs).
+ * Bundled favicon PNG bytes (base64). Mirrored to Drive for HtmlOutput.setFaviconUrl
+ * (Apps Script ignores <link rel="icon"> in HTML files and rejects data: URLs).
  * Regenerate: powershell -File scripts/embed-favicon.ps1
  */
 
 /** @const {string} */
 var FOS_FAVICON_PNG_BASE64_ = '$b64';
 
-/**
- * Data URL for <link rel="icon"> in HtmlService templates (first-paint tab icon).
- *
- * @return {string}
- */
-function getFaviconDataUrl_() {
-  return 'data:image/png;base64,' + FOS_FAVICON_PNG_BASE64_;
-}
-
-/**
- * @return {GoogleAppsScript.Base.Blob}
- */
-function getFaviconPngBlob_() {
-  return Utilities.newBlob(
-    Utilities.base64Decode(FOS_FAVICON_PNG_BASE64_),
-    'image/png',
-    'favicon.png'
-  );
-}
-
 "@
+
 $utf8NoBom = New-Object System.Text.UTF8Encoding $false
-[System.IO.File]::WriteAllText($out, $js, $utf8NoBom)
+[System.IO.File]::WriteAllText($out, ($header + $helpers), $utf8NoBom)
 Write-Host "Wrote $out ($($b64.Length) base64 chars from favicon.png)"

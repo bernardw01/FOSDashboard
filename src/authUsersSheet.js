@@ -1,5 +1,5 @@
 /**
- * PRD version 2.6.14 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.15 â€” sync with docs/FOS-Dashboard-PRD.md
  *
  * Spreadsheet-backed user authorization (Users tab).
  * Script Properties: AUTH_SPREADSHEET_ID (required), AUTH_USERS_SHEET_NAME (default Users),
@@ -62,7 +62,7 @@ function getAuthorizationForActiveUser_() {
       try {
         console.warn(
           'authUsersSheet: optional column "' + colFiberyAccess +
-          '" not found in headers — Fibery access defaults to FALSE for all users.');
+          '" not found in headers â€” Fibery access defaults to FALSE for all users.');
       } catch (_) {
         /* ignore */
       }
@@ -118,8 +118,8 @@ function normalizeEmail_(s) {
 /**
  * Locates a column by title. Matching is intentionally forgiving:
  *
- *   1. Exact case-insensitive match (after trim) — `Email` ↔ `email`.
- *   2. Loose match: lowercase + strip non-alphanumeric — `Fibery Access`,
+ *   1. Exact case-insensitive match (after trim) â€” `Email` â†” `email`.
+ *   2. Loose match: lowercase + strip non-alphanumeric â€” `Fibery Access`,
  *      `Fibery_Access`, `fibery-access`, `fiberyAccess` all match
  *      `fibery_access`.
  *
@@ -162,7 +162,7 @@ function requireAuthForApi_() {
 }
 
 /**
- * Expenses dashboard (Finance nav group) — visible when ANY is true:
+ * Expenses dashboard (Finance nav group) â€” visible when ANY is true:
  * team = FINANCE, role = EXEC, or role = ADMIN.
  * @param {{ role?: string, team?: string, email?: string }} auth
  * @return {boolean}

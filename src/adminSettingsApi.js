@@ -1,5 +1,5 @@
 /**
- * PRD version 2.6.14 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.15 â€” sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings panel API (feature 011).
  */
@@ -281,7 +281,7 @@ function buildAdminSettingsGroupsView_(props) {
 
     if (entry.type === 'secret') {
       row.value = '';
-      row.masked = hasOverride ? '••••••••' : '';
+      row.masked = hasOverride ? 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢' : '';
     }
 
     if (entry.readOnly && entry.key === 'AUTH_SPREADSHEET_ID') {

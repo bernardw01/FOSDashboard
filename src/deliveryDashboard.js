@@ -1,5 +1,5 @@
 /**
- * PRD version 2.6.14 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.15 â€” sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `delivery`, panel
  * `#panel-delivery`). Two public endpoints, both authorized via
@@ -7,32 +7,32 @@
  *
  *   getDeliveryDashboardData()
  *     Returns the active-projects list. Reuses the existing Agreement
- *     Dashboard payload (`getAgreementDashboardData()`) — no extra Fibery
- *     queries — and re-projects each agreement into a Delivery row with
+ *     Dashboard payload (`getAgreementDashboardData()`) â€” no extra Fibery
+ *     queries â€” and re-projects each agreement into a Delivery row with
  *     completion %, margin variance, and lifetime cost rollups precomputed.
  *
  *   getDeliveryProjectMonthlyPnL(agreementId)
  *     Returns a per-project monthly P&L time-series. Issues THREE small
  *     Fibery queries scoped to the single agreement (no date filter, full
  *     project lifetime):
- *       1. Labor Costs       — Cost + Start Date Time + User Role
- *       2. Other Direct Costs — Amount + Date + Status (Actual + Projected)
- *       3. Revenue Item       — Actual/Target Amount + Actual/Target Date
+ *       1. Labor Costs       â€” Cost + Start Date Time + User Role
+ *       2. Other Direct Costs â€” Amount + Date + Status (Actual + Projected)
+ *       3. Revenue Item       â€” Actual/Target Amount + Actual/Target Date
  *                               + Revenue Recognized + Name + workflow
  *                               state (recognized AND unrecognized;
  *                               Phase B FR-94 drives projected-month
  *                               support)
  *     Aggregates client-ready monthly rows {revenue, labor, expenses,
  *     totalCost, grossProfit, marginPct, marginBucket, outOfRange,
- *     hasActivity, projected, revenueItems[]}, plus a §M.9
+ *     hasActivity, projected, revenueItems[]}, plus a Â§M.9
  *     discrepancyCheck block comparing the summed totals to the
  *     agreement's lifetime fields.
  *
  *     Each month carries:
- *       - `projected: bool` — true when the month key is later than the
+ *       - `projected: bool` â€” true when the month key is later than the
  *         current UTC month. Drives the "Projected" pill on the client
  *         and a distinct fill in the stacked-area chart view (FR-94).
- *       - `revenueItems: !Array<!Object>` — the milestone rows that
+ *       - `revenueItems: !Array<!Object>` â€” the milestone rows that
  *         contributed to the month's revenue, ready for the FR-95
  *         drill-down modal. Schema:
  *           { id, name, amount, targetAmount, recognized, targetDate,
@@ -51,8 +51,8 @@
  *   DELIVERY_CACHE_TTL_MINUTES            default 10
  *   DELIVERY_ACTIVE_STATES                comma-separated whitelist; empty
  *                                         = use the default rule
- *                                         (state ≠ Closed-Lost)
- *   DELIVERY_EXCLUDE_INTERNAL             boolean (default true) — drop
+ *                                         (state â‰  Closed-Lost)
+ *   DELIVERY_EXCLUDE_INTERNAL             boolean (default true) â€” drop
  *                                         Agreement Type = Internal rows
  *   DELIVERY_PNL_INCLUDE_PROJECTED_ODC    boolean (default true in
  *                                         Phase B; opt out by setting
@@ -67,11 +67,11 @@ var DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_ = 1;
 
 /**
  * Per-project monthly P&L cache shape version.
- *   v1 — Phase A: { months, lifetime, discrepancyCheck, partial, capCounts }
- *   v2 — Phase B: above + monthly `projected` flag + per-month
+ *   v1 â€” Phase A: { months, lifetime, discrepancyCheck, partial, capCounts }
+ *   v2 â€” Phase B: above + monthly `projected` flag + per-month
  *        `revenueItems[]` for drill-down (FR-94 / FR-95).
- *   v3 — v2.6.2: forecast revenue in projected months.
- *   v4 — v2.6.8: per-month `laborByRole` + payload `laborRoles[]`.
+ *   v3 â€” v2.6.2: forecast revenue in projected months.
+ *   v4 â€” v2.6.8: per-month `laborByRole` + payload `laborRoles[]`.
  * @const {number}
  */
 var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 4;
@@ -156,7 +156,7 @@ function getDeliveryDashboardData() {
 
 /**
  * Re-projects a normalized agreement payload into the Delivery projects list.
- * No Fibery round-trip — used by the historical snapshot job after agreement
+ * No Fibery round-trip â€” used by the historical snapshot job after agreement
  * data is already fetched.
  *
  * @param {!Object} agreementPayload Output of `buildAgreementDashboardPayload_`.
@@ -253,7 +253,7 @@ function buildDeliveryProjectMonthlyPnLInternal_(agreementId) {
   }
 
   // Fetch the agreement's contextual fields (target margin, duration,
-  // lifetime totals) — used for §M.7 margin coloring and §M.9
+  // lifetime totals) â€” used for Â§M.7 margin coloring and Â§M.9
   // reconciliation. A failure here is non-fatal; we render the grid
   // anyway with neutral coloring.
   var ctx = fetchAgreementContextForPnl_(agreementId);
@@ -323,7 +323,7 @@ function buildDeliveryProjectMonthlyPnLInternal_(agreementId) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* Diagnostics — run manually from the Apps Script editor.                    */
+/* Diagnostics â€” run manually from the Apps Script editor.                    */
 /* ------------------------------------------------------------------------- */
 
 /**
@@ -341,7 +341,7 @@ function _diag_sampleDeliveryPayload() {
     sample: (payload.projects || [])[0] || null,
     message: payload.message || null,
   };
-  console.log('_diag_sampleDeliveryPayload →', JSON.stringify(summary).slice(0, 4000));
+  console.log('_diag_sampleDeliveryPayload â†’', JSON.stringify(summary).slice(0, 4000));
   return summary;
 }
 
@@ -371,7 +371,7 @@ function _diag_sampleMonthlyPnL(agreementId) {
     capCounts: p.capCounts,
     message: p.message || null,
   };
-  console.log('_diag_sampleMonthlyPnL →', JSON.stringify(summary).slice(0, 4000));
+  console.log('_diag_sampleMonthlyPnL â†’', JSON.stringify(summary).slice(0, 4000));
   return summary;
 }
 
@@ -420,9 +420,9 @@ function buildActiveProjects_(agreements, thresholds, filters) {
     out.push({
       id: a.id,
       name: a.name || '(Unnamed project)',
-      customer: a.customer || '—',
-      type: a.type || '—',
-      state: a.state || '—',
+      customer: a.customer || 'â€”',
+      type: a.type || 'â€”',
+      state: a.state || 'â€”',
       contractValue: planned,
       revenueRecognized: revRec,
       revenueOutstanding: Math.max(0, planned - revRec),
@@ -461,7 +461,7 @@ function buildActiveProjects_(agreements, thresholds, filters) {
 /**
  * Revenue amount for one P&L month bucket. Recognized milestones prefer
  * non-zero Actual Amount, then Target Amount; unrecognized (forecast)
- * milestones always use Target Amount (v2.6.2 fix — Actual Amount = 0
+ * milestones always use Target Amount (v2.6.2 fix â€” Actual Amount = 0
  * must not suppress forecast).
  *
  * @param {!Object} row
@@ -518,7 +518,7 @@ function buildMonthlyPnL_(args) {
   var laborRoleTotals = {};
   var odcByMonth = {};
   var revenueByMonth = {};
-  // Phase B (FR-94 / FR-95) — capture the contributing milestone rows
+  // Phase B (FR-94 / FR-95) â€” capture the contributing milestone rows
   // per month so the client can render the drill-down modal without a
   // second Fibery fetch.
   var revenueItemsByMonth = {};
@@ -561,8 +561,8 @@ function buildMonthlyPnL_(args) {
     summedExpenses += amt;
   }
 
-  // Revenue Items: recognized → Actual Amount (fallback Target); forecast
-  // milestones → Target Amount only. Phase B (FR-94) lifted the
+  // Revenue Items: recognized â†’ Actual Amount (fallback Target); forecast
+  // milestones â†’ Target Amount only. Phase B (FR-94) lifted the
   // recognized-only filter so future-dated milestones land in projected
   // months; v2.6.2 ensures Target Amount is used when Actual is zero.
   var summedRevenue = 0;
@@ -597,7 +597,7 @@ function buildMonthlyPnL_(args) {
 
   // Resolve the month window: max(durStart-month, earliest-activity-month)
   // through min(today-month, durEnd-month). Activity outside that window
-  // is still emitted with an `outOfRange: true` marker (§M.10).
+  // is still emitted with an `outOfRange: true` marker (Â§M.10).
   var allKeys = Object.keys(activityMonths);
   var minActivity = allKeys.length ? allKeys.slice().sort()[0] : null;
   var maxActivity = allKeys.length ? allKeys.slice().sort()[allKeys.length - 1] : null;
@@ -682,7 +682,7 @@ function buildMonthlyPnL_(args) {
     lifetimeExpenses += exp;
   }
 
-  // §M.8 Lifetime totals row (margin derived from the summed monthlies).
+  // Â§M.8 Lifetime totals row (margin derived from the summed monthlies).
   var lifetimeTotalCost = lifetimeLabor + lifetimeExpenses;
   var lifetimeGrossProfit = lifetimeRevenue - lifetimeTotalCost;
   var lifetimeMarginDerived = lifetimeRevenue > 0
@@ -708,7 +708,7 @@ function buildMonthlyPnL_(args) {
     laborSkipped: laborSkipped,
   };
 
-  // §M.9 Discrepancy check — 5% threshold, per decision M.5. Margin
+  // Â§M.9 Discrepancy check â€” 5% threshold, per decision M.5. Margin
   // compares recognized revenue only (agreement.margin is recognized basis).
   var discrepancyCheck = computeDiscrepancyCheck_({
     summedLabor: summedLabor,
@@ -728,7 +728,7 @@ function buildMonthlyPnL_(args) {
 }
 
 /**
- * Returns {hasLaborDelta, hasExpensesDelta, hasMarginDelta} per the §M.9
+ * Returns {hasLaborDelta, hasExpensesDelta, hasMarginDelta} per the Â§M.9
  * 5% rule (M.5 decision). Numbers are returned alongside for tooltip
  * display.
  *
@@ -742,7 +742,7 @@ function computeDiscrepancyCheck_(args) {
     var base = Math.abs(Number(lifetime || 0));
     if (!base) {
       // If the lifetime field is zero and the summed value is non-zero,
-      // treat as "infinite" delta — surface the caption.
+      // treat as "infinite" delta â€” surface the caption.
       return Number(summed || 0) === 0 ? 0 : Infinity;
     }
     return Math.abs(Number(summed || 0) - Number(lifetime || 0)) / base * 100;
@@ -1087,7 +1087,7 @@ function enumerateMonthKeys_(startKey, endKey) {
 }
 
 /**
- * Pretty label for a yyyy-mm key. e.g. "2026-05" → "May 2026".
+ * Pretty label for a yyyy-mm key. e.g. "2026-05" â†’ "May 2026".
  *
  * @param {string} key
  * @return {string}

@@ -1,20 +1,20 @@
 /**
- * PRD version 2.6.14 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.15 â€” sync with docs/FOS-Dashboard-PRD.md
  *
- * Phase C — Utilization rule evaluator. Returns an ordered list of
+ * Phase C â€” Utilization rule evaluator. Returns an ordered list of
  * attention items for the Operations panel, mirroring the
- * Agreement Dashboard's §6 alert pattern (src/agreementAlerts.js).
+ * Agreement Dashboard's Â§6 alert pattern (src/agreementAlerts.js).
  *
  * Three rule families:
- *   1. Under-utilized       — Warning. A person whose mean weekly utilization%
+ *   1. Under-utilized       â€” Warning. A person whose mean weekly utilization%
  *                             across the last 3 complete ISO weeks in the
  *                             range is `< thresholds.underPercent`. Persons
  *                             who logged zero hours in the trailing window
  *                             are excluded (they are likely on PTO).
- *   2. Over-allocated       — Critical. A person whose weekly utilization%
+ *   2. Over-allocated       â€” Critical. A person whose weekly utilization%
  *                             is `> thresholds.overPercent` in any two
  *                             consecutive complete weeks in the range.
- *   3. Stale approvals      — Warning when `isPending && now - startDateTime
+ *   3. Stale approvals      â€” Warning when `isPending && now - startDateTime
  *                             >= staleApprovalWarnDays`; escalates to
  *                             Critical past `staleApprovalCritDays`. Oldest
  *                             first inside each severity bucket.
@@ -44,7 +44,7 @@ var UTIL_ALERT_SEV_WARNING_ = 'warning';
 /** @const {string} */
 var UTIL_ALERT_SEV_INFO_ = 'info';
 
-/** @const {!Object<string,number>} Severity sort order — same as §6. */
+/** @const {!Object<string,number>} Severity sort order â€” same as Â§6. */
 var UTIL_ALERT_SEV_RANK_ = { critical: 0, warning: 1, info: 2 };
 
 /**
@@ -59,7 +59,7 @@ var UTIL_ALERT_STALE_CAP_ = 20;
  * Evaluates the Phase C rule set and returns the ranked alert list.
  *
  * @param {!Array<!Object>} rows  Normalized labor-cost rows.
- * @param {!Array<!Object>} byPersonWeek  Output of `buildByPersonWeek_` —
+ * @param {!Array<!Object>} byPersonWeek  Output of `buildByPersonWeek_` â€”
  *   one entry per (personKey, week) with `utilizationPct`, `partial`, etc.
  * @param {!Object} thresholds  Output of `getUtilizationThresholds_()`.
  * @param {!{start: string, end: string}} range  Active fetch window.
@@ -81,7 +81,7 @@ function buildUtilizationAlerts_(rows, byPersonWeek, thresholds, range, now) {
       continue;
     }
 
-    // Sort ascending by ISO week key — alphabetic on 'YYYY-Www' works because
+    // Sort ascending by ISO week key â€” alphabetic on 'YYYY-Www' works because
     // both segments are zero-padded.
     trajectory.sort(function (a, b) {
       return String(a.week).localeCompare(String(b.week));
@@ -93,7 +93,7 @@ function buildUtilizationAlerts_(rows, byPersonWeek, thresholds, range, now) {
     }
     var personName = trajectory[0].personName || key;
 
-    // Rule 1 — Under-utilized.
+    // Rule 1 â€” Under-utilized.
     var tail = completeWeeks.slice(-3);
     if (tail.length === 3) {
       var sum = 0;
@@ -102,7 +102,7 @@ function buildUtilizationAlerts_(rows, byPersonWeek, thresholds, range, now) {
         sum += Number(tail[ti].utilizationPct || 0);
         hoursSum += Number(tail[ti].hours || 0);
       }
-      // Skip persons who didn't log any hours in the trailing window — likely
+      // Skip persons who didn't log any hours in the trailing window â€” likely
       // on PTO; surfacing them as under-utilized would be noise.
       if (hoursSum > 0) {
         var meanPct = sum / tail.length;
@@ -111,10 +111,10 @@ function buildUtilizationAlerts_(rows, byPersonWeek, thresholds, range, now) {
             id: 'util-under:' + key,
             severity: UTIL_ALERT_SEV_WARNING_,
             kind: 'under_utilized',
-            title: personName + ' — Under-utilized (' + formatPct_(meanPct) + '%)',
+            title: personName + ' â€” Under-utilized (' + formatPct_(meanPct) + '%)',
             body:
               'Mean utilization across the last 3 complete weeks (' +
-              tail[0].week + ' → ' + tail[tail.length - 1].week +
+              tail[0].week + ' â†’ ' + tail[tail.length - 1].week +
               ') is below the ' + thresholds.underPercent + '% threshold. ' +
               'Consider routing additional billable work.',
             target: { person: key, weeks: tail.map(weekKey_) },
@@ -123,7 +123,7 @@ function buildUtilizationAlerts_(rows, byPersonWeek, thresholds, range, now) {
       }
     }
 
-    // Rule 2 — Over-allocated. Slide a 2-week window over the complete weeks.
+    // Rule 2 â€” Over-allocated. Slide a 2-week window over the complete weeks.
     for (var w = 0; w + 1 < completeWeeks.length; w++) {
       var a = completeWeeks[w];
       var b = completeWeeks[w + 1];
@@ -136,12 +136,12 @@ function buildUtilizationAlerts_(rows, byPersonWeek, thresholds, range, now) {
           severity: UTIL_ALERT_SEV_CRITICAL_,
           kind: 'over_allocated',
           title:
-            personName + ' — Over-allocated (' + formatPct_(a.utilizationPct) +
-            '% → ' + formatPct_(b.utilizationPct) + '%)',
+            personName + ' â€” Over-allocated (' + formatPct_(a.utilizationPct) +
+            '% â†’ ' + formatPct_(b.utilizationPct) + '%)',
           body:
             'Logged ' +
             formatHours_(a.hours) + ' hrs in ' + a.week + ' and ' +
-            formatHours_(b.hours) + ' hrs in ' + b.week + ' — both above the ' +
+            formatHours_(b.hours) + ' hrs in ' + b.week + ' â€” both above the ' +
             thresholds.overPercent + '% capacity threshold (' +
             thresholds.weeklyCapacityHours + ' hrs/wk baseline). Burnout risk.',
           target: { person: key, weeks: [a.week, b.week] },
@@ -153,7 +153,7 @@ function buildUtilizationAlerts_(rows, byPersonWeek, thresholds, range, now) {
     }
   }
 
-  // Rule 3 — Stale approvals. Independent of the byPersonWeek index.
+  // Rule 3 â€” Stale approvals. Independent of the byPersonWeek index.
   // v1.14.1: collect candidates first, then cap at UTIL_ALERT_STALE_CAP_
   // oldest individual cards + one rollup info card so the Alerts panel
   // stays scannable even when a multi-thousand-row approval backlog exists.
@@ -185,12 +185,12 @@ function buildUtilizationAlerts_(rows, byPersonWeek, thresholds, range, now) {
       severity: sev,
       kind: 'stale_approval',
       title:
-        (sr.userName || 'Unknown user') + ' — Pending approval ' +
+        (sr.userName || 'Unknown user') + ' â€” Pending approval ' +
         Math.round(sAgeDays) + ' days old',
       body:
         formatHours_(sr.hours) + ' hrs on ' + (sr.customer || '(Unassigned)') +
-        ' · ' + (sr.projectName || '(No project)') +
-        ' (' + (sr.day || sr.startDateTime || '—') + ').',
+        ' Â· ' + (sr.projectName || '(No project)') +
+        ' (' + (sr.day || sr.startDateTime || 'â€”') + ').',
       target: { rowId: sr.id || null, person: sr.userId || sr.userName || null },
     });
   }
@@ -215,13 +215,13 @@ function buildUtilizationAlerts_(rows, byPersonWeek, thresholds, range, now) {
       severity: UTIL_ALERT_SEV_WARNING_,
       kind: 'stale_approval_rollup',
       title:
-        '+' + staleHiddenCount + ' more pending ≥ ' +
+        '+' + staleHiddenCount + ' more pending â‰¥ ' +
         thresholds.staleApprovalWarnDays + ' days' +
-        (critHidden ? ' (' + critHidden + ' ≥ ' + thresholds.staleApprovalCritDays + ')' : ''),
+        (critHidden ? ' (' + critHidden + ' â‰¥ ' + thresholds.staleApprovalCritDays + ')' : ''),
       body:
         'Showing the ' + staleVisible.length + ' oldest individual cards (oldest ' +
         Math.round(oldestHidden.ageDays) + ' days). The remaining ' +
-        staleHiddenCount + ' span ' + newestHiddenAge + '–' + oldestHiddenAge + ' days. ' +
+        staleHiddenCount + ' span ' + newestHiddenAge + 'â€“' + oldestHiddenAge + ' days. ' +
         'Open the Pending Approvals widget to drill into the full list.',
       target: {},
     });

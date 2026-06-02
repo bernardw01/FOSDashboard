@@ -1,20 +1,20 @@
 /**
- * PRD version 2.6.14 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.15 â€” sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement Dashboard orchestrator (route id `agreement-dashboard`, panel
  * `#panel-agreement-dashboard`). No persistent server-side cache
- * of payloads — Fibery is source of truth. The browser owns presentation cache
+ * of payloads â€” Fibery is source of truth. The browser owns presentation cache
  * (`sessionStorage`) with a configurable TTL surfaced through
  * `getAgreementCacheTtlMinutes()` (Script Property `AGREEMENT_CACHE_TTL_MINUTES`,
  * default 10).
  *
  * Public surface (client-callable via google.script.run):
- *   getAgreementDashboardData()      — returns the full view-model payload.
- *   getAgreementCacheTtlMinutes()    — returns the configured default TTL.
+ *   getAgreementDashboardData()      â€” returns the full view-model payload.
+ *   getAgreementCacheTtlMinutes()    â€” returns the configured default TTL.
  *
  * Internal diagnostics (run from the Apps Script editor):
- *   _diag_pingFibery()               — verifies host + token reach Fibery.
- *   _diag_sampleAgreementPayload()   — dumps a 1-agreement / 1-company sample.
+ *   _diag_pingFibery()               â€” verifies host + token reach Fibery.
+ *   _diag_sampleAgreementPayload()   â€” dumps a 1-agreement / 1-company sample.
  */
 
 /** @const {number} Bumped when the client cache shape changes. */
@@ -26,7 +26,7 @@ var AGREEMENT_DEFAULT_CACHE_TTL_MIN_ = 10;
 /** @const {string} */
 var AGREEMENT_CACHE_TTL_PROP_ = 'AGREEMENT_CACHE_TTL_MINUTES';
 
-/** @const {number} Per-query result cap (matches agreement PRD §4.1). */
+/** @const {number} Per-query result cap (matches agreement PRD Â§4.1). */
 var AGREEMENT_QUERY_LIMIT_ = 1000;
 
 /**
@@ -162,7 +162,7 @@ function buildAgreementDashboardPayload_(asOfDateIso) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* Diagnostics — run manually from the Apps Script editor.                    */
+/* Diagnostics â€” run manually from the Apps Script editor.                    */
 /* ------------------------------------------------------------------------- */
 
 /**
@@ -172,7 +172,7 @@ function buildAgreementDashboardPayload_(asOfDateIso) {
  */
 function _diag_pingFibery() {
   var r = fiberyPing_();
-  console.log('fiberyPing_ →', JSON.stringify(r));
+  console.log('fiberyPing_ â†’', JSON.stringify(r));
   return r;
 }
 
@@ -208,16 +208,16 @@ function _diag_sampleAgreementPayload() {
       : null,
     message: batch.message || null,
   };
-  console.log('_diag_sampleAgreementPayload →', JSON.stringify(summary).slice(0, 4000));
+  console.log('_diag_sampleAgreementPayload â†’', JSON.stringify(summary).slice(0, 4000));
   return summary;
 }
 
 /* ------------------------------------------------------------------------- */
-/* Query builders (agreement PRD §4).                                         */
+/* Query builders (agreement PRD Â§4).                                         */
 /* ------------------------------------------------------------------------- */
 
 /**
- * §4.1 Agreements query. WHERE workflow/state ≠ "Closed-Lost".
+ * Â§4.1 Agreements query. WHERE workflow/state â‰  "Closed-Lost".
  * @return {!Object}
  * @private
  */
@@ -239,7 +239,7 @@ function buildAgreementsQuery_() {
         materialsOdc: 'Agreement Management/Total Materials & ODC',
         margin: 'Agreement Management/Current Margin',
         targetMargin: 'Agreement Management/Target Margin',
-        // fibery/date-range is opaque inside q/select — its sub-fields (`start`, `end`)
+        // fibery/date-range is opaque inside q/select â€” its sub-fields (`start`, `end`)
         // are not addressable as a second segment. We select the whole range here and
         // unpack it in normalizeAgreements_().
         duration: 'Agreement Management/Duration',
@@ -247,10 +247,10 @@ function buildAgreementsQuery_() {
       },
       'q/where': ['!=', ['workflow/state', 'enum/name'], '$closedLost'],
       // Fibery's REST `/api/commands` expects q/order-by as an array of
-      // [[field-path-vector], direction] tuples — the field-path itself MUST be
+      // [[field-path-vector], direction] tuples â€” the field-path itself MUST be
       // wrapped in an array even for single-segment paths (same convention as
       // q/where). Bare-string keys produce the error
-      // `Unknown order by expression {"v":"…"}`.
+      // `Unknown order by expression {"v":"â€¦"}`.
       'q/order-by': [[['Agreement Management/Total Planned Revenue'], 'q/desc']],
       'q/limit': AGREEMENT_QUERY_LIMIT_,
     },
@@ -259,7 +259,7 @@ function buildAgreementsQuery_() {
 }
 
 /**
- * §4.2 Companies query.
+ * Â§4.2 Companies query.
  * @return {!Object}
  * @private
  */
@@ -283,7 +283,7 @@ function buildCompaniesQuery_() {
 }
 
 /**
- * §4.3 Historical (recognized) revenue items.
+ * Â§4.3 Historical (recognized) revenue items.
  * @return {!Object}
  * @private
  */
@@ -314,7 +314,7 @@ function buildHistoricalRevenueItemsQuery_() {
 }
 
 /**
- * §4.4 Future (unrecognized, target-date > today) revenue items.
+ * Â§4.4 Future (unrecognized, target-date > today) revenue items.
  * @param {string} todayIso  Date-only ISO string (yyyy-mm-dd).
  * @return {!Object}
  * @private
@@ -349,7 +349,7 @@ function buildFutureRevenueItemsQuery_(todayIso) {
 
 /* ------------------------------------------------------------------------- */
 /* Normalization. Fibery selects with object form return the keys we asked    */
-/* for, but values may be null / missing — defend everywhere.                  */
+/* for, but values may be null / missing â€” defend everywhere.                  */
 /* ------------------------------------------------------------------------- */
 
 /** @private */
@@ -371,8 +371,8 @@ function normalizeAgreements_(rows) {
       revRec: numberOr_(r.revRec, 0),
       laborCosts: numberOr_(r.laborCosts, 0),
       materialsOdc: numberOr_(r.materialsOdc, 0),
-      // Fibery stores Current/Target Margin as a 0–1 decimal fraction (e.g. 0.67
-      // for 67%). PRD §6/§8 thresholds (low margin = 35, bucket cutoffs 35/60)
+      // Fibery stores Current/Target Margin as a 0â€“1 decimal fraction (e.g. 0.67
+      // for 67%). PRD Â§6/Â§8 thresholds (low margin = 35, bucket cutoffs 35/60)
       // are in percent units, so we normalize once here and let the rest of the
       // pipeline stay in percent space.
       margin: scaleFractionToPercent_(r.margin),
@@ -393,7 +393,7 @@ function normalizeCompanies_(rows) {
   var out = [];
   for (var i = 0; i < rows.length; i++) {
     var r = rows[i] || {};
-    // `Segment` is a multi-select enum in Fibery — returned as an Array<string>
+    // `Segment` is a multi-select enum in Fibery â€” returned as an Array<string>
     // (possibly empty). Preserve the full array for later filters, and surface a
     // joined display string for any UI that wants a single value.
     var segments = Array.isArray(r.segment) ? r.segment.slice() : (r.segment ? [String(r.segment)] : []);
@@ -435,7 +435,7 @@ function normalizeRevenueItems_(rows) {
 }
 
 /**
- * Per-agreement counts + §5.6 scheduling status, plus per-company agreement
+ * Per-agreement counts + Â§5.6 scheduling status, plus per-company agreement
  * counts. Mutates the input arrays.
  *
  * @param {!Array<!Object>} agreements
@@ -510,7 +510,7 @@ function groupRevenueItemsByAgreement_(historicalItems, futureItems) {
       state: item.state,
       // Preserve attribution fields for clients (Revenue review milestone
       // tree, CSV, drill-downs). Omitting them left every row without
-      // agreementId/customer so UI fell back to "(Unknown)" / "—".
+      // agreementId/customer so UI fell back to "(Unknown)" / "â€”".
       agreementId: item.agreementId,
       agreement: item.agreement,
       customer: item.customer,
@@ -534,7 +534,7 @@ function groupRevenueItemsByAgreement_(historicalItems, futureItems) {
 }
 
 /**
- * §5.6 scheduling status.
+ * Â§5.6 scheduling status.
  * @param {!Object} agreement
  * @param {!Array<!Object>} futureItems
  * @return {string}
@@ -564,7 +564,7 @@ function deriveSchedulingStatus_(agreement, futureItems) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* KPI computation (agreement PRD §7.2 + §5.2/§5.3).                          */
+/* KPI computation (agreement PRD Â§7.2 + Â§5.2/Â§5.3).                          */
 /* ------------------------------------------------------------------------- */
 
 /**
@@ -586,7 +586,7 @@ function computeKpis_(agreements, companies, companyByName, thresholds) {
   var portfolioPlanned = 0;
   var worstNegativeMargin = null; // { value, agreement }
   var lowestPositiveMargin = null;
-  var topCustomerName = '—';
+  var topCustomerName = 'â€”';
   var topCustomerValue = 0;
   var topCustomerSowCount = 0;
 
@@ -622,7 +622,7 @@ function computeKpis_(agreements, companies, companyByName, thresholds) {
     }
   }
 
-  // Top customer by Total Customer Contract Value (from Companies query, §5.4),
+  // Top customer by Total Customer Contract Value (from Companies query, Â§5.4),
   // restricted to non-Internal companies.
   for (var j = 0; j < companies.length; j++) {
     var c = companies[j];
@@ -674,7 +674,7 @@ function computeKpis_(agreements, companies, companyByName, thresholds) {
 }
 
 /**
- * §7.2 "Flagged margin" rule: worst negative if any exists; otherwise the
+ * Â§7.2 "Flagged margin" rule: worst negative if any exists; otherwise the
  * lowest non-negative; otherwise null.
  * @private
  */
@@ -685,11 +685,11 @@ function pickFlaggedMargin_(worstNeg, lowestPos) {
   if (lowestPos) {
     return { pct: lowestPos.value, isNegative: false, agreement: lowestPos.agreement };
   }
-  return { pct: null, isNegative: false, agreement: '—' };
+  return { pct: null, isNegative: false, agreement: 'â€”' };
 }
 
 /* ------------------------------------------------------------------------- */
-/* Chart view models (§7.3, §7.4, §7.9, §7.10).                                */
+/* Chart view models (Â§7.3, Â§7.4, Â§7.9, Â§7.10).                                */
 /* ------------------------------------------------------------------------- */
 
 /** @private */
@@ -702,7 +702,7 @@ function buildChartViewModels_(agreements, companies, companyByName, customerCol
   };
 }
 
-/** §7.3 Agreement Status Donut. */
+/** Â§7.3 Agreement Status Donut. */
 function buildStatusDonut_(agreements, thresholds) {
   var byState = {};
   for (var i = 0; i < agreements.length; i++) {
@@ -721,7 +721,7 @@ function buildStatusDonut_(agreements, thresholds) {
   return { labels: labels, values: values, colors: colors, total: total };
 }
 
-/** §7.10 Agreement Type Mix Donut. */
+/** Â§7.10 Agreement Type Mix Donut. */
 function buildTypeDonut_(agreements, thresholds) {
   var byType = {};
   for (var i = 0; i < agreements.length; i++) {
@@ -740,7 +740,7 @@ function buildTypeDonut_(agreements, thresholds) {
   return { labels: labels, values: values, colors: colors, total: total };
 }
 
-/** §7.9 Revenue Recognition Progress (top-N stacked bar; exclude Internal / zero-planned). */
+/** Â§7.9 Revenue Recognition Progress (top-N stacked bar; exclude Internal / zero-planned). */
 function buildRecognitionStack_(agreements, thresholds) {
   var eligible = [];
   for (var i = 0; i < agreements.length; i++) {
@@ -778,7 +778,7 @@ function buildRecognitionStack_(agreements, thresholds) {
   };
 }
 
-/** §7.4 Customer Contract Value horizontal bar. */
+/** Â§7.4 Customer Contract Value horizontal bar. */
 function buildCustomerBar_(companies, companyByName, customerColorMap, thresholds) {
   var eligible = [];
   for (var i = 0; i < companies.length; i++) {
@@ -811,7 +811,7 @@ function buildCustomerBar_(companies, companyByName, customerColorMap, threshold
 }
 
 /* ------------------------------------------------------------------------- */
-/* Financial Performance Table (§7.5).                                        */
+/* Financial Performance Table (Â§7.5).                                        */
 /* ------------------------------------------------------------------------- */
 
 /** @private */
@@ -830,7 +830,7 @@ function buildFinancialTable_(agreements, topCustomerName, thresholds) {
 
   var topRows = [];
   var otherRows = [];
-  if (topCustomerName && topCustomerName !== '—') {
+  if (topCustomerName && topCustomerName !== 'â€”') {
     for (var j = 0; j < rows.length; j++) {
       if (rows[j].customer === topCustomerName) {
         topRows.push(rows[j]);
@@ -858,9 +858,9 @@ function buildFinancialRow_(a, thresholds) {
     id: a.id,
     publicId: a.publicId || '',
     name: a.name,
-    customer: a.customer || '—',
-    type: a.type || '—',
-    state: a.state || '—',
+    customer: a.customer || 'â€”',
+    type: a.type || 'â€”',
+    state: a.state || 'â€”',
     typeColor: thresholds.agreementTypeColor[a.type] || thresholds.agreementTypeColorFallback,
     stateColor: thresholds.workflowStateColor[a.state] || thresholds.workflowStateColorFallback,
     planned: Number(a.plannedRev || 0),
@@ -871,11 +871,11 @@ function buildFinancialRow_(a, thresholds) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* Customer Relationship Cards (§7.6)                                         */
+/* Customer Relationship Cards (Â§7.6)                                         */
 /* ------------------------------------------------------------------------- */
 
 /**
- * Builds the §7.6 view model: one card per company, sorted by TCV desc with
+ * Builds the Â§7.6 view model: one card per company, sorted by TCV desc with
  * internal companies pushed to the bottom. Each card carries the data the
  * client needs for direct render (no further enrichment required).
  *
@@ -898,8 +898,8 @@ function buildCustomerCards_(companies, customerColorMap, thresholds) {
         ? thresholds.agreementTypeColor.Internal || '#2a5a7a'
         : customerColorMap[c.name] || thresholds.customerPalette[i % thresholds.customerPalette.length],
       agreementCount: c.agreementCount || 0,
-      funnelStage: c.funnelStage || '—',
-      segment: c.segment || (isInternal ? 'Internal' : '—'),
+      funnelStage: c.funnelStage || 'â€”',
+      segment: c.segment || (isInternal ? 'Internal' : 'â€”'),
       ndaCompleted: c.ndaCompleted === true,
       totalContractValue: Number(c.totalContractValue || 0),
       isInternal: isInternal,
@@ -939,12 +939,12 @@ function computeInitials_(name) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* Forward Revenue Pipeline (§7.8 + §5.5)                                     */
+/* Forward Revenue Pipeline (Â§7.8 + Â§5.5)                                     */
 /* ------------------------------------------------------------------------- */
 
 /**
- * Builds the §7.8 view model. One row per non-Internal agreement, with the
- * §5.5 monthly billing rate derived from its future revenue items. Agreements
+ * Builds the Â§7.8 view model. One row per non-Internal agreement, with the
+ * Â§5.5 monthly billing rate derived from its future revenue items. Agreements
  * that are still active but have no future items are surfaced with a null
  * monthly rate so the client can render the "no pipeline items" treatment.
  *
@@ -960,7 +960,7 @@ function computeInitials_(name) {
  */
 function buildForwardPipeline_(agreements, futureItems, customerColorMap, thresholds) {
   // Group future items by agreement id and collect the distinct calendar
-  // months they span (formula §5.5).
+  // months they span (formula Â§5.5).
   var byAgreement = {};
   for (var i = 0; i < futureItems.length; i++) {
     var f = futureItems[i];
@@ -985,9 +985,9 @@ function buildForwardPipeline_(agreements, futureItems, customerColorMap, thresh
       continue;
     }
     var stats = byAgreement[a.id];
-    // §7.8: "Each bar represents one agreement with future scheduled revenue
+    // Â§7.8: "Each bar represents one agreement with future scheduled revenue
     // items." Agreements with no future items are surfaced separately via the
-    // §6.5 "no pipeline data" attention alert, so they're skipped here.
+    // Â§6.5 "no pipeline data" attention alert, so they're skipped here.
     if (!stats || !stats.total) {
       continue;
     }
@@ -997,7 +997,7 @@ function buildForwardPipeline_(agreements, futureItems, customerColorMap, thresh
     rows.push({
       agreementId: a.id,
       agreementName: a.name,
-      customer: a.customer || '—',
+      customer: a.customer || 'â€”',
       color: customerColorMap[a.customer] || thresholds.customerPalette[j % thresholds.customerPalette.length],
       monthlyRate: monthlyRate,
       totalFutureRevenue: stats.total,
@@ -1040,16 +1040,16 @@ function extractYearMonth_(isoDate) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* Revenue Flow Sankey (§7.11)                                                */
+/* Revenue Flow Sankey (Â§7.11)                                                */
 /* ------------------------------------------------------------------------- */
 
 /**
- * Builds the §7.11 Sankey view model: three node layers (Status, Customer,
- * Type) joined by two link sets (Status→Customer and Customer→Type). Values
+ * Builds the Â§7.11 Sankey view model: three node layers (Status, Customer,
+ * Type) joined by two link sets (Statusâ†’Customer and Customerâ†’Type). Values
  * are summed Total Planned Revenue. Internal-type agreements are excluded
  * unless the operator sets `AGREEMENT_SANKEY_INCLUDE_INTERNAL=true`.
  *
- * The output matches the contract documented in §7.11.7 — `nodes` carries
+ * The output matches the contract documented in Â§7.11.7 â€” `nodes` carries
  * `{name, layer, color}` and `links` carries `{source, target, value}` with
  * 0-based indices into `nodes`. The opacity comes from `thresholds.sankeyLinkOpacity`.
  *
@@ -1141,7 +1141,7 @@ function indexByLowercaseName_(companies) {
 }
 
 /**
- * Returns the §8.5 customer order: non-internal companies sorted by TCV desc.
+ * Returns the Â§8.5 customer order: non-internal companies sorted by TCV desc.
  * Color assignment cycles in this exact order for deterministic palettes.
  * @private
  */
@@ -1185,12 +1185,12 @@ function emptyKpis_() {
     inDeliveryCount: 0,
     proposalsCount: 0,
     completeCount: 0,
-    topCustomerName: '—',
+    topCustomerName: 'â€”',
     topCustomerPortfolioPct: 0,
     topCustomerSowCount: 0,
     flaggedMarginPct: null,
     flaggedMarginIsNegative: false,
-    flaggedMarginAgreement: '—',
+    flaggedMarginAgreement: 'â€”',
   };
 }
 
@@ -1213,7 +1213,7 @@ function emptyCharts_() {
 /** @private */
 function emptyFinancialTable_() {
   return {
-    topCustomerName: '—',
+    topCustomerName: 'â€”',
     tabs: { allActive: [], topCustomer: [], otherCustomers: [] },
   };
 }
@@ -1237,7 +1237,7 @@ function truncateName_(s, maxLen) {
   if (str.length <= maxLen) {
     return str;
   }
-  return str.slice(0, Math.max(1, maxLen - 1)) + '…';
+  return str.slice(0, Math.max(1, maxLen - 1)) + 'â€¦';
 }
 
 /** @private */
@@ -1285,7 +1285,7 @@ function numberOrNull_(v) {
 }
 
 /**
- * Converts a Fibery decimal fraction (0–1) to a percent value (0–100).
+ * Converts a Fibery decimal fraction (0â€“1) to a percent value (0â€“100).
  * Returns null for null/undefined/empty inputs.
  * @private
  */

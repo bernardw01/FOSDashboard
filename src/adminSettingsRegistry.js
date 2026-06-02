@@ -1,5 +1,5 @@
 /**
- * PRD version 2.6.14 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.15 â€” sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -7,14 +7,14 @@
 
 /** @const {!Array<{ id: string, title: string }>} */
 var ADMIN_SETTINGS_GROUPS_ = [
-  { id: 'platform-auth', title: 'Platform — Authorization & sheets' },
-  { id: 'platform-activity', title: 'Platform — User activity logging' },
-  { id: 'fibery-api', title: 'Fibery — API connection' },
-  { id: 'fibery-deeplinks', title: 'Fibery — Deep link templates' },
+  { id: 'platform-auth', title: 'Platform â€” Authorization & sheets' },
+  { id: 'platform-activity', title: 'Platform â€” User activity logging' },
+  { id: 'fibery-api', title: 'Fibery â€” API connection' },
+  { id: 'fibery-deeplinks', title: 'Fibery â€” Deep link templates' },
   { id: 'agreement', title: 'Agreement Dashboard' },
   { id: 'utilization', title: 'Utilization (Operations)' },
   { id: 'labor-hours', title: 'Labor hours' },
-  { id: 'delivery', title: 'Delivery — Projects & P&L' },
+  { id: 'delivery', title: 'Delivery â€” Projects & P&L' },
   { id: 'snapshots', title: 'Historical snapshots' },
   { id: 'expenses-dashboard', title: 'Expenses dashboard' },
   { id: 'pipeline-dashboard', title: 'Pipeline dashboard (Sales)' },
@@ -109,7 +109,7 @@ function getAdminSettingsCatalog_() {
     adminSettingEntry_('AUTH_EXPENSES_COL_SUBMISSION_DATE', 'expenses-dashboard', 'Submission date header', 'Column header for submission date.', 'string', 'Submission Date'),
     adminSettingEntry_('AUTH_EXPENSES_COL_AMOUNT', 'expenses-dashboard', 'Amount column header', 'Numeric amount column.', 'string', 'Amount by category'),
     adminSettingEntry_('AUTH_EXPENSES_COL_DEPARTMENT', 'expenses-dashboard', 'Department header', 'Department name dimension.', 'string', 'Department Name'),
-    adminSettingEntry_('AUTH_EXPENSES_COL_CUSTOMER', 'expenses-dashboard', 'GL Customer header', 'Customer attribution (blank → unattributed).', 'string', 'GL Customer Name'),
+    adminSettingEntry_('AUTH_EXPENSES_COL_CUSTOMER', 'expenses-dashboard', 'GL Customer header', 'Customer attribution (blank â†’ unattributed).', 'string', 'GL Customer Name'),
     adminSettingEntry_('AUTH_EXPENSES_COL_VENDOR', 'expenses-dashboard', 'Vendor header', '', 'string', 'Vendor'),
     adminSettingEntry_('AUTH_EXPENSES_COL_CATEGORY', 'expenses-dashboard', 'Category header', '', 'string', 'Category'),
     adminSettingEntry_('AUTH_EXPENSES_COL_MEMO', 'expenses-dashboard', 'Memo header', '', 'string', 'Memo'),
@@ -136,7 +136,7 @@ function getAdminSettingsCatalog_() {
     adminSettingEntry_(
       'PIPELINE_STAGE_BUCKET_MAP_JSON',
       'pipeline-dashboard',
-      'Stage → bucket map JSON',
+      'Stage â†’ bucket map JSON',
       'JSON object mapping a case-insensitive Deal Stage name to a bucket key (prospecting, discovery, demo, validation, proposing, negotiating, won, lost, onhold, implementation). Merges over built-in defaults; unmapped stages fall into "other".',
       'json',
       ''
@@ -475,7 +475,7 @@ function getAdminSettingsCatalog_() {
       'DELIVERY_COMPLETION_UNDER_PCT',
       'delivery',
       'Completion under (%)',
-      'Percent complete bar — upper bound of under bucket.',
+      'Percent complete bar â€” upper bound of under bucket.',
       'number',
       25,
       { min: 0, max: 100 }
@@ -537,7 +537,7 @@ function getAdminSettingsCatalog_() {
       'SNAPSHOT_PNL_BATCH_SIZE',
       'snapshots',
       'P&L batch size',
-      'Delivery P&L projects processed per snapshot execution (1–25).',
+      'Delivery P&L projects processed per snapshot execution (1â€“25).',
       'number',
       8,
       { min: 1, max: 25 }
@@ -555,7 +555,7 @@ function getAdminSettingsCatalog_() {
       'SNAPSHOT_TRIGGER_HOUR',
       'snapshots',
       'Daily trigger hour',
-      'Hour (0–23) for the daily snapshot trigger in script timezone.',
+      'Hour (0â€“23) for the daily snapshot trigger in script timezone.',
       'number',
       2,
       { min: 0, max: 23 }

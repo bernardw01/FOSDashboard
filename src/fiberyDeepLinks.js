@@ -1,27 +1,27 @@
 /**
- * PRD version 2.6.14 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.6.15 â€” sync with docs/FOS-Dashboard-PRD.md
  *
  * Composes public Fibery deep-link URLs (e.g. for the Operations dashboard's
- * row-detail drawer "Open in Fibery →" anchor). Lives server-side so the
+ * row-detail drawer "Open in Fibery â†’" anchor). Lives server-side so the
  * workspace host + URL pattern is configurable via Script Properties and so
  * the client only sees template fragments that don't include the API token.
  *
  * Script Properties (all optional):
- *   FIBERY_PUBLIC_SCHEME           — defaults to `https`
- *   FIBERY_DEEP_LINK_HOST          — overrides FIBERY_HOST for browser URLs
+ *   FIBERY_PUBLIC_SCHEME           â€” defaults to `https`
+ *   FIBERY_DEEP_LINK_HOST          â€” overrides FIBERY_HOST for browser URLs
  *                                    (use this when the API host differs from
  *                                    the workspace's public web host)
- *   FIBERY_LABOR_COST_PATH_TEMPLATE — defaults to
+ *   FIBERY_LABOR_COST_PATH_TEMPLATE â€” defaults to
  *     `/Agreement_Management/Labor_Costs/{slug}-{publicId}`
- *   FIBERY_AGREEMENT_PATH_TEMPLATE — defaults to
+ *   FIBERY_AGREEMENT_PATH_TEMPLATE â€” defaults to
  *     `/Agreement_Management/Agreements/{slug}-{publicId}`
- *   FIBERY_COMPANY_PATH_TEMPLATE — defaults to
+ *   FIBERY_COMPANY_PATH_TEMPLATE â€” defaults to
  *     `/Agreement_Management/Companies/{slug}-{publicId}`
  *
  * The path template supports two placeholders:
- *   {slug}     — entity name with whitespace replaced by `-` (per Fibery's
+ *   {slug}     â€” entity name with whitespace replaced by `-` (per Fibery's
  *                public URL convention; see example URL in FR-84).
- *   {publicId} — entity public-id (Fibery's `fibery/public-id` field).
+ *   {publicId} â€” entity public-id (Fibery's `fibery/public-id` field).
  */
 
 /** @private */
@@ -152,7 +152,7 @@ function buildCompanyDeepLinkUrl_(name, publicId) {
  * untouched.
  *
  * Example: `2026-03-20 - Alex Anakin - 0.5 hrs`
- *       →  `2026-03-20---Alex-Anakin---0.5-hrs`
+ *       â†’  `2026-03-20---Alex-Anakin---0.5-hrs`
  *
  * @param {string} s
  * @return {string}
@@ -163,7 +163,7 @@ function fiberySlugify_(s) {
 }
 
 /**
- * Manual sanity check — paste into the Apps Script editor and run.
+ * Manual sanity check â€” paste into the Apps Script editor and run.
  * @private
  */
 function _diag_fiberyDeepLinkSample() {
@@ -171,7 +171,7 @@ function _diag_fiberyDeepLinkSample() {
   console.log('config: ' + JSON.stringify(cfg));
   var url = buildLaborCostDeepLinkUrl_('2026-03-20 - Alex Anakin - 0.5 hrs', '167141');
   console.log('sample labor url: ' + url);
-  var agreeUrl = buildAgreementDeepLinkUrl_('Acme Corp — SOW 2025', '12345');
+  var agreeUrl = buildAgreementDeepLinkUrl_('Acme Corp â€” SOW 2025', '12345');
   console.log('sample agreement url: ' + agreeUrl);
   var companyUrl = buildCompanyDeepLinkUrl_('Acme Corp', '99999');
   console.log('sample company url: ' + companyUrl);
@@ -180,7 +180,7 @@ function _diag_fiberyDeepLinkSample() {
 
 /**
  * Operator self-service helper for "Open in Fibery link is not showing up".
- * Run from the Apps Script editor as the affected user — returns whether the
+ * Run from the Apps Script editor as the affected user â€” returns whether the
  * gate is open and whether the deep-link config is complete. Used to triage
  * FR-88 reports without needing to dig through Cloud Logs.
  *
@@ -219,7 +219,7 @@ function _diag_fiberyAccess() {
     notes.push('auth not ok: ' + auth.reason);
   }
   if (authOk && !fiberyAccess) {
-    notes.push('user is authorized but fibery_access did not resolve to TRUE — check that cell');
+    notes.push('user is authorized but fibery_access did not resolve to TRUE â€” check that cell');
   }
 
   var cfg = null;
@@ -229,7 +229,7 @@ function _diag_fiberyAccess() {
     notes.push('deep-link config threw: ' + (e && e.message ? e.message : e));
   }
   if (!cfg) {
-    notes.push('deep-link config is null — set FIBERY_HOST (and optionally FIBERY_DEEP_LINK_HOST) in Script Properties');
+    notes.push('deep-link config is null â€” set FIBERY_HOST (and optionally FIBERY_DEEP_LINK_HOST) in Script Properties');
   } else if (/^https?:\/\//i.test(cfg.host)) {
     notes.push('deep-link host still contains a scheme prefix after scrub: ' + cfg.host);
   }

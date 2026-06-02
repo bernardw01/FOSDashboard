@@ -1,10 +1,10 @@
 # Harpin FOS Dashboard (Google Workspace Web App)
 
-**PRD version 2.6.14** — `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
+**PRD version 2.6.15** — `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
 
 Product Requirements Document
 
-Version 2.6.14 - 2026-06-01
+Version 2.6.15 - 2026-06-02
 
 ## 1) Overview
 
@@ -531,6 +531,7 @@ The **Clockify to Fibery Sync** product (see `docs/PRD.md`) remains the **system
 
 | Date | Version | Change Summary | Author |
 | --- | --- | --- | --- |
+| 2026-06-02 | 2.6.15 | **Web App favicon — setFaviconUrl + Drive mirror.** HtmlService **ignores** `<link rel="icon">` in HTML files; restore **`setFaviconUrl`** with bundled PNG mirrored to Drive (`uc?id=…&.png`, anyone-with-link). **`?favicon=1`** returns PNG blob (no auth). PATCH → **2.6.15**. | Cursor |
 | 2026-06-01 | 2.6.14 | **App Versions — Available column.** New **Available** (`TRUE`/`FALSE`) on **App Versions** tab; auto-registered rows get **FALSE** + deployment **URL**; only **Available=TRUE** rows drive update banner / latest semver. PATCH → **2.6.14**. | Cursor |
 | 2026-06-01 | 2.6.13 | **Web App favicon — fix `?favicon=1` crash.** `ContentService.createBlobOutput` / **`MimeType.PNG`** are not valid Apps Script APIs; tab icon uses **`<link rel="icon">`** with bundled **`data:image/png`** in templates (same pattern as Home hero). Legacy **`?favicon=1`** returns minimal HTML instead of erroring. PATCH → **2.6.13**. | Cursor |
 | 2026-05-29 | 2.6.12 | **Web App favicon — serve from doGet.** `setFaviconUrl` rejects **`data:`** URLs; bundled PNG served at **`?favicon=1&.png`** on the deployment URL. PATCH → **2.6.12**. | Cursor |
