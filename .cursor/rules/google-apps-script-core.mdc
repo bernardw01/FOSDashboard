@@ -55,9 +55,11 @@ Follow these standards when generating or changing code in this repository.
 
 When changing dashboard **payload shape**, **`cacheSchemaVersion`**, or server builders (`fiberyAgreementDashboard.js`, `fiberyUtilizationDashboard.js`, `deliveryDashboard.js`, client cache in `DashboardShell.html`), also follow **`.cursor/rules/dashboard-snapshot-cache-sync.mdc`**: keep `dashboardSnapshotJob.js` artifacts and `docs/features/009-dashboard-historical-snapshots.md` aligned so Drive snapshots do not drift from live caches.
 
-## PRD change control (mandatory — FOS Dashboard)
+## PRD change control (mandatory - FOS Dashboard)
 
-**Every merge-worthy change** in this repo MUST include a **PRD version bump** in the **same** commit/PR as the code or docs change. Do not defer version sync to a follow-up. Do not leave changelog rows with version `—` or omit a bump.
+**Every merge-worthy change** in this repo MUST include a **PRD version bump** in the **same** commit/PR as the code or docs change. Do not defer version sync to a follow-up. Do not leave changelog rows with a blank version or omit a bump.
+
+Documentation punctuation: no em dashes (`—`). See **`.cursor/rules/documentation-style.mdc`**.
 
 **Product PRD:** `docs/FOS-Dashboard-PRD.md` (not `docs/PRD.md`).
 
@@ -77,8 +79,8 @@ Whenever `docs/FOS-Dashboard-PRD.md` **version number** changes:
 
 1. Bump **`FOS_PRD_VERSION`** in `src/Code.js` to match **exactly**.
 2. Update the **PRD version line** at the top of **every** file under `src/`:
-   - **JavaScript:** ` * PRD version X.Y.Z — sync with docs/FOS-Dashboard-PRD.md`
-   - **HTML:** `<!-- PRD version X.Y.Z — sync with docs/FOS-Dashboard-PRD.md -->`
+   - **JavaScript:** ` * PRD version X.Y.Z - sync with docs/FOS-Dashboard-PRD.md`
+   - **HTML:** `<!-- PRD version X.Y.Z - sync with docs/FOS-Dashboard-PRD.md -->`
 3. Same commit as the PRD bump and changelog row.
 
 ### Version-number rules (semver-style)
@@ -87,14 +89,14 @@ Use **`MAJOR.MINOR.PATCH`** for `docs/FOS-Dashboard-PRD.md`. The same number dri
 
 | Segment | Bump when… | Examples |
 | --- | --- | --- |
-| **MAJOR** (`X.0.0`) | Breaking contract — auth model replaced, multi-deployment split, or breaking `google.script.run` / cache contract. **Rare**; confirm with the user first. | `2.0.0` |
-| **MINOR** (`X.Y.0`) | New feature, new FR/AC, new `docs/features/` spec, new server module, or substantial new surface area. Default when unsure between “small” and “new capability.” | `2.3.0` → `2.4.0` |
-| **PATCH** (`X.Y.Z`) | Minor fix or **small** enhancement to existing behavior (copy, KPI subtext, layout tweak, bugfix, schema-path fix) without a new feature phase. **Use a patch for every shipped change** when the change is intentionally small. | `2.4.2` → `2.4.3` |
+| **MAJOR** (`X.0.0`) | Breaking contract: auth model replaced, multi-deployment split, or breaking `google.script.run` / cache contract. **Rare**; confirm with the user first. | `2.0.0` |
+| **MINOR** (`X.Y.0`) | New feature, new FR/AC, new `docs/features/` spec, new server module, or substantial new surface area. Default when unsure between “small” and “new capability.” | `2.3.0` -> `2.4.0` |
+| **PATCH** (`X.Y.Z`) | Minor fix or **small** enhancement to existing behavior (copy, KPI subtext, layout tweak, bugfix, schema-path fix) without a new feature phase. **Use a patch for every shipped change** when the change is intentionally small. | `2.4.2` -> `2.4.3` |
 
 Conventions:
 
 - **Two-segment back-compat:** older changelog rows may show `X.Y` only; new bumps use three segments.
-- **Always add a §13 changelog row** with a real version — never `—`.
+- **Always add a §13 changelog row** with a real version (never blank or `TBD` in the version column).
 - **Patch bumps still sync all `src/*` headers** (full header sweep, not just changed files).
 - **One bump per change set:** do not stack unrelated MINOR + PATCH; ship corrections as the next PATCH.
 - **No leading `v`:** write `2.4.3`, not `v2.4.3`.

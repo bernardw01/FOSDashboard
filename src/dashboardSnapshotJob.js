@@ -1,5 +1,5 @@
 /**
- * PRD version 2.7.0 â€” sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.7.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Daily historical dashboard snapshot job. Fetches live Fibery payloads,
  * writes JSON artifacts to Google Drive (`dashboardSnapshotStore.js`),
@@ -8,13 +8,13 @@
  *
  * Script Properties:
  *   FOS_SNAPSHOT_DRIVE_FOLDER_ID
- *   FOS_SNAPSHOT_TIMEZONE              â€” default America/Chicago
- *   SNAPSHOT_UTILIZATION_LOOKBACK_DAYS â€” default 90
- *   SNAPSHOT_PNL_BATCH_SIZE            â€” default 8
- *   SNAPSHOT_RETENTION_DAYS            â€” default 90
- *   SNAPSHOT_TRIGGER_HOUR              â€” default 2 (local script TZ)
- *   FOS_SNAPSHOT_LOG_SHEET_NAME        â€” default Snapshot Runs
- *   AUTH_SPREADSHEET_ID                â€” same spreadsheet as Users tab
+ *   FOS_SNAPSHOT_TIMEZONE              - default America/Chicago
+ *   SNAPSHOT_UTILIZATION_LOOKBACK_DAYS - default 90
+ *   SNAPSHOT_PNL_BATCH_SIZE            - default 8
+ *   SNAPSHOT_RETENTION_DAYS            - default 90
+ *   SNAPSHOT_TRIGGER_HOUR              - default 2 (local script TZ)
+ *   FOS_SNAPSHOT_LOG_SHEET_NAME        - default Snapshot Runs
+ *   AUTH_SPREADSHEET_ID                - same spreadsheet as Users tab
  *
  * Public (editor / trigger):
  *   runDailyDashboardSnapshot_()
@@ -129,7 +129,7 @@ function _diag_runSnapshotForDate(snapshotDate) {
       ? requireSnapshotDate_(snapshotDate)
       : resolveSnapshotDateKey_();
   var result = runDashboardSnapshotForDate_(date, true);
-  console.log('_diag_runSnapshotForDate â†’', JSON.stringify(result));
+  console.log('_diag_runSnapshotForDate  -> ', JSON.stringify(result));
   return result;
 }
 
@@ -157,7 +157,7 @@ function _diag_snapshotPreflight() {
 
   if (!out.authSpreadsheetIdSet) {
     out.ok = false;
-    out.notes.push('AUTH_SPREADSHEET_ID is missing â€” Snapshot Runs will not be written.');
+    out.notes.push('AUTH_SPREADSHEET_ID is missing - Snapshot Runs will not be written.');
   } else {
     var logSheet = getSnapshotRunsSheetOrNull_();
     out.logSheetAccessible = !!logSheet;
@@ -170,7 +170,7 @@ function _diag_snapshotPreflight() {
   }
 
   if (!out.snapshotFolderIdSet) {
-    out.notes.push('FOS_SNAPSHOT_DRIVE_FOLDER_ID is missing â€” run ensureSnapshotDriveFolder() first.');
+    out.notes.push('FOS_SNAPSHOT_DRIVE_FOLDER_ID is missing - run ensureSnapshotDriveFolder() first.');
   } else {
     try {
       DriveApp.getFolderById(props.FOS_SNAPSHOT_DRIVE_FOLDER_ID);
@@ -183,10 +183,10 @@ function _diag_snapshotPreflight() {
 
   if (!out.fiberyHostSet || !out.fiberyTokenSet) {
     out.ok = false;
-    out.notes.push('FIBERY_HOST and/or FIBERY_API_TOKEN missing â€” snapshot fetch will fail.');
+    out.notes.push('FIBERY_HOST and/or FIBERY_API_TOKEN missing - snapshot fetch will fail.');
   }
 
-  console.log('_diag_snapshotPreflight â†’', JSON.stringify(out));
+  console.log('_diag_snapshotPreflight  -> ', JSON.stringify(out));
   return out;
 }
 
@@ -358,7 +358,7 @@ function runDashboardSnapshotForDate_(snapshotDate, force) {
       console.warn(
         'Snapshot ' +
           snapshotDate +
-          ': still running â€” ' +
+          ': still running - ' +
           (batchResult.pnlProgress
             ? batchResult.pnlProgress.completed + '/' + batchResult.pnlProgress.total
             : '') +

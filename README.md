@@ -39,7 +39,7 @@ Cross-cutting **platform** behavior (not tied to a single dashboard route):
 | **Authorization** | Active user email matched to a **Google Sheet** tab (default `Users`; spreadsheet ID in Script Properties). **Role** and **Team** surface in the sidebar chip. Optional **`fibery_access`** gates Fibery deep-link config in the nav payload. | [002](docs/features/002-spreadsheet-user-authorization.md) |
 | **Server API gate** | `google.script.run` entry points (e.g. `getDashboardNavigation()`, `getAgreementDashboardData()`, `getUtilizationDashboardData()`, `getDeliveryProjectMonthlyPnL()`) use server-side auth helpers so the sheet gate cannot be bypassed from the client. | [002](docs/features/002-spreadsheet-user-authorization.md) |
 | **Shell UI** | Bootstrap **dark** layout: left nav (icons + labels), **Home** welcome card, nested **Operations** and **Delivery** groups; **Settings** (gear) for **ADMIN** only (environment config + usage analytics). | [001](docs/features/001-dashboard-shell-navigation.md) · [011](docs/features/011-admin-settings-environment-panel.md) · [012](docs/features/012-admin-settings-usage-analytics-collapsible.md) |
-| **PRD version** | Sidebar footer + not-authorized page show **`FOS_PRD_VERSION`** in `[src/Code.js](src/Code.js)` — must match `[docs/FOS-Dashboard-PRD.md](docs/FOS-Dashboard-PRD.md)` and every `src/*` file header. | [PRD](docs/FOS-Dashboard-PRD.md) |
+| **PRD version** | Sidebar footer + not-authorized page show **`FOS_PRD_VERSION`** in `[src/Code.js](src/Code.js)` - must match `[docs/FOS-Dashboard-PRD.md](docs/FOS-Dashboard-PRD.md)` and every `src/*` file header. | [PRD](docs/FOS-Dashboard-PRD.md) |
 | **Historical snapshots** | Daily job writes JSON to **Google Drive**; **Snapshot Runs** log tab. | [009](docs/features/009-dashboard-historical-snapshots.md) |
 | **Data source selector** | Sidebar **Live data** vs dated snapshot; all dashboards from Drive bundle without Fibery until Live is selected. | [010](docs/features/010-dashboard-historical-data-source.md) |
 
@@ -58,7 +58,7 @@ Cross-cutting **platform** behavior (not tied to a single dashboard route):
 
 Route **`agreement-dashboard`** · panel **`#panel-agreement-dashboard`**. Fibery via REST `/api/commands` (`FIBERY_HOST` + `FIBERY_API_TOKEN`). Client cache **`sessionStorage`** key `fos_agreement_dashboard_v2`; TTL 5 / 10 / 30 / Off in `localStorage` + **Stale** badge + background refresh. Chart.js and D3 + d3-sankey lazy-loaded from jsDelivr.
 
-Normative feature spec: **[003 — Agreement Dashboard (Fibery client & cache)](docs/features/003-agreement-dashboard-fibery-client-cache.md)**.
+Normative feature spec: **[003 - Agreement Dashboard (Fibery client & cache)](docs/features/003-agreement-dashboard-fibery-client-cache.md)**.
 
 | Version | Capabilities | Feature spec |
 | --- | --- | --- |
@@ -74,7 +74,7 @@ Normative feature spec: **[003 — Agreement Dashboard (Fibery client & cache)](
 
 Route **`operations`** · panel **`#panel-operations`**. Data from Fibery **`Agreement Management/Labor Costs`** (paginated, date-filtered). Cache **`fos_utilization_dashboard_v1`** (`cacheSchemaVersion` **2** from v1.14.0 onward for alerts + heatmap payload). Six Chart.js surfaces + KPI strip + global filters; **`localStorage`** `fos_utilization_filters_v1` (range not persisted).
 
-Normative feature spec: **[005 — Utilization Management Dashboard](docs/features/005-utilization-management-dashboard.md)**.
+Normative feature spec: **[005 - Utilization Management Dashboard](docs/features/005-utilization-management-dashboard.md)**.
 
 | Version | Capabilities | Feature spec |
 | --- | --- | --- |
@@ -90,21 +90,21 @@ Normative feature spec: **[005 — Utilization Management Dashboard](docs/featur
 
 ### Labor hours
 
-Route **`labor-hours`** · panel **`#panel-labor-hours`**. Reuses normalized labor rows from the Utilization payload; **`laborHours`** object on that payload (Script Property–driven targets).
+Route **`labor-hours`** · panel **`#panel-labor-hours`**. Reuses normalized labor rows from the Utilization payload; **`laborHours`** object on that payload (Script Property - driven targets).
 
-Normative feature spec: **[007 — Labor hours dashboard](docs/features/007-labor-hours-dashboard.md)**.
+Normative feature spec: **[007 - Labor hours dashboard](docs/features/007-labor-hours-dashboard.md)**.
 
 | Version | Capabilities | Feature spec |
 | --- | --- | --- |
-| **v1.22.0** | **Mon–Sun week** picker (default last completed week), Over / Under / On-target **sortable** tables, **Internal labor** filter aligned with Utilization, **cache-first** week slice when `fos_utilization_dashboard_v1` date range already covers the selected week (skips redundant `getUtilizationDashboardData`). | [007](docs/features/007-labor-hours-dashboard.md) · [005](docs/features/005-utilization-management-dashboard.md) |
+| **v1.22.0** | **Mon - Sun week** picker (default last completed week), Over / Under / On-target **sortable** tables, **Internal labor** filter aligned with Utilization, **cache-first** week slice when `fos_utilization_dashboard_v1` date range already covers the selected week (skips redundant `getUtilizationDashboardData`). | [007](docs/features/007-labor-hours-dashboard.md) · [005](docs/features/005-utilization-management-dashboard.md) |
 | **v1.23.0** | **Zero hours** KPI + chip roster from `dimensions.persons`; KPI tiles **scroll** to sections (click + keyboard); optional **`LABOR_HOURS_COMPANY_TARGETS_JSON`**, **`LABOR_HOURS_EXCLUDED_PERSON_SUBSTRINGS`**. | [007](docs/features/007-labor-hours-dashboard.md) |
 | **v1.24.0** | **Expandable project / task** `<details>` in Projects column; **Copy CSV**; **print** rules; dedicated **`labor_hours_*`** activity events. | [007](docs/features/007-labor-hours-dashboard.md) · [004](docs/features/004-user-activity-logging.md) |
 
-### Delivery — Projects & P&L
+### Delivery - Projects & P&L
 
 Route **`delivery`** · panel **`#panel-delivery`**. Project list from **`getAgreementDashboardData()`** (no extra list query). Per-project monthly grid via **`getDeliveryProjectMonthlyPnL(agreementId)`**; cache **`fos_delivery_pnl_<agreementId>_v2`**.
 
-Normative feature spec: **[006 — Delivery project P&L](docs/features/006-delivery-project-pnl.md)**.
+Normative feature spec: **[006 - Delivery project P&L](docs/features/006-delivery-project-pnl.md)**.
 
 | Version | Capabilities | Feature spec |
 | --- | --- | --- |
@@ -117,7 +117,7 @@ Normative feature spec: **[006 — Delivery project P&L](docs/features/006-deliv
 
 Route **`revenue-review`** · panel **`#panel-revenue-review`**. Under sidebar **Delivery** group. Reads the same browser cache as Agreement: **`fos_agreement_dashboard_v2`** + shared TTL / Stale behavior.
 
-Normative feature spec: **[008 — Revenue review dashboard](docs/features/008-revenue-review-dashboard.md)**. Nav group parent (**Delivery** + children) is also summarized in [001](docs/features/001-dashboard-shell-navigation.md) and [000-overview](docs/features/000-overview.md).
+Normative feature spec: **[008 - Revenue review dashboard](docs/features/008-revenue-review-dashboard.md)**. Nav group parent (**Delivery** + children) is also summarized in [001](docs/features/001-dashboard-shell-navigation.md) and [000-overview](docs/features/000-overview.md).
 
 | Version | Capabilities | Feature spec |
 | --- | --- | --- |
@@ -133,8 +133,8 @@ Configuration for this Web App lives in the Apps Script project under **Project 
 
 | Keys (rows below) | Feature spec |
 | --- | --- |
-| Authorization & Users sheet, `AUTH_COL_FIBERY_ACCESS` | [002 — Spreadsheet user authorization](docs/features/002-spreadsheet-user-authorization.md) |
-| User activity log | [004 — User activity logging](docs/features/004-user-activity-logging.md) |
+| Authorization & Users sheet, `AUTH_COL_FIBERY_ACCESS` | [002 - Spreadsheet user authorization](docs/features/002-spreadsheet-user-authorization.md) |
+| User activity log | [004 - User activity logging](docs/features/004-user-activity-logging.md) |
 | Fibery API + deep-link templates | [002](docs/features/002-spreadsheet-user-authorization.md) (gate) · [005](docs/features/005-utilization-management-dashboard.md) (drawer) · [003](docs/features/003-agreement-dashboard-fibery-client-cache.md) · [008](docs/features/008-revenue-review-dashboard.md) (Companies link) |
 | Agreement Dashboard thresholds + Sankey | [003](docs/features/003-agreement-dashboard-fibery-client-cache.md) |
 | Delivery table + P&L + completion/margin thresholds | [006](docs/features/006-delivery-project-pnl.md) · [003](docs/features/003-agreement-dashboard-fibery-client-cache.md) (shared threshold maps) |
@@ -145,7 +145,7 @@ Configuration for this Web App lives in the Apps Script project under **Project 
 | Property | Required | Purpose | Typical default |
 | --- |:---:| --- | --- |
 | **Authorization & Users sheet** | | | |
-| `AUTH_SPREADSHEET_ID` | **Yes** | Spreadsheet ID that contains the authorized-users tab. | — |
+| `AUTH_SPREADSHEET_ID` | **Yes** | Spreadsheet ID that contains the authorized-users tab. | - |
 | `AUTH_USERS_SHEET_NAME` | No | Tab name for the user roster. | `Users` |
 | `AUTH_COL_EMAIL` | No | Header for the email column (case-sensitive match to row 1). | `Email` |
 | `AUTH_COL_ROLE` | No | Header for role. | `Role` |
@@ -156,8 +156,8 @@ Configuration for this Web App lives in the Apps Script project under **Project 
 | `AUTH_APP_VERSIONS_SHEET_NAME` | No | Tab listing PRD releases and deployment URLs ([feature 013](docs/features/013-app-versions-registry.md)). | `App Versions` |
 | `USER_ACTIVITY_LOGGING_ENABLED` | No | Kill-switch: `false` / `no` / `0` (case-insensitive) disables writes; unset or other → enabled. | *(on)* |
 | **Fibery API (shared)** | | | |
-| `FIBERY_HOST` | **Yes** (for Fibery routes) | Fibery workspace host for REST `/api/commands` (no scheme), e.g. `harpin-ai.fibery.io`. Default host for deep links when `FIBERY_DEEP_LINK_HOST` is unset. | — |
-| `FIBERY_API_TOKEN` | **Yes** (for Fibery routes) | Fibery API token (server-only; never exposed to the browser). | — |
+| `FIBERY_HOST` | **Yes** (for Fibery routes) | Fibery workspace host for REST `/api/commands` (no scheme), e.g. `harpin-ai.fibery.io`. Default host for deep links when `FIBERY_DEEP_LINK_HOST` is unset. | - |
+| `FIBERY_API_TOKEN` | **Yes** (for Fibery routes) | Fibery API token (server-only; never exposed to the browser). | - |
 | **Fibery deep links (browser URLs, gated by `fibery_access`)** | | | |
 | `FIBERY_PUBLIC_SCHEME` | No | Scheme when composing **Open in Fibery** URLs. | `https` |
 | `FIBERY_DEEP_LINK_HOST` | No | Public web host for deep links if it differs from `FIBERY_HOST`. | falls back to `FIBERY_HOST` |
@@ -171,7 +171,7 @@ Configuration for this Web App lives in the Apps Script project under **Project 
 | `AGREEMENT_THRESHOLD_EXPIRY_DAYS` | No | Renewal / expiring-agreement window (days). | `60` |
 | `AGREEMENT_TOP_N_RECOGNITION_BARS` | No | Top-N agreements in the revenue recognition stacked bar. | `10` |
 | `AGREEMENT_INTERNAL_COMPANY_NAMES` | No | Comma-separated internal company names (internal classification). | `harpin.ai` |
-| `AGREEMENT_SANKEY_LINK_OPACITY` | No | Revenue Flow Sankey link opacity (`0`–`1`). | `0.35` |
+| `AGREEMENT_SANKEY_LINK_OPACITY` | No | Revenue Flow Sankey link opacity (`0` - `1`). | `0.35` |
 | `AGREEMENT_SANKEY_INCLUDE_INTERNAL` | No | Include **Internal** type agreements in the Sankey aggregate. | `false` |
 | **Delivery table + P&L (Script Properties)** | | | |
 | `DELIVERY_CACHE_TTL_MINUTES` | No | Server seed for Delivery client cache TTL (minutes). | `10` |
@@ -180,10 +180,10 @@ Configuration for this Web App lives in the Apps Script project under **Project 
 | `DELIVERY_PNL_INCLUDE_PROJECTED_ODC` | No | When `true`, include **Projected** Other Direct Costs rows in monthly P&L. | `true` |
 | `DELIVERY_PNL_MAX_LABOR_ROWS` | No | Max Labor Cost rows fetched per project (`0` = unlimited); partial badge when capped. | `10000` |
 | **Delivery visuals + Agreement Attention (shared)** | | | |
-| `DELIVERY_COMPLETION_UNDER_PCT` | No | §D.11 `% Complete` bar — upper bound of “under” bucket (%). Resolved in `[src/agreementThresholds.js](src/agreementThresholds.js)`. | `25` |
-| `DELIVERY_COMPLETION_BUILDING_PCT` | No | §D.11 — upper bound of “building” bucket (%). | `75` |
-| `DELIVERY_COMPLETION_OVER_PCT` | No | §D.11 — “over” when completion **exceeds** this (%). | `100` |
-| `DELIVERY_MARGIN_VARIANCE_AMBER_PTS` | No | §D.10 margin vs target — amber band width below target (percentage points); also Agreement Attention delivery rules. | `5` |
+| `DELIVERY_COMPLETION_UNDER_PCT` | No | §D.11 `% Complete` bar - upper bound of “under” bucket (%). Resolved in `[src/agreementThresholds.js](src/agreementThresholds.js)`. | `25` |
+| `DELIVERY_COMPLETION_BUILDING_PCT` | No | §D.11 - upper bound of “building” bucket (%). | `75` |
+| `DELIVERY_COMPLETION_OVER_PCT` | No | §D.11 - “over” when completion **exceeds** this (%). | `100` |
+| `DELIVERY_MARGIN_VARIANCE_AMBER_PTS` | No | §D.10 margin vs target - amber band width below target (percentage points); also Agreement Attention delivery rules. | `5` |
 | **Utilization Management Dashboard** | | | |
 | `UTILIZATION_CACHE_TTL_MINUTES` | No | Server seed for Operations client cache TTL (minutes). | `10` |
 | `UTILIZATION_DEFAULT_RANGE_DAYS` | No | Default date-range length when the client does not pass explicit bounds. | `90` |
@@ -210,14 +210,14 @@ Configuration for this Web App lives in the Apps Script project under **Project 
 ## Repository layout
 
 
-| Path                         | Purpose                                                                                              |
+| Path | Purpose |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `[src/](src/)`               | **Only** what **clasp** pushes to Apps Script (`.gs`, `.html`, `appsscript.json`).                   |
-| `[src/assets/](src/assets/)` | Version-controlled binaries for the Web App (e.g. Home hero `home-hero-deap.png`). Embedded into `src/homeHeroImage.js` for HtmlService — see `[src/assets/README.md](src/assets/README.md)`. |
+| `[src/](src/)` | **Only** what **clasp** pushes to Apps Script (`.gs`, `.html`, `appsscript.json`). |
+| `[src/assets/](src/assets/)` | Version-controlled binaries for the Web App (e.g. Home hero `home-hero-deap.png`). Embedded into `src/homeHeroImage.js` for HtmlService - see `[src/assets/README.md](src/assets/README.md)`. |
 | `[scripts/embed-favicon.ps1](scripts/embed-favicon.ps1)` | Regenerates `faviconAsset.js` after `favicon.svg` changes. |
 | `[scripts/embed-home-hero.ps1](scripts/embed-home-hero.ps1)` | Regenerates `homeHeroImage.js` after the hero PNG changes. |
-| `[docs/](docs/)`             | PRDs and feature specs; **not** uploaded to the script project (see `[.claspignore](.claspignore)`). |
-| `[.clasp.json](.clasp.json)` | Links this repo to a Google Apps Script project (`scriptId`) and sets `**rootDir`: `src`**.          |
+| `[docs/](docs/)` | PRDs and feature specs; **not** uploaded to the script project (see `[.claspignore](.claspignore)`). |
+| `[.clasp.json](.clasp.json)` | Links this repo to a Google Apps Script project (`scriptId`) and sets `**rootDir`: `src`**. |
 
 
 ---
@@ -242,14 +242,14 @@ clasp login
 
 ### 2. Connect to an Apps Script project
 
-**Option A — You already have this repo and a shared script:** ensure `[.clasp.json](.clasp.json)` contains the correct `**scriptId`** and that your Google user has **Editor** (or Owner) on that Apps Script project.
+**Option A - You already have this repo and a shared script:** ensure `[.clasp.json](.clasp.json)` contains the correct `**scriptId`** and that your Google user has **Editor** (or Owner) on that Apps Script project.
 
-**Option B — New Apps Script project:** in [script.google.com](https://script.google.com), create a project → **Project settings** → copy **Script ID**. Set it in `.clasp.json`:
+**Option B - New Apps Script project:** in [script.google.com](https://script.google.com), create a project → **Project settings** → copy **Script ID**. Set it in `.clasp.json`:
 
 ```json
 {
-  "scriptId": "YOUR_SCRIPT_ID_HERE",
-  "rootDir": "src"
+ "scriptId": "YOUR_SCRIPT_ID_HERE",
+ "rootDir": "src"
 }
 ```
 
@@ -273,14 +273,14 @@ Only files under `**src/**` are pushed; `README.md`, `docs/`, `.git/`, etc. are 
 
 In the Apps Script editor: **Project settings** → **Script properties** (or **File → Project properties** in the older UI). The **full list** of keys (Fibery, Agreement, Utilization, Delivery, activity log, deep links) is in [**Script properties (Apps Script project settings)**](#script-properties-apps-script-project-settings) above. Minimum for sheet-backed auth:
 
-| Property                | Required | Description                                                |
+| Property | Required | Description |
 | ----------------------- | -------- | ---------------------------------------------------------- |
-| `AUTH_SPREADSHEET_ID`   | **Yes**  | Google Spreadsheet ID containing the authorized users tab. |
-| `AUTH_USERS_SHEET_NAME` | No       | Tab name (default `**Users`**).                            |
-| `AUTH_COL_EMAIL`        | No       | Email column header (default `**Email**`).                 |
-| `AUTH_COL_ROLE`         | No       | Role column header (default `**Role**`).                   |
-| `AUTH_COL_TEAM`         | No       | Team column header (default `**Team**`).                   |
-| `AUTH_COL_FIBERY_ACCESS` | No      | **Open in Fibery** gate column header (default `**fibery_access**`). |
+| `AUTH_SPREADSHEET_ID` | **Yes** | Google Spreadsheet ID containing the authorized users tab. |
+| `AUTH_USERS_SHEET_NAME` | No | Tab name (default `**Users`**). |
+| `AUTH_COL_EMAIL` | No | Email column header (default `**Email**`). |
+| `AUTH_COL_ROLE` | No | Role column header (default `**Role**`). |
+| `AUTH_COL_TEAM` | No | Team column header (default `**Team**`). |
+| `AUTH_COL_FIBERY_ACCESS` | No | **Open in Fibery** gate column header (default `**fibery_access**`). |
 
 
 The **Users** sheet must have a **header row** with those columns; each authorized user is one row with a Workspace **email** that matches `Session.getActiveUser().getEmail()` when the Web App runs as **User accessing the web app**.
@@ -320,20 +320,20 @@ Requirements and feature breakdowns live under `**docs/**`. They are **not** dep
 ### Useful clasp commands
 
 
-| Command                   | Use                                                   |
+| Command | Use |
 | ------------------------- | ----------------------------------------------------- |
-| `clasp open`              | Open the script project in the browser.               |
-| `clasp deployments`       | List deployments and versions.                        |
-| `clasp version "message"` | Save a named version snapshot before deploying.       |
-| `clasp logs`              | Stream Stackdriver-style logs (when logging is used). |
+| `clasp open` | Open the script project in the browser. |
+| `clasp deployments` | List deployments and versions. |
+| `clasp version "message"` | Save a named version snapshot before deploying. |
+| `clasp logs` | Stream Stackdriver-style logs (when logging is used). |
 
 
 ---
 
 ## Related documents
 
-- `[docs/FOS-Dashboard-PRD.md](docs/FOS-Dashboard-PRD.md)` — main product PRD for this Web App.
-- **[Feature specs](#feature-specs)** — numbered feature docs (`docs/features/`) tied to README version rows above.
-- `[docs/agreement-dashboard-prd-v2.md](docs/agreement-dashboard-prd-v2.md)` — agreement dashboard visuals, Fibery model, and thresholds (the Agreement Dashboard view pulls from this where applicable).
-- `[docs/PRD.md](docs/PRD.md)` — separate Clockify ↔ Fibery sync PRD (related data pipelines).
+- `[docs/FOS-Dashboard-PRD.md](docs/FOS-Dashboard-PRD.md)` - main product PRD for this Web App.
+- **[Feature specs](#feature-specs)** - numbered feature docs (`docs/features/`) tied to README version rows above.
+- `[docs/agreement-dashboard-prd-v2.md](docs/agreement-dashboard-prd-v2.md)` - agreement dashboard visuals, Fibery model, and thresholds (the Agreement Dashboard view pulls from this where applicable).
+- `[docs/PRD.md](docs/PRD.md)` - separate Clockify ↔ Fibery sync PRD (related data pipelines).
 

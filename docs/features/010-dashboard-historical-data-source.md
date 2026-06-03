@@ -1,6 +1,6 @@
 # Dashboard historical data source (UI)
 
-> **PRD version 2.1.0** — see `docs/FOS-Dashboard-PRD.md` (**FR-105**, **AC-61**). Storage job: [009-dashboard-historical-snapshots.md](009-dashboard-historical-snapshots.md).
+> **PRD version 2.1.0** - see `docs/FOS-Dashboard-PRD.md` (**FR-105**, **AC-61**). Storage job: [009-dashboard-historical-snapshots.md](009-dashboard-historical-snapshots.md).
 
 ## Goal
 

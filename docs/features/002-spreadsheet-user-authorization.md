@@ -1,6 +1,6 @@
 # Feature: Spreadsheet user authorization (users tab)
 
-> **PRD version 2.1.0** — keep in sync with `docs/FOS-Dashboard-PRD.md`.
+> **PRD version 2.1.0** - keep in sync with `docs/FOS-Dashboard-PRD.md`.
 
 ## Goal
 
@@ -22,9 +22,9 @@ Authorize FOS Dashboard users by **looking up their Google account email** in a 
 
 ## UI Notes
 
-- **New file**: `src/NotAuthorized.html` — static or templated HtmlService page: short title, explanation (“You are signed in but not authorized…”), optional link to internal IT / request access channel (configurable copy only, no secrets).
-- **Update**: `src/Code.js` — `doGet` branches on authorization result; extract sheet lookup into a dedicated function or `src/authUsersSheet.js` (or equivalent) for reuse by `doGet` and `google.script.run` handlers.
-- **Update**: `src/DashboardShell.html` — optionally show **team** (and/or **role**) in the user chip area once passed from server (template evaluate or first `google.script.run` response); must not trust client-submitted role/team.
+- **New file**: `src/NotAuthorized.html` - static or templated HtmlService page: short title, explanation (“You are signed in but not authorized…”), optional link to internal IT / request access channel (configurable copy only, no secrets).
+- **Update**: `src/Code.js` - `doGet` branches on authorization result; extract sheet lookup into a dedicated function or `src/authUsersSheet.js` (or equivalent) for reuse by `doGet` and `google.script.run` handlers.
+- **Update**: `src/DashboardShell.html` - optionally show **team** (and/or **role**) in the user chip area once passed from server (template evaluate or first `google.script.run` response); must not trust client-submitted role/team.
 
 ## Data Model
 
@@ -35,13 +35,13 @@ Authorize FOS Dashboard users by **looking up their Google account email** in a 
 | **Email** | Yes | Google account email; string; match is **trim + case-insensitive**. |
 | **Role** | Yes | Free text or controlled vocabulary (documented by ops); drives future RBAC. |
 | **Team** | Yes | Free text or controlled vocabulary. |
-| **fibery_access** *(v1.15.0)* | Optional | Per-user gate for the Operations row-detail drawer **Open in Fibery →** anchor. Truthy values: `TRUE` / `True` / `true`, `yes` / `y`, `1`, or the Sheets / JS boolean `true`. Blank, `FALSE`, `0`, `no`, garbage, or a **missing column** all resolve to **`false`** — deny by default. Header name is overridable via Script Property `AUTH_COL_FIBERY_ACCESS`. Gated `false` users never receive the Fibery host or URL template in any server response. |
+| **fibery_access** *(v1.15.0)* | Optional | Per-user gate for the Operations row-detail drawer **Open in Fibery →** anchor. Truthy values: `TRUE` / `True` / `true`, `yes` / `y`, `1`, or the Sheets / JS boolean `true`. Blank, `FALSE`, `0`, `no`, garbage, or a **missing column** all resolve to **`false`** - deny by default. Header name is overridable via Script Property `AUTH_COL_FIBERY_ACCESS`. Gated `false` users never receive the Fibery host or URL template in any server response. |
 
-- **Optional later**: `Active` (Y/N), `StartDate`, `EndDate` — out of scope for v1 unless added in same feature.
+- **Optional later**: `Active` (Y/N), `StartDate`, `EndDate` - out of scope for v1 unless added in same feature.
 - **Header row**: row 1; data from row 2 downward.
 - **Uniqueness**: If multiple rows match the same email, behavior MUST be deterministic (e.g. **first match wins** after documented sort, or **last row wins**); document the chosen rule in code comments and here when implemented.
 
-### Script Properties (documented names — final names chosen at implementation)
+### Script Properties (documented names - final names chosen at implementation)
 
 | Property | Purpose |
 | --- | --- |
@@ -62,7 +62,7 @@ Authorize FOS Dashboard users by **looking up their Google account email** in a 
 - **Empty email** (anonymous / wrong execute-as mode): treat as **unauthorized**; log safely for admin.
 - **Sheet missing / wrong ID / no access**: fail closed; admin sees execution error; user sees safe page per AC.
 - **Header row mismatch** (column not found): fail closed or unauthorized; log column name expected.
-- **Very large user lists**: document max rows or implement **CacheService** keyed by email with short TTL (e.g. 60–300s) to reduce quota — optional follow-up if performance requires it.
+- **Very large user lists**: document max rows or implement **CacheService** keyed by email with short TTL (e.g. 60 - 300s) to reduce quota - optional follow-up if performance requires it.
 - **Concurrent edits**: next request picks up new rows; no real-time push required in v1.
 
 ## Verification Steps

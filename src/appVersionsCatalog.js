@@ -1,17 +1,17 @@
 /**
- * PRD version 2.7.0 â€” sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.7.0 - sync with docs/FOS-Dashboard-PRD.md
  *
- * App Versions tab in the auth spreadsheet â€” tracks PRD releases and deployment URLs.
+ * App Versions tab in the auth spreadsheet - tracks PRD releases and deployment URLs.
  * Feature 013.
  *
  * Script Properties:
  *   AUTH_APP_VERSIONS_SHEET_NAME (default 'App Versions')
  *
  * Public API:
- *   getAppVersionStatus() â€” compare running FOS_PRD_VERSION to catalog latest.
+ *   getAppVersionStatus() - compare running FOS_PRD_VERSION to catalog latest.
  *
  * Internal:
- *   syncCurrentAppVersionToCatalog_() â€” append row when current version is new.
+ *   syncCurrentAppVersionToCatalog_() - append row when current version is new.
  */
 
 /** @const {string} */
@@ -421,13 +421,13 @@ function appVersionsWarn_(msg, err) {
 }
 
 /**
- * Editor diagnostic â€” read catalog + sync state.
+ * Editor diagnostic - read catalog + sync state.
  * @return {!Object}
  */
 function _diag_appVersionsCatalog() {
   var sync = syncCurrentAppVersionToCatalog_();
   var status = buildAppVersionStatusPayload_();
-  console.log('sync â†’', JSON.stringify(sync));
-  console.log('status â†’', JSON.stringify(status));
+  console.log('sync  -> ', JSON.stringify(sync));
+  console.log('status  -> ', JSON.stringify(status));
   return { sync: sync, status: status };
 }

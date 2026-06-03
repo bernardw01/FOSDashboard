@@ -1,18 +1,18 @@
 /**
- * PRD version 2.7.0 â€” sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.7.0 - sync with docs/FOS-Dashboard-PRD.md
  *
- * User activity logging â€” append-only event rows to the "User Activity" tab
- * in the Users spreadsheet (AUTH_SPREADSHEET_ID). Implements Â§3.8 / FR-60â€“FR-66.
+ * User activity logging - append-only event rows to the "User Activity" tab
+ * in the Users spreadsheet (AUTH_SPREADSHEET_ID). Implements Section 3.8 / FR-60-FR-66.
  *
  * Script Properties:
  *   AUTH_USER_ACTIVITY_SHEET_NAME (default 'User Activity')
  *   USER_ACTIVITY_LOGGING_ENABLED (default 'true'; 'false' | 'no' | '0' disable)
  *
  * Public API:
- *   logUserActivity(event) â€” invokable via google.script.run; re-checks auth.
+ *   logUserActivity(event) - invokable via google.script.run; re-checks auth.
  *
  * Server-internal:
- *   recordPageLoad_(auth) â€” called from doGet after successful authorization.
+ *   recordPageLoad_(auth) - called from doGet after successful authorization.
  */
 
 /** @const {string} */
@@ -131,7 +131,7 @@ function logUserActivity(event) {
 
 /**
  * Server-internal: log a 'page_load' row for an authorized session.
- * Wraps all errors â€” never throws back to doGet.
+ * Wraps all errors - never throws back to doGet.
  * @param {{ email: string, role: string, team: string }} auth
  */
 function recordPageLoad_(auth) {
@@ -216,7 +216,7 @@ function writeActivityRow_(fields) {
   }
 
   // Standalone Web App: use getScriptLock(). getDocumentLock() returns null
-  // for nonâ€“container-bound scripts, which previously surfaced as a spurious
+  // for non-container-bound scripts, which previously surfaced as a spurious
   // "lock timeout" warning on the very first page_load row.
   var lock = LockService.getScriptLock();
   if (!lock) {

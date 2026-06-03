@@ -1,4 +1,4 @@
-# Implementation plan — Admin settings usage analytics & collapsible groups
+# Implementation plan - Admin settings usage analytics & collapsible groups
 
 > Companion to [012-admin-settings-usage-analytics-collapsible.md](012-admin-settings-usage-analytics-collapsible.md). **Delivered v2.3.0**.
 
@@ -8,12 +8,12 @@
 |------|--------|
 | **Version** | **2.3.0** (MINOR) |
 | **PRD** | **FR-107**, **AC-63** |
-| **Server** | `src/userActivityStats.js` — `getAdminUsageStats()` |
-| **Client** | `src/DashboardShell.html` — collapsible groups + usage tables + chart |
+| **Server** | `src/userActivityStats.js` - `getAdminUsageStats()` |
+| **Client** | `src/DashboardShell.html` - collapsible groups + usage tables + chart |
 
 ## Delivered scope
 
-- All Settings groups (including **Usage — last 30 days**) use Bootstrap **collapse**, **collapsed** initially.
+- All Settings groups (including **Usage - last 30 days**) use Bootstrap **collapse**, **collapsed** initially.
 - **`getAdminUsageStats()`** aggregates last **30** days from **User Activity** (`page_load`, `nav_view`, `refresh`).
 - **By route** table, **by user** table (email, role, team, events), **stacked bar chart** (lazy Chart.js on first expand of usage section).
 - Parallel load: `getAdminSettingsPanel` + `getAdminUsageStats` on Settings open.

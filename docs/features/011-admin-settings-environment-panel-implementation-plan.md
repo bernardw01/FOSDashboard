@@ -1,4 +1,4 @@
-# Implementation plan — Admin settings environment panel
+# Implementation plan - Admin settings environment panel
 
 > Companion to [011-admin-settings-environment-panel.md](011-admin-settings-environment-panel.md). **Implemented v2.2.0** in a single release (decisions: hide Settings for non-admins; read-only auth spreadsheet id and snapshot folder id).
 
@@ -17,16 +17,16 @@
 
 ```mermaid
 flowchart TD
-  click[ADMIN clicks Settings] --> panel[showSettingsPanel]
-  panel --> apiGet[getAdminSettingsPanel]
-  apiGet --> registry[adminSettingsRegistry.js]
-  apiGet --> props[PropertiesService.getProperty]
-  registry --> merge[Merge: useDefault + value + metadata]
-  merge --> render[Render grouped form]
-  save[Save changes] --> apiSave[saveAdminSettings]
-  apiSave --> validate[Validate per registry]
-  validate --> write[setProperty / deleteProperty]
-  write --> log[logUserActivity admin_settings_save]
+ click[ADMIN clicks Settings] --> panel[showSettingsPanel]
+ panel --> apiGet[getAdminSettingsPanel]
+ apiGet --> registry[adminSettingsRegistry.js]
+ apiGet --> props[PropertiesService.getProperty]
+ registry --> merge[Merge: useDefault + value + metadata]
+ merge --> render[Render grouped form]
+ save[Save changes] --> apiSave[saveAdminSettings]
+ apiSave --> validate[Validate per registry]
+ validate --> write[setProperty / deleteProperty]
+ write --> log[logUserActivity admin_settings_save]
 ```
 
 ### Default toggle semantics
@@ -35,17 +35,17 @@ flowchart TD
 2. **Load:** `useDefault = !props.hasProperty(key)` (or key absent/blank per type rules).
 3. **Display:** If `useDefault`, show default as read-only hint; inputs disabled.
 4. **Save:** For each field:
-   - `useDefault === true` → `deleteProperty(key)`
-   - `useDefault === false` → `setProperty(key, serialize(value))`
-5. **Runtime:** Existing `getAgreementThresholds_()`, `getUtilizationThresholds_()`, etc. unchanged—they already read property then fall back to defaults. Optional follow-up: thin wrappers call `getResolvedAdminSetting_(key)` to avoid drift.
+ - `useDefault === true` → `deleteProperty(key)`
+ - `useDefault === false` → `setProperty(key, serialize(value))`
+5. **Runtime:** Existing `getAgreementThresholds_()`, `getUtilizationThresholds_()`, etc. unchanged - they already read property then fall back to defaults. Optional follow-up: thin wrappers call `getResolvedAdminSetting_(key)` to avoid drift.
 
 ### ADMIN gate
 
 ```javascript
 function requireAdminRole_(auth) {
-  if (!auth || String(auth.role || '').trim().toUpperCase() !== 'ADMIN') {
-    throw new Error('FORBIDDEN'); // map to safe client message
-  }
+ if (!auth || String(auth.role || '').trim().toUpperCase() !== 'ADMIN') {
+ throw new Error('FORBIDDEN'); // map to safe client message
+ }
 }
 ```
 
@@ -61,7 +61,7 @@ Plan assumes **Option A**.
 
 ## Phased delivery
 
-### Phase 1 — Registry and server read (no UI)
+### Phase 1 - Registry and server read (no UI)
 
 **Goal:** Single catalog + authorized read API; no writes yet.
 
@@ -69,18 +69,18 @@ Plan assumes **Option A**.
 |------|--------|
 | 1.1 | Add `src/adminSettingsRegistry.js` with all groups and entries from feature spec catalog. |
 | 1.2 | Add `src/adminSettingsApi.js`: `getAdminSettingsPanel()`, `requireAdminRole_()`. |
-| 1.3 | Implement `buildAdminSettingsViewModel_()` — merge registry + properties; mask secrets; mark `readOnly` for `FOS_SNAPSHOT_DRIVE_FOLDER_ID`. |
+| 1.3 | Implement `buildAdminSettingsViewModel_()` - merge registry + properties; mask secrets; mark `readOnly` for `FOS_SNAPSHOT_DRIVE_FOLDER_ID`. |
 | 1.4 | Unit-test in editor: run as ADMIN user vs non-admin via manual `getAdminSettingsPanel()`. |
 
 **Exit:** ADMIN can call API from editor; JSON matches registry shape.
 
-### Phase 2 — Server write + validation
+### Phase 2 - Server write + validation
 
 **Goal:** Safe persistence with validation and audit log.
 
 | Task | Detail |
 |------|--------|
-| 2.1 | `saveAdminSettings(updates)` — `updates[]: { key, useDefault, value? }`. |
+| 2.1 | `saveAdminSettings(updates)` - `updates[]: { key, useDefault, value? }`. |
 | 2.2 | Reject unknown keys; validate types/ranges/json; cross-field rules (e.g. crit stale days > warn days). |
 | 2.3 | `FIBERY_API_TOKEN`: only set when `value` non-empty; never return on read. |
 | 2.4 | Whitelist `admin_settings_save`, `admin_settings_save_error`, `settings_panel_open` in `userActivityLog.js`. |
@@ -88,7 +88,7 @@ Plan assumes **Option A**.
 
 **Exit:** Editor can round-trip a non-secret key; property appears/disappears in Script Properties UI.
 
-### Phase 3 — Shell panel (read-only UI)
+### Phase 3 - Shell panel (read-only UI)
 
 **Goal:** Settings panel renders groups; no Save yet.
 
@@ -102,7 +102,7 @@ Plan assumes **Option A**.
 
 **Exit:** ADMIN sees full form; non-admin does not see Settings.
 
-### Phase 4 — Save / discard / client validation
+### Phase 4 - Save / discard / client validation
 
 **Goal:** End-to-end admin edits from browser.
 
@@ -115,18 +115,18 @@ Plan assumes **Option A**.
 
 **Exit:** ADMIN changes `UTILIZATION_TARGET_PERCENT`, saves, refreshes Operations → new thresholds apply.
 
-### Phase 5 — Docs, PRD, version bump
+### Phase 5 - Docs, PRD, version bump
 
 | Task | Detail |
 |------|--------|
-| 5.1 | `docs/FOS-Dashboard-PRD.md` — FR-106, AC-62, changelog 2.2.0, overview paragraph. |
+| 5.1 | `docs/FOS-Dashboard-PRD.md` - FR-106, AC-62, changelog 2.2.0, overview paragraph. |
 | 5.2 | `FOS_PRD_VERSION = '2.2.0'` + `src/*` headers. |
-| 5.3 | `docs/features/000-overview.md` — planned → shipped when done. |
-| 5.4 | `README.md` — link feature 011; note admin UI supersedes raw editor for listed keys. |
+| 5.3 | `docs/features/000-overview.md` - planned → shipped when done. |
+| 5.4 | `README.md` - link feature 011; note admin UI supersedes raw editor for listed keys. |
 | 5.5 | Update [001](001-dashboard-shell-navigation.md) Settings AC (ADMIN panel vs coming soon). |
-| 5.6 | `.cursor/rules/google-apps-script-core.mdc` — when adding Script Properties, update registry. |
+| 5.6 | `.cursor/rules/google-apps-script-core.mdc` - when adding Script Properties, update registry. |
 
-### Phase 6 — Manual E2E (deployed Web App)
+### Phase 6 - Manual E2E (deployed Web App)
 
 | # | Step | Expected |
 |---|------|----------|
@@ -142,17 +142,17 @@ Plan assumes **Option A**.
 
 | File | Action |
 |------|--------|
-| `src/adminSettingsRegistry.js` | **Create** — catalog |
-| `src/adminSettingsApi.js` | **Create** — get/save APIs |
-| `src/authUsersSheet.js` | **Edit** — export `requireAdminRole_` or add to small `src/adminAuth.js` |
-| `src/Code.js` | **Edit** — `isAdmin` on nav model |
-| `src/DashboardShell.html` | **Edit** — panel HTML, CSS, JS, settings click |
-| `src/userActivityLog.js` | **Edit** — whitelist events |
+| `src/adminSettingsRegistry.js` | **Create** - catalog |
+| `src/adminSettingsApi.js` | **Create** - get/save APIs |
+| `src/authUsersSheet.js` | **Edit** - export `requireAdminRole_` or add to small `src/adminAuth.js` |
+| `src/Code.js` | **Edit** - `isAdmin` on nav model |
+| `src/DashboardShell.html` | **Edit** - panel HTML, CSS, JS, settings click |
+| `src/userActivityLog.js` | **Edit** - whitelist events |
 | `docs/features/011-*.md` | **Done** (this review) |
 | `docs/FOS-Dashboard-PRD.md` | **Edit** on implement |
 | `README.md` | **Edit** on implement |
 
-**No change** to threshold modules in Phase 1–4 except optional shared constant imports in Phase 5+ refactor.
+**No change** to threshold modules in Phase 1 - 4 except optional shared constant imports in Phase 5+ refactor.
 
 ## UI component checklist
 
@@ -186,10 +186,10 @@ Plan assumes **Option A**.
 
 | Phase | Effort |
 |-------|--------|
-| 1–2 Server | 1–2 days |
-| 3–4 Client | 2–3 days |
+| 1 - 2 Server | 1 - 2 days |
+| 3 - 4 Client | 2 - 3 days |
 | 5 Docs / QA | 0.5 day |
-| **Total** | **~4–5 days** |
+| **Total** | **~4 - 5 days** |
 
 ## Approval checklist
 

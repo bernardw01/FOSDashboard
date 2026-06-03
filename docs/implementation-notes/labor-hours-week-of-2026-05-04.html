@@ -3,254 +3,254 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Labor Hours — Week of 2026-05-04</title>
+<title>Labor Hours - Week of 2026-05-04</title>
 <style>
-  :root {
-    --navy:      #152744;
-    --navy-mid:  #1e3a5f;
-    --teal:      #2B8B8B;
-    --teal-light:#e6f4f4;
-    --green:     #16a34a;
-    --green-bg:  #f0fdf4;
-    --yellow:    #ca8a04;
-    --yellow-bg: #fefce8;
-    --red:       #dc2626;
-    --red-bg:    #fef2f2;
-    --gray:      #6b7280;
-    --cream:     #F2EFE5;
-    --border:    #DDD9CE;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: var(--cream);
-    color: #1f2937;
-    font-size: 14px;
-    line-height: 1.5;
-  }
+ :root {
+ --navy: #152744;
+ --navy-mid: #1e3a5f;
+ --teal: #2B8B8B;
+ --teal-light:#e6f4f4;
+ --green: #16a34a;
+ --green-bg: #f0fdf4;
+ --yellow: #ca8a04;
+ --yellow-bg: #fefce8;
+ --red: #dc2626;
+ --red-bg: #fef2f2;
+ --gray: #6b7280;
+ --cream: #F2EFE5;
+ --border: #DDD9CE;
+ }
+ * { box-sizing: border-box; margin: 0; padding: 0; }
+ body {
+ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+ background: var(--cream);
+ color: #1f2937;
+ font-size: 14px;
+ line-height: 1.5;
+ }
 
-  /* Header */
-  .header {
-    background: var(--navy);
-    color: white;
-    padding: 24px 40px;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-  }
-  .header-brand { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #93c5fd; margin-bottom: 6px; }
-  .header-title { font-size: 22px; font-weight: 700; }
-  .header-sub { font-size: 13px; color: #93c5fd; margin-top: 4px; }
-  .header-meta { text-align: right; font-size: 12px; color: #93c5fd; }
+ /* Header */
+ .header {
+ background: var(--navy);
+ color: white;
+ padding: 24px 40px;
+ display: flex;
+ justify-content: space-between;
+ align-items: flex-end;
+ }
+ .header-brand { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #93c5fd; margin-bottom: 6px; }
+ .header-title { font-size: 22px; font-weight: 700; }
+ .header-sub { font-size: 13px; color: #93c5fd; margin-top: 4px; }
+ .header-meta { text-align: right; font-size: 12px; color: #93c5fd; }
 
-  /* Layout */
-  .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+ /* Layout */
+ .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
 
-  /* KPI Cards */
-  .kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 16px;
-    margin-bottom: 32px;
-  }
-  .kpi-card {
-    background: white;
-    border-radius: 8px;
-    padding: 20px 24px;
-    border-top: 4px solid var(--teal);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    cursor: pointer;
-    transition: box-shadow 0.15s, transform 0.1s;
-    text-decoration: none;
-    color: inherit;
-    display: block;
-  }
-  .kpi-card:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.14);
-    transform: translateY(-2px);
-  }
-  .kpi-card:active { transform: translateY(0); }
-  .kpi-card.red   { border-top-color: var(--red); }
-  .kpi-card.yellow{ border-top-color: var(--yellow); }
-  .kpi-card.green { border-top-color: var(--green); }
-  .kpi-card.gray  { border-top-color: var(--gray); }
-  .kpi-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gray); margin-bottom: 8px; }
-  .kpi-value { font-size: 36px; font-weight: 700; line-height: 1; }
-  .kpi-card.red    .kpi-value { color: var(--red); }
-  .kpi-card.yellow .kpi-value { color: var(--yellow); }
-  .kpi-card.green  .kpi-value { color: var(--green); }
-  .kpi-card.teal   .kpi-value { color: var(--teal); }
-  .kpi-card.gray   .kpi-value { color: var(--gray); }
-  .kpi-sub { font-size: 12px; color: var(--gray); margin-top: 6px; }
-  .kpi-hint { font-size: 10px; color: #aaa; margin-top: 8px; letter-spacing: 0.03em; }
+ /* KPI Cards */
+ .kpi-grid {
+ display: grid;
+ grid-template-columns: repeat(5, 1fr);
+ gap: 16px;
+ margin-bottom: 32px;
+ }
+ .kpi-card {
+ background: white;
+ border-radius: 8px;
+ padding: 20px 24px;
+ border-top: 4px solid var(--teal);
+ box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+ cursor: pointer;
+ transition: box-shadow 0.15s, transform 0.1s;
+ text-decoration: none;
+ color: inherit;
+ display: block;
+ }
+ .kpi-card:hover {
+ box-shadow: 0 4px 12px rgba(0,0,0,0.14);
+ transform: translateY(-2px);
+ }
+ .kpi-card:active { transform: translateY(0); }
+ .kpi-card.red { border-top-color: var(--red); }
+ .kpi-card.yellow{ border-top-color: var(--yellow); }
+ .kpi-card.green { border-top-color: var(--green); }
+ .kpi-card.gray { border-top-color: var(--gray); }
+ .kpi-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gray); margin-bottom: 8px; }
+ .kpi-value { font-size: 36px; font-weight: 700; line-height: 1; }
+ .kpi-card.red .kpi-value { color: var(--red); }
+ .kpi-card.yellow .kpi-value { color: var(--yellow); }
+ .kpi-card.green .kpi-value { color: var(--green); }
+ .kpi-card.teal .kpi-value { color: var(--teal); }
+ .kpi-card.gray .kpi-value { color: var(--gray); }
+ .kpi-sub { font-size: 12px; color: var(--gray); margin-top: 6px; }
+ .kpi-hint { font-size: 10px; color: #aaa; margin-top: 8px; letter-spacing: 0.03em; }
 
-  /* Sections */
-  .section {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    margin-bottom: 24px;
-    overflow: hidden;
-    scroll-margin-top: 24px;
-  }
-  .section-header {
-    padding: 16px 24px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .section-header.red    { background: var(--red-bg);    border-left: 4px solid var(--red); }
-  .section-header.yellow { background: var(--yellow-bg); border-left: 4px solid var(--yellow); }
-  .section-header.green  { background: var(--green-bg);  border-left: 4px solid var(--green); }
-  .section-title { font-size: 15px; font-weight: 700; }
-  .section-header.red    .section-title { color: var(--red); }
-  .section-header.yellow .section-title { color: #92400e; }
-  .section-header.green  .section-title { color: #166534; }
-  .section-badge {
-    display: inline-block;
-    padding: 2px 10px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-  }
-  .badge-red    { background: var(--red);    color: white; }
-  .badge-yellow { background: var(--yellow); color: white; }
-  .badge-green  { background: var(--green);  color: white; }
-  .badge-gray   { background: var(--gray);   color: white; }
+ /* Sections */
+ .section {
+ background: white;
+ border-radius: 8px;
+ box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+ margin-bottom: 24px;
+ overflow: hidden;
+ scroll-margin-top: 24px;
+ }
+ .section-header {
+ padding: 16px 24px;
+ border-bottom: 1px solid var(--border);
+ display: flex;
+ align-items: center;
+ gap: 12px;
+ }
+ .section-header.red { background: var(--red-bg); border-left: 4px solid var(--red); }
+ .section-header.yellow { background: var(--yellow-bg); border-left: 4px solid var(--yellow); }
+ .section-header.green { background: var(--green-bg); border-left: 4px solid var(--green); }
+ .section-title { font-size: 15px; font-weight: 700; }
+ .section-header.red .section-title { color: var(--red); }
+ .section-header.yellow .section-title { color: #92400e; }
+ .section-header.green .section-title { color: #166534; }
+ .section-badge {
+ display: inline-block;
+ padding: 2px 10px;
+ border-radius: 12px;
+ font-size: 12px;
+ font-weight: 600;
+ }
+ .badge-red { background: var(--red); color: white; }
+ .badge-yellow { background: var(--yellow); color: white; }
+ .badge-green { background: var(--green); color: white; }
+ .badge-gray { background: var(--gray); color: white; }
 
-  /* Tables */
-  table { width: 100%; border-collapse: collapse; }
-  th {
-    padding: 10px 16px;
-    text-align: left;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    color: var(--gray);
-    border-bottom: 1px solid var(--border);
-    background: #fafaf9;
-    cursor: pointer;
-    user-select: none;
-    white-space: nowrap;
-  }
-  th:hover { background: #f0f0ee; color: #374151; }
-  th[data-dir="asc"]  { color: #374151; }
-  th[data-dir="desc"] { color: #374151; }
-  .sort-icon { margin-left: 4px; opacity: 0.45; font-style: normal; }
-  th[data-dir] .sort-icon { opacity: 1; color: var(--teal); }
-  th.num { text-align: right; }
-  td { padding: 11px 16px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: #f9fafb; }
-  .name-cell { font-weight: 500; }
-  .num-cell   { text-align: right; font-variant-numeric: tabular-nums; }
-  .proj-cell  { color: var(--gray); font-size: 13px; line-height: 1.8; }
-  .bold       { font-weight: 700; }
-  .over       { color: var(--red);    font-weight: 600; }
-  .under      { color: var(--yellow); font-weight: 600; }
+ /* Tables */
+ table { width: 100%; border-collapse: collapse; }
+ th {
+ padding: 10px 16px;
+ text-align: left;
+ font-size: 11px;
+ text-transform: uppercase;
+ letter-spacing: 0.07em;
+ color: var(--gray);
+ border-bottom: 1px solid var(--border);
+ background: #fafaf9;
+ cursor: pointer;
+ user-select: none;
+ white-space: nowrap;
+ }
+ th:hover { background: #f0f0ee; color: #374151; }
+ th[data-dir="asc"] { color: #374151; }
+ th[data-dir="desc"] { color: #374151; }
+ .sort-icon { margin-left: 4px; opacity: 0.45; font-style: normal; }
+ th[data-dir] .sort-icon { opacity: 1; color: var(--teal); }
+ th.num { text-align: right; }
+ td { padding: 11px 16px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+ tr:last-child td { border-bottom: none; }
+ tr:hover td { background: #f9fafb; }
+ .name-cell { font-weight: 500; }
+ .num-cell { text-align: right; font-variant-numeric: tabular-nums; }
+ .proj-cell { color: var(--gray); font-size: 13px; line-height: 1.8; }
+ .bold { font-weight: 700; }
+ .over { color: var(--red); font-weight: 600; }
+ .under { color: var(--yellow); font-weight: 600; }
 
-  /* Exact section */
-  .chip-container { padding: 20px 24px; display: flex; flex-wrap: wrap; gap: 8px; }
-  .chip {
-    display: inline-flex;
-    align-items: center;
-    padding: 5px 14px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 500;
-  }
-  .chip.exact { background: var(--green-bg); color: #166534; border: 1px solid #bbf7d0; }
-  .chip.zero  { background: #f9fafb; color: var(--gray); border: 1px solid #e5e7eb; }
+ /* Exact section */
+ .chip-container { padding: 20px 24px; display: flex; flex-wrap: wrap; gap: 8px; }
+ .chip {
+ display: inline-flex;
+ align-items: center;
+ padding: 5px 14px;
+ border-radius: 20px;
+ font-size: 13px;
+ font-weight: 500;
+ }
+ .chip.exact { background: var(--green-bg); color: #166534; border: 1px solid #bbf7d0; }
+ .chip.zero { background: #f9fafb; color: var(--gray); border: 1px solid #e5e7eb; }
 
-  /* Footer */
-  .footer {
-    text-align: center;
-    padding: 24px;
-    color: var(--gray);
-    font-size: 12px;
-    border-top: 1px solid var(--border);
-    margin-top: 8px;
-  }
+ /* Footer */
+ .footer {
+ text-align: center;
+ padding: 24px;
+ color: var(--gray);
+ font-size: 12px;
+ border-top: 1px solid var(--border);
+ margin-top: 8px;
+ }
 
-  @media print {
-    body { background: white; }
-    .header { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-    .kpi-card { cursor: default; }
-    .kpi-hint { display: none; }
-  }
+ @media print {
+ body { background: white; }
+ .header { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+ .kpi-card { cursor: default; }
+ .kpi-hint { display: none; }
+ }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <div>
-    <div class="header-brand">harpin ai</div>
-    <div class="header-title">Labor Hours Review</div>
-    <div class="header-sub">Week of May 4 – May 10, 2026</div>
-  </div>
-  <div class="header-meta">
-    Generated May 11, 2026 at 11:57 AM<br>
-    Source: Fibery · Agreement Management/Labor Costs
-  </div>
+ <div>
+ <div class="header-brand">harpin ai</div>
+ <div class="header-title">Labor Hours Review</div>
+ <div class="header-sub">Week of May 4 - May 10, 2026</div>
+ </div>
+ <div class="header-meta">
+ Generated May 11, 2026 at 11:57 AM<br>
+ Source: Fibery · Agreement Management/Labor Costs
+ </div>
 </div>
 
 <div class="container">
 
-  <!-- KPI Cards — clicking scrolls to the relevant section -->
-  <div class="kpi-grid">
-    <a class="kpi-card teal" href="#section-over" onclick="smoothScroll(event,'section-over')">
-      <div class="kpi-label">Total Employees</div>
-      <div class="kpi-value">47</div>
-      <div class="kpi-sub">with logged time this week</div>
-      <div class="kpi-hint">&#8595; click to jump</div>
-    </a>
-    <a class="kpi-card red" href="#section-over" onclick="smoothScroll(event,'section-over')">
-      <div class="kpi-label">Hours Submitted — Over Target</div>
-      <div class="kpi-value">24</div>
-      <div class="kpi-sub">logged above target hours</div>
-      <div class="kpi-hint">&#8595; click to jump</div>
-    </a>
-    <a class="kpi-card yellow" href="#section-under" onclick="smoothScroll(event,'section-under')">
-      <div class="kpi-label">Hours Submitted — Under Target</div>
-      <div class="kpi-value">3</div>
-      <div class="kpi-sub">logged below target hours</div>
-      <div class="kpi-hint">&#8595; click to jump</div>
-    </a>
-    <a class="kpi-card green" href="#section-exact" onclick="smoothScroll(event,'section-exact')">
-      <div class="kpi-label">Hours Submitted — Exactly on Target</div>
-      <div class="kpi-value">20</div>
-      <div class="kpi-sub">on target</div>
-      <div class="kpi-hint">&#8595; click to jump</div>
-    </a>
-    <a class="kpi-card gray" href="#section-zero" onclick="smoothScroll(event,'section-zero')">
-      <div class="kpi-label">Hours Submitted — Zero</div>
-      <div class="kpi-value">19</div>
-      <div class="kpi-sub">no entries logged</div>
-      <div class="kpi-hint">&#8595; click to jump</div>
-    </a>
-  </div>
+ <!-- KPI Cards - clicking scrolls to the relevant section -->
+ <div class="kpi-grid">
+ <a class="kpi-card teal" href="#section-over" onclick="smoothScroll(event,'section-over')">
+ <div class="kpi-label">Total Employees</div>
+ <div class="kpi-value">47</div>
+ <div class="kpi-sub">with logged time this week</div>
+ <div class="kpi-hint">&#8595; click to jump</div>
+ </a>
+ <a class="kpi-card red" href="#section-over" onclick="smoothScroll(event,'section-over')">
+ <div class="kpi-label">Hours Submitted - Over Target</div>
+ <div class="kpi-value">24</div>
+ <div class="kpi-sub">logged above target hours</div>
+ <div class="kpi-hint">&#8595; click to jump</div>
+ </a>
+ <a class="kpi-card yellow" href="#section-under" onclick="smoothScroll(event,'section-under')">
+ <div class="kpi-label">Hours Submitted - Under Target</div>
+ <div class="kpi-value">3</div>
+ <div class="kpi-sub">logged below target hours</div>
+ <div class="kpi-hint">&#8595; click to jump</div>
+ </a>
+ <a class="kpi-card green" href="#section-exact" onclick="smoothScroll(event,'section-exact')">
+ <div class="kpi-label">Hours Submitted - Exactly on Target</div>
+ <div class="kpi-value">20</div>
+ <div class="kpi-sub">on target</div>
+ <div class="kpi-hint">&#8595; click to jump</div>
+ </a>
+ <a class="kpi-card gray" href="#section-zero" onclick="smoothScroll(event,'section-zero')">
+ <div class="kpi-label">Hours Submitted - Zero</div>
+ <div class="kpi-value">19</div>
+ <div class="kpi-sub">no entries logged</div>
+ <div class="kpi-hint">&#8595; click to jump</div>
+ </a>
+ </div>
 
-  <!-- Over target -->
-  <div class="section" id="section-over">
-    <div class="section-header red">
-      <div class="section-title">Hours Submitted — Over Target</div>
-      <span class="section-badge badge-red">24 employees</span>
-    </div>
-    <table>
-      <thead>
-        <tr>
-          <th data-sort="text">Employee <span class="sort-icon">⇅</span></th>
-          <th data-sort="text">Company <span class="sort-icon">⇅</span></th>
-          <th class="num" data-sort="num">Total Hours <span class="sort-icon">⇅</span></th>
-          <th class="num" data-sort="num">Target <span class="sort-icon">⇅</span></th>
-          <th class="num" data-sort="num">Over by <span class="sort-icon">⇅</span></th>
-          <th class="num" data-sort="num">Entries <span class="sort-icon">⇅</span></th>
-          <th data-sort="text">Projects <span class="sort-icon">⇅</span></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr><td class="name-cell" data-val="audrey.mcgraw">audrey.mcgraw</td><td style="color:#6b7280;">harpin AI</td><td class="num-cell bold" data-val="63.6667">63.7h</td><td class="num-cell" data-val="40" style="color:#9ca3af;font-size:0.85em;">40h target</td><td class="num-cell over" data-val="23.6667">+23.7h</td><td class="num-cell" data-val="23">23</td><td class="proj-cell" data-val="Client Engagement Operations,Harpin General,LeadWhisper"><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">LeadWhisper</span><span style="color:#9ca3af;font-size:0.82em">(83%)</span></summary></details><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Harpin General</span><span style="color:#9ca3af;font-size:0.82em">(9%)</span></summary><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; harpin All Hands <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Weekly CS Leadership Alignment <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Audrey McGraw Interview with  Niurvi Santos - Sr Project Manager <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Round Table <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Audrey + Adriana - 1:1 <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Audrey / Gregg discussion <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Clockify Conversation <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Audrey / Bri <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Bri / Nathan 1:1 and Performance Review <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div></details><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Client Engagement Operations</span><span style="color:#9ca3af;font-size:0.82em">(7%)</span></summary><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Xander / Audrey <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; CS Exec Team Meeting <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Weekly Client Solutions biweekly <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Audrey & Anastasia Weekly Sync <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Alvin's Expectations - Level Set <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; T-Shirt Sizing PCL Work <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; LeadWhisper Prioritization <span style="color:#9ca3af;font-size:0.82em">(0%)</span></div></details></td></tr>
+ <!-- Over target -->
+ <div class="section" id="section-over">
+ <div class="section-header red">
+ <div class="section-title">Hours Submitted - Over Target</div>
+ <span class="section-badge badge-red">24 employees</span>
+ </div>
+ <table>
+ <thead>
+ <tr>
+ <th data-sort="text">Employee <span class="sort-icon">⇅</span></th>
+ <th data-sort="text">Company <span class="sort-icon">⇅</span></th>
+ <th class="num" data-sort="num">Total Hours <span class="sort-icon">⇅</span></th>
+ <th class="num" data-sort="num">Target <span class="sort-icon">⇅</span></th>
+ <th class="num" data-sort="num">Over by <span class="sort-icon">⇅</span></th>
+ <th class="num" data-sort="num">Entries <span class="sort-icon">⇅</span></th>
+ <th data-sort="text">Projects <span class="sort-icon">⇅</span></th>
+ </tr>
+ </thead>
+ <tbody>
+ <tr><td class="name-cell" data-val="audrey.mcgraw">audrey.mcgraw</td><td style="color:#6b7280;">harpin AI</td><td class="num-cell bold" data-val="63.6667">63.7h</td><td class="num-cell" data-val="40" style="color:#9ca3af;font-size:0.85em;">40h target</td><td class="num-cell over" data-val="23.6667">+23.7h</td><td class="num-cell" data-val="23">23</td><td class="proj-cell" data-val="Client Engagement Operations,Harpin General,LeadWhisper"><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">LeadWhisper</span><span style="color:#9ca3af;font-size:0.82em">(83%)</span></summary></details><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Harpin General</span><span style="color:#9ca3af;font-size:0.82em">(9%)</span></summary><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; harpin All Hands <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Weekly CS Leadership Alignment <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Audrey McGraw Interview with Niurvi Santos - Sr Project Manager <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Round Table <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Audrey + Adriana - 1:1 <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Audrey / Gregg discussion <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Clockify Conversation <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Audrey / Bri <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Bri / Nathan 1:1 and Performance Review <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div></details><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Client Engagement Operations</span><span style="color:#9ca3af;font-size:0.82em">(7%)</span></summary><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Xander / Audrey <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; CS Exec Team Meeting <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Weekly Client Solutions biweekly <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Audrey & Anastasia Weekly Sync <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Alvin's Expectations - Level Set <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; T-Shirt Sizing PCL Work <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; LeadWhisper Prioritization <span style="color:#9ca3af;font-size:0.82em">(0%)</span></div></details></td></tr>
 <tr><td class="name-cell" data-val="abhilash.panda">abhilash.panda</td><td style="font-weight:500;">RET</td><td class="num-cell bold" data-val="62.0">62.0h</td><td class="num-cell" data-val="45" style="color:#9ca3af;font-size:0.85em;">45h target</td><td class="num-cell over" data-val="17.0">+17.0h</td><td class="num-cell" data-val="6">6</td><td class="proj-cell" data-val="LeadWhisper"><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">LeadWhisper</span><span style="color:#9ca3af;font-size:0.82em">(100%)</span></summary></details></td></tr>
 <tr><td class="name-cell" data-val="adriana.rausseo">adriana.rausseo</td><td style="color:#6b7280;">harpin AI</td><td class="num-cell bold" data-val="61.5">61.5h</td><td class="num-cell" data-val="40" style="color:#9ca3af;font-size:0.85em;">40h target</td><td class="num-cell over" data-val="21.5">+21.5h</td><td class="num-cell" data-val="10">10</td><td class="proj-cell" data-val="Harpin General,LeadWhisper"><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">LeadWhisper</span><span style="color:#9ca3af;font-size:0.82em">(98%)</span></summary></details><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Harpin General</span><span style="color:#9ca3af;font-size:0.82em">(2%)</span></summary></details></td></tr>
 <tr><td class="name-cell" data-val="Scott Savage">Scott Savage</td><td style="color:#6b7280;">harpin AI</td><td class="num-cell bold" data-val="61.4666">61.5h</td><td class="num-cell" data-val="40" style="color:#9ca3af;font-size:0.85em;">40h target</td><td class="num-cell over" data-val="21.4666">+21.5h</td><td class="num-cell" data-val="41">41</td><td class="proj-cell" data-val="Harpin General,LeadWhisper"><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">LeadWhisper</span><span style="color:#9ca3af;font-size:0.82em">(90%)</span></summary><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; LW Migration <span style="color:#9ca3af;font-size:0.82em">(24%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Client Engagement <span style="color:#9ca3af;font-size:0.82em">(16%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; LW Tasks <span style="color:#9ca3af;font-size:0.82em">(9%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Review PRs <span style="color:#9ca3af;font-size:0.82em">(6%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; LW Dev Research - Build Pipelines <span style="color:#9ca3af;font-size:0.82em">(5%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Siebel Prep <span style="color:#9ca3af;font-size:0.82em">(5%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Trailblazers - Daily StandUp <span style="color:#9ca3af;font-size:0.82em">(3%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; LW Issues <span style="color:#9ca3af;font-size:0.82em">(3%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Review JIRA <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Siebel cutover daily standup <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Staging config <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Issue debug <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Synapse Prospect Router KT <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Trailblazers Salesforce Sprint Demo <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Trailblazers - Refinement <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Migration Weekend Testing Coordination <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Team Trailblazers - Tech Sync-Up <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Trailblazers - Planning <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Team Trailblazers - Release Preparation <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Jennifer : Scott - Scripts for Siebel Cutover <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Review RET weekly goals <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Customer Insight Coordination Details <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; RET x Harpin Weekly Project Sync <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div></details><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Harpin General</span><span style="color:#9ca3af;font-size:0.82em">(10%)</span></summary><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Flight to FLL (AA 2092) <span style="color:#9ca3af;font-size:0.82em">(3%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Travel work <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Flight to CLT (AA 549) <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; harpin All Hands <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div></details></td></tr>
@@ -284,54 +284,54 @@ additional code improvements for model pipeline <span style="color:#9ca3af;font-
 standup <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div></details><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Marriott</span><span style="color:#9ca3af;font-size:0.82em">(1%)</span></summary><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; data meeting <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div></details></td></tr>
 <tr><td class="name-cell" data-val="josh">josh</td><td style="color:#6b7280;">harpin AI</td><td class="num-cell bold" data-val="24.0">24.0h</td><td class="num-cell" data-val="20" style="color:#9ca3af;font-size:0.85em;">20h target</td><td class="num-cell over" data-val="4.0">+4.0h</td><td class="num-cell" data-val="14">14</td><td class="proj-cell" data-val="Harpin General,Marriott,Pre-Sales,Product"><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Marriott</span><span style="color:#9ca3af;font-size:0.82em">(42%)</span></summary></details><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Harpin General</span><span style="color:#9ca3af;font-size:0.82em">(42%)</span></summary></details><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Pre-Sales</span><span style="color:#9ca3af;font-size:0.82em">(8%)</span></summary></details><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Product</span><span style="color:#9ca3af;font-size:0.82em">(8%)</span></summary></details></td></tr>
 <tr><td class="name-cell" data-val="Bernard Williams">Bernard Williams</td><td style="color:#6b7280;">harpin AI</td><td class="num-cell bold" data-val="23.0">23.0h</td><td class="num-cell" data-val="20" style="color:#9ca3af;font-size:0.85em;">20h target</td><td class="num-cell over" data-val="3.0">+3.0h</td><td class="num-cell" data-val="8">8</td><td class="proj-cell" data-val="Operations Initiatives,Pre-Sales"><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Pre-Sales</span><span style="color:#9ca3af;font-size:0.82em">(65%)</span></summary><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; <span style="font-style:italic;color:#9ca3af">(no task)</span> <span style="color:#9ca3af;font-size:0.82em">(52%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Quick Sync <span style="color:#9ca3af;font-size:0.82em">(13%)</span></div></details><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Operations Initiatives</span><span style="color:#9ca3af;font-size:0.82em">(35%)</span></summary></details></td></tr>
-      </tbody>
-    </table>
-  </div>
+ </tbody>
+ </table>
+ </div>
 
-  <!-- Under target -->
-  <div class="section" id="section-under">
-    <div class="section-header yellow">
-      <div class="section-title">Hours Submitted — Under Target</div>
-      <span class="section-badge badge-yellow">3 employees</span>
-    </div>
-    <table>
-      <thead>
-        <tr>
-          <th data-sort="text">Employee <span class="sort-icon">⇅</span></th>
-          <th data-sort="text">Company <span class="sort-icon">⇅</span></th>
-          <th class="num" data-sort="num">Total Hours <span class="sort-icon">⇅</span></th>
-          <th class="num" data-sort="num">Target <span class="sort-icon">⇅</span></th>
-          <th class="num" data-sort="num">Under by <span class="sort-icon">⇅</span></th>
-          <th class="num" data-sort="num">Entries <span class="sort-icon">⇅</span></th>
-          <th data-sort="text">Projects <span class="sort-icon">⇅</span></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr><td class="name-cell" data-val="sergey.vologa">sergey.vologa</td><td style="font-weight:500;">Coherent</td><td class="num-cell bold" data-val="6.0">6.0h</td><td class="num-cell" data-val="40" style="color:#9ca3af;font-size:0.85em;">40h target</td><td class="num-cell under" data-val="34.0">-34.0h</td><td class="num-cell" data-val="1">1</td><td class="proj-cell" data-val="Shipwright (PCL - Utility Services)"><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Shipwright (PCL - Utility Services)</span><span style="color:#9ca3af;font-size:0.82em">(100%)</span></summary></details></td></tr>
+ <!-- Under target -->
+ <div class="section" id="section-under">
+ <div class="section-header yellow">
+ <div class="section-title">Hours Submitted - Under Target</div>
+ <span class="section-badge badge-yellow">3 employees</span>
+ </div>
+ <table>
+ <thead>
+ <tr>
+ <th data-sort="text">Employee <span class="sort-icon">⇅</span></th>
+ <th data-sort="text">Company <span class="sort-icon">⇅</span></th>
+ <th class="num" data-sort="num">Total Hours <span class="sort-icon">⇅</span></th>
+ <th class="num" data-sort="num">Target <span class="sort-icon">⇅</span></th>
+ <th class="num" data-sort="num">Under by <span class="sort-icon">⇅</span></th>
+ <th class="num" data-sort="num">Entries <span class="sort-icon">⇅</span></th>
+ <th data-sort="text">Projects <span class="sort-icon">⇅</span></th>
+ </tr>
+ </thead>
+ <tbody>
+ <tr><td class="name-cell" data-val="sergey.vologa">sergey.vologa</td><td style="font-weight:500;">Coherent</td><td class="num-cell bold" data-val="6.0">6.0h</td><td class="num-cell" data-val="40" style="color:#9ca3af;font-size:0.85em;">40h target</td><td class="num-cell under" data-val="34.0">-34.0h</td><td class="num-cell" data-val="1">1</td><td class="proj-cell" data-val="Shipwright (PCL - Utility Services)"><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Shipwright (PCL - Utility Services)</span><span style="color:#9ca3af;font-size:0.82em">(100%)</span></summary></details></td></tr>
 <tr><td class="name-cell" data-val="olga.rutskaya">olga.rutskaya</td><td style="font-weight:500;">Coherent</td><td class="num-cell bold" data-val="32.0">32.0h</td><td class="num-cell" data-val="40" style="color:#9ca3af;font-size:0.85em;">40h target</td><td class="num-cell under" data-val="8.0">-8.0h</td><td class="num-cell" data-val="4">4</td><td class="proj-cell" data-val="LeadWhisper"><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">LeadWhisper</span><span style="color:#9ca3af;font-size:0.82em">(100%)</span></summary></details></td></tr>
 <tr><td class="name-cell" data-val="aminul.islam">aminul.islam</td><td style="color:#6b7280;">harpin AI</td><td class="num-cell bold" data-val="39.0">39.0h</td><td class="num-cell" data-val="40" style="color:#9ca3af;font-size:0.85em;">40h target</td><td class="num-cell under" data-val="1.0">-1.0h</td><td class="num-cell" data-val="5">5</td><td class="proj-cell" data-val="LeadWhisper"><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">LeadWhisper</span><span style="color:#9ca3af;font-size:0.82em">(100%)</span></summary></details></td></tr>
-      </tbody>
-    </table>
-  </div>
+ </tbody>
+ </table>
+ </div>
 
-  <!-- Hit target -->
-  <div class="section" id="section-exact">
-    <div class="section-header green">
-      <div class="section-title">Hours Submitted — Exactly on Target</div>
-      <span class="section-badge badge-green">20 employees</span>
-    </div>
-    <table>
-      <thead>
-        <tr>
-          <th data-sort="text">Employee <span class="sort-icon">⇅</span></th>
-          <th data-sort="text">Company <span class="sort-icon">⇅</span></th>
-          <th class="num" data-sort="num">Total Hours <span class="sort-icon">⇅</span></th>
-          <th class="num" data-sort="num">Entries <span class="sort-icon">⇅</span></th>
-          <th data-sort="text">Projects <span class="sort-icon">⇅</span></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr><td class="name-cell" data-val="Sandra.muniz">Sandra.muniz</td><td style="font-weight:500;">Coherent</td><td class="num-cell bold" data-val="40.0">40.0h</td><td class="num-cell" data-val="10">10</td><td class="proj-cell" data-val="Ocean Identity,Shipwright (PCL - Utility Services)"><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Shipwright (PCL - Utility Services)</span><span style="color:#9ca3af;font-size:0.82em">(50%)</span></summary></details><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Ocean Identity</span><span style="color:#9ca3af;font-size:0.82em">(50%)</span></summary></details></td></tr>
+ <!-- Hit target -->
+ <div class="section" id="section-exact">
+ <div class="section-header green">
+ <div class="section-title">Hours Submitted - Exactly on Target</div>
+ <span class="section-badge badge-green">20 employees</span>
+ </div>
+ <table>
+ <thead>
+ <tr>
+ <th data-sort="text">Employee <span class="sort-icon">⇅</span></th>
+ <th data-sort="text">Company <span class="sort-icon">⇅</span></th>
+ <th class="num" data-sort="num">Total Hours <span class="sort-icon">⇅</span></th>
+ <th class="num" data-sort="num">Entries <span class="sort-icon">⇅</span></th>
+ <th data-sort="text">Projects <span class="sort-icon">⇅</span></th>
+ </tr>
+ </thead>
+ <tbody>
+ <tr><td class="name-cell" data-val="Sandra.muniz">Sandra.muniz</td><td style="font-weight:500;">Coherent</td><td class="num-cell bold" data-val="40.0">40.0h</td><td class="num-cell" data-val="10">10</td><td class="proj-cell" data-val="Ocean Identity,Shipwright (PCL - Utility Services)"><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Shipwright (PCL - Utility Services)</span><span style="color:#9ca3af;font-size:0.82em">(50%)</span></summary></details><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Ocean Identity</span><span style="color:#9ca3af;font-size:0.82em">(50%)</span></summary></details></td></tr>
 <tr><td class="name-cell" data-val="alexander.evtushenko">alexander.evtushenko</td><td style="font-weight:500;">Coherent</td><td class="num-cell bold" data-val="40.0">40.0h</td><td class="num-cell" data-val="5">5</td><td class="proj-cell" data-val="LeadWhisper"><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">LeadWhisper</span><span style="color:#9ca3af;font-size:0.82em">(100%)</span></summary></details></td></tr>
 <tr><td class="name-cell" data-val="dzmitry.gradomski">dzmitry.gradomski</td><td style="font-weight:500;">Coherent</td><td class="num-cell bold" data-val="40.0">40.0h</td><td class="num-cell" data-val="5">5</td><td class="proj-cell" data-val="Ocean Identity"><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Ocean Identity</span><span style="color:#9ca3af;font-size:0.82em">(100%)</span></summary></details></td></tr>
 <tr><td class="name-cell" data-val="ivan.zenov">ivan.zenov</td><td style="font-weight:500;">Coherent</td><td class="num-cell bold" data-val="40.0">40.0h</td><td class="num-cell" data-val="5">5</td><td class="proj-cell" data-val="Shipwright (PCL - Utility Services)"><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Shipwright (PCL - Utility Services)</span><span style="color:#9ca3af;font-size:0.82em">(100%)</span></summary></details></td></tr>
@@ -351,18 +351,18 @@ standup <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div></details>
 <tr><td class="name-cell" data-val="kelsey.hoff">kelsey.hoff</td><td style="color:#6b7280;">harpin AI</td><td class="num-cell bold" data-val="40.0">40.0h</td><td class="num-cell" data-val="7">7</td><td class="proj-cell" data-val="Harpin General,Product"><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Product</span><span style="color:#9ca3af;font-size:0.82em">(98%)</span></summary><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Acuity <span style="color:#9ca3af;font-size:0.82em">(40%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Acuity + design system <span style="color:#9ca3af;font-size:0.82em">(38%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Acuity + product planning sessions <span style="color:#9ca3af;font-size:0.82em">(20%)</span></div></details><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Harpin General</span><span style="color:#9ca3af;font-size:0.82em">(2%)</span></summary><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; All Hands <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div></details></td></tr>
 <tr><td class="name-cell" data-val="olivia.sage">olivia.sage</td><td style="color:#6b7280;">harpin AI</td><td class="num-cell bold" data-val="40.0">40.0h</td><td class="num-cell" data-val="20">20</td><td class="proj-cell" data-val="Client Engagement Operations,Harpin General,LeadWhisper,Ocean Identity,Shipwright (PCL - Utility Services)"><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Harpin General</span><span style="color:#9ca3af;font-size:0.82em">(64%)</span></summary><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; <span style="font-style:italic;color:#9ca3af">(no task)</span> <span style="color:#9ca3af;font-size:0.82em">(62%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Monthly Revenue Review & Resource Capacity Planning <span style="color:#9ca3af;font-size:0.82em">(1%)</span></div></details><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Client Engagement Operations</span><span style="color:#9ca3af;font-size:0.82em">(21%)</span></summary><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; <span style="font-style:italic;color:#9ca3af">(no task)</span> <span style="color:#9ca3af;font-size:0.82em">(16%)</span></div><div style="padding:1px 0 1px 10px;color:#6b7280;">&#8227; Jess // Olivia Sync <span style="color:#9ca3af;font-size:0.82em">(5%)</span></div></details><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">LeadWhisper</span><span style="color:#9ca3af;font-size:0.82em">(10%)</span></summary></details><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Ocean Identity</span><span style="color:#9ca3af;font-size:0.82em">(2%)</span></summary></details><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Shipwright (PCL - Utility Services)</span><span style="color:#9ca3af;font-size:0.82em">(2%)</span></summary></details></td></tr>
 <tr><td class="name-cell" data-val="thomas.yang">thomas.yang</td><td style="color:#6b7280;">harpin AI</td><td class="num-cell bold" data-val="40.0">40.0h</td><td class="num-cell" data-val="6">6</td><td class="proj-cell" data-val="Harpin General,Shipwright (PCL - Utility Services)"><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Shipwright (PCL - Utility Services)</span><span style="color:#9ca3af;font-size:0.82em">(98%)</span></summary></details><details style="margin-bottom:2px;"><summary style="cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:4px;"><span style="font-size:0.7em;color:#9ca3af;">&#9654;</span><span style="font-weight:600;color:#374151">Harpin General</span><span style="color:#9ca3af;font-size:0.82em">(2%)</span></summary></details></td></tr>
-      </tbody>
-    </table>
-  </div>
+ </tbody>
+ </table>
+ </div>
 
-  <!-- Zero hours -->
-  <div class="section" id="section-zero">
-    <div class="section-header" style="background:#f9fafb;border-left:4px solid var(--gray);">
-      <div class="section-title" style="color:var(--gray);">Hours Submitted — Zero</div>
-      <span class="section-badge badge-gray">19 employees</span>
-    </div>
-    <div class="chip-container">
-      <span class="chip zero" title="anthony.mullally@harpin.ai">Anthony Mullally</span>
+ <!-- Zero hours -->
+ <div class="section" id="section-zero">
+ <div class="section-header" style="background:#f9fafb;border-left:4px solid var(--gray);">
+ <div class="section-title" style="color:var(--gray);">Hours Submitted - Zero</div>
+ <span class="section-badge badge-gray">19 employees</span>
+ </div>
+ <div class="chip-container">
+ <span class="chip zero" title="anthony.mullally@harpin.ai">Anthony Mullally</span>
 <span class="chip zero" title="denys.kozko@harpin.ai">denys kozko</span>
 <span class="chip zero" title="edison.black@harpin.ai">Edison Black</span>
 <span class="chip zero" title="eric.scheie@harpin.ai">eric.scheie</span>
@@ -381,60 +381,60 @@ standup <span style="color:#9ca3af;font-size:0.82em">(2%)</span></div></details>
 <span class="chip zero" title="vasily.denisov@harpin.ai">vasily denisov</span>
 <span class="chip zero" title="wenzhong@harpin.ai">wenzhong</span>
 <span class="chip zero" title="wil.buchanan@harpin.ai">Wil Buchanan</span>
-    </div>
-  </div>
+ </div>
+ </div>
 
 </div>
 
 <div class="footer">
-  Labor Hours Dashboard &bull; Week of May 4 – May 10, 2026 &bull; 525 time entries &bull; Generated May 11, 2026 at 11:57 AM
+ Labor Hours Dashboard &bull; Week of May 4 - May 10, 2026 &bull; 525 time entries &bull; Generated May 11, 2026 at 11:57 AM
 </div>
 
 <script>
-  // Smooth-scroll KPI tile clicks
-  function smoothScroll(e, id) {
-    e.preventDefault();
-    document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
+ // Smooth-scroll KPI tile clicks
+ function smoothScroll(e, id) {
+ e.preventDefault();
+ document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
+ }
 
-  // Sortable column headers
-  document.querySelectorAll('th[data-sort]').forEach(function(th) {
-    th.addEventListener('click', function() {
-      var table  = th.closest('table');
-      var tbody  = table.querySelector('tbody');
-      var ths    = Array.from(th.closest('tr').querySelectorAll('th'));
-      var colIdx = ths.indexOf(th);
-      var isNum  = th.dataset.sort === 'num';
+ // Sortable column headers
+ document.querySelectorAll('th[data-sort]').forEach(function(th) {
+ th.addEventListener('click', function() {
+ var table = th.closest('table');
+ var tbody = table.querySelector('tbody');
+ var ths = Array.from(th.closest('tr').querySelectorAll('th'));
+ var colIdx = ths.indexOf(th);
+ var isNum = th.dataset.sort === 'num';
 
-      // Toggle direction; default first click = asc
-      var asc = th.dataset.dir !== 'asc';
-      th.dataset.dir = asc ? 'asc' : 'desc';
+ // Toggle direction; default first click = asc
+ var asc = th.dataset.dir !== 'asc';
+ th.dataset.dir = asc ? 'asc' : 'desc';
 
-      // Reset all icons, set active icon
-      ths.forEach(function(h) {
-        if (h !== th) delete h.dataset.dir;
-        var icon = h.querySelector('.sort-icon');
-        if (icon) icon.textContent = '⇅';
-      });
-      var activeIcon = th.querySelector('.sort-icon');
-      if (activeIcon) activeIcon.textContent = asc ? '↑' : '↓';
+ // Reset all icons, set active icon
+ ths.forEach(function(h) {
+ if (h !== th) delete h.dataset.dir;
+ var icon = h.querySelector('.sort-icon');
+ if (icon) icon.textContent = '⇅';
+ });
+ var activeIcon = th.querySelector('.sort-icon');
+ if (activeIcon) activeIcon.textContent = asc ? '↑' : '↓';
 
-      // Sort rows
-      var rows = Array.from(tbody.querySelectorAll('tr'));
-      rows.sort(function(a, b) {
-        var aCell = a.children[colIdx];
-        var bCell = b.children[colIdx];
-        var aVal  = (aCell.dataset.val !== undefined) ? aCell.dataset.val : aCell.textContent.trim();
-        var bVal  = (bCell.dataset.val !== undefined) ? bCell.dataset.val : bCell.textContent.trim();
-        if (isNum) {
-          return asc ? parseFloat(aVal) - parseFloat(bVal)
-                     : parseFloat(bVal) - parseFloat(aVal);
-        }
-        return asc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-      });
-      rows.forEach(function(r) { tbody.appendChild(r); });
-    });
-  });
+ // Sort rows
+ var rows = Array.from(tbody.querySelectorAll('tr'));
+ rows.sort(function(a, b) {
+ var aCell = a.children[colIdx];
+ var bCell = b.children[colIdx];
+ var aVal = (aCell.dataset.val !== undefined) ? aCell.dataset.val : aCell.textContent.trim();
+ var bVal = (bCell.dataset.val !== undefined) ? bCell.dataset.val : bCell.textContent.trim();
+ if (isNum) {
+ return asc ? parseFloat(aVal) - parseFloat(bVal)
+ : parseFloat(bVal) - parseFloat(aVal);
+ }
+ return asc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+ });
+ rows.forEach(function(r) { tbody.appendChild(r); });
+ });
+ });
 </script>
 
 </body>

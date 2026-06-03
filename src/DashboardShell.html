@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.7.0 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.7.0 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -23,7 +23,7 @@
     crossorigin="anonymous"
   />
   <style>
-    /* Global brand tokens — agreement-dashboard-prd-v2.md §9.5–§9.7 (FR-50). */
+    /* Global brand tokens - agreement-dashboard-prd-v2.md §9.5-§9.7 (FR-50). */
     :root,
     [data-bs-theme='dark'] {
       --bg: #061b30;
@@ -49,7 +49,7 @@
       --bs-tertiary-bg: var(--surface2);
     }
 
-    /* Agreement dashboard scope — aliases keep existing var(--ag-*) references
+    /* Agreement dashboard scope - aliases keep existing var(--ag-*) references
        working while resolving to the single global palette (AC-18). */
     .fos-agreement-root {
       --ag-bg: var(--bg);
@@ -70,7 +70,7 @@
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
 
-    /* Grouped disclosures — chevron in a quiet chip (left of label). */
+    /* Grouped disclosures - chevron in a quiet chip (left of label). */
     .fos-expand-chip {
       display: inline-flex;
       align-items: center;
@@ -150,7 +150,7 @@
       border: 1px solid var(--ag-border);
     }
 
-    /* Labor hours — Phase C project / task breakdown */
+    /* Labor hours - Phase C project / task breakdown */
     .fos-lh-proj-cell {
       color: var(--ag-text-muted);
       line-height: 1.45;
@@ -282,7 +282,7 @@
     #panel-revenue-review .fos-rr-table-wrap {
       overflow-x: auto;
     }
-    /* Revenue by customer — row opens shared drawer (v1.27.0). */
+    /* Revenue by customer - row opens shared drawer (v1.27.0). */
     #panel-revenue-review #rr-tbody-customer tr.fos-rr-customer-row {
       cursor: pointer;
     }
@@ -303,7 +303,7 @@
       position: relative; /* anchors .fos-loading-overlay inside the panel */
     }
 
-    /* Semi-transparent loading overlay (v1.13.1) — backdrop sits inside
+    /* Semi-transparent loading overlay (v1.13.1) - backdrop sits inside
        .fos-agreement-inner so the sidebar/topbar stay interactive while a
        server fetch is in flight. Toggled by setAgreementLoading() /
        setUtilLoading().
@@ -474,7 +474,7 @@
       margin-top: 2px;
     }
 
-    /* v1.16.0 — Person-grouped Utilization Alerts. The outer container reuses
+    /* v1.16.0 - Person-grouped Utilization Alerts. The outer container reuses
        the `.sev-*` border-left palette from `.fos-attention-item` so a group's
        worst severity reads at a glance, and the children inside drop their
        own border-left so the group's strip is the dominant signal. */
@@ -690,7 +690,7 @@
       font-variant-numeric: tabular-nums;
       color: var(--ag-text-muted);
     }
-    /* v1.18.0 — FR-86. The Financial performance table now opens a
+    /* v1.18.0 - FR-86. The Financial performance table now opens a
        milestones modal on row click; the visual affordance is a subtle hover
        row + cursor. Keyboard users get the same affordance via focus-visible. */
     .fos-financial-table tbody tr.fos-clickable {
@@ -705,7 +705,7 @@
       outline-offset: -2px;
     }
 
-    /* v1.19.0 — Delivery Dashboard. Active Projects table reuses
+    /* v1.19.0 - Delivery Dashboard. Active Projects table reuses
        `.fos-financial-table` styling; the additions below cover the
        sort affordance on the header, the selected-row treatment, the
        Progress bar column, the KPI strip on the P&L card, the monthly
@@ -1160,7 +1160,7 @@
       font-weight: 500;
     }
 
-    /* Forward Revenue Pipeline (§7.8) — vertical list, not a Chart.js chart,
+    /* Forward Revenue Pipeline (§7.8) - vertical list, not a Chart.js chart,
        to support per-row opacity + dashed border on unscheduled rows. */
     .fos-pipeline-list {
       display: flex;
@@ -1225,7 +1225,7 @@
       margin-top: 1px;
     }
 
-    /* Sankey (§7.11) — D3-rendered SVG. Container height set inline by JS. */
+    /* Sankey (§7.11) - D3-rendered SVG. Container height set inline by JS. */
     .fos-sankey-wrap {
       width: 100%;
       min-height: 400px;
@@ -1274,7 +1274,7 @@
     }
 
     /* ---------------------------------------------------------------------
-       Utilization Management Dashboard (Operations panel) — Phase A.
+       Utilization Management Dashboard (Operations panel) - Phase A.
        Reuses .fos-agreement-root alias scope so the global brand tokens
        (--ag-*) resolve here verbatim.
        ------------------------------------------------------------------ */
@@ -1432,7 +1432,7 @@
       vertical-align: middle;
     }
     /* Highlight the chart bar / segment that's been clicked + added to a
-       filter — Chart.js paints a border on the active element via dataset
+       filter - Chart.js paints a border on the active element via dataset
        options; this just keeps the canvas wrapper visually noticeable. */
     .fos-util-chart-wrap.has-selection {
       box-shadow: inset 0 0 0 1px rgba(82, 201, 229, 0.35);
@@ -1548,7 +1548,7 @@
     }
 
     /* ------------------------------------------------------------------- */
-    /* Phase C (v1.14.0) — Utilization heatmap + Pending Approvals + drawer. */
+    /* Phase C (v1.14.0) - Utilization heatmap + Pending Approvals + drawer. */
     /* ------------------------------------------------------------------- */
     .fos-util-heatmap-wrap {
       position: relative;
@@ -1833,7 +1833,7 @@
       font-size: 0.82rem;
     }
 
-    /* Custom scrollbar — §9.7 (4px, border-color track, accent2 thumb).
+    /* Custom scrollbar - §9.7 (4px, border-color track, accent2 thumb).
        Promoted from the agreement scope so the whole app uses the same chrome. */
     ::-webkit-scrollbar {
       width: 4px;
@@ -1994,7 +1994,7 @@
     }
 
     /* Settings sits in the sidebar footer area but uses the same .fos-nav-btn
-       chrome as Home/Agreement Dashboard/Operations/Delivery — FR-10b "plain nav-style link". */
+       chrome as Home/Agreement Dashboard/Operations/Delivery - FR-10b "plain nav-style link". */
     .fos-nav-btn[role='button'] {
       text-decoration: none;
     }
@@ -2188,7 +2188,7 @@
       width: 100%;
     }
 
-    /* Home / generic content card — §9.7 (20px padding, 12px radius, 1px var(--border)). */
+    /* Home / generic content card - §9.7 (20px padding, 12px radius, 1px var(--border)). */
     .fos-card {
       background-color: var(--surface);
       border: 1px solid var(--border);
@@ -2200,7 +2200,7 @@
       color: var(--text-muted) !important;
     }
 
-    /* Home hero — DEAP photo + light scrim (src/assets/home-hero-deap.png). */
+    /* Home hero - DEAP photo + light scrim (src/assets/home-hero-deap.png). */
     .fos-home-hero {
       position: relative;
       overflow: hidden;
@@ -2653,7 +2653,7 @@
                 <blockquote class="fos-home-hero-quote">
                   Not everything that can be counted counts, and not everything that counts can be counted.
                 </blockquote>
-                <p class="fos-home-hero-attrib mb-0">— William Bruce Cameron</p>
+                <p class="fos-home-hero-attrib mb-0"> -  William Bruce Cameron</p>
               </div>
             </div>
           </section>
@@ -2713,7 +2713,7 @@
                 Export CSV
               </button>
               <span class="small d-none" id="pipeline-copy-alert" role="status" style="color: var(--ag-accent)">Data copied to clipboard</span>
-              <span class="small" id="pipeline-last-refresh" style="color: var(--ag-text-muted)">Last refreshed: —</span>
+              <span class="small" id="pipeline-last-refresh" style="color: var(--ag-text-muted)">Last refreshed:  - </span>
               <span class="small d-none text-danger" id="pipeline-fetch-error" role="alert"></span>
             </div>
 
@@ -2760,7 +2760,7 @@
             </section>
 
             <section class="fos-section-card mb-3" aria-labelledby="pipeline-funnel-h">
-              <h2 id="pipeline-funnel-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Pipeline shape — deals &amp; dollars by stage</h2>
+              <h2 id="pipeline-funnel-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Pipeline shape - deals &amp; dollars by stage</h2>
               <div class="fos-pipeline-funnel" id="pipeline-funnel"></div>
             </section>
 
@@ -2788,7 +2788,7 @@
               <button type="button" class="btn btn-sm fw-semibold px-3" id="agreement-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
                 Refresh
               </button>
-              <span class="small" id="agreement-last-refresh" style="color: var(--ag-text-muted)">Last refreshed: —</span>
+              <span class="small" id="agreement-last-refresh" style="color: var(--ag-text-muted)">Last refreshed:  - </span>
               <span class="d-none small" id="agreement-stale-badge" style="color: var(--ag-warn); font-weight: 600">Stale</span>
               <label class="small d-flex align-items-center gap-1" for="agreement-ttl-select" style="color: var(--ag-text-muted)">
                 Auto-refresh
@@ -2804,21 +2804,21 @@
 
             <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
               <div class="col">
-                <div class="fos-agreement-kpi kpi-blue h-100" title="Count of active agreements (non–Closed-Lost, non–Internal).">
+                <div class="fos-agreement-kpi kpi-blue h-100" title="Count of active agreements (non-Closed-Lost, non-Internal).">
                   <div class="label">Total agreements</div>
                   <div class="value" id="kpi-total-agreements">0</div>
                   <div class="sub" id="kpi-total-agreements-sub">0 external customers</div>
                 </div>
               </div>
               <div class="col">
-                <div class="fos-agreement-kpi kpi-teal h-100" title="Sum of total planned revenue (non–Internal).">
+                <div class="fos-agreement-kpi kpi-teal h-100" title="Sum of total planned revenue (non-Internal).">
                   <div class="label">Total contract value</div>
                   <div class="value" id="kpi-tcv">$0</div>
                   <div class="sub">Across all active SOWs</div>
                 </div>
               </div>
               <div class="col">
-                <div class="fos-agreement-kpi kpi-green h-100" title="Sum of recognized revenue (non–Internal).">
+                <div class="fos-agreement-kpi kpi-green h-100" title="Sum of recognized revenue (non-Internal).">
                   <div class="label">Revenue recognized</div>
                   <div class="value" id="kpi-rev-rec">$0</div>
                   <div class="sub" id="kpi-rev-rec-sub">0% of portfolio realized</div>
@@ -2834,15 +2834,15 @@
               <div class="col">
                 <div class="fos-agreement-kpi kpi-blue h-100" title="Customer with highest total contract value.">
                   <div class="label">Top customer</div>
-                  <div class="value text-truncate" id="kpi-top-customer">—</div>
+                  <div class="value text-truncate" id="kpi-top-customer"> - </div>
                   <div class="sub" id="kpi-top-customer-sub">0% of portfolio · 0 SOWs</div>
                 </div>
               </div>
               <div class="col">
                 <div class="fos-agreement-kpi kpi-margin-low h-100" id="kpi-margin-card" title="Lowest margin or worst negative margin agreement.">
                   <div class="label">Flagged margin</div>
-                  <div class="value" id="kpi-flag-margin">—</div>
-                  <div class="sub text-truncate" id="kpi-flag-margin-sub">—</div>
+                  <div class="value" id="kpi-flag-margin"> - </div>
+                  <div class="sub text-truncate" id="kpi-flag-margin-sub"> - </div>
                 </div>
               </div>
             </div>
@@ -2952,7 +2952,7 @@
             <div class="row g-3 mt-1">
               <div class="col-12">
                 <section class="fos-section-card" aria-labelledby="sankey-heading">
-                  <h2 id="sankey-heading">Revenue flow — status · customer · type</h2>
+                  <h2 id="sankey-heading">Revenue flow - status · customer · type</h2>
                   <div id="sankey-wrap" class="fos-sankey-wrap" role="img" aria-label="Revenue flow Sankey diagram"></div>
                 </section>
               </div>
@@ -2980,7 +2980,7 @@
               <button type="button" class="btn btn-sm fw-semibold px-3" id="util-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
                 Refresh
               </button>
-              <span class="small" id="util-last-refresh" style="color: var(--ag-text-muted)">Last refreshed: —</span>
+              <span class="small" id="util-last-refresh" style="color: var(--ag-text-muted)">Last refreshed:  - </span>
               <span class="d-none small" id="util-stale-badge" style="color: var(--ag-warn); font-weight: 600">Stale</span>
               <label class="small d-flex align-items-center gap-1" for="util-ttl-select" style="color: var(--ag-text-muted)">
                 Auto-refresh
@@ -3068,7 +3068,7 @@
               <div class="fos-util-chip-row mt-2" id="util-chip-row" aria-live="polite"></div>
             </section>
 
-            <!-- Utilization Alerts (Phase C) — under-utilized / over-allocated /
+            <!-- Utilization Alerts (Phase C) - under-utilized / over-allocated /
                  stale-approval items, mirrors the Agreement Dashboard's
                  Attention Items pattern. As of v1.17.0 the items are grouped
                  by alert kind with a Collapse all affordance. -->
@@ -3103,7 +3103,7 @@
                 <div class="fos-agreement-kpi kpi-green h-100" title="Billable hours divided by total hours.">
                   <div class="label">Utilization</div>
                   <div class="value" id="util-kpi-utilization">0%</div>
-                  <div class="sub" id="util-kpi-utilization-sub">— vs target</div>
+                  <div class="sub" id="util-kpi-utilization-sub"> -  vs target</div>
                 </div>
               </div>
               <div class="col">
@@ -3116,7 +3116,7 @@
               <div class="col">
                 <div class="fos-agreement-kpi kpi-blue h-100" title="Weighted average User Role Bill Rate for rows with a known rate; coverage shows what fraction of hours those rows represent.">
                   <div class="label">Effective bill rate</div>
-                  <div class="value" id="util-kpi-bill-rate">—</div>
+                  <div class="value" id="util-kpi-bill-rate"> - </div>
                   <div class="sub" id="util-kpi-bill-rate-sub">0% coverage</div>
                 </div>
               </div>
@@ -3180,7 +3180,7 @@
                 <section class="fos-section-card h-100" aria-labelledby="util-heatmap-heading">
                   <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                     <h2 id="util-heatmap-heading" class="mb-0">Utilization heatmap</h2>
-                    <span class="small" style="color: var(--ag-text-muted)" id="util-heatmap-meta">— · —</span>
+                    <span class="small" style="color: var(--ag-text-muted)" id="util-heatmap-meta"> -  ·  - </span>
                     <div class="fos-util-multi ms-auto">
                       <label class="field-label" style="display: block; line-height: 1; margin-bottom: 2px">Heatmap role</label>
                       <button type="button" class="multi-trigger" id="util-heatmap-role-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
@@ -3235,7 +3235,7 @@
                     </table>
                   </div>
                   <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-2 fos-util-detail-pager">
-                    <span class="small" style="color: var(--ag-text-muted)" id="util-detail-page-info">—</span>
+                    <span class="small" style="color: var(--ag-text-muted)" id="util-detail-page-info"> - </span>
                     <div class="btn-group" role="group" aria-label="Detail pagination">
                       <button type="button" class="btn btn-sm" id="util-detail-prev">Prev</button>
                       <button type="button" class="btn btn-sm" id="util-detail-next">Next</button>
@@ -3257,7 +3257,7 @@
             <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
               <div class="flex-grow-1 min-w-0">
                 <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Labor hours review</h1>
-                <p class="small mb-0" id="lh-subtitle" style="color: var(--ag-text-muted)">—</p>
+                <p class="small mb-0" id="lh-subtitle" style="color: var(--ag-text-muted)"> - </p>
                 <p class="small mb-0 mt-1" id="lh-source-meta" style="color: var(--ag-text-muted)"></p>
               </div>
             </div>
@@ -3276,7 +3276,7 @@
                 Collapse projects
               </button>
               <label class="small d-flex align-items-center gap-2 mb-0" for="lh-week-input" style="color: var(--ag-text-muted)">
-                <span class="text-nowrap">Week (Mon–Sun)</span>
+                <span class="text-nowrap">Week (Mon-Sun)</span>
                 <input type="week" id="lh-week-input" class="form-control form-control-sm" style="width: 11rem; background: var(--ag-surface2); color: var(--ag-text); border-color: var(--ag-border)" />
               </label>
               <div class="fos-util-multi">
@@ -3439,7 +3439,7 @@
           </div>
         </div>
 
-        <!-- v1.19.0 — FR-89..93. Delivery Dashboard panel. Active Projects
+        <!-- v1.19.0 - FR-89..93. Delivery Dashboard panel. Active Projects
              table at the top, per-project monthly P&L below on selection. -->
         <div id="panel-delivery" class="d-none fos-agreement-root">
           <div id="delivery-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
@@ -3461,7 +3461,7 @@
               <button type="button" class="btn btn-sm fw-semibold px-3" id="delivery-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
                 Refresh
               </button>
-              <span class="small" id="delivery-last-refresh" style="color: var(--ag-text-muted)">Last refreshed: —</span>
+              <span class="small" id="delivery-last-refresh" style="color: var(--ag-text-muted)">Last refreshed:  - </span>
               <span class="d-none small" id="delivery-stale-badge" style="color: var(--ag-warn); font-weight: 600">Stale</span>
               <label class="small d-flex align-items-center gap-1" for="delivery-ttl-select" style="color: var(--ag-text-muted)">
                 Auto-refresh
@@ -3475,7 +3475,7 @@
               <span class="small d-none text-danger" id="delivery-fetch-error" role="alert"></span>
             </div>
 
-            <!-- v1.21.0 Phase C.2 — portfolio signals from Active Projects rows
+            <!-- v1.21.0 Phase C.2 - portfolio signals from Active Projects rows
                  only (no per-project P&L fetch). Click an item to select that
                  project and scroll it into view. -->
             <section class="fos-section-card mb-3 d-none" id="delivery-attention-section" aria-labelledby="delivery-attention-heading">
@@ -3486,7 +3486,7 @@
               <div id="delivery-attention-list" class="fos-delivery-attention-list" aria-live="polite"></div>
             </section>
 
-            <!-- v1.21.0 Phase C.3 — portfolio margin-flow Sankey (recognized
+            <!-- v1.21.0 Phase C.3 - portfolio margin-flow Sankey (recognized
                  revenue → labor · ODC · gross margin). Same D3 + d3-sankey
                  loader as the Agreement Dashboard. -->
             <section class="fos-section-card mb-3" aria-labelledby="delivery-sankey-heading">
@@ -3501,7 +3501,7 @@
               <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                 <h2 id="delivery-projects-heading" class="mb-0">Active projects</h2>
                 <span class="small" style="color: var(--ag-text-muted)" id="delivery-projects-count">0 active projects</span>
-                <!-- v1.20.0 (Phase B, FR-98) — client-side substring filter
+                <!-- v1.20.0 (Phase B, FR-98) - client-side substring filter
                      across Project + Customer columns. Persists via the
                      filters localStorage entry along with sort + selection. -->
                 <div class="ms-auto fos-delivery-search-wrap">
@@ -3537,7 +3537,7 @@
               <p class="small mb-0 mt-2 d-none" id="delivery-projects-empty" style="color: var(--ag-text-muted)">
                 No active projects in the current cache. Refresh to check Fibery.
               </p>
-              <!-- v1.20.0 (Phase B) — surfaced when the search input filters
+              <!-- v1.20.0 (Phase B) - surfaced when the search input filters
                    all rows out of view. Distinct copy from the "no projects
                    in cache" case so the user knows refresh won't help. -->
               <p class="small mb-0 mt-2 d-none" id="delivery-projects-no-match" style="color: var(--ag-text-muted)">
@@ -3553,10 +3553,10 @@
                 </div>
                 <div class="d-none d-flex flex-wrap gap-2" id="delivery-pnl-kpi-strip" aria-label="Profit &amp; Loss summary"></div>
               </div>
-              <!-- v1.21.0 Phase C.1 — pacing strip (trailing burn / recognition,
+              <!-- v1.21.0 Phase C.1 - pacing strip (trailing burn / recognition,
                    linear plan vs actual). Shown when monthly P&L is loaded. -->
               <div class="d-none fos-delivery-pacing mb-3" id="delivery-pnl-pacing" aria-label="Project pacing"></div>
-              <!-- v1.20.0 (Phase B, FR-94 / FR-96) — view toggle (Table /
+              <!-- v1.20.0 (Phase B, FR-94 / FR-96) - view toggle (Table /
                    Chart) and a Copy CSV button. Hidden until a project is
                    selected; the empty-state placeholder above the grid
                    stays the source of truth for "nothing to show". -->
@@ -3593,7 +3593,7 @@
                     <tfoot id="delivery-pnl-grid-foot"></tfoot>
                   </table>
                 </div>
-                <!-- v1.20.0 (Phase B, FR-94) — Chart.js stacked bar
+                <!-- v1.20.0 (Phase B, FR-94) - Chart.js stacked bar
                      (Labor by role + Expenses) with a Revenue overlay line.
                      Same month time-series as the table view. -->
                 <div class="d-none fos-delivery-pnl-chart-wrap" id="delivery-pnl-chart-wrap">
@@ -3612,7 +3612,7 @@
           </div>
         </div>
 
-        <!-- Monthly Revenue Review — agreement cache + Fibery payload (Phase A–B). -->
+        <!-- Monthly Revenue Review - agreement cache + Fibery payload (Phase A-B). -->
         <div id="panel-revenue-review" class="d-none fos-agreement-root">
           <div id="rr-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
           <div class="fos-agreement-inner shadow-lg">
@@ -3633,7 +3633,7 @@
               <button type="button" class="btn btn-sm fw-semibold px-3" id="rr-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
                 Refresh
               </button>
-              <span class="small" id="rr-last-refresh" style="color: var(--ag-text-muted)">Last refreshed: —</span>
+              <span class="small" id="rr-last-refresh" style="color: var(--ag-text-muted)">Last refreshed:  - </span>
               <span class="d-none small" id="rr-stale-badge" style="color: var(--ag-warn); font-weight: 600">Stale</span>
               <label class="small d-flex align-items-center gap-1" for="rr-ttl-select" style="color: var(--ag-text-muted)">
                 Auto-refresh
@@ -3710,7 +3710,7 @@
             <div id="rr-prerec-banner" class="d-none mb-3 p-3 rounded-3" style="background: rgba(124, 58, 237, 0.12); border: 1px solid var(--accent4)">
               <div class="fw-semibold mb-1" style="color: var(--ag-text)">Future revenue pre-recognition</div>
               <p class="small mb-2" style="color: var(--ag-text-muted)">
-                Milestones marked recognized with a future target date and not yet invoiced (Fibery vs accounting timing — see PRD §8.1).
+                Milestones marked recognized with a future target date and not yet invoiced (Fibery vs accounting timing - see PRD §8.1).
               </p>
               <ul id="rr-prerec-list" class="small mb-0 ps-3" style="color: var(--ag-text)"></ul>
             </div>
@@ -3724,7 +3724,7 @@
 
             <section class="fos-section-card mb-3" id="rr-section-prior" aria-labelledby="rr-prior-heading">
               <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                <h2 id="rr-prior-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Prior month — milestone billing</h2>
+                <h2 id="rr-prior-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Prior month - milestone billing</h2>
                 <span class="small" style="color: var(--ag-text-muted)" id="rr-prior-meta"></span>
                 <button type="button" class="btn btn-sm btn-link p-0 ms-auto text-decoration-none d-print-none" data-rr-csv="prior" style="color: var(--ag-accent)">Copy CSV</button>
               </div>
@@ -3751,7 +3751,7 @@
 
             <section class="fos-section-card mb-3" id="rr-section-current" aria-labelledby="rr-current-heading">
               <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                <h2 id="rr-current-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Current month — milestone billing</h2>
+                <h2 id="rr-current-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Current month - milestone billing</h2>
                 <span class="small" style="color: var(--ag-text-muted)" id="rr-current-meta"></span>
                 <button type="button" class="btn btn-sm btn-link p-0 ms-auto text-decoration-none d-print-none" data-rr-csv="current" style="color: var(--ag-accent)">Copy CSV</button>
               </div>
@@ -3779,7 +3779,7 @@
             <section class="fos-section-card mb-3" id="rr-section-variance" aria-labelledby="rr-variance-heading">
               <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                 <h2 id="rr-variance-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Variance &amp; schedule</h2>
-                <span class="small" style="color: var(--ag-text-muted)">Prior + current month by target date — amount mismatch or past target not invoiced</span>
+                <span class="small" style="color: var(--ag-text-muted)">Prior + current month by target date - amount mismatch or past target not invoiced</span>
                 <button type="button" class="btn btn-sm btn-link p-0 ms-auto text-decoration-none d-print-none" data-rr-csv="variance" style="color: var(--ag-accent)">Copy CSV</button>
               </div>
               <div class="fos-rr-table-wrap">
@@ -3886,7 +3886,7 @@
           </div>
         </div>
 
-        <!-- Expenses — spreadsheet tab (feature 015, PRD FR-109). -->
+        <!-- Expenses - spreadsheet tab (feature 015, PRD FR-109). -->
         <div id="panel-expenses" class="d-none fos-agreement-root">
           <div id="exp-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
           <div class="fos-agreement-inner shadow-lg">
@@ -3902,7 +3902,7 @@
             <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
               <div class="flex-grow-1 min-w-0">
                 <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Expenses</h1>
-                <p class="small mb-0" id="exp-subtitle" style="color: var(--ag-text-muted)">—</p>
+                <p class="small mb-0" id="exp-subtitle" style="color: var(--ag-text-muted)"> - </p>
               </div>
             </div>
 
@@ -3910,7 +3910,7 @@
               <button type="button" class="btn btn-sm fw-semibold px-3" id="exp-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
                 Refresh
               </button>
-              <span class="small" id="exp-last-refresh" style="color: var(--ag-text-muted)">Last refreshed: —</span>
+              <span class="small" id="exp-last-refresh" style="color: var(--ag-text-muted)">Last refreshed:  - </span>
               <span class="small d-none text-danger" id="exp-fetch-error" role="alert"></span>
             </div>
 
@@ -3921,7 +3921,7 @@
                 <h2 id="exp-filters-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Filters</h2>
                 <button type="button" class="fos-util-clear-btn ms-auto" id="exp-clear-filters-btn">Clear all filters</button>
               </div>
-              <p class="small mb-2" id="exp-filter-summary" style="color: var(--ag-text-muted)" aria-live="polite">—</p>
+              <p class="small mb-2" id="exp-filter-summary" style="color: var(--ag-text-muted)" aria-live="polite"> - </p>
               <div class="fos-util-chip-row mb-3" id="exp-filter-chips" aria-label="Active filters"></div>
               <div class="row g-2 align-items-end">
                 <div class="col-6 col-md-3">
@@ -3992,7 +3992,7 @@
             </div>
 
             <section class="fos-section-card mb-3" aria-labelledby="exp-sankey-heading">
-              <h2 id="exp-sankey-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Expense flow — department · attribution · customer</h2>
+              <h2 id="exp-sankey-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Expense flow - department · attribution · customer</h2>
               <p class="small mb-2" style="color: var(--ag-text-muted)">Flows reflect the current filters. Department totals split into attributed vs unattributed spend; attributed amounts continue to GL customer.</p>
               <div id="exp-sankey-wrap" class="fos-sankey-wrap" role="img" aria-label="Expense flow Sankey diagram"></div>
             </section>
@@ -4083,14 +4083,14 @@
                     aria-valuenow="0"
                     aria-describedby="exp-risk-month-label"
                   />
-                  <strong id="exp-risk-month-label" class="text-nowrap" style="color: var(--ag-text); min-width: 5.5rem">—</strong>
+                  <strong id="exp-risk-month-label" class="text-nowrap" style="color: var(--ag-text); min-width: 5.5rem"> - </strong>
                 </label>
               </div>
               <ul class="exp-risk-interpret list-unstyled small mb-3" aria-label="Risk map interpretation">
-                <li><strong>Top-right</strong> — dangerous growth + high spend</li>
-                <li><strong>Bottom-right</strong> — fast growth but still small</li>
-                <li><strong>Top-left</strong> — expensive but stable</li>
-                <li><strong>Bottom-left</strong> — low spend and stable or declining</li>
+                <li><strong>Top-right</strong> - dangerous growth + high spend</li>
+                <li><strong>Bottom-right</strong> - fast growth but still small</li>
+                <li><strong>Top-left</strong> - expensive but stable</li>
+                <li><strong>Bottom-left</strong> - low spend and stable or declining</li>
               </ul>
               <div class="exp-risk-map-wrap">
                 <canvas id="exp-chart-risk" role="img" aria-label="Software vendor risk bubble chart"></canvas>
@@ -4105,7 +4105,7 @@
     </div>
   </div>
 
-  <!-- Phase C — Row-detail drawer (off-canvas right). Opened from the Detail
+  <!-- Phase C - Row-detail drawer (off-canvas right). Opened from the Detail
        Table or the Pending Approvals widget; populated by openDetailDrawer(). -->
   <div class="fos-util-drawer-backdrop d-none" id="util-drawer-backdrop" aria-hidden="true"></div>
   <aside id="util-detail-drawer" class="fos-util-drawer d-none" role="dialog" aria-modal="true" aria-labelledby="util-drawer-title" aria-hidden="true" tabindex="-1">
@@ -4151,7 +4151,7 @@
         <div class="modal-header">
           <div>
             <h5 class="modal-title fw-semibold" id="expensesDetailModalTitle">Expense detail</h5>
-            <div class="small text-secondary" id="expensesDetailModalSubtitle">—</div>
+            <div class="small text-secondary" id="expensesDetailModalSubtitle"> - </div>
           </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
@@ -4180,7 +4180,7 @@
           </p>
         </div>
         <div class="modal-footer border-0 pt-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <span class="small text-secondary" id="expensesDetailModalTotals">—</span>
+          <span class="small text-secondary" id="expensesDetailModalTotals"> - </span>
           <div class="d-flex align-items-center gap-2">
             <button type="button" class="btn btn-outline-secondary btn-sm" id="expensesDetailCopyCsvBtn">Copy CSV</button>
             <button type="button" class="btn btn-fos-primary px-4" data-bs-dismiss="modal">Close</button>
@@ -4213,7 +4213,7 @@
     </div>
   </div>
 
-  <!-- v1.18.0 — FR-85. Opens when a heatmap cell is clicked; lists the labor
+  <!-- v1.18.0 - FR-85. Opens when a heatmap cell is clicked; lists the labor
        entries (after all current dashboard filters) that contributed to that
        (person, week) cell. Replaces the prior pin-Person + change-range drill. -->
   <div
@@ -4228,7 +4228,7 @@
         <div class="modal-header">
           <div>
             <h5 class="modal-title fw-semibold" id="utilHeatmapCellTitle">Labor entries</h5>
-            <div class="small text-secondary" id="utilHeatmapCellSubtitle">—</div>
+            <div class="small text-secondary" id="utilHeatmapCellSubtitle"> - </div>
           </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
@@ -4255,14 +4255,14 @@
           </p>
         </div>
         <div class="modal-footer border-0 pt-0 d-flex justify-content-between">
-          <span class="small text-secondary" id="utilHeatmapCellTotals">—</span>
+          <span class="small text-secondary" id="utilHeatmapCellTotals"> - </span>
           <button type="button" class="btn btn-fos-primary px-4" data-bs-dismiss="modal">Close</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- v1.18.0 — FR-86. Opens when a row in the Agreement Dashboard's Financial
+  <!-- v1.18.0 - FR-86. Opens when a row in the Agreement Dashboard's Financial
        performance table is clicked; lists the agreement's Revenue Items
        ("milestones"). Data comes from the precomputed
        payload.revenueItemsByAgreement map (no extra Fibery fetch). -->
@@ -4278,7 +4278,7 @@
         <div class="modal-header">
           <div>
             <h5 class="modal-title fw-semibold" id="finAgreementModalTitle">Agreement milestones</h5>
-            <div class="small text-secondary" id="finAgreementModalSubtitle">—</div>
+            <div class="small text-secondary" id="finAgreementModalSubtitle"> - </div>
           </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
@@ -4302,7 +4302,7 @@
         </div>
         <div class="modal-footer border-0 pt-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
           <div class="d-flex flex-column align-items-start gap-1">
-            <span class="small text-secondary" id="finAgreementModalTotals">—</span>
+            <span class="small text-secondary" id="finAgreementModalTotals"> - </span>
             <a
               id="fin-agreement-fibery-link"
               class="fos-util-drawer-link small d-none"
@@ -4317,7 +4317,7 @@
     </div>
   </div>
 
-  <!-- v2.6.9 — opens when a month bar/point is clicked in the Delivery P&L
+  <!-- v2.6.9 - opens when a month bar/point is clicked in the Delivery P&L
        chart. Shows revenue, labor by role, expenses, and margin for that
        month only (cached payload; no extra Fibery fetch). -->
   <div
@@ -4332,7 +4332,7 @@
         <div class="modal-header">
           <div>
             <h5 class="modal-title fw-semibold" id="deliveryPnlMonthModalTitle">Monthly P&amp;L</h5>
-            <div class="small text-secondary" id="deliveryPnlMonthModalSubtitle">—</div>
+            <div class="small text-secondary" id="deliveryPnlMonthModalSubtitle"> - </div>
           </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
@@ -4357,7 +4357,7 @@
     </div>
   </div>
 
-  <!-- v1.20.0 (Phase B, FR-95) — opens when a Revenue cell in the Delivery
+  <!-- v1.20.0 (Phase B, FR-95) - opens when a Revenue cell in the Delivery
        Dashboard's monthly P&L grid is clicked. Lists the revenue items that
        bucketed into that month, plus a recognized / projected split. Data
        comes from `payload.months[i].revenueItems` (no extra Fibery fetch). -->
@@ -4373,7 +4373,7 @@
         <div class="modal-header">
           <div>
             <h5 class="modal-title fw-semibold" id="deliveryRevenueMonthModalTitle">Revenue items</h5>
-            <div class="small text-secondary" id="deliveryRevenueMonthModalSubtitle">—</div>
+            <div class="small text-secondary" id="deliveryRevenueMonthModalSubtitle"> - </div>
           </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
@@ -4396,7 +4396,7 @@
           </p>
         </div>
         <div class="modal-footer border-0 pt-0 d-flex justify-content-between">
-          <span class="small text-secondary" id="deliveryRevenueMonthModalTotals">—</span>
+          <span class="small text-secondary" id="deliveryRevenueMonthModalTotals"> - </span>
           <button type="button" class="btn btn-fos-primary px-4" data-bs-dismiss="modal">Close</button>
         </div>
       </div>
@@ -4423,7 +4423,7 @@
       var UTIL_FILTERS_PREF_KEY = 'fos_utilization_filters_v1';
       var UTIL_FILTERS_SCHEMA_VERSION = 1;
       var UTIL_DETAIL_PAGE_SIZE = 100;
-      // v1.19.0 — Delivery Dashboard. Projects list and per-project monthly
+      // v1.19.0 - Delivery Dashboard. Projects list and per-project monthly
       // P&L share the same TTL knob. The per-project P&Ls use a key prefix
       // so we can iterate sessionStorage to invalidate them in one pass on
       // Refresh.
@@ -4470,10 +4470,10 @@
       };
       var currentTablePayload = null;
       var currentTab = 'allActive';
-      // FR-86, v1.18.0 — map of agreementId → revenue items, used by the
+      // FR-86, v1.18.0 - map of agreementId → revenue items, used by the
       // milestones modal. Populated from data.revenueItemsByAgreement.
       var revenueItemsByAgreement = {};
-      /** Agreement Attention — `expanded[kind] === true` means group is open. Cleared in `applyAgreementPayload()`. */
+      /** Agreement Attention - `expanded[kind] === true` means group is open. Cleared in `applyAgreementPayload()`. */
       var agreementAttentionState = { expanded: {} };
 
       // Utilization dashboard client state (Phase A + Phase B).
@@ -4482,39 +4482,39 @@
         filters: {
           customers: {},       // Set as {name: true}
           projects: {},        // Set as {projectKey: true} where projectKey = id || 'name::' + name
-          persons: {},         // Phase B — Set as {personKey: true} where personKey = userId || userName || '(Unknown user)'
-          roles: {},           // Phase B — Set as {roleName: true}
+          persons: {},         // Phase B - Set as {personKey: true} where personKey = userId || userName || '(Unknown user)'
+          roles: {},           // Phase B - Set as {roleName: true}
           billable: 'all',     // 'all' | 'billable' | 'non-billable'
           internalLabor: 'include', // 'include' | 'exclude'
           rangeDays: 60,       // preset value or null when custom
           rangeStartIso: null, // populated for 'custom' preset
           rangeEndIso: null,
         },
-        // Phase B — Detail table sort + pagination state.
+        // Phase B - Detail table sort + pagination state.
         detail: {
           sortKey: 'day',         // server-normalized row column key
           sortDir: 'desc',        // 'asc' | 'desc'
           page: 0,                // 0-indexed page
           pageSize: UTIL_DETAIL_PAGE_SIZE,
         },
-        // Phase C — heatmap-local Role multi-select (distinct from the global
+        // Phase C - heatmap-local Role multi-select (distinct from the global
         // Role filter; lets the user scope the heatmap to engineering / data
         // science / etc. without disturbing the rest of the dashboard).
         heatmap: {
           roleFilter: {},         // {roleName: true}
         },
-        // Phase C — Pending Approvals widget state.
+        // Phase C - Pending Approvals widget state.
         pending: {
           showAll: false,         // default cap = 50 rows
         },
-        // v1.16.0 / v1.17.0 — Utilization Alerts grouped by `kind`. `expanded`
+        // v1.16.0 / v1.17.0 - Utilization Alerts grouped by `kind`. `expanded`
         // is keyed by alert kind; `true` = user opened the group. Cleared in
         // `applyUtilPayload` so each new payload starts with every group
         // collapsed (v1.21.1).
         alerts: {
           expanded: {},
         },
-        // Phase C — Row-detail drawer state.
+        // Phase C - Row-detail drawer state.
         detailDrawer: {
           open: false,
           rowId: null,
@@ -4706,7 +4706,7 @@
         utilDetailPageInfo: document.getElementById('util-detail-page-info'),
         utilDetailPrev: document.getElementById('util-detail-prev'),
         utilDetailNext: document.getElementById('util-detail-next'),
-        // Phase C — Alerts / Heatmap / Pending Approvals / Drawer.
+        // Phase C - Alerts / Heatmap / Pending Approvals / Drawer.
         utilAttentionList: document.getElementById('util-attention-list'),
         utilAttentionCount: document.getElementById('util-attention-count'),
         utilAttentionCollapseAll: document.getElementById('util-attention-collapse-all'),
@@ -4726,7 +4726,7 @@
         utilDrawerClose: document.getElementById('util-drawer-close'),
         utilDrawerFiberyLink: document.getElementById('util-drawer-fibery-link'),
         utilDrawerTitle: document.getElementById('util-drawer-title'),
-        // v1.19.0 — Delivery Dashboard.
+        // v1.19.0 - Delivery Dashboard.
         panelDelivery: document.getElementById('panel-delivery'),
         deliveryRefreshBtn: document.getElementById('delivery-refresh-btn'),
         deliveryLastRefresh: document.getElementById('delivery-last-refresh'),
@@ -4779,7 +4779,7 @@
         rrDetailTree: document.getElementById('rr-detail-tree'),
         deliveryPnlError: document.getElementById('delivery-pnl-error'),
         deliveryPnlReconcile: document.getElementById('delivery-pnl-reconcile'),
-        // v1.20.0 (Phase B) — Delivery Dashboard chart + drill-down + CSV
+        // v1.20.0 (Phase B) - Delivery Dashboard chart + drill-down + CSV
         // + search additions (FR-94 .. FR-98).
         deliverySearchInput: document.getElementById('delivery-search-input'),
         deliverySearchClear: document.getElementById('delivery-search-clear'),
@@ -4900,7 +4900,7 @@
         csBody: document.getElementById('cs-body'),
       };
 
-      /* Historical data source (v2.1.0 — FR-105) */
+      /* Historical data source (v2.1.0 - FR-105) */
       var FOS_DATA_SOURCE_STORAGE_KEY = 'fos_data_source_v1';
       var SNAPSHOT_REFRESH_TITLE_ = 'Switch to Live data to refresh from Fibery.';
       var dataSourceState = {
@@ -4951,7 +4951,7 @@
       }
 
       function formatSnapshotBannerDate_(isoDate) {
-        if (!isoDate) return '—';
+        if (!isoDate) return ' - ';
         try {
           var parts = String(isoDate).split('-');
           if (parts.length === 3) {
@@ -5040,7 +5040,7 @@
           var e = new Date(range.end).toLocaleDateString();
           var base = els.utilSubtitle.textContent || '';
           if (base.indexOf('· snapshot range') < 0) {
-            els.utilSubtitle.textContent = base + ' · snapshot range ' + s + ' – ' + e;
+            els.utilSubtitle.textContent = base + ' · snapshot range ' + s + ' - ' + e;
           }
         }
       }
@@ -5108,6 +5108,15 @@
         }
       }
 
+      function fosSanitizeDisplayText_(s) {
+        return String(s == null ? '' : s)
+          .replace(/\u2014/g, ' - ')
+          .replace(/\u2013/g, ' - ')
+          .replace(/\u00a0/g, ' ')
+          .replace(/\u00e2\u20ac\u201d/g, ' - ')
+          .replace(/\u00e2\u20ac\u00a6/g, '...');
+      }
+
       function populateDataSourceSelect_(catalog) {
         if (!els.dataSourceSelect) return;
         var sel = els.dataSourceSelect;
@@ -5115,7 +5124,9 @@
         sel.innerHTML = '';
         var liveOpt = document.createElement('option');
         liveOpt.value = 'live';
-        liveOpt.textContent = (catalog && catalog.live && catalog.live.label) || 'Live data';
+        liveOpt.textContent = fosSanitizeDisplayText_(
+          (catalog && catalog.live && catalog.live.label) || 'Live data'
+        );
         sel.appendChild(liveOpt);
         var snaps = (catalog && catalog.snapshots) || [];
         dataSourceState.catalogSnapshots = snaps;
@@ -5124,7 +5135,7 @@
           if (!s || !s.snapshotDate) continue;
           var opt = document.createElement('option');
           opt.value = s.snapshotDate;
-          opt.textContent = s.label || s.snapshotDate;
+          opt.textContent = fosSanitizeDisplayText_(s.label || s.snapshotDate);
           sel.appendChild(opt);
         }
         var pref = readDataSourcePref_();
@@ -5289,7 +5300,7 @@
         modal.show();
       }
 
-      /* Admin settings panel (v2.2.0 — feature 011) */
+      /* Admin settings panel (v2.2.0 - feature 011) */
       var adminSettingsState_ = {
         groups: [],
         baseline: null,
@@ -5514,7 +5525,7 @@
               if (typeof columns[ci].format === 'function') {
                 td.textContent = columns[ci].format(val, row);
               } else {
-                td.textContent = val == null || val === '' ? '—' : String(val);
+                td.textContent = val == null || val === '' ? ' - ' : String(val);
               }
               tr.appendChild(td);
             }
@@ -5533,7 +5544,7 @@
           'agreement-dashboard': 'Agreements',
           operations: 'Utilization',
           'labor-hours': 'Labor hours',
-          delivery: 'Delivery — Projects & P&L',
+          delivery: 'Delivery - Projects & P&L',
           'revenue-review': 'Revenue review',
           expenses: 'Expenses',
           settings: 'Settings',
@@ -5646,8 +5657,8 @@
           ' You are on PRD v' +
           (s.currentVersion || running) +
           '. Latest is v' +
-          (s.latestVersion || '—') +
-          (s.latestDescription ? ' — ' + s.latestDescription : '') +
+          (s.latestVersion || ' - ') +
+          (s.latestDescription ? ' - ' + s.latestDescription : '') +
           '.';
         if (els.fosAppVersionBannerText) {
           els.fosAppVersionBannerText.textContent = text;
@@ -5684,7 +5695,7 @@
               'Maintained in the App Versions tab of the auth spreadsheet. New deployments register with ' +
               'Available=FALSE (no user update banner) until you set Available=TRUE. ' +
               'This deployment is v' +
-              (s.currentVersion || '—') +
+              (s.currentVersion || ' - ') +
               '.';
             pad.appendChild(intro);
             pad.appendChild(
@@ -5722,7 +5733,7 @@
         var err = adminSettingsState_.usageError;
         if (err) {
           els.settingsUsageHost.appendChild(
-            createSettingsCollapseGroup_('usage-analytics', 'Usage — last 30 days', function (body) {
+            createSettingsCollapseGroup_('usage-analytics', 'Usage - last 30 days', function (body) {
               var p = document.createElement('p');
               p.className = 'small text-danger mb-0 p-3';
               p.textContent = err;
@@ -5734,7 +5745,7 @@
         if (!data || data.ok === false) {
           var msg = (data && data.message) || 'Usage data is unavailable.';
           els.settingsUsageHost.appendChild(
-            createSettingsCollapseGroup_('usage-analytics', 'Usage — last 30 days', function (body) {
+            createSettingsCollapseGroup_('usage-analytics', 'Usage - last 30 days', function (body) {
               var p2 = document.createElement('p');
               p2.className = 'small text-secondary mb-0 p-3';
               p2.textContent = msg;
@@ -5745,7 +5756,7 @@
         }
 
         els.settingsUsageHost.appendChild(
-          createSettingsCollapseGroup_('usage-analytics', 'Usage — last 30 days', function (body) {
+          createSettingsCollapseGroup_('usage-analytics', 'Usage - last 30 days', function (body) {
             var pad = document.createElement('div');
             pad.className = 'p-3';
             var summary = document.createElement('p');
@@ -5946,7 +5957,7 @@
           if (row.type === 'secret') {
             ro.textContent = row.hasStoredSecret ? 'Configured (hidden)' : 'Not set';
           } else {
-            ro.textContent = row.value ? String(row.value) : '—';
+            ro.textContent = row.value ? String(row.value) : ' - ';
           }
           wrap.appendChild(ro);
         }
@@ -6247,7 +6258,7 @@
       function formatMoneyCompact(n) {
         var x = Number(n);
         if (!isFinite(x)) {
-          return '—';
+          return ' - ';
         }
         var abs = Math.abs(x);
         var sign = x < 0 ? '-' : '';
@@ -6270,13 +6281,13 @@
 
       function formatLastRefresh(iso) {
         if (!iso) {
-          return 'Last refreshed: —';
+          return 'Last refreshed:  - ';
         }
         try {
           var d = new Date(iso);
           return 'Last refreshed: ' + d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
         } catch (e) {
-          return 'Last refreshed: —';
+          return 'Last refreshed:  - ';
         }
       }
 
@@ -6566,15 +6577,15 @@
             : '<div class="tcv">' + formatMoneyCompact(c.totalContractValue) + '</div>';
           var ndaHtml = c.ndaCompleted
             ? '<span class="nda-ok"><i class="bi bi-check-circle-fill" aria-hidden="true"></i> NDA</span>'
-            : '<span>NDA: —</span>';
+            : '<span>NDA:  - </span>';
           node.innerHTML =
             '<div class="avatar" style="background:' + (c.color || '#A0AEC0') + '">' + escapeHtml(c.initials || '?') + '</div>' +
             '<div class="meta">' +
-              '<div class="name" title="' + escapeHtml(c.name || '') + '">' + escapeHtml(c.name || '—') + '</div>' +
+              '<div class="name" title="' + escapeHtml(c.name || '') + '">' + escapeHtml(c.name || ' - ') + '</div>' +
               '<div class="row">' +
                 '<span>' + escapeHtml(String(c.agreementCount || 0)) + ' SOWs</span>' +
-                '<span>' + escapeHtml(c.funnelStage || '—') + '</span>' +
-                '<span>' + escapeHtml(c.segment || '—') + '</span>' +
+                '<span>' + escapeHtml(c.funnelStage || ' - ') + '</span>' +
+                '<span>' + escapeHtml(c.segment || ' - ') + '</span>' +
                 ndaHtml +
               '</div>' +
             '</div>' +
@@ -6605,7 +6616,7 @@
             widthPct = Math.max(2, Math.min(100, (Number(r.monthlyRate) / maxRate) * 100));
           }
           var rateText = r.monthlyRate === null || r.monthlyRate === undefined
-            ? '—'
+            ? ' - '
             : formatMoneyCompact(r.monthlyRate) + '/mo';
           var noteText = '';
           if (r.schedulingStatus === 'Not Scheduled') {
@@ -6619,8 +6630,8 @@
           row.className = 'fos-pipeline-row' + (unscheduled ? ' unscheduled' : '');
           row.innerHTML =
             '<div class="name" title="' + escapeHtml(r.agreementName || '') + '">' +
-              escapeHtml(r.agreementName || '—') +
-              '<span class="customer">' + escapeHtml(r.customer || '—') + '</span>' +
+              escapeHtml(r.agreementName || ' - ') +
+              '<span class="customer">' + escapeHtml(r.customer || ' - ') + '</span>' +
             '</div>' +
             '<div class="bar-track">' +
               '<div class="bar-fill" style="width:' + widthPct + '%; background:' + (r.color || '#A0AEC0') + '"></div>' +
@@ -6755,7 +6766,7 @@
       }
 
       /**
-       * v1.21.0 Phase C.3 — aggregate recognized revenue → labor / ODC /
+       * v1.21.0 Phase C.3 - aggregate recognized revenue → labor / ODC /
        * gross margin for the visible Delivery rows (non-Internal only).
        * @param {!Array<!Object>} projects
        * @return {!{nodes: !Array, links: !Array, total: number, linkOpacity: number, caption: ?string}}
@@ -7061,7 +7072,7 @@
 
       function formatMarginPct(n) {
         if (n === null || n === undefined || isNaN(n)) {
-          return '—';
+          return ' - ';
         }
         return (Math.round(Number(n) * 10) / 10).toFixed(1) + '%';
       }
@@ -7091,7 +7102,7 @@
           var marginPct = r.margin === null || r.margin === undefined ? null : Number(r.margin);
           var widthPct = marginPct === null || isNaN(marginPct) ? 0 : Math.min(100, Math.max(0, marginPct));
           var tr = document.createElement('tr');
-          // FR-86, v1.18.0 — each row opens a milestones modal. Marking the
+          // FR-86, v1.18.0 - each row opens a milestones modal. Marking the
           // row clickable in the DOM (class + role + tabindex + data-id) is
           // enough; a single delegated listener on the tbody (wired below)
           // handles click + Enter + Space.
@@ -7103,12 +7114,12 @@
           tr.setAttribute('data-agreement-name', r.name || '');
           tr.setAttribute('aria-label', 'View milestones for ' + (r.name || 'agreement'));
           var customerCell = hideCustomer ? '' :
-            '<td>' + escapeHtml(r.customer || '—') + '</td>';
+            '<td>' + escapeHtml(r.customer || ' - ') + '</td>';
           tr.innerHTML =
             '<td class="name-cell" title="' + escapeHtml(r.name || '') + '">' + escapeHtml(r.name || '') + '</td>' +
             customerCell +
-            '<td><span class="badge-pill" style="background:' + (r.typeColor || '#A0AEC0') + '">' + escapeHtml(r.type || '—') + '</span></td>' +
-            '<td><span class="badge-pill" style="background:' + (r.stateColor || '#A0AEC0') + '">' + escapeHtml(r.state || '—') + '</span></td>' +
+            '<td><span class="badge-pill" style="background:' + (r.typeColor || '#A0AEC0') + '">' + escapeHtml(r.type || ' - ') + '</span></td>' +
+            '<td><span class="badge-pill" style="background:' + (r.stateColor || '#A0AEC0') + '">' + escapeHtml(r.state || ' - ') + '</span></td>' +
             '<td class="num">' + formatMoneyCompact(r.planned) + '</td>' +
             '<td class="num">' + formatMoneyCompact(r.recognized) + '</td>' +
             '<td>' +
@@ -7122,7 +7133,7 @@
           body.appendChild(tr);
         }
       }
-      // FR-86, v1.18.0 — delegated row handler for the Financial performance
+      // FR-86, v1.18.0 - delegated row handler for the Financial performance
       // table. Click or Enter / Space on a row opens the agreement-milestones
       // modal seeded from `revenueItemsByAgreement`.
       function handleFinTableRowActivate_(target) {
@@ -7160,15 +7171,15 @@
           body.innerHTML = '';
           for (var i = 0; i < items.length; i++) {
             var m = items[i];
-            var statusLabel = m.state || (m.recognized ? 'Recognized' : '—');
+            var statusLabel = m.state || (m.recognized ? 'Recognized' : ' - ');
             var statusColor = milestoneStatusColor_(m.state, m.recognized);
             var amount = (m.targetAmount != null && Number(m.targetAmount) !== 0)
               ? formatMoneyCompact(m.targetAmount)
-              : (m.actualAmount != null ? formatMoneyCompact(m.actualAmount) : '—');
-            var dateLabel = m.targetDate ? String(m.targetDate).slice(0, 10) : '—';
+              : (m.actualAmount != null ? formatMoneyCompact(m.actualAmount) : ' - ');
+            var dateLabel = m.targetDate ? String(m.targetDate).slice(0, 10) : ' - ';
             var tr = document.createElement('tr');
             tr.innerHTML =
-              '<td class="name-cell" title="' + escapeHtml(m.name || '') + '">' + escapeHtml(m.name || '—') + '</td>' +
+              '<td class="name-cell" title="' + escapeHtml(m.name || '') + '">' + escapeHtml(m.name || ' - ') + '</td>' +
               '<td class="num">' + escapeHtml(amount) + '</td>' +
               '<td>' + escapeHtml(dateLabel) + '</td>' +
               '<td><span class="badge-pill" style="background:' + statusColor + '">' +
@@ -7188,7 +7199,7 @@
           }
           totalsEl.textContent = items.length
             ? 'Total target value: ' + formatMoneyCompact(totalAmt)
-            : '—';
+            : ' - ';
         }
 
         if (fiberyLink) {
@@ -7280,20 +7291,20 @@
           ' proposals · ' +
           String(kpis.completeCount != null ? kpis.completeCount : 0) +
           ' complete';
-        document.getElementById('kpi-top-customer').textContent = kpis.topCustomerName || '—';
+        document.getElementById('kpi-top-customer').textContent = kpis.topCustomerName || ' - ';
         document.getElementById('kpi-top-customer-sub').textContent =
           formatPct(kpis.topCustomerPortfolioPct) + '% of portfolio · ' + String(kpis.topCustomerSowCount || 0) + ' SOWs';
 
         var marginEl = document.getElementById('kpi-flag-margin');
         var marginSub = document.getElementById('kpi-flag-margin-sub');
         if (kpis.flaggedMarginPct == null || kpis.flaggedMarginPct === '') {
-          marginEl.textContent = '—';
-          marginSub.textContent = kpis.flaggedMarginAgreement || '—';
+          marginEl.textContent = ' - ';
+          marginSub.textContent = kpis.flaggedMarginAgreement || ' - ';
           els.kpiMarginCard.classList.remove('kpi-margin-neg', 'kpi-margin-low');
           els.kpiMarginCard.classList.add('kpi-yellow');
         } else {
           marginEl.textContent = formatPct(kpis.flaggedMarginPct) + '%';
-          marginSub.textContent = kpis.flaggedMarginAgreement || '—';
+          marginSub.textContent = kpis.flaggedMarginAgreement || ' - ';
           els.kpiMarginCard.classList.remove('kpi-yellow');
           if (kpis.flaggedMarginIsNegative) {
             els.kpiMarginCard.classList.add('kpi-margin-neg');
@@ -7493,7 +7504,7 @@
         })(tabButtons[ti]);
       }
 
-      // FR-86, v1.18.0 — delegated click + keyboard handler for the Financial
+      // FR-86, v1.18.0 - delegated click + keyboard handler for the Financial
       // performance table body. Wired once at init time (rows are re-rendered
       // per tab switch, so a delegated listener is the right shape).
       var finBody = document.getElementById('financial-table-body');
@@ -7626,7 +7637,7 @@
       }
 
       /* =====================================================================
-         Utilization Management Dashboard (Operations panel) — Phase A.
+         Utilization Management Dashboard (Operations panel) - Phase A.
          Fetches Agreement Management/Labor Costs through
          getUtilizationDashboardData(), caches the payload in sessionStorage,
          and renders KPIs + four Chart.js surfaces. Filters re-aggregate in
@@ -7680,7 +7691,7 @@
       }
       function formatRate(n) {
         var x = Number(n);
-        if (!isFinite(x)) return '—';
+        if (!isFinite(x)) return ' - ';
         return '$' + Math.round(x);
       }
 
@@ -7813,7 +7824,7 @@
           els.utilProjectMenu,
           (dimensions && dimensions.projects) || [],
           function (item) { return item.id ? item.id : ('name::' + item.name); },
-          function (item) { return item.name + ' · ' + (item.customer || '—'); },
+          function (item) { return item.name + ' · ' + (item.customer || ' - '); },
           utilState.filters.projects
         );
         // Persons dropdown is alpha-sorted (FR-87, v1.18.0). The server hands
@@ -8043,7 +8054,7 @@
         var brateEl = document.getElementById('util-kpi-bill-rate');
         var brateSub = document.getElementById('util-kpi-bill-rate-sub');
         if (kpis.effectiveBillRate === null || kpis.effectiveBillRate === undefined) {
-          brateEl.textContent = '—';
+          brateEl.textContent = ' - ';
           brateSub.textContent = '0% coverage';
         } else {
           brateEl.textContent = formatRate(kpis.effectiveBillRate) + '/hr';
@@ -8142,7 +8153,7 @@
           },
           label: function (c) {
             var i = c.dataIndex;
-            return [formatHours(c.parsed.x) + ' hours', 'Customer: ' + (agg[i].customer || '—')];
+            return [formatHours(c.parsed.x) + ' hours', 'Customer: ' + (agg[i].customer || ' - ')];
           },
         };
         opts.onClick = function (evt, elsArr) {
@@ -8335,7 +8346,7 @@
             return [
               formatHours(total) + ' hours',
               'Billable: ' + formatHours(billable) + 'h · ' + pct + '%',
-              'Role: ' + (agg[i].role || '—'),
+              'Role: ' + (agg[i].role || ' - '),
             ];
           },
         };
@@ -8421,7 +8432,7 @@
           rangeLabel(p.range);
         if (els.utilSubtitle) els.utilSubtitle.textContent = subtitle;
         renderUtilDetailTable(rows);
-        // Phase C — Alerts panel (uses server-precomputed alerts from the
+        // Phase C - Alerts panel (uses server-precomputed alerts from the
         // payload; doesn't depend on the active filter set), Heatmap (honors
         // global filters + heatmap-local Role filter), Pending Approvals
         // widget (honors active filter set).
@@ -8480,7 +8491,7 @@
         return String(av).localeCompare(String(bv)) * dirMul;
       }
       function approvalPillHtml_(row) {
-        var label = row.approval || row.timeEntryStatus || '—';
+        var label = row.approval || row.timeEntryStatus || ' - ';
         var cls = 'fos-util-pill fos-util-pill-unknown';
         var norm = String(label).toLowerCase();
         if (norm === 'approved') cls = 'fos-util-pill fos-util-pill-approved';
@@ -8530,19 +8541,19 @@
         } else {
           for (var i = startIdx; i < endIdx; i++) {
             var r = sortedRows[i];
-            var day = r.day || (r.startDateTime ? String(r.startDateTime).slice(0, 10) : '—');
-            var role = r.userRole || r.clockifyUserRole || '—';
+            var day = r.day || (r.startDateTime ? String(r.startDateTime).slice(0, 10) : ' - ');
+            var role = r.userRole || r.clockifyUserRole || ' - ';
             var billRate = (r.userRoleBillRate === null || r.userRoleBillRate === undefined)
-              ? '—'
+              ? ' - '
               : formatRate(r.userRoleBillRate);
             // data-row-id wires the Phase C drawer click (handled at the
             // tbody level; rows render with cursor:pointer via CSS hint).
             html +=
               '<tr data-row-id="' + escapeHtml(r.id || '') + '" style="cursor: pointer">' +
                 '<td>' + escapeHtml(day) + '</td>' +
-                '<td>' + escapeHtml(r.userName || '—') + '</td>' +
+                '<td>' + escapeHtml(r.userName || ' - ') + '</td>' +
                 '<td>' + escapeHtml(r.customer || '(Unassigned)') + '</td>' +
-                '<td>' + escapeHtml(r.projectName || '—') + '</td>' +
+                '<td>' + escapeHtml(r.projectName || ' - ') + '</td>' +
                 '<td>' + escapeHtml(role) + '</td>' +
                 '<td class="text-end">' + escapeHtml(formatHours(r.hours)) + '</td>' +
                 '<td class="text-end">' + escapeHtml(formatMoneyCompact(r.cost || 0)) + '</td>' +
@@ -8558,10 +8569,10 @@
         }
         if (els.utilDetailPageInfo) {
           if (!total) {
-            els.utilDetailPageInfo.textContent = '—';
+            els.utilDetailPageInfo.textContent = ' - ';
           } else {
             els.utilDetailPageInfo.textContent =
-              (startIdx + 1) + '–' + endIdx + ' of ' + total +
+              (startIdx + 1) + '-' + endIdx + ' of ' + total +
               ' · page ' + (s.page + 1) + ' of ' + pageCount;
           }
         }
@@ -8570,25 +8581,25 @@
       }
 
       /* ====================================================================
-         Phase C (v1.14.0) — Alerts panel · Utilization heatmap · Pending
+         Phase C (v1.14.0) - Alerts panel · Utilization heatmap · Pending
          Approvals widget · Row-detail drawer.
          ==================================================================== */
 
-      // Phase C — Default visible pending-approvals cap; "Show all" expands.
+      // Phase C - Default visible pending-approvals cap; "Show all" expands.
       var UTIL_PENDING_DEFAULT_LIMIT = 50;
-      // Phase C — Heatmap row cap (default Script Property
+      // Phase C - Heatmap row cap (default Script Property
       // UTILIZATION_HEATMAP_TOP_N_PERSONS = 30). Defined here so the client
       // doesn't have to round-trip the server config.
       var UTIL_HEATMAP_TOP_N_PERSONS = 30;
-      // Phase C — Approximate week width when computing the heatmap viewBox.
+      // Phase C - Approximate week width when computing the heatmap viewBox.
       var UTIL_HEATMAP_CELL_W = 28;
       var UTIL_HEATMAP_CELL_H = 22;
       var UTIL_HEATMAP_GUTTER = 2;
       var UTIL_HEATMAP_LABEL_W = 160;
       var UTIL_HEATMAP_HEADER_H = 26;
 
-      // Phase C — Alerts panel ----------------------------------------------
-      // v1.17.0 — Renders the Utilization Alerts panel as a list grouped by
+      // Phase C - Alerts panel ----------------------------------------------
+      // v1.17.0 - Renders the Utilization Alerts panel as a list grouped by
       // alert **kind** (Under-utilized, Over-allocated, Stale approvals).
       // Replaces the v1.16.0 by-person grouping based on operator feedback:
       // managers want to triage a class of issue at a time, not a person at
@@ -8650,7 +8661,7 @@
           return String(ga.label).localeCompare(String(gb.label));
         });
 
-        // 1) Render standalone (rollup / all-clear) cards first — same chrome
+        // 1) Render standalone (rollup / all-clear) cards first - same chrome
         //    as the legacy flat list.
         for (var si = 0; si < standalone.length; si++) {
           list.appendChild(buildStandaloneAlertCard_(standalone[si]));
@@ -8843,7 +8854,7 @@
       // (b) sync `aria-expanded` on the header, and (c) write `false` into
       // utilState.alerts.expanded[kind] so the override survives re-renders
       // triggered by filter changes until the next applyUtilPayload() clears
-      // the slate. Standalone cards (rollup / all-clear) are unaffected —
+      // the slate. Standalone cards (rollup / all-clear) are unaffected  - 
       // they have no expand state.
       function collapseAllUtilAlertGroups_() {
         var groups = els.utilAttentionList
@@ -8873,7 +8884,7 @@
           'operations',
           'severity=' + (alert.severity || '?') + ' · kind=' + (alert.kind || '?')
         );
-        // v1.14.1 — stale-approval rollup card scrolls the user to the
+        // v1.14.1 - stale-approval rollup card scrolls the user to the
         // Pending Approvals widget and expands its Show all toggle so the
         // long tail is immediately reachable.
         if (alert.kind === 'stale_approval_rollup') {
@@ -8900,7 +8911,7 @@
         }
       }
 
-      // Phase C — Heatmap-local Role filter ---------------------------------
+      // Phase C - Heatmap-local Role filter ---------------------------------
       function populateHeatmapRoleMenu(roleDimensions) {
         var menu = els.utilHeatmapRoleMenu;
         if (!menu) return;
@@ -8936,7 +8947,7 @@
         }
       }
 
-      // Phase C — Heatmap renderer ------------------------------------------
+      // Phase C - Heatmap renderer ------------------------------------------
       function renderUtilHeatmap() {
         var p = utilState.payload;
         if (!p || !els.utilHeatmapSvg) return;
@@ -9048,7 +9059,7 @@
           svg.appendChild(t);
         }
 
-        // Body — one row per person.
+        // Body - one row per person.
         for (var pIdx = 0; pIdx < personKeys.length; pIdx++) {
           var personKey = personKeys[pIdx];
           var rowY = headerH + pIdx * (cellH + gutter);
@@ -9128,8 +9139,8 @@
         legend.innerHTML = '';
         var chips = [
           { label: '< 60% under', color: '#fc5c65' },
-          { label: '60–85% building', color: '#f9c74f' },
-          { label: '85–110% target', color: '#43D6BA' },
+          { label: '60-85% building', color: '#f9c74f' },
+          { label: '85-110% target', color: '#43D6BA' },
           { label: '> 110% over', color: '#f78c1f' },
           { label: 'no data', color: '#0d2e4a' },
         ];
@@ -9200,7 +9211,7 @@
         }
         return out;
       }
-      // FR-85, v1.18.0 — Heatmap cell click opens a modal listing the labor
+      // FR-85, v1.18.0 - Heatmap cell click opens a modal listing the labor
       // entries that contributed to that (person, week) cell. Replaces the
       // prior v1.14.0 behavior (pin Person filter + switch range), which
       // invalidated cache and forced a server fetch every click. The new flow
@@ -9265,16 +9276,16 @@
           body.innerHTML = '';
           for (var i = 0; i < rows.length; i++) {
             var r = rows[i];
-            var datePart = (r.startDateTime || '').slice(0, 10) || '—';
-            var approvalLabel = r.isPending ? 'Pending' : (r.approval || '—');
+            var datePart = (r.startDateTime || '').slice(0, 10) || ' - ';
+            var approvalLabel = r.isPending ? 'Pending' : (r.approval || ' - ');
             var approvalColor = r.isPending ? '#f78c1f' : '#43D6BA';
             var tr = document.createElement('tr');
             tr.innerHTML =
               '<td>' + escapeHtml(datePart) + '</td>' +
-              '<td>' + escapeHtml(r.customer || '—') + '</td>' +
-              '<td>' + escapeHtml(r.agreementName || '—') + '</td>' +
-              '<td>' + escapeHtml(r.projectName || '—') + '</td>' +
-              '<td>' + escapeHtml(r.task || '—') + '</td>' +
+              '<td>' + escapeHtml(r.customer || ' - ') + '</td>' +
+              '<td>' + escapeHtml(r.agreementName || ' - ') + '</td>' +
+              '<td>' + escapeHtml(r.projectName || ' - ') + '</td>' +
+              '<td>' + escapeHtml(r.task || ' - ') + '</td>' +
               '<td class="num">' + escapeHtml(formatHours(r.hours || 0)) + '</td>' +
               '<td class="num">' + escapeHtml(formatMoneyCompact(r.cost || 0)) + '</td>' +
               '<td><span class="badge-pill" style="background:' + approvalColor + '">' +
@@ -9304,7 +9315,7 @@
         }
       }
 
-      // Phase C — Pending Approvals widget ----------------------------------
+      // Phase C - Pending Approvals widget ----------------------------------
       function renderPendingApprovals(filteredRows) {
         var list = els.utilPendingList;
         if (!list) return;
@@ -9351,7 +9362,7 @@
           item.innerHTML =
             '<span class="' + badgeClass + '">' + escapeHtml(ageText) + '</span>' +
             '<div class="min-w-0">' +
-              '<div class="title">' + escapeHtml(row.userName || '(Unknown user)') + ' · ' + escapeHtml(row.day || row.startDateTime || '—') + '</div>' +
+              '<div class="title">' + escapeHtml(row.userName || '(Unknown user)') + ' · ' + escapeHtml(row.day || row.startDateTime || ' - ') + '</div>' +
               '<div class="meta">' + escapeHtml(row.customer || '(Unassigned)') + ' · ' + escapeHtml(row.projectName || '(No project)') + '</div>' +
             '</div>' +
             '<div class="hours">' + escapeHtml(formatHours(row.hours)) + ' h</div>';
@@ -9364,7 +9375,7 @@
         }
       }
 
-      // Phase C — Row-detail drawer -----------------------------------------
+      // Phase C - Row-detail drawer -----------------------------------------
       function applyUtilDrawerFiberyLink_(url) {
         var link = els.utilDrawerFiberyLink;
         var footer = link ? link.parentNode : null;
@@ -9435,13 +9446,13 @@
         if (!els.utilDrawerBody) return;
         var pct = row.userRoleBillRate != null
           ? '$' + Number(row.userRoleBillRate).toFixed(2) + '/hr'
-          : '—';
+          : ' - ';
         var costRate = row.userRoleCostRate != null
           ? '$' + Number(row.userRoleCostRate).toFixed(2) + '/hr'
-          : '—';
+          : ' - ';
         var margin = row.marginPerHour != null
           ? '$' + Number(row.marginPerHour).toFixed(2) + '/hr'
-          : '—';
+          : ' - ';
         els.utilDrawerBody.innerHTML =
           '<dl>' +
             row_(row.day || row.startDateTime, 'Date') +
@@ -9456,14 +9467,14 @@
             row_(costRate, 'Cost rate', true) +
             row_(margin, 'Margin per hr', true) +
             row_(row.billableLabel || (row.billable ? 'Yes' : 'No'), 'Billable') +
-            row_(row.approval || '—', 'Approval') +
-            row_(row.timeEntryStatus || '—', 'Time entry status') +
-            row_(row.dateOfCreation || '—', 'Created') +
-            row_(row.dateOfApproval || '—', 'Approved at') +
-            row_(row.agreementName || '—', 'Agreement') +
-            row_(row.agreementState || '—', 'Agreement state') +
-            row_(row.agreementType || '—', 'Agreement type') +
-            row_(row.id || '—', 'Fibery id') +
+            row_(row.approval || ' - ', 'Approval') +
+            row_(row.timeEntryStatus || ' - ', 'Time entry status') +
+            row_(row.dateOfCreation || ' - ', 'Created') +
+            row_(row.dateOfApproval || ' - ', 'Approved at') +
+            row_(row.agreementName || ' - ', 'Agreement') +
+            row_(row.agreementState || ' - ', 'Agreement state') +
+            row_(row.agreementType || ' - ', 'Agreement type') +
+            row_(row.id || ' - ', 'Fibery id') +
           '</dl>';
         applyUtilDrawerFiberyLink_(getFiberyLaborCostUrl_(row));
       }
@@ -9481,14 +9492,14 @@
         if (!row) {
           why = 'no row';
         } else if (!row.publicId) {
-          why = 'row.publicId missing — Fibery entity has no public-id';
+          why = 'row.publicId missing - Fibery entity has no public-id';
         } else if (!row.name) {
           why = 'row.name missing';
         } else if (!navState || navState.fiberyAccess !== true) {
-          why = 'navState.fiberyAccess !== true — check the fibery_access cell for ' +
+          why = 'navState.fiberyAccess !== true - check the fibery_access cell for ' +
             ((navState && navState.userEmail) || 'this user');
         } else if (!navState.fibery) {
-          why = 'navState.fibery missing — FIBERY_HOST is not configured server-side';
+          why = 'navState.fibery missing - FIBERY_HOST is not configured server-side';
         } else if (!navState.fibery.host || !navState.fibery.laborCostPathTemplate) {
           why = 'navState.fibery is incomplete (host/template missing)';
         }
@@ -9517,9 +9528,9 @@
         if (!agreementName || !String(agreementName).trim()) {
           why = 'agreement name missing';
         } else if (!publicId) {
-          why = 'agreement publicId missing — Fibery `fibery/public-id` not on payload';
+          why = 'agreement publicId missing - Fibery `fibery/public-id` not on payload';
         } else if (!navState.fibery) {
-          why = 'navState.fibery missing — FIBERY_HOST is not configured server-side';
+          why = 'navState.fibery missing - FIBERY_HOST is not configured server-side';
         } else if (!navState.fibery.host) {
           why = 'navState.fibery.host missing';
         }
@@ -9551,9 +9562,9 @@
         if (!companyName || !String(companyName).trim()) {
           why = 'company name missing';
         } else if (!publicId) {
-          why = 'company publicId missing — Fibery `fibery/public-id` not on Companies payload';
+          why = 'company publicId missing - Fibery `fibery/public-id` not on Companies payload';
         } else if (!navState.fibery) {
-          why = 'navState.fibery missing — FIBERY_HOST is not configured server-side';
+          why = 'navState.fibery missing - FIBERY_HOST is not configured server-side';
         } else if (!navState.fibery.host) {
           why = 'navState.fibery.host missing';
         }
@@ -9620,10 +9631,10 @@
           parts.push(row_(company.leadSource, 'Lead source'));
           var tcv = company.totalContractValue != null
             ? formatMoneyCompact(Number(company.totalContractValue))
-            : '—';
+            : ' - ';
           parts.push(row_(tcv, 'Total contract value', true));
           parts.push(row_(company.ndaCompleted ? 'Yes' : 'No', 'NDA completed'));
-          parts.push(row_(company.id || '—', 'Fibery id'));
+          parts.push(row_(company.id || ' - ', 'Fibery id'));
         }
         if (summary) {
           parts.push(row_(String(summary.agreementCount), 'Agreements in scope', true));
@@ -9639,12 +9650,12 @@
         applyUtilDrawerFiberyLink_(getFiberyCompanyUrl_(fibName, fibPid));
       }
       function row_(value, label, numeric) {
-        var v = (value == null || value === '') ? '—' : String(value);
+        var v = (value == null || value === '') ? ' - ' : String(value);
         var dd = '<dd' + (numeric ? ' class="numeric"' : '') + '>' + escapeHtml(v) + '</dd>';
         return '<dt>' + escapeHtml(label) + '</dt>' + dd;
       }
 
-      // Filter persistence (Phase B) — localStorage key `fos_utilization_filters_v1`.
+      // Filter persistence (Phase B) - localStorage key `fos_utilization_filters_v1`.
       // Range is intentionally NOT persisted (per feature 005 §"Filter state semantics").
       function readUtilFilters_() {
         try {
@@ -9698,24 +9709,24 @@
       }
 
       function rangeLabel(range) {
-        if (!range) return '—';
+        if (!range) return ' - ';
         try {
           var s = new Date(range.start).toLocaleDateString(undefined, { dateStyle: 'medium' });
           var e = new Date(range.end).toLocaleDateString(undefined, { dateStyle: 'medium' });
           return s + ' → ' + e;
         } catch (err) {
-          return '—';
+          return ' - ';
         }
       }
 
       function applyUtilPayload(data) {
         utilState.payload = data;
-        // v1.16.0 — fresh payload clears expand toggles so grouped alerts
+        // v1.16.0 - fresh payload clears expand toggles so grouped alerts
         // render with v1.21.1 defaults (all groups collapsed until expanded).
         utilState.alerts.expanded = {};
         var dim = data && data.dimensions;
         populateFilterDropdowns(dim);
-        // Phase C — heatmap-local Role dropdown (separate from the global
+        // Phase C - heatmap-local Role dropdown (separate from the global
         // Role multi-select; scopes the heatmap without disturbing the rest
         // of the dashboard).
         populateHeatmapRoleMenu(dim && dim.roles ? dim.roles : []);
@@ -9879,7 +9890,7 @@
           utilState.filters.billable = 'all';
           utilState.filters.internalLabor = 'include';
           utilState.detail.page = 0;
-          // Phase C — also clear the heatmap-local Role filter and the
+          // Phase C - also clear the heatmap-local Role filter and the
           // Pending Approvals "Show all" state on a global Clear so the user
           // gets the panel back to a clean default.
           utilState.heatmap.roleFilter = {};
@@ -9893,7 +9904,7 @@
         });
       }
 
-      // Phase C — Pending Approvals "Show all" toggle.
+      // Phase C - Pending Approvals "Show all" toggle.
       if (els.utilPendingShowAll) {
         els.utilPendingShowAll.addEventListener('click', function () {
           utilState.pending.showAll = !utilState.pending.showAll;
@@ -9905,7 +9916,7 @@
         });
       }
 
-      // Phase C — Drawer close affordances.
+      // Phase C - Drawer close affordances.
       if (els.utilDrawerClose) {
         els.utilDrawerClose.addEventListener('click', closeDetailDrawer);
       }
@@ -9917,7 +9928,7 @@
           closeDetailDrawer();
         }
       });
-      // FR-83 — Log a `util_drawer_fibery_click` event whenever the user
+      // FR-83 - Log a `util_drawer_fibery_click` event whenever the user
       // opens the Fibery deep-link from the drawer. We do not block the
       // navigation (target=_blank), just fire-and-forget the log.
       if (els.utilDrawerFiberyLink) {
@@ -9939,7 +9950,7 @@
           }
         });
       }
-      // v1.17.0 — Collapse all groups in the Utilization Alerts panel.
+      // v1.17.0 - Collapse all groups in the Utilization Alerts panel.
       if (els.utilAttentionCollapseAll) {
         els.utilAttentionCollapseAll.addEventListener('click', function () {
           collapseAllUtilAlertGroups_();
@@ -10274,12 +10285,12 @@
             return co;
           }
         }
-        return '—';
+        return ' - ';
       }
 
       function laborTargetHoursForCompany_(cfg, company) {
         var raw = String(company || '').trim();
-        if (raw && raw !== '—' && raw !== '(Unknown)') {
+        if (raw && raw !== ' - ' && raw !== '(Unknown)') {
           var cm = cfg.companyTargetHoursMap || {};
           var lower = raw.toLowerCase();
           for (var mk in cm) {
@@ -10303,7 +10314,7 @@
         return cfg.defaultWeeklyTarget;
       }
 
-      /** Phase C — cap expandable project rows and tasks per project (+N more). */
+      /** Phase C - cap expandable project rows and tasks per project (+N more). */
       var LABOR_HOURS_MAX_PROJECT_DETAILS_ = 6;
       var LABOR_HOURS_MAX_TASKS_PER_PROJECT_ = 12;
 
@@ -10366,7 +10377,7 @@
         if (arr.length > maxNames) {
           parts.push('+' + (arr.length - maxNames) + ' more');
         }
-        return parts.join('; ') || '—';
+        return parts.join('; ') || ' - ';
       }
 
       function aggregateLaborHoursByPerson_(rows, cfg) {
@@ -10627,7 +10638,7 @@
         var zeros = laborHoursViewModel_.zeros || [];
         if (!zeros.length) {
           el.innerHTML =
-            '<span class="small" style="color: var(--ag-text-muted)">Nobody in the roster is at zero for this week with the current Company filter — adjust filters or refresh if you expect more names.</span>';
+            '<span class="small" style="color: var(--ag-text-muted)">Nobody in the roster is at zero for this week with the current Company filter - adjust filters or refresh if you expect more names.</span>';
           return;
         }
         for (var zi = 0; zi < zeros.length; zi++) {
@@ -10636,7 +10647,7 @@
           chip.className = 'fos-lh-zero-chip';
           chip.setAttribute(
             'title',
-            (z.company || '—') + ' · target ' + formatHours(z.targetHours) + 'h'
+            (z.company || ' - ') + ' · target ' + formatHours(z.targetHours) + 'h'
           );
           chip.textContent = z.displayName + ' · 0h';
           el.appendChild(chip);
@@ -10649,7 +10660,7 @@
         var total = p.totalHours || 0;
         var breakdown = p.projectBreakdown || [];
         if (!breakdown.length) {
-          wrap.textContent = '—';
+          wrap.textContent = ' - ';
           return wrap;
         }
         var maxP = LABOR_HOURS_MAX_PROJECT_DETAILS_;
@@ -10754,7 +10765,7 @@
         var vm = laborHoursViewModel_;
         var b = vm.buckets || { over: [], under: [], on: [] };
         var bounds = vm.bounds;
-        var weekLabel = bounds ? bounds.labelMon + ' – ' + bounds.labelSun : '';
+        var weekLabel = bounds ? bounds.labelMon + ' - ' + bounds.labelSun : '';
         var lines = [];
         lines.push('# Labor hours · ' + weekLabel);
         if (vm.sourceMsg) {
@@ -10904,7 +10915,7 @@
         laborHoursViewModel_.sourceMsg = sourceMsg || '';
         paintLaborHoursFromBuckets_();
         if (els.lhSubtitle) {
-          els.lhSubtitle.textContent = bounds.labelMon + ' – ' + bounds.labelSun;
+          els.lhSubtitle.textContent = bounds.labelMon + ' - ' + bounds.labelSun;
         }
         if (els.lhSourceMeta) {
           els.lhSourceMeta.textContent = sourceMsg || '';
@@ -10949,7 +10960,7 @@
             rows0,
             cfg0,
             bounds,
-            'Slice from Utilization cache — no Fibery call for this week.',
+            'Slice from Utilization cache - no Fibery call for this week.',
             { dimensions: basePayload.dimensions, fullRows: basePayload.rows }
           );
           setLhLoading(false);
@@ -11151,7 +11162,7 @@
       }
 
       /* =====================================================================
-         Delivery Dashboard (Delivery panel) — Phase A.
+         Delivery Dashboard (Delivery panel) - Phase A.
          FR-89..93, AC-43..AC-48. Active Projects table at the top; clicking a
          row reveals a monthly P&L card below (lifetime-of-project, one row
          per calendar month with Revenue / Labor / Expenses / Total cost /
@@ -11257,7 +11268,7 @@
       }
       function writeDeliveryFiltersStored() {
         try {
-          // v1.20.0 (Phase B) — additive fields `searchTerm` + `pnlView`.
+          // v1.20.0 (Phase B) - additive fields `searchTerm` + `pnlView`.
           // We keep `schemaVersion: 1` because older saved blobs are still
           // forward-compatible (missing fields default to '' / 'table').
           var payload = {
@@ -11287,7 +11298,7 @@
             deliveryState.pnlView = stored.pnlView;
           }
         }
-        // v1.20.0 (Phase B) — push restored search + view state into the
+        // v1.20.0 (Phase B) - push restored search + view state into the
         // DOM so the controls match `deliveryState` after a panel switch.
         if (els.deliverySearchInput) {
           els.deliverySearchInput.value = deliveryState.searchTerm || '';
@@ -11306,13 +11317,13 @@
       }
 
       function formatLastRefresh(fetchedAtIso) {
-        if (!fetchedAtIso) return 'Last refreshed: —';
+        if (!fetchedAtIso) return 'Last refreshed:  - ';
         try {
           var d = new Date(fetchedAtIso);
-          if (!isFinite(d.getTime())) return 'Last refreshed: —';
+          if (!isFinite(d.getTime())) return 'Last refreshed:  - ';
           return 'Last refreshed: ' + d.toLocaleString();
         } catch (e) {
-          return 'Last refreshed: —';
+          return 'Last refreshed:  - ';
         }
       }
       function formatProjectDuration_(p) {
@@ -11388,7 +11399,7 @@
               severity: 'critical',
               agreementId: p.id,
               signal: 'negative_margin',
-              title: (p.name || 'Project') + ' — negative margin',
+              title: (p.name || 'Project') + ' - negative margin',
               body: 'Margin is ' + formatMarginPct(mp) + ' on ' + formatMoneyCompact(rev) + ' recognized vs ' +
                 formatExpense_(costs) + ' in labor + ODC.',
             });
@@ -11398,7 +11409,7 @@
               severity: 'warning',
               agreementId: p.id,
               signal: 'cost_pressure',
-              title: (p.name || 'Project') + ' — costs running ahead of recognition',
+              title: (p.name || 'Project') + ' - costs running ahead of recognition',
               body: 'Labor + ODC (' + formatExpense_(costs) + ') exceeds recognized revenue (' +
                 formatMoneyCompact(rev) + ') by more than 20%.',
             });
@@ -11409,7 +11420,7 @@
               severity: 'warning',
               agreementId: p.id,
               signal: 'behind_schedule',
-              title: (p.name || 'Project') + ' — completion lags timeline',
+              title: (p.name || 'Project') + ' - completion lags timeline',
               body: 'Past the midpoint of the agreement window but completion is only ' +
                 formatPct(completionPct) + '%.',
             });
@@ -11420,7 +11431,7 @@
               severity: 'info',
               agreementId: p.id,
               signal: 'low_recognition_near_end',
-              title: (p.name || 'Project') + ' — low recognition before end date',
+              title: (p.name || 'Project') + ' - low recognition before end date',
               body: 'Ends in ' + Math.round(daysLeft) + ' days with only ' +
                 formatMoneyCompact(rev) + ' recognized of ' + formatMoneyCompact(cv) + ' contract value.',
             });
@@ -11535,9 +11546,9 @@
         els.deliveryPnlPacing.classList.remove('d-none');
         var timeW = Math.max(0, Math.min(100, m.timePct));
         var recW = Math.max(0, Math.min(100, m.recPct));
-        var gapTxt = m.gapVsLinear == null ? '—' : formatMoneyParenIfNegative_(m.gapVsLinear);
-        var linTxt = m.linearExpected == null ? '—' : formatMoneyCompact(m.linearExpected);
-        var trailTxt = m.trailAvgMo == null ? '—' : formatMoneyCompact(m.trailAvgMo) + ' / mo';
+        var gapTxt = m.gapVsLinear == null ? ' - ' : formatMoneyParenIfNegative_(m.gapVsLinear);
+        var linTxt = m.linearExpected == null ? ' - ' : formatMoneyCompact(m.linearExpected);
+        var trailTxt = m.trailAvgMo == null ? ' - ' : formatMoneyCompact(m.trailAvgMo) + ' / mo';
         var tipTime = 'Elapsed share of the agreement duration window (by calendar): ' + timeW.toFixed(0) + '%.';
         var tipRec = 'Recognized revenue as a share of contract value: ' + recW.toFixed(0) + '%.';
         var tipTrail = 'Average recognized revenue over the last up to three non-projected months in the P&L grid: ' + trailTxt + '.';
@@ -11601,7 +11612,7 @@
       function formatMoneyParenIfNegative_(n) {
         var x = Number(n);
         if (!isFinite(x)) {
-          return '—';
+          return ' - ';
         }
         if (x < 0) {
           return '(' + formatMoneyCompact(Math.abs(x)) + ')';
@@ -11610,7 +11621,7 @@
       }
       function formatExpense_(n) {
         // Render expense / labor / total cost lines as parenthesized
-        // positives — the underlying number from the server is positive
+        // positives - the underlying number from the server is positive
         // because these represent costs, but they read as "($N)" in the
         // ledger sense.
         var x = Number(n);
@@ -11664,7 +11675,7 @@
       }
 
       /* =====================================================================
-         Monthly Revenue Review — Phase A–B. Agreement cache
+         Monthly Revenue Review - Phase A-B. Agreement cache
          (`fos_agreement_dashboard_v2`) + `getAgreementDashboardData()`.
          ================================================================== */
 
@@ -11754,15 +11765,15 @@
           daysLate = Math.max(0, Math.floor((todayStart.getTime() - td.getTime()) / 86400000));
         }
         return {
-          milestone: m.name || '—',
-          agreement: ag.name || m.agreement || '—',
+          milestone: m.name || ' - ',
+          agreement: ag.name || m.agreement || ' - ',
           agreementId: m.agreementId || '',
-          customer: ag.customer || m.customer || '—',
+          customer: ag.customer || m.customer || ' - ',
           targetDate: m.targetDate || '',
           targetAmount: tgt,
           actualAmount: act,
           varianceAmt: act - tgt,
-          state: m.state || '—',
+          state: m.state || ' - ',
           recognized: !!m.recognized,
           scheduleIssue: schedIssue,
           targetPast: !!(td && td < todayStart),
@@ -11815,7 +11826,7 @@
 
       function rrMilestoneStatusPill_(state, recognized) {
         var col = milestoneStatusColor_(state, recognized);
-        var lab = escapeHtml(state || (recognized ? 'Recognized' : '—'));
+        var lab = escapeHtml(state || (recognized ? 'Recognized' : ' - '));
         return (
           '<span class="fos-util-pill" style="background:' +
           col +
@@ -11849,7 +11860,7 @@
                   '</td><td>' +
                   escapeHtml(r.customer) +
                   '</td><td class="text-end">' +
-                  escapeHtml(r.targetDate || '—') +
+                  escapeHtml(r.targetDate || ' - ') +
                   '</td><td class="text-end">' +
                   formatMoneyCompact(r.targetAmount) +
                   '</td><td class="text-end">' +
@@ -11872,11 +11883,11 @@
                   '</td><td>' +
                   escapeHtml(v.agreement) +
                   '</td><td class="text-end">' +
-                  escapeHtml(v.targetDate || '—') +
+                  escapeHtml(v.targetDate || ' - ') +
                   '</td><td class="text-end">' +
                   formatMoneyParenIfNegative_(v.varianceAmt) +
                   '</td><td>' +
-                  (v.scheduleIssue ? '<span style="color:var(--ag-warn)">Yes</span>' : '—') +
+                  (v.scheduleIssue ? '<span style="color:var(--ag-warn)">Yes</span>' : ' - ') +
                   '</td><td>' +
                   rrMilestoneStatusPill_(v.state, v.recognized) +
                   '</td></tr>'
@@ -11891,9 +11902,9 @@
                   '</td><td>' +
                   escapeHtml(p.customer) +
                   '</td><td>' +
-                  escapeHtml(p.type || '—') +
+                  escapeHtml(p.type || ' - ') +
                   '</td><td>' +
-                  escapeHtml(p.state || '—') +
+                  escapeHtml(p.state || ' - ') +
                   '</td><td class="text-end">' +
                   formatMoneyCompact(p.plannedRev) +
                   '</td><td class="text-end">' +
@@ -11901,7 +11912,7 @@
                   '</td><td class="text-end">' +
                   formatPct(p.pctRec) +
                   '%</td><td class="text-end">' +
-                  escapeHtml(p.durEnd || '—') +
+                  escapeHtml(p.durEnd || ' - ') +
                   '</td></tr>'
               );
             }
@@ -11935,7 +11946,7 @@
                   '</td><td>' +
                   escapeHtml(o.customer) +
                   '</td><td class="text-end">' +
-                  escapeHtml(o.targetDate || '—') +
+                  escapeHtml(o.targetDate || ' - ') +
                   '</td><td class="text-end">' +
                   String(o.daysLate) +
                   '</td><td class="text-end">' +
@@ -12036,7 +12047,7 @@
                 '<tr><td>' +
                   escapeHtml(mr.milestone) +
                   '</td><td class="text-end">' +
-                  escapeHtml(mr.targetDate || '—') +
+                  escapeHtml(mr.targetDate || ' - ') +
                   '</td><td class="text-end">' +
                   formatMoneyCompact(mr.targetAmount) +
                   '</td><td class="text-end">' +
@@ -12394,7 +12405,7 @@
           els.rrLastRefresh.textContent = 'Last refreshed: ' + formatLastRefresh(data.fetchedAt);
         }
         if (els.rrSubtitle) {
-          var asOf = data.fetchedAt ? new Date(data.fetchedAt).toLocaleString() : '—';
+          var asOf = data.fetchedAt ? new Date(data.fetchedAt).toLocaleString() : ' - ';
           els.rrSubtitle.textContent =
             'Review window: ' +
             bounds.priorLabel +
@@ -12420,7 +12431,7 @@
         if (els.rrPartialNote) {
           if (data.partial) {
             els.rrPartialNote.textContent =
-              'Partial agreement payload — some rows may be trimmed. Refresh if numbers look incomplete.';
+              'Partial agreement payload - some rows may be trimmed. Refresh if numbers look incomplete.';
             els.rrPartialNote.classList.remove('d-none');
           } else {
             els.rrPartialNote.classList.add('d-none');
@@ -12533,8 +12544,8 @@
           var pr = Number(a.plannedRev || 0);
           var rr = Number(a.revRec || 0);
           vm.rowsPortfolio.push({
-            agreement: a.name || '—',
-            customer: a.customer || '—',
+            agreement: a.name || ' - ',
+            customer: a.customer || ' - ',
             type: a.type || '',
             state: a.state || '',
             plannedRev: pr,
@@ -12709,7 +12720,7 @@
       }
 
       /* ===================================================================
-         Expenses dashboard — spreadsheet-backed (feature 015 / FR-109).
+         Expenses dashboard - spreadsheet-backed (feature 015 / FR-109).
          ================================================================== */
       var EXPENSES_EMPTY_CATEGORY = '__exp_empty_cat__';
       var EXPENSES_UNATTR_CUSTOMER_KEY = '__UNATTR__';
@@ -12809,7 +12820,7 @@
 
       function expensesFormatCycleDays_(n) {
         var x = Number(n);
-        if (!isFinite(x)) return '—';
+        if (!isFinite(x)) return ' - ';
         if (Math.abs(x) < 10) return (Math.round(x * 10) / 10).toFixed(1) + ' days';
         return Math.round(x) + ' days';
       }
@@ -12955,7 +12966,7 @@
       }
 
       function expensesFormatMonthLabel_(ym) {
-        if (!ym || ym.length < 7) return ym || '—';
+        if (!ym || ym.length < 7) return ym || ' - ';
         var parts = String(ym).split('-');
         var y = parseInt(parts[0], 10);
         var m = parseInt(parts[1], 10);
@@ -13176,7 +13187,7 @@
                       'Month spend: ' + formatMoneyCompact(Number(pt ? pt.monthSpend : 0)),
                       'MoM vs ' + prevLbl + ': ' + formatPct(Number(raw.x || 0)) + '%',
                       'YTD through ' + focusLbl + ': ' + formatMoneyCompact(Number(raw.y || 0)),
-                      'Transactions: ' + (pt ? pt.txn : '—'),
+                      'Transactions: ' + (pt ? pt.txn : ' - '),
                     ];
                   },
                 },
@@ -14125,8 +14136,8 @@
                 formatPct(pctAttr) + '%</td><td class="text-end">' + formatPct(pctAll) + '%</td></tr>');
             }
             rowsH.push('<tr tabindex="0" role="button" class="fos-exp-cust-row" data-exp-cust="__UNATTR__" style="cursor:pointer"><td>Unattributed</td><td class="text-end">' +
-              escapeHtml(formatMoneyCompact(unattr)) + '</td><td class="text-end">—</td><td class="text-end">' +
-              (grand > 0.01 ? formatPct(Math.max(0, unattr) / grand * 100) + '%' : '—') +
+              escapeHtml(formatMoneyCompact(unattr)) + '</td><td class="text-end"> - </td><td class="text-end">' +
+              (grand > 0.01 ? formatPct(Math.max(0, unattr) / grand * 100) + '%' : ' - ') +
               '</td></tr>');
             els.expCustTbody.innerHTML = rowsH.join('');
           }
@@ -14158,11 +14169,11 @@
         if (els.expKpiTotalSub) els.expKpiTotalSub.textContent = filtered.length + ' filtered line(s)';
         if (els.expKpiAttr) els.expKpiAttr.textContent = formatMoneyCompact(attr);
         if (els.expKpiAttrSub) {
-          els.expKpiAttrSub.textContent = total > 0.01 ? formatPct(attr / total * 100) + '% of total' : '—';
+          els.expKpiAttrSub.textContent = total > 0.01 ? formatPct(attr / total * 100) + '% of total' : ' - ';
         }
         if (els.expKpiUnattr) els.expKpiUnattr.textContent = formatMoneyCompact(Math.max(0, unattr));
         if (els.expKpiUnattrSub) {
-          els.expKpiUnattrSub.textContent = total > 0.01 ? formatPct(Math.max(0, unattr) / total * 100) + '% of total' : '—';
+          els.expKpiUnattrSub.textContent = total > 0.01 ? formatPct(Math.max(0, unattr) / total * 100) + '% of total' : ' - ';
         }
         if (els.expKpiDepts) els.expKpiDepts.textContent = String(dk);
         if (els.expKpiDeptsSub) els.expKpiDeptsSub.textContent = 'Distinct';
@@ -14179,7 +14190,7 @@
           els.expSubtitle.textContent =
             filtered.length +
             ' line(s) in view · Effective ' +
-            (minD && maxD ? minD + ' → ' + maxD : '—') +
+            (minD && maxD ? minD + ' → ' + maxD : ' - ') +
             ' · Last refreshed ' +
             formatLastRefresh(data.fetchedAt);
         }
@@ -14316,7 +14327,7 @@
         }
         if (els.expPartialNote && payload.partial) {
           els.expPartialNote.textContent =
-            'Partial import — some sheet rows were not loaded (AUTH_EXPENSES_MAX_ROWS cap).';
+            'Partial import - some sheet rows were not loaded (AUTH_EXPENSES_MAX_ROWS cap).';
           els.expPartialNote.classList.remove('d-none');
         } else if (els.expPartialNote) {
           els.expPartialNote.classList.add('d-none');
@@ -14372,7 +14383,7 @@
       }
 
       /* ─────────────────────────────────────────────────────────────────
-         Pipeline dashboard (Sales — feature 016)
+         Pipeline dashboard (Sales - feature 016)
          ───────────────────────────────────────────────────────────────── */
       var PIPELINE_CACHE_KEY = 'fos_pipeline_dashboard_v1';
       var PIPELINE_CACHE_SCHEMA_VERSION = 1;
@@ -14435,7 +14446,7 @@
         var deals = pipelineAllDeals_();
         var view = pipelineState.activeView;
         if (view === 'all') {
-          // All active sales pipelines (Existing Client is a CS motion — excluded).
+          // All active sales pipelines (Existing Client is a CS motion - excluded).
           return deals.filter(function (d) {
             return !/existing client/i.test(d.pipeline || '');
           });
@@ -14658,7 +14669,7 @@
         }
         if (els.pipelinePartialNote) {
           if (payload.partial) {
-            els.pipelinePartialNote.textContent = 'Partial load — some deals were not fetched (PIPELINE_MAX_ROWS cap).';
+            els.pipelinePartialNote.textContent = 'Partial load - some deals were not fetched (PIPELINE_MAX_ROWS cap).';
             els.pipelinePartialNote.classList.remove('d-none');
           } else {
             els.pipelinePartialNote.classList.add('d-none');
@@ -14882,12 +14893,12 @@
           if (els.expWarn) els.expWarn.classList.add('d-none');
           if (els.expPartialNote) els.expPartialNote.classList.add('d-none');
           if (els.expKpiTotal) els.expKpiTotal.textContent = '$0';
-          if (els.expKpiTotalSub) els.expKpiTotalSub.textContent = '—';
+          if (els.expKpiTotalSub) els.expKpiTotalSub.textContent = ' - ';
           if (els.expKpiAttr) els.expKpiAttr.textContent = '$0';
           if (els.expKpiUnattr) els.expKpiUnattr.textContent = '$0';
           if (els.expCustTbody) els.expCustTbody.innerHTML = '';
           if (els.expFilterChips) els.expFilterChips.innerHTML = '';
-          if (els.expFilterSummary) els.expFilterSummary.textContent = '—';
+          if (els.expFilterSummary) els.expFilterSummary.textContent = ' - ';
           return;
         }
         showExpensesMaybeLoad_();
@@ -15056,7 +15067,7 @@
           els.deliveryLastRefresh.textContent = formatLastRefresh(data && data.fetchedAt);
         }
         if (els.deliverySubtitle) {
-          var ts = data && data.fetchedAt ? new Date(data.fetchedAt).toLocaleString() : '—';
+          var ts = data && data.fetchedAt ? new Date(data.fetchedAt).toLocaleString() : ' - ';
           els.deliverySubtitle.textContent = projects.length + ' active project' +
             (projects.length === 1 ? '' : 's') + ' · last refreshed ' + ts;
         }
@@ -15089,7 +15100,7 @@
         }
       }
 
-      // v1.20.0 (Phase B, FR-98) — substring filter on the Active Projects
+      // v1.20.0 (Phase B, FR-98) - substring filter on the Active Projects
       // table. Tokenizes the search input on whitespace and requires every
       // token to appear in either the Project name or the Customer name
       // (case-insensitive). Empty input returns the input list unchanged.
@@ -15139,7 +15150,7 @@
         for (var i = 0; i < sorted.length; i++) {
           deliveryState.projectsByIndex[sorted[i].id] = sorted[i];
         }
-        // v1.20.0 (Phase B, FR-98) — case-insensitive substring match
+        // v1.20.0 (Phase B, FR-98) - case-insensitive substring match
         // across Project + Customer columns.
         var rows = filterDeliveryRowsBySearch_(sorted);
         var body = els.deliveryProjectsBody;
@@ -15180,10 +15191,10 @@
             tr.classList.add('is-selected');
           }
           tr.innerHTML =
-            '<td class="name-cell" title="' + escapeHtml(p.name || '') + '">' + escapeHtml(p.name || '—') + '</td>' +
-            '<td>' + escapeHtml(p.customer || '—') + '</td>' +
-            '<td><span class="badge-pill" style="background:' + (p.typeColor || '#A0AEC0') + '">' + escapeHtml(p.type || '—') + '</span></td>' +
-            '<td><span class="badge-pill" style="background:' + (p.stateColor || '#A0AEC0') + '">' + escapeHtml(p.state || '—') + '</span></td>' +
+            '<td class="name-cell" title="' + escapeHtml(p.name || '') + '">' + escapeHtml(p.name || ' - ') + '</td>' +
+            '<td>' + escapeHtml(p.customer || ' - ') + '</td>' +
+            '<td><span class="badge-pill" style="background:' + (p.typeColor || '#A0AEC0') + '">' + escapeHtml(p.type || ' - ') + '</span></td>' +
+            '<td><span class="badge-pill" style="background:' + (p.stateColor || '#A0AEC0') + '">' + escapeHtml(p.state || ' - ') + '</span></td>' +
             '<td class="num">' + formatMoneyCompact(p.contractValue) + '</td>' +
             '<td class="num">' + formatMoneyCompact(p.revenueRecognized) + '</td>' +
             '<td>' +
@@ -15191,7 +15202,7 @@
                 '<div class="fos-delivery-progress-track">' +
                   '<div class="fos-delivery-progress-fill" style="width:' + progressWidth + '%; background:' + (p.completionColor || '#A0AEC0') + '"></div>' +
                 '</div>' +
-                '<div class="fos-delivery-progress-value">' + (completionPct === null ? '—' : formatPct(completionPct) + '%') + '</div>' +
+                '<div class="fos-delivery-progress-value">' + (completionPct === null ? ' - ' : formatPct(completionPct) + '%') + '</div>' +
               '</div>' +
             '</td>' +
             '<td class="num">' +
@@ -15278,7 +15289,7 @@
           els.deliveryPnlReconcile.classList.add('d-none');
           els.deliveryPnlReconcile.textContent = '';
         }
-        // v1.20.0 (Phase B) — tear down chart, toolbar, drill-down state.
+        // v1.20.0 (Phase B) - tear down chart, toolbar, drill-down state.
         if (els.deliveryPnlToolbar) els.deliveryPnlToolbar.classList.add('d-none');
         if (els.deliveryPnlChartWrap) els.deliveryPnlChartWrap.classList.add('d-none');
         if (els.deliveryPnlCsvStatus) els.deliveryPnlCsvStatus.textContent = '';
@@ -15297,7 +15308,7 @@
         if (project.state) parts.push(project.state);
         parts.push(formatProjectDuration_(project));
         if (els.deliveryPnlSubtitle) {
-          els.deliveryPnlSubtitle.textContent = (project.name || '—') + ' — ' + parts.join(' · ');
+          els.deliveryPnlSubtitle.textContent = (project.name || ' - ') + ' - ' + parts.join(' · ');
         }
         if (!els.deliveryPnlKpiStrip) return;
         // KPI strip: render synchronously from the agreement payload so the
@@ -15319,7 +15330,7 @@
           '<div class="fos-delivery-pnl-kpi-chip">' +
             '<div class="label">Revenue recognized</div>' +
             '<div class="value">' + formatMoneyCompact(project.revenueRecognized) + '</div>' +
-            '<div class="sub">' + (project.completionPct === null ? '—' : formatPct(project.completionPct) + '% complete') + '</div>' +
+            '<div class="sub">' + (project.completionPct === null ? ' - ' : formatPct(project.completionPct) + '% complete') + '</div>' +
           '</div>' +
           '<div class="fos-delivery-pnl-kpi-chip">' +
             '<div class="label">Total cost</div>' +
@@ -15429,7 +15440,7 @@
         setDeliveryPnLLoading(false);
         var months = (payload && payload.months) || [];
         var lifetime = (payload && payload.lifetime) || null;
-        // v1.20.0 (Phase B) — cache the payload + month index so the
+        // v1.20.0 (Phase B) - cache the payload + month index so the
         // Chart / CSV / drill-down handlers can reach the data without
         // a second cache read. Reset chart-view artifacts whenever a new
         // payload lands.
@@ -15464,7 +15475,7 @@
             if (m.projected) classes.push('is-projected');
             if (classes.length) tr.className = classes.join(' ');
             var bucket = m.marginBucket || 'neutral';
-            var rawLabel = m.label || m.key || '—';
+            var rawLabel = m.label || m.key || ' - ';
             var labelInner = escapeHtml(rawLabel);
             if (m.outOfRange) labelInner += ' (OOR)';
             var labelTitle = m.outOfRange ? ' title="Activity outside the project Duration window"' : '';
@@ -15530,7 +15541,7 @@
             els.deliveryPnlPartialBadge.classList.remove('d-none');
             els.deliveryPnlPartialBadge.innerHTML =
               '<span class="fos-delivery-partial-badge" title="Server hit the configured Labor Cost row cap; older months may be incomplete.">' +
-              'Partial data — capped at ' + capCount + ' rows</span>';
+              'Partial data - capped at ' + capCount + ' rows</span>';
           } else {
             els.deliveryPnlPartialBadge.classList.add('d-none');
             els.deliveryPnlPartialBadge.innerHTML = '';
@@ -15543,18 +15554,18 @@
             var parts = [];
             if (dc.hasLaborDelta) {
               parts.push('labor ' + formatMoneyCompact(dc.summedLabor) + ' vs lifetime ' +
-                formatMoneyCompact(dc.lifetimeLabor) + ' (Δ ' + (dc.laborDeltaPct === null ? '—' : dc.laborDeltaPct + '%') + ')');
+                formatMoneyCompact(dc.lifetimeLabor) + ' (Δ ' + (dc.laborDeltaPct === null ? ' - ' : dc.laborDeltaPct + '%') + ')');
             }
             if (dc.hasExpensesDelta) {
               parts.push('expenses ' + formatMoneyCompact(dc.summedExpenses) + ' vs lifetime ' +
-                formatMoneyCompact(dc.lifetimeExpenses) + ' (Δ ' + (dc.expensesDeltaPct === null ? '—' : dc.expensesDeltaPct + '%') + ')');
+                formatMoneyCompact(dc.lifetimeExpenses) + ' (Δ ' + (dc.expensesDeltaPct === null ? ' - ' : dc.expensesDeltaPct + '%') + ')');
             }
             if (dc.hasMarginDelta) {
               parts.push('margin ' + formatMarginPct(dc.summedMarginPct) + ' vs lifetime ' +
                 formatMarginPct(dc.lifetimeMarginPct) + ' (Δ ' + dc.marginPtsDelta + 'pts)');
             }
             els.deliveryPnlReconcile.classList.remove('d-none');
-            els.deliveryPnlReconcile.textContent = 'ⓘ Reconciliation — ' + parts.join(' · ');
+            els.deliveryPnlReconcile.textContent = 'ⓘ Reconciliation - ' + parts.join(' · ');
           } else {
             els.deliveryPnlReconcile.classList.add('d-none');
             els.deliveryPnlReconcile.textContent = '';
@@ -15563,14 +15574,14 @@
         // Make sure the header is in sync with the project that was just rendered.
         if (project) renderDeliveryPnlHeader(project);
         renderDeliveryPacing_(payload, project);
-        // v1.20.0 (Phase B) — re-apply the active view + sync the toggle
+        // v1.20.0 (Phase B) - re-apply the active view + sync the toggle
         // buttons. When the grid is empty the toolbar was hidden above,
         // so this is a no-op in that case.
         applyDeliveryPnLView_();
       }
 
       /* ---------------------------------------------------------------
-       * v1.20.0 (Phase B) — Table / Chart view router.
+       * v1.20.0 (Phase B) - Table / Chart view router.
        * FR-94: stacked bar (Labor + Expenses) with an overlaid Revenue line.
        * The Chart.js bundle is lazily loaded the first time the user
        * switches to the Chart view; subsequent toggles reuse the same
@@ -15711,7 +15722,7 @@
         var projectName = project ? (project.name || '') : '';
         if (els.deliveryPnlMonthModalTitle) {
           els.deliveryPnlMonthModalTitle.textContent =
-            'P&L — ' + (m.label || monthKey);
+            'P&L - ' + (m.label || monthKey);
         }
         if (els.deliveryPnlMonthModalSubtitle) {
           var subParts = [];
@@ -15719,7 +15730,7 @@
           if (m.projected) subParts.push('Projected month');
           if (m.outOfRange) subParts.push('Out of range');
           els.deliveryPnlMonthModalSubtitle.textContent = subParts.length
-            ? subParts.join(' · ') : '—';
+            ? subParts.join(' · ') : ' - ';
         }
         if (els.deliveryPnlMonthModalBody) {
           var body = els.deliveryPnlMonthModalBody;
@@ -15940,7 +15951,7 @@
       }
 
       /* ---------------------------------------------------------------
-       * v1.20.0 (Phase B, FR-95) — Per-month Revenue drill-down modal.
+       * v1.20.0 (Phase B, FR-95) - Per-month Revenue drill-down modal.
        * The contributing milestone rows are already on the cached
        * payload so this never re-hits Fibery.
        * ------------------------------------------------------------- */
@@ -15957,7 +15968,7 @@
         var projectName = project ? (project.name || '') : '';
         if (els.deliveryRevenueMonthModalTitle) {
           els.deliveryRevenueMonthModalTitle.textContent =
-            'Revenue items — ' + (m.label || monthKey);
+            'Revenue items - ' + (m.label || monthKey);
         }
         if (els.deliveryRevenueMonthModalSubtitle) {
           var subParts = [];
@@ -15975,9 +15986,9 @@
             var statusColor = milestoneStatusColor_(it.state, it.recognized);
             var tr = document.createElement('tr');
             tr.innerHTML =
-              '<td class="name-cell" title="' + escapeHtml(it.name || '') + '">' + escapeHtml(it.name || '—') + '</td>' +
+              '<td class="name-cell" title="' + escapeHtml(it.name || '') + '">' + escapeHtml(it.name || ' - ') + '</td>' +
               '<td class="num">' + escapeHtml(formatMoneyCompact(it.amount)) + '</td>' +
-              '<td>' + escapeHtml(dateStr || '—') + '</td>' +
+              '<td>' + escapeHtml(dateStr || ' - ') + '</td>' +
               '<td><span class="badge-pill" style="background:' + statusColor + '">' + escapeHtml(statusLabel) + '</span></td>';
             els.deliveryRevenueMonthModalBody.appendChild(tr);
           }
@@ -16005,7 +16016,7 @@
             }
             els.deliveryRevenueMonthModalTotals.textContent = totalsParts.join(' · ');
           } else {
-            els.deliveryRevenueMonthModalTotals.textContent = '—';
+            els.deliveryRevenueMonthModalTotals.textContent = ' - ';
           }
         }
         try {
@@ -16018,7 +16029,7 @@
       }
 
       /* ---------------------------------------------------------------
-       * v1.20.0 (Phase B, FR-96) — Copy CSV.
+       * v1.20.0 (Phase B, FR-96) - Copy CSV.
        * Builds a comma-separated payload of the current monthly P&L
        * grid + lifetime total row and writes it to the clipboard.
        * Uses navigator.clipboard with a textarea fallback so the
@@ -16190,7 +16201,7 @@
       }
 
       /* ---------------------------------------------------------------
-       * v1.20.0 (Phase B) — Search + view toggle + drill-down + CSV.
+       * v1.20.0 (Phase B) - Search + view toggle + drill-down + CSV.
        * Wired once on initial load.
        * ------------------------------------------------------------- */
       if (els.deliveryPnlGridBody) {

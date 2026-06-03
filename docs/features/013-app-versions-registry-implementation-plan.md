@@ -1,4 +1,4 @@
-# Implementation plan — App Versions registry
+# Implementation plan - App Versions registry
 
 > Companion to [013-app-versions-registry.md](013-app-versions-registry.md). **Delivered v2.4.0**.
 

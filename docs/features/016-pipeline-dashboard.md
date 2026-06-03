@@ -1,8 +1,8 @@
-# Feature: Pipeline dashboard (Sales — Fibery HubSpot deals)
+# Feature: Pipeline dashboard (Sales - Fibery HubSpot deals)
 
 > **Status: Released v2.6.0.** Shipped as a **MINOR** bump (**PRD 2.6.0**) with **FR-110** and **AC-66**, a new **Sales** nav group, server module `src/pipelineDashboard.js`, and the `#panel-pipeline` client surface. See `016-pipeline-dashboard-implementation-plan.md`.
 
-> **Source mockup:** `harpin-dashboard-v3.html` (harpin AI — Pipeline Dashboard). The mockup wires directly to a HubSpot MCP and ships a light harpin theme. This feature **reuses the mockup's layout and section structure only** — data comes from **Fibery `HubSpot/Deal`** via the existing Fibery client, and the surface adopts the **current dark dashboard chrome**, not the mockup palette.
+> **Source mockup:** `harpin-dashboard-v3.html` (harpin AI - Pipeline Dashboard). The mockup wires directly to a HubSpot MCP and ships a light harpin theme. This feature **reuses the mockup's layout and section structure only** - data comes from **Fibery `HubSpot/Deal`** via the existing Fibery client, and the surface adopts the **current dark dashboard chrome**, not the mockup palette.
 
 ---
 
@@ -36,14 +36,14 @@
 | `description` | `HubSpot/Deal Description` | document | drill-down context (rich text → plain) |
 | `nextStep` | `HubSpot/Next Step Date` | document | drill-down next-step note |
 
-### R0 — confirmed on live Fibery workspace (2026-05-28)
+### R0 - confirmed on live Fibery workspace (2026-05-28)
 
 `HubSpot/Deal` is queryable through the deployed Fibery path. Confirmed facts:
 
 1. **Pipelines (`HubSpot/Pipeline`, free text):** `New Logo Sales Pipeline`, `X-Man Sales Pipeline`, `Partner Sales Pipeline`, `Existing Client Pipeline`.
-2. **Stages (`HubSpot/Deal Stage`, free text):** `Prospecting`, `Discovery`, `Discovery / Demo`, `Solutioning / Validation`, `Proposing`, `Negotiating / Contract`, `Closed Won`, `Closed Lost`, `On Hold`, `Kickoff Scheduled/In Implementation`. The mockup's numeric HubSpot stage ids do **not** apply — bucketing is by **stage-name pattern**.
-3. **`Is Won` / `Is Closed` are almost always `null`** in the synced data — they MUST NOT be used for closed/won detection. Derive **won = stage `Closed Won`**, **lost = stage `Closed Lost`**, **closed = either**, from the stage bucket instead.
-4. **Numerics arrive as strings or `null`** (`Amount`, `Weighted amount`, `Deal probability`) — coerce with a safe `parseFloat`-style helper (null/blank → 0).
+2. **Stages (`HubSpot/Deal Stage`, free text):** `Prospecting`, `Discovery`, `Discovery / Demo`, `Solutioning / Validation`, `Proposing`, `Negotiating / Contract`, `Closed Won`, `Closed Lost`, `On Hold`, `Kickoff Scheduled/In Implementation`. The mockup's numeric HubSpot stage ids do **not** apply - bucketing is by **stage-name pattern**.
+3. **`Is Won` / `Is Closed` are almost always `null`** in the synced data - they MUST NOT be used for closed/won detection. Derive **won = stage `Closed Won`**, **lost = stage `Closed Lost`**, **closed = either**, from the stage bucket instead.
+4. **Numerics arrive as strings or `null`** (`Amount`, `Weighted amount`, `Deal probability`) - coerce with a safe `parseFloat`-style helper (null/blank → 0).
 5. **Junk filtering:** exclude deals whose name matches `^test` (e.g. `Test Deal - For Report`). The `STALE - ` name prefix is a **soft signal** (surface as a chip), not an exclusion.
 6. **Best Case:** `HubSpot/Weighted amount` is populated for most active deals; prefer it, fall back to `amount × probability` when null.
 
@@ -69,14 +69,14 @@ Buckets (display order): **Prospecting → Discovery → Demo → Validation →
 
 ## Goal
 
-Add a new **top-level sidebar group "Sales"** — positioned **directly beneath Home and above Operations** — containing a single dashboard, **Pipeline Dashboard** (`route id = pipeline`, panel `#panel-pipeline`). It surfaces the live HubSpot sales pipeline from Fibery with: a **KPI summary** (Total Deal Amount / Commit / Best Case), a **deals-by-stage** breakdown, a **revenue-by-quarter** forecast chart, and a **pipeline funnel** by stage — matching the layout of `harpin-dashboard-v3.html` in the current dashboard branding.
+Add a new **top-level sidebar group "Sales"** - positioned **directly beneath Home and above Operations** - containing a single dashboard, **Pipeline Dashboard** (`route id = pipeline`, panel `#panel-pipeline`). It surfaces the live HubSpot sales pipeline from Fibery with: a **KPI summary** (Total Deal Amount / Commit / Best Case), a **deals-by-stage** breakdown, a **revenue-by-quarter** forecast chart, and a **pipeline funnel** by stage - matching the layout of `harpin-dashboard-v3.html` in the current dashboard branding.
 
 **Primary audience:** Sales leadership and ops reviewing pipeline health, commit, and forecast.
 
 **Non-goals (v1):**
 
 - **Writing back to HubSpot / Fibery.** All deal `Amount` / stage edits in the mockup are **local-only browser overrides**; v1 is **read-only** (drop the editable-cell + override-storage behavior unless explicitly requested).
-- The mockup's **Weekly To-Dos** widget and **one-liner banner** (localStorage scratchpads) — **out of scope** for v1.
+- The mockup's **Weekly To-Dos** widget and **one-liner banner** (localStorage scratchpads) - **out of scope** for v1.
 - Multi-currency FX handling (assume USD unless multiple `Currency` codes appear).
 - Replacing the Agreement / Revenue dashboards as the financial system of record.
 
@@ -114,12 +114,12 @@ Add a new **top-level sidebar group "Sales"** — positioned **directly beneath 
 
 **Layout (top to bottom), mirroring `harpin-dashboard-v3.html`:**
 
-1. **Header row** — title "Pipeline Dashboard", as-of date, **Refresh** + **Export CSV** buttons (reuse existing dashboard header button styling).
-2. **View tabs** — pipeline-view selector (All sales / per-pipeline). Hidden when only one pipeline present.
-3. **The 30-Second Read** — 3-up KPI grid (Total Deal Amount / Commit / Best Case), each with deal count + dollars.
-4. **Deals by Stage** — collapsible stage groups (accordion), deals sorted by amount; reuse a dark-theme equivalent of the mockup's `.acc-stage` rows; click a stage header to expand.
-5. **Revenue by Quarter** — Chart.js mixed bar+line.
-6. **Pipeline Shape** — funnel grid of active stages.
+1. **Header row** - title "Pipeline Dashboard", as-of date, **Refresh** + **Export CSV** buttons (reuse existing dashboard header button styling).
+2. **View tabs** - pipeline-view selector (All sales / per-pipeline). Hidden when only one pipeline present.
+3. **The 30-Second Read** - 3-up KPI grid (Total Deal Amount / Commit / Best Case), each with deal count + dollars.
+4. **Deals by Stage** - collapsible stage groups (accordion), deals sorted by amount; reuse a dark-theme equivalent of the mockup's `.acc-stage` rows; click a stage header to expand.
+5. **Revenue by Quarter** - Chart.js mixed bar+line.
+6. **Pipeline Shape** - funnel grid of active stages.
 
 - **Routes/panels:** new `#panel-pipeline`; new nav group `sales-group` with child `pipeline` in `buildNavigationModel_()`.
 - **Chrome:** `#panel-pipeline.fos-agreement-root` + the inner section-card family used by Revenue review / Expenses. Stage-dot / forecast-pill colors re-expressed against the dark theme (teal/mint accents already in tokens).
@@ -131,7 +131,7 @@ Add a new **top-level sidebar group "Sales"** — positioned **directly beneath 
 - **Normalized deal shape (client payload):** `{ id, name, company, pipeline, stage, bucket, amount, weightedAmount, probability, forecastCategory, forecastCategoryIsDerived, owner, closeDate, lastStageChangeDate, daysInStage, isWon, isClosed, description, nextStep, hubspotLink }`.
 - **Aggregates (server-computed):** per-bucket `{ count, total }`, KPI totals (Total/Commit/Best), quarter buckets `{ quarter → { won, commit, best, pipeline } }`.
 - **Config (Script Properties):** `PIPELINE_STAGE_BUCKET_MAP_JSON` (stage-name → bucket), `PIPELINE_MAX_ROWS` (cap + `partial` flag), optional `PIPELINE_VIEW_FILTERS_JSON` (pipeline display names), `PIPELINE_DASHBOARD_TTL_MS` (client cache). Registered in `adminSettingsRegistry.js`.
-- **Cache:** optional client cache key `fos_pipeline_dashboard_v1` (sessionStorage), `cacheSchemaVersion` on payload, mirroring the Expenses pattern. **Snapshot job:** decide at planning whether to add Pipeline to the Drive snapshot bundle (default v1: **live-only**, not in snapshots — note in `dashboard-snapshot-cache-sync.mdc` if added).
+- **Cache:** optional client cache key `fos_pipeline_dashboard_v1` (sessionStorage), `cacheSchemaVersion` on payload, mirroring the Expenses pattern. **Snapshot job:** decide at planning whether to add Pipeline to the Drive snapshot bundle (default v1: **live-only**, not in snapshots - note in `dashboard-snapshot-cache-sync.mdc` if added).
 - **Migration:** none (additive feature; no schema changes to existing payloads).
 
 ## Operations
@@ -165,11 +165,11 @@ Add a new **top-level sidebar group "Sales"** — positioned **directly beneath 
 ## Implementation Checklist
 
 - [ ] Confirm R0 data facts in Fibery (stages, pipelines, won/closed encoding).
-- [ ] `src/pipelineDashboard.js` — builder + normalizer; `getPipelineDashboardData()` in `Code.js` with access gate.
-- [ ] `buildNavigationModel_()` — add `sales-group` with `pipeline` child, ordered below Home / above Operations; nav icon.
-- [ ] `DashboardShell.html` — `#panel-pipeline` (KPIs, stage accordion, quarter chart, funnel, view tabs, Export CSV), dark-theme styling, client cache, global loading wiring.
-- [ ] `adminSettingsRegistry.js` — register new Script Properties.
-- [ ] `userActivityLog.js` — whitelist `pipeline_*` event types.
+- [ ] `src/pipelineDashboard.js` - builder + normalizer; `getPipelineDashboardData()` in `Code.js` with access gate.
+- [ ] `buildNavigationModel_()` - add `sales-group` with `pipeline` child, ordered below Home / above Operations; nav icon.
+- [ ] `DashboardShell.html` - `#panel-pipeline` (KPIs, stage accordion, quarter chart, funnel, view tabs, Export CSV), dark-theme styling, client cache, global loading wiring.
+- [ ] `adminSettingsRegistry.js` - register new Script Properties.
+- [ ] `userActivityLog.js` - whitelist `pipeline_*` event types.
 - [ ] Decide snapshot inclusion; update `dashboard-snapshot-cache-sync.mdc` artifacts if added.
 - [ ] PRD: bump to **2.6.0**, add **FR-110** + **AC-66 / AC-67**, §13 changelog row; sync `FOS_PRD_VERSION` + **all** `src/*` headers; update `000-overview.md` and this doc's header.
 - [ ] Run local smoke test; verify acceptance criteria.

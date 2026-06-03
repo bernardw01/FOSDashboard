@@ -2,8 +2,8 @@
 # Financial Scenario Modeling & Forecasting Platform
 ## Product Requirements Document (PRD)
 
-**Prepared For:** Digital Edge Automation Partners LLC  
-**Prepared By:** ChatGPT  
+**Prepared For:** Digital Edge Automation Partners LLC 
+**Prepared By:** ChatGPT 
 **Date:** May 23, 2026
 
 ---
@@ -337,7 +337,7 @@ Recommended:
 
 # 8. Suggested Core Features (MVP)
 
-## Phase 1 – MVP
+## Phase 1 - MVP
 
 ### Must-Have Features
 - Scenario creation

@@ -98,8 +98,8 @@ As of this version, **FR-03** (`SYNC_MODE` Script Property) is the only item tag
 - FR-14 **[Released]**: The system MUST normalize Clockify data into a typed internal model before writing to Sheets and before push.
 - FR-15 **[Released]**: The system MUST read push-ready rows from `time_entries` sheet and map them to Fibery `Agreement Management/Labor Costs` with `Agreement Management/Time Log ID` as the conflict key.
 - FR-16 **[Released]**: The system MUST resolve optional Fibery relations:
-  - Agreement relation from Clockify `project_id` to `Agreement Management/Agreements` via `Agreement Management/Clockify Project ID`.
-  - Clockify User relation from Clockify `user_id` to `Agreement Management/Clockify Users` via `Agreement Management/Clockify User ID`.
+ - Agreement relation from Clockify `project_id` to `Agreement Management/Agreements` via `Agreement Management/Clockify Project ID`.
+ - Clockify User relation from Clockify `user_id` to `Agreement Management/Clockify Users` via `Agreement Management/Clockify User ID`.
 - FR-17 **[Released]**: When relation matches do not exist, the sync MUST still create or update the labor cost record with text fields populated.
 
 ### 3.5 Fibery Push
@@ -107,19 +107,19 @@ As of this version, **FR-03** (`SYNC_MODE` Script Property) is the only item tag
 - FR-18 **[Released]**: The system MUST call Fibery `fibery.entity.batch/create-or-update` using conflict-field `Agreement Management/Time Log ID` and `update-latest`.
 - FR-19 **[Released]**: The system MUST push in bounded batches (target: 50 entities/batch).
 - FR-20 **[Released]**: The system MUST write these core fields when present:
-  - `Agreement Management/Time Log ID`
-  - `Agreement Management/Start Date Time`
-  - `Agreement Management/End Date Time`
-  - `Agreement Management/Seconds`
-  - `Agreement Management/Clockify Hours`
-  - `Agreement Management/Task`
-  - `Agreement Management/Task ID`
-  - `Agreement Management/Project ID`
-  - `Agreement Management/Billable`
-  - `Agreement Management/Time Entry Status`
-  - `Agreement Management/User ID`
-  - `Agreement Management/Time Entry User Name`
-  - `Agreement Management/Time Entry Project Name`
+ - `Agreement Management/Time Log ID`
+ - `Agreement Management/Start Date Time`
+ - `Agreement Management/End Date Time`
+ - `Agreement Management/Seconds`
+ - `Agreement Management/Clockify Hours`
+ - `Agreement Management/Task`
+ - `Agreement Management/Task ID`
+ - `Agreement Management/Project ID`
+ - `Agreement Management/Billable`
+ - `Agreement Management/Time Entry Status`
+ - `Agreement Management/User ID`
+ - `Agreement Management/Time Entry User Name`
+ - `Agreement Management/Time Entry Project Name`
 - FR-21 **[Released]**: The system MUST avoid writing formula/computed Fibery fields.
 
 ### 3.6 Execution and Operations
@@ -146,7 +146,7 @@ As of this version, **FR-03** (`SYNC_MODE` Script Property) is the only item tag
 - FR-33 **[Released]**: The UI MUST prevent duplicate run starts while a sync is already running.
 - FR-34 **[Released]**: While a sync is running, the UI MUST show live progress updates (phase/message/counters) based on server-reported progress state.
 - FR-35 **[Released]**: While a sync is running, the UI MUST show an estimated completion percentage and a visual progress indicator.
-- FR-36 **[Released]**: The published HTML UI MUST be **centered** in the viewport (primary content column with a sensible max width). It MUST use **Inter** (Google Fonts) for UI typography and a **color palette aligned with harpin.ai** (navy primary, teal action, mint accent on primary actions, neutral greys). **Material Symbols** remain the icon set. **Layout patterns** (elevated surfaces, filled and outlined buttons, linear progress, status banners) follow **Material Design 3–inspired** structure (HtmlService; full Material Web Components not required).
+- FR-36 **[Released]**: The published HTML UI MUST be **centered** in the viewport (primary content column with a sensible max width). It MUST use **Inter** (Google Fonts) for UI typography and a **color palette aligned with harpin.ai** (navy primary, teal action, mint accent on primary actions, neutral greys). **Material Symbols** remain the icon set. **Layout patterns** (elevated surfaces, filled and outlined buttons, linear progress, status banners) follow **Material Design 3 - inspired** structure (HtmlService; full Material Web Components not required).
 - FR-37 **[Released]**: The Web UI MUST expose a **Source to Target Variance** panel **below** the latest-run summary that compares **Clockify** (live API: completed time entries with end time) and **Fibery** (`Agreement Management/Labor Costs` rows with non-empty **Time Log ID**) on **total entry count** and **counts by approval status** (`NOT_SUBMITTED`, `PENDING`, `APPROVED`), using the same approval-enrichment rules as the Clockify staging pipeline where applicable.
 - FR-38 **[Released]**: The Web UI MUST provide a **Refresh variance** action that recomputes the above stats on demand via `google.script.run`, MUST display **last refreshed** (UTC ISO timestamp), MUST show **Fibery − Clockify** deltas per row, and MUST refuse the refresh while the shared sync lock is active (same behavior class as other run actions). Last successful variance MAY be cached in Script Properties (**`SYNC_CONSOLE_VARIANCE_SNAPSHOT`**) so status loads show the prior snapshot without re-querying.
 
@@ -163,14 +163,14 @@ As of this version, **FR-03** (`SYNC_MODE` Script Property) is the only item tag
 
 ```text
 Apps Script Triggers / Manual Run
-  -> HTML UI (Web App) for status + manual sync actions
-  -> Sync Orchestrator (main.ts entry point)
-    -> Clockify Client (UrlFetchApp)
-    -> Transform + Validation Layer
-    -> Google Sheets Staging (users/projects/time_entries tabs)
-    -> Fibery Client (/api/commands)
-    -> Script Properties checkpoint update
-    -> Structured logs
+ -> HTML UI (Web App) for status + manual sync actions
+ -> Sync Orchestrator (main.ts entry point)
+ -> Clockify Client (UrlFetchApp)
+ -> Transform + Validation Layer
+ -> Google Sheets Staging (users/projects/time_entries tabs)
+ -> Fibery Client (/api/commands)
+ -> Script Properties checkpoint update
+ -> Structured logs
 ```
 
 ## 6) Data Contract Notes (Fibery-Aligned)

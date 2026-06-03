@@ -2,442 +2,442 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>PRD — harpin.ai Labor Hours Dashboard</title>
+<title>PRD - harpin.ai Labor Hours Dashboard</title>
 <style>
-  :root {
-    --navy: #0f2044;
-    --blue: #2563eb;
-    --light: #f8fafc;
-    --border: #e2e8f0;
-    --text: #1e293b;
-    --muted: #64748b;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; color: var(--text); background: white; line-height: 1.6; }
-  .cover { background: var(--navy); color: white; padding: 60px 80px; min-height: 180px; }
-  .cover h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
-  .cover .sub { color: #94a3b8; font-size: 15px; margin-top: 8px; }
-  .cover .meta { margin-top: 20px; font-size: 12px; color: #64748b; display: flex; gap: 32px; }
-  .cover .meta span strong { color: #94a3b8; display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .content { max-width: 900px; margin: 0 auto; padding: 48px 40px; }
-  h2 { font-size: 18px; font-weight: 700; color: var(--navy); margin: 40px 0 12px; padding-bottom: 8px; border-bottom: 2px solid var(--navy); }
-  h3 { font-size: 14px; font-weight: 700; color: var(--navy); margin: 24px 0 8px; }
-  h4 { font-size: 13px; font-weight: 700; color: var(--muted); margin: 16px 0 6px; text-transform: uppercase; letter-spacing: 0.4px; }
-  p { margin-bottom: 12px; color: var(--text); }
-  ul, ol { margin: 8px 0 12px 20px; }
-  li { margin-bottom: 4px; }
-  code { background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-family: "SF Mono", Consolas, monospace; font-size: 12px; color: #0f172a; }
-  pre { background: #0f172a; color: #e2e8f0; padding: 16px 20px; border-radius: 8px; font-family: "SF Mono", Consolas, monospace; font-size: 12px; overflow-x: auto; margin: 12px 0 16px; line-height: 1.7; }
-  pre code { background: none; padding: 0; color: inherit; font-size: 12px; }
-  table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
-  th { background: var(--navy); color: white; padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; }
-  td { padding: 7px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
-  tr:nth-child(even) td { background: var(--light); }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-  .badge.green  { background: #dcfce7; color: #15803d; }
-  .badge.yellow { background: #fef9c3; color: #854d0e; }
-  .badge.red    { background: #fee2e2; color: #991b1b; }
-  .badge.blue   { background: #dbeafe; color: #1d4ed8; }
-  .badge.gray   { background: #f1f5f9; color: #475569; }
-  .callout { border-left: 4px solid var(--blue); background: #eff6ff; padding: 12px 16px; border-radius: 0 6px 6px 0; margin: 12px 0 16px; font-size: 13px; }
-  .callout.warn { border-left-color: #f59e0b; background: #fffbeb; }
-  .callout.red  { border-left-color: #ef4444; background: #fef2f2; }
-  .toc { background: var(--light); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; margin: 0 0 40px; }
-  .toc h3 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
-  .toc ol { margin-left: 16px; }
-  .toc li { margin-bottom: 6px; }
-  .toc a { color: var(--blue); text-decoration: none; font-size: 13px; }
-  .toc a:hover { text-decoration: underline; }
-  .section-num { color: var(--muted); font-weight: 400; margin-right: 4px; }
-  @media print {
-    body { font-size: 12px; }
-    .content { padding: 0; max-width: 100%; }
-    h2 { page-break-before: auto; }
-    pre { white-space: pre-wrap; }
-  }
+ :root {
+ --navy: #0f2044;
+ --blue: #2563eb;
+ --light: #f8fafc;
+ --border: #e2e8f0;
+ --text: #1e293b;
+ --muted: #64748b;
+ }
+ * { box-sizing: border-box; margin: 0; padding: 0; }
+ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; color: var(--text); background: white; line-height: 1.6; }
+ .cover { background: var(--navy); color: white; padding: 60px 80px; min-height: 180px; }
+ .cover h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+ .cover .sub { color: #94a3b8; font-size: 15px; margin-top: 8px; }
+ .cover .meta { margin-top: 20px; font-size: 12px; color: #64748b; display: flex; gap: 32px; }
+ .cover .meta span strong { color: #94a3b8; display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+ .content { max-width: 900px; margin: 0 auto; padding: 48px 40px; }
+ h2 { font-size: 18px; font-weight: 700; color: var(--navy); margin: 40px 0 12px; padding-bottom: 8px; border-bottom: 2px solid var(--navy); }
+ h3 { font-size: 14px; font-weight: 700; color: var(--navy); margin: 24px 0 8px; }
+ h4 { font-size: 13px; font-weight: 700; color: var(--muted); margin: 16px 0 6px; text-transform: uppercase; letter-spacing: 0.4px; }
+ p { margin-bottom: 12px; color: var(--text); }
+ ul, ol { margin: 8px 0 12px 20px; }
+ li { margin-bottom: 4px; }
+ code { background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-family: "SF Mono", Consolas, monospace; font-size: 12px; color: #0f172a; }
+ pre { background: #0f172a; color: #e2e8f0; padding: 16px 20px; border-radius: 8px; font-family: "SF Mono", Consolas, monospace; font-size: 12px; overflow-x: auto; margin: 12px 0 16px; line-height: 1.7; }
+ pre code { background: none; padding: 0; color: inherit; font-size: 12px; }
+ table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+ th { background: var(--navy); color: white; padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; }
+ td { padding: 7px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+ tr:nth-child(even) td { background: var(--light); }
+ .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+ .badge.green { background: #dcfce7; color: #15803d; }
+ .badge.yellow { background: #fef9c3; color: #854d0e; }
+ .badge.red { background: #fee2e2; color: #991b1b; }
+ .badge.blue { background: #dbeafe; color: #1d4ed8; }
+ .badge.gray { background: #f1f5f9; color: #475569; }
+ .callout { border-left: 4px solid var(--blue); background: #eff6ff; padding: 12px 16px; border-radius: 0 6px 6px 0; margin: 12px 0 16px; font-size: 13px; }
+ .callout.warn { border-left-color: #f59e0b; background: #fffbeb; }
+ .callout.red { border-left-color: #ef4444; background: #fef2f2; }
+ .toc { background: var(--light); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; margin: 0 0 40px; }
+ .toc h3 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
+ .toc ol { margin-left: 16px; }
+ .toc li { margin-bottom: 6px; }
+ .toc a { color: var(--blue); text-decoration: none; font-size: 13px; }
+ .toc a:hover { text-decoration: underline; }
+ .section-num { color: var(--muted); font-weight: 400; margin-right: 4px; }
+ @media print {
+ body { font-size: 12px; }
+ .content { padding: 0; max-width: 100%; }
+ h2 { page-break-before: auto; }
+ pre { white-space: pre-wrap; }
+ }
 </style>
 </head>
 <body>
 
 <div class="cover">
-  <h1>harpin.ai — Labor Hours Dashboard</h1>
-  <div class="sub">Product Requirements Document</div>
-  <div class="meta">
-    <span><strong>Version</strong>2.4</span>
-    <span><strong>Created</strong>April 15, 2026</span>
-    <span><strong>Author</strong>Operations / Claude</span>
-    <span><strong>Output File</strong>labor-hours-week-of-YYYY-MM-DD.html</span>
-  </div>
+ <h1>harpin.ai - Labor Hours Dashboard</h1>
+ <div class="sub">Product Requirements Document</div>
+ <div class="meta">
+ <span><strong>Version</strong>2.4</span>
+ <span><strong>Created</strong>April 15, 2026</span>
+ <span><strong>Author</strong>Operations / Claude</span>
+ <span><strong>Output File</strong>labor-hours-week-of-YYYY-MM-DD.html</span>
+ </div>
 </div>
 
 <div class="content">
 
-  <div class="toc">
-    <h3>Table of Contents</h3>
-    <ol>
-      <li><a href="#s1">Purpose &amp; Audience</a></li>
-      <li><a href="#s2">Data Source &amp; Credentials</a></li>
-      <li><a href="#s3">Fibery Query Specification</a></li>
-      <li><a href="#s4">Date Range Logic</a></li>
-      <li><a href="#s5">Aggregation &amp; Classification Rules</a></li>
-      <li><a href="#s6">Dashboard Sections &amp; Layout</a></li>
-      <li><a href="#s7">Visual Design System</a></li>
-      <li><a href="#s8">Output &amp; File Naming</a></li>
-      <li><a href="#s9">Known Data Considerations</a></li>
-      <li><a href="#s10">Rebuild Instructions</a></li>
-      <li><a href="#drive">Google Drive Distribution</a></li>
-      <li><a href="#email">Email Notification</a></li>
-      <li><a href="#changelog">Changelog</a></li>
-    </ol>
-  </div>
+ <div class="toc">
+ <h3>Table of Contents</h3>
+ <ol>
+ <li><a href="#s1">Purpose &amp; Audience</a></li>
+ <li><a href="#s2">Data Source &amp; Credentials</a></li>
+ <li><a href="#s3">Fibery Query Specification</a></li>
+ <li><a href="#s4">Date Range Logic</a></li>
+ <li><a href="#s5">Aggregation &amp; Classification Rules</a></li>
+ <li><a href="#s6">Dashboard Sections &amp; Layout</a></li>
+ <li><a href="#s7">Visual Design System</a></li>
+ <li><a href="#s8">Output &amp; File Naming</a></li>
+ <li><a href="#s9">Known Data Considerations</a></li>
+ <li><a href="#s10">Rebuild Instructions</a></li>
+ <li><a href="#drive">Google Drive Distribution</a></li>
+ <li><a href="#email">Email Notification</a></li>
+ <li><a href="#changelog">Changelog</a></li>
+ </ol>
+ </div>
 
-  <!-- 1 -->
-  <h2 id="s1"><span class="section-num">1.</span> Purpose &amp; Audience</h2>
-  <p>This dashboard is a self-contained, single-file HTML report that shows every employee who logged under or over 40 hours in the previous work week, using time entry data from Fibery. It is generated on demand by running a single Python script.</p>
+ <!-- 1 -->
+ <h2 id="s1"><span class="section-num">1.</span> Purpose &amp; Audience</h2>
+ <p>This dashboard is a self-contained, single-file HTML report that shows every employee who logged under or over 40 hours in the previous work week, using time entry data from Fibery. It is generated on demand by running a single Python script.</p>
 
-  <h4>Primary Audience</h4>
-  <ul>
-    <li>Head of Operations</li>
-    <li>People / HR team</li>
-    <li>Team leads reviewing utilization</li>
-  </ul>
+ <h4>Primary Audience</h4>
+ <ul>
+ <li>Head of Operations</li>
+ <li>People / HR team</li>
+ <li>Team leads reviewing utilization</li>
+ </ul>
 
-  <h4>What it answers</h4>
-  <ul>
-    <li>Who logged more than 40 hours last week, and by how much?</li>
-    <li>Who logged fewer than 40 hours last week, and by how much?</li>
-    <li>Which projects did each person log time to?</li>
-  </ul>
+ <h4>What it answers</h4>
+ <ul>
+ <li>Who logged more than 40 hours last week, and by how much?</li>
+ <li>Who logged fewer than 40 hours last week, and by how much?</li>
+ <li>Which projects did each person log time to?</li>
+ </ul>
 
-  <!-- 2 -->
-  <h2 id="s2"><span class="section-num">2.</span> Data Source &amp; Credentials</h2>
+ <!-- 2 -->
+ <h2 id="s2"><span class="section-num">2.</span> Data Source &amp; Credentials</h2>
 
-  <h4>System</h4>
-  <p>Fibery workspace at <code>https://harpin-ai.fibery.io</code>. All data comes from the <code>Agreement Management/Labor Costs</code> entity type, which is populated via Clockify integration.</p>
+ <h4>System</h4>
+ <p>Fibery workspace at <code>https://harpin-ai.fibery.io</code>. All data comes from the <code>Agreement Management/Labor Costs</code> entity type, which is populated via Clockify integration.</p>
 
-  <h4>Credentials</h4>
-  <p>Stored in macOS Keychain — never in plaintext files.</p>
-  <table>
-    <tr><th>Credential</th><th>Keychain lookup command</th></tr>
-    <tr><td>API Token</td><td><code>security find-generic-password -s fibery -a api-token -w</code></td></tr>
-    <tr><td>Workspace URL</td><td><code>security find-generic-password -s fibery -a workspace-url -w</code></td></tr>
-  </table>
+ <h4>Credentials</h4>
+ <p>Stored in macOS Keychain - never in plaintext files.</p>
+ <table>
+ <tr><th>Credential</th><th>Keychain lookup command</th></tr>
+ <tr><td>API Token</td><td><code>security find-generic-password -s fibery -a api-token -w</code></td></tr>
+ <tr><td>Workspace URL</td><td><code>security find-generic-password -s fibery -a workspace-url -w</code></td></tr>
+ </table>
 
-  <h4>API Endpoint</h4>
-  <pre><code>POST {WORKSPACE_URL}/api/commands
+ <h4>API Endpoint</h4>
+ <pre><code>POST {WORKSPACE_URL}/api/commands
 Authorization: Token {API_TOKEN}
 Content-Type: application/json</code></pre>
 
-  <p>All commands are sent as a JSON array to this single endpoint. The script uses Python's built-in <code>urllib.request</code> — no third-party dependencies.</p>
+ <p>All commands are sent as a JSON array to this single endpoint. The script uses Python's built-in <code>urllib.request</code> - no third-party dependencies.</p>
 
-  <!-- 3 -->
-  <h2 id="s3"><span class="section-num">3.</span> Fibery Query Specification</h2>
+ <!-- 3 -->
+ <h2 id="s3"><span class="section-num">3.</span> Fibery Query Specification</h2>
 
-  <h4>Entity Type</h4>
-  <p><code>Agreement Management/Labor Costs</code> — one record per Clockify time entry.</p>
+ <h4>Entity Type</h4>
+ <p><code>Agreement Management/Labor Costs</code> - one record per Clockify time entry.</p>
 
-  <h4>Fields Selected</h4>
-  <table>
-    <tr><th>Fibery Field Name</th><th>Type</th><th>Used For</th></tr>
-    <tr><td><code>fibery/id</code></td><td>uuid</td><td>Unique record identifier</td></tr>
-    <tr><td><code>fibery/public-id</code></td><td>text</td><td>Fibery deep-link URL construction</td></tr>
-    <tr><td><code>Agreement Management/Time Entry User Name</code></td><td>text</td><td>Employee name (from Clockify)</td></tr>
-    <tr><td><code>Agreement Management/Start Date Time</code></td><td>datetime (UTC ISO)</td><td>Entry date — used for week filtering</td></tr>
-    <tr><td><code>Agreement Management/Hours</code></td><td>decimal string</td><td>Hours worked (e.g. <code>"8.0"</code>)</td></tr>
-    <tr><td><code>Agreement Management/Time Entry Project Name</code></td><td>text</td><td>Project label shown in dashboard</td></tr>
-    <tr><td><code>Agreement Management/Billable</code></td><td>text</td><td>"Yes" / "No" — available for future filtering</td></tr>
-  </table>
+ <h4>Fields Selected</h4>
+ <table>
+ <tr><th>Fibery Field Name</th><th>Type</th><th>Used For</th></tr>
+ <tr><td><code>fibery/id</code></td><td>uuid</td><td>Unique record identifier</td></tr>
+ <tr><td><code>fibery/public-id</code></td><td>text</td><td>Fibery deep-link URL construction</td></tr>
+ <tr><td><code>Agreement Management/Time Entry User Name</code></td><td>text</td><td>Employee name (from Clockify)</td></tr>
+ <tr><td><code>Agreement Management/Start Date Time</code></td><td>datetime (UTC ISO)</td><td>Entry date - used for week filtering</td></tr>
+ <tr><td><code>Agreement Management/Hours</code></td><td>decimal string</td><td>Hours worked (e.g. <code>"8.0"</code>)</td></tr>
+ <tr><td><code>Agreement Management/Time Entry Project Name</code></td><td>text</td><td>Project label shown in dashboard</td></tr>
+ <tr><td><code>Agreement Management/Billable</code></td><td>text</td><td>"Yes" / "No" - available for future filtering</td></tr>
+ </table>
 
-  <h4>Date Filter (confirmed working syntax)</h4>
-  <pre><code>{
-  "command": "fibery.entity/query",
-  "args": {
-    "query": {
-      "q/from": "Agreement Management/Labor Costs",
-      "q/select": [ ... ],
-      "q/where": ["q/and",
-        [">", "Agreement Management/Start Date Time", "$start"],
-        ["&lt;", "Agreement Management/Start Date Time", "$end"]
-      ],
-      "q/limit": 1000,
-      "q/offset": 0
-    },
-    "params": {
-      "$start": "2026-04-05T23:59:59Z",
-      "$end":   "2026-04-13T00:00:00Z"
-    }
-  }
+ <h4>Date Filter (confirmed working syntax)</h4>
+ <pre><code>{
+ "command": "fibery.entity/query",
+ "args": {
+ "query": {
+ "q/from": "Agreement Management/Labor Costs",
+ "q/select": [ ... ],
+ "q/where": ["q/and",
+ [">", "Agreement Management/Start Date Time", "$start"],
+ ["&lt;", "Agreement Management/Start Date Time", "$end"]
+ ],
+ "q/limit": 1000,
+ "q/offset": 0
+ },
+ "params": {
+ "$start": "2026-04-05T23:59:59Z",
+ "$end": "2026-04-13T00:00:00Z"
+ }
+ }
 }</code></pre>
 
-  <div class="callout warn">
-    <strong>Note:</strong> Inline date literals in <code>q/where</code> do NOT work. You must use named <code>params</code>. The <code>q/order-by</code> clause also does not support datetime fields — sort in Python after fetching.
-  </div>
+ <div class="callout warn">
+ <strong>Note:</strong> Inline date literals in <code>q/where</code> do NOT work. You must use named <code>params</code>. The <code>q/order-by</code> clause also does not support datetime fields - sort in Python after fetching.
+ </div>
 
-  <h4>Pagination</h4>
-  <p>Fibery returns a maximum of 1000 records per request. The script loops using <code>q/offset</code> (0, 1000, 2000…) until an empty result is returned. A typical week returns ~500 entries across ~55 employees.</p>
+ <h4>Pagination</h4>
+ <p>Fibery returns a maximum of 1000 records per request. The script loops using <code>q/offset</code> (0, 1000, 2000…) until an empty result is returned. A typical week returns ~500 entries across ~55 employees.</p>
 
-  <!-- 4 -->
-  <h2 id="s4"><span class="section-num">4.</span> Date Range Logic</h2>
+ <!-- 4 -->
+ <h2 id="s4"><span class="section-num">4.</span> Date Range Logic</h2>
 
-  <p>The script dynamically computes "last week" relative to the date it is run. The work week is defined as <strong>Monday through Sunday</strong>.</p>
+ <p>The script dynamically computes "last week" relative to the date it is run. The work week is defined as <strong>Monday through Sunday</strong>.</p>
 
-  <pre><code>import datetime
+ <pre><code>import datetime
 from datetime import timedelta
 
-today      = datetime.date.today()
+today = datetime.date.today()
 # weekday(): Mon=0, Tue=1, ... Sun=6
-week_start = today - timedelta(days=today.weekday() + 7)  # last Monday
-week_end   = week_start + timedelta(days=7)               # this Monday (exclusive)
+week_start = today - timedelta(days=today.weekday() + 7) # last Monday
+week_end = week_start + timedelta(days=7) # this Monday (exclusive)
 
-# Fibery params — start is end-of-day Sunday before week_start
+# Fibery params - start is end-of-day Sunday before week_start
 param_start = (week_start - timedelta(days=1)).strftime('%Y-%m-%dT23:59:59Z')
-param_end   = week_end.strftime('%Y-%m-%dT00:00:00Z')</code></pre>
+param_end = week_end.strftime('%Y-%m-%dT00:00:00Z')</code></pre>
 
-  <p>Example: run on Wednesday April 15, 2026 → <code>week_start = 2026-04-06</code> (Mon), <code>week_end = 2026-04-13</code> (Mon exclusive), meaning the dashboard covers Mon Apr 6 – Sun Apr 12.</p>
+ <p>Example: run on Wednesday April 15, 2026 → <code>week_start = 2026-04-06</code> (Mon), <code>week_end = 2026-04-13</code> (Mon exclusive), meaning the dashboard covers Mon Apr 6 - Sun Apr 12.</p>
 
-  <!-- 5 -->
-  <h2 id="s5"><span class="section-num">5.</span> Aggregation &amp; Classification Rules</h2>
+ <!-- 5 -->
+ <h2 id="s5"><span class="section-num">5.</span> Aggregation &amp; Classification Rules</h2>
 
-  <h4>Grouping</h4>
-  <p>Records are grouped by <code>Agreement Management/Time Entry User Name</code> (case-sensitive, as returned by Clockify). Each group accumulates:</p>
-  <ul>
-    <li><strong>Total hours</strong> — sum of <code>Agreement Management/Hours</code> (cast to float)</li>
-    <li><strong>Entry count</strong> — number of individual time log records</li>
-    <li><strong>Project set</strong> — unique values of <code>Agreement Management/Time Entry Project Name</code></li>
-  </ul>
+ <h4>Grouping</h4>
+ <p>Records are grouped by <code>Agreement Management/Time Entry User Name</code> (case-sensitive, as returned by Clockify). Each group accumulates:</p>
+ <ul>
+ <li><strong>Total hours</strong> - sum of <code>Agreement Management/Hours</code> (cast to float)</li>
+ <li><strong>Entry count</strong> - number of individual time log records</li>
+ <li><strong>Project set</strong> - unique values of <code>Agreement Management/Time Entry Project Name</code></li>
+ </ul>
 
-  <h4>Classification</h4>
-  <table>
-    <tr><th>Category</th><th>Rule</th><th>Color</th><th>Sort Order</th></tr>
-    <tr><td><span class="badge red">Over 40h</span></td><td>total hours &gt; 40.0</td><td>Red</td><td>Highest hours first</td></tr>
-    <tr><td><span class="badge yellow">Under 40h</span></td><td>total hours &lt; 40.0</td><td>Yellow / Amber</td><td>Lowest hours first</td></tr>
-    <tr><td><span class="badge green">Exactly 40h</span></td><td>total hours == 40.0</td><td>Green</td><td>Alphabetical</td></tr>
-  </table>
+ <h4>Classification</h4>
+ <table>
+ <tr><th>Category</th><th>Rule</th><th>Color</th><th>Sort Order</th></tr>
+ <tr><td><span class="badge red">Over 40h</span></td><td>total hours &gt; 40.0</td><td>Red</td><td>Highest hours first</td></tr>
+ <tr><td><span class="badge yellow">Under 40h</span></td><td>total hours &lt; 40.0</td><td>Yellow / Amber</td><td>Lowest hours first</td></tr>
+ <tr><td><span class="badge green">Exactly 40h</span></td><td>total hours == 40.0</td><td>Green</td><td>Alphabetical</td></tr>
+ </table>
 
-  <div class="callout warn">
-    <strong>Floating-point note:</strong> Hours are summed from decimal strings (e.g. <code>"8.0"</code>, <code>"1.5"</code>). The exact-40 bucket uses <code>== 40.0</code> comparison. If floating-point drift is ever observed, switch to rounding to 2 decimal places before comparison.
-  </div>
+ <div class="callout warn">
+ <strong>Floating-point note:</strong> Hours are summed from decimal strings (e.g. <code>"8.0"</code>, <code>"1.5"</code>). The exact-40 bucket uses <code>== 40.0</code> comparison. If floating-point drift is ever observed, switch to rounding to 2 decimal places before comparison.
+ </div>
 
-  <!-- 6 -->
-  <h2 id="s6"><span class="section-num">6.</span> Dashboard Sections &amp; Layout</h2>
+ <!-- 6 -->
+ <h2 id="s6"><span class="section-num">6.</span> Dashboard Sections &amp; Layout</h2>
 
-  <h3>Header Bar</h3>
-  <p>Navy background. Left: "harpin ai" brand label + title "Labor Hours Review" + week label (e.g. "Week of Apr 6 – Apr 12, 2026"). Right: generated timestamp + data source attribution.</p>
+ <h3>Header Bar</h3>
+ <p>Navy background. Left: "harpin ai" brand label + title "Labor Hours Review" + week label (e.g. "Week of Apr 6 - Apr 12, 2026"). Right: generated timestamp + data source attribution.</p>
 
-  <h3>KPI Cards (4-column grid)</h3>
-  <table>
-    <tr><th>Card</th><th>Value</th><th>Border Color</th></tr>
-    <tr><td>Total Employees</td><td>Count of distinct employee names in the week</td><td>Teal</td></tr>
-    <tr><td>Over 40 Hours</td><td>Count of employees with &gt;40h</td><td>Red</td></tr>
-    <tr><td>Under 40 Hours</td><td>Count of employees with &lt;40h</td><td>Yellow</td></tr>
-    <tr><td>Exactly 40 Hours</td><td>Count of employees with =40h</td><td>Green</td></tr>
-  </table>
+ <h3>KPI Cards (4-column grid)</h3>
+ <table>
+ <tr><th>Card</th><th>Value</th><th>Border Color</th></tr>
+ <tr><td>Total Employees</td><td>Count of distinct employee names in the week</td><td>Teal</td></tr>
+ <tr><td>Over 40 Hours</td><td>Count of employees with &gt;40h</td><td>Red</td></tr>
+ <tr><td>Under 40 Hours</td><td>Count of employees with &lt;40h</td><td>Yellow</td></tr>
+ <tr><td>Exactly 40 Hours</td><td>Count of employees with =40h</td><td>Green</td></tr>
+ </table>
 
-  <h3>Over 40h Table</h3>
-  <p>Red left border on section header. Columns: Employee | Total Hours | Over by | Entries | Projects. Sorted by total hours descending. "Over by" = total − 40, displayed as <code>+Xh</code> in red bold.</p>
+ <h3>Over 40h Table</h3>
+ <p>Red left border on section header. Columns: Employee | Total Hours | Over by | Entries | Projects. Sorted by total hours descending. "Over by" = total − 40, displayed as <code>+Xh</code> in red bold.</p>
 
-  <h3>Under 40h Table</h3>
-  <p>Yellow left border on section header. Columns: Employee | Total Hours | Under by | Entries | Projects. Sorted by total hours ascending (fewest hours at top). "Under by" = 40 − total, displayed as <code>−Xh</code> in amber bold.</p>
+ <h3>Under 40h Table</h3>
+ <p>Yellow left border on section header. Columns: Employee | Total Hours | Under by | Entries | Projects. Sorted by total hours ascending (fewest hours at top). "Under by" = 40 − total, displayed as <code>−Xh</code> in amber bold.</p>
 
-  <h3>Exactly 40h Section</h3>
-  <p>Green left border. Employees shown as pill chips: <code>[Name — 40.0h]</code>. If none, shows a muted "None this week" message.</p>
+ <h3>Exactly 40h Section</h3>
+ <p>Green left border. Employees shown as pill chips: <code>[Name - 40.0h]</code>. If none, shows a muted "None this week" message.</p>
 
-  <h3>Projects Column Display</h3>
-  <p>Up to 3 project names shown inline, comma-separated. If more than 3, shows the first 3 followed by <code>+N more</code> in muted text.</p>
+ <h3>Projects Column Display</h3>
+ <p>Up to 3 project names shown inline, comma-separated. If more than 3, shows the first 3 followed by <code>+N more</code> in muted text.</p>
 
-  <h3>Footer</h3>
-  <p>Centered, muted text: entry count, week range, and generated timestamp.</p>
+ <h3>Footer</h3>
+ <p>Centered, muted text: entry count, week range, and generated timestamp.</p>
 
-  <!-- 7 -->
-  <h2 id="s7"><span class="section-num">7.</span> Visual Design System</h2>
+ <!-- 7 -->
+ <h2 id="s7"><span class="section-num">7.</span> Visual Design System</h2>
 
-  <h4>CSS Variables</h4>
-  <pre><code>--navy:       #152744   /* header background */
---navy-mid:   #1e3a5f   /* lighter navy (not currently used) */
---teal:       #2B8B8B   /* primary accent, total-employees card */
+ <h4>CSS Variables</h4>
+ <pre><code>--navy: #152744 /* header background */
+--navy-mid: #1e3a5f /* lighter navy (not currently used) */
+--teal: #2B8B8B /* primary accent, total-employees card */
 --teal-light: #e6f4f4
---green:      #16a34a   /* exactly-40 */
---green-bg:   #f0fdf4
---yellow:     #ca8a04   /* under-40 */
---yellow-bg:  #fefce8
---red:        #dc2626   /* over-40 */
---red-bg:     #fef2f2
---gray:       #6b7280   /* muted text */
---cream:      #F2EFE5   /* page background */
---border:     #DDD9CE   /* table dividers */</code></pre>
+--green: #16a34a /* exactly-40 */
+--green-bg: #f0fdf4
+--yellow: #ca8a04 /* under-40 */
+--yellow-bg: #fefce8
+--red: #dc2626 /* over-40 */
+--red-bg: #fef2f2
+--gray: #6b7280 /* muted text */
+--cream: #F2EFE5 /* page background */
+--border: #DDD9CE /* table dividers */</code></pre>
 
-  <h4>Typography</h4>
-  <p>System font stack: <code>-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif</code>. Base size 14px. KPI values at 36px bold. Section headers 15px bold. Table headers 11px uppercase with letter-spacing.</p>
+ <h4>Typography</h4>
+ <p>System font stack: <code>-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif</code>. Base size 14px. KPI values at 36px bold. Section headers 15px bold. Table headers 11px uppercase with letter-spacing.</p>
 
-  <h4>Layout</h4>
-  <p>Max-width 1200px container, centered. Cards in a 4-column CSS grid. Sections are white cards with 8px border-radius and subtle box-shadow. Page background is <code>--cream</code>.</p>
+ <h4>Layout</h4>
+ <p>Max-width 1200px container, centered. Cards in a 4-column CSS grid. Sections are white cards with 8px border-radius and subtle box-shadow. Page background is <code>--cream</code>.</p>
 
-  <h4>Print</h4>
-  <p>Media query for <code>@media print</code> ensures the navy header prints with color. No external dependencies — the file is fully self-contained.</p>
+ <h4>Print</h4>
+ <p>Media query for <code>@media print</code> ensures the navy header prints with color. No external dependencies - the file is fully self-contained.</p>
 
-  <!-- 8 -->
-  <h2 id="s8"><span class="section-num">8.</span> Output &amp; File Naming</h2>
+ <!-- 8 -->
+ <h2 id="s8"><span class="section-num">8.</span> Output &amp; File Naming</h2>
 
-  <table>
-    <tr><th>Item</th><th>Value</th></tr>
-    <tr><td>Generator script</td><td><code>harpin Main/Inbox/generate_labor_hours.py</code></td></tr>
-    <tr><td>Output location</td><td><code>harpin Main/Inbox/</code></td></tr>
-    <tr><td>File name pattern</td><td><code>labor-hours-week-of-YYYY-MM-DD.html</code> where the date is the Monday of the reported week</td></tr>
-    <tr><td>Example</td><td><code>labor-hours-week-of-2026-04-06.html</code></td></tr>
-    <tr><td>Dependencies</td><td>Python 3 standard library only (<code>json</code>, <code>datetime</code>, <code>subprocess</code>, <code>urllib</code>)</td></tr>
-  </table>
+ <table>
+ <tr><th>Item</th><th>Value</th></tr>
+ <tr><td>Generator script</td><td><code>harpin Main/Inbox/generate_labor_hours.py</code></td></tr>
+ <tr><td>Output location</td><td><code>harpin Main/Inbox/</code></td></tr>
+ <tr><td>File name pattern</td><td><code>labor-hours-week-of-YYYY-MM-DD.html</code> where the date is the Monday of the reported week</td></tr>
+ <tr><td>Example</td><td><code>labor-hours-week-of-2026-04-06.html</code></td></tr>
+ <tr><td>Dependencies</td><td>Python 3 standard library only (<code>json</code>, <code>datetime</code>, <code>subprocess</code>, <code>urllib</code>)</td></tr>
+ </table>
 
-  <!-- 9 -->
-  <h2 id="s9"><span class="section-num">9.</span> Known Data Considerations</h2>
+ <!-- 9 -->
+ <h2 id="s9"><span class="section-num">9.</span> Known Data Considerations</h2>
 
-  <h4>Employee name format</h4>
-  <p>Names come directly from Clockify and are inconsistent — some are full names (<code>Jordan Meyer</code>), others are email prefixes (<code>kelsey.hoff</code>), and some are first-name only (<code>Max</code>, <code>josh</code>). The dashboard displays them as-is. No normalization is applied.</p>
+ <h4>Employee name format</h4>
+ <p>Names come directly from Clockify and are inconsistent - some are full names (<code>Jordan Meyer</code>), others are email prefixes (<code>kelsey.hoff</code>), and some are first-name only (<code>Max</code>, <code>josh</code>). The dashboard displays them as-is. No normalization is applied.</p>
 
-  <h4>Exclusion list</h4>
-  <p>The <code>EXCLUDE_NAMES</code> set near the top of the script suppresses specific people from all sections of the dashboard. This is used for two reasons:</p>
-  <ul>
-    <li><strong>Duplicate Clockify accounts</strong> — some employees have two records (e.g. a dot-format and a space-format name). The canonical record is kept; the duplicate is excluded.</li>
-    <li><strong>Offboarded employees</strong> — people who have left harpin but whose Clockify/Fibery records have not yet been deactivated.</li>
-  </ul>
-  <p>Matching is case-insensitive against the exact lowercase name string. To add or remove someone, edit the set in the script and rerun.</p>
+ <h4>Exclusion list</h4>
+ <p>The <code>EXCLUDE_NAMES</code> set near the top of the script suppresses specific people from all sections of the dashboard. This is used for two reasons:</p>
+ <ul>
+ <li><strong>Duplicate Clockify accounts</strong> - some employees have two records (e.g. a dot-format and a space-format name). The canonical record is kept; the duplicate is excluded.</li>
+ <li><strong>Offboarded employees</strong> - people who have left harpin but whose Clockify/Fibery records have not yet been deactivated.</li>
+ </ul>
+ <p>Matching is case-insensitive against the exact lowercase name string. To add or remove someone, edit the set in the script and rerun.</p>
 
-  <h4>Data is not ordered in Fibery</h4>
-  <p><code>q/order-by</code> does not work on datetime fields in this workspace. The script fetches all matching records unordered and sorts in Python after aggregation.</p>
+ <h4>Data is not ordered in Fibery</h4>
+ <p><code>q/order-by</code> does not work on datetime fields in this workspace. The script fetches all matching records unordered and sorts in Python after aggregation.</p>
 
-  <h4>Entries span multiple pages</h4>
-  <p>A typical week has ~500 entries spread unevenly across the 8000+ total records in the type. The script always paginates until the API returns an empty page — do not assume all records fit in the first 1000.</p>
+ <h4>Entries span multiple pages</h4>
+ <p>A typical week has ~500 entries spread unevenly across the 8000+ total records in the type. The script always paginates until the API returns an empty page - do not assume all records fit in the first 1000.</p>
 
-  <h4>Timezone</h4>
-  <p><code>Start Date Time</code> is stored in UTC. The filter boundary is set to end-of-day (23:59:59Z) on the Sunday before the week starts and midnight (00:00:00Z) on the Monday after the week ends. This correctly captures entries for US-based employees whose local midnight may differ by up to 8 hours.</p>
+ <h4>Timezone</h4>
+ <p><code>Start Date Time</code> is stored in UTC. The filter boundary is set to end-of-day (23:59:59Z) on the Sunday before the week starts and midnight (00:00:00Z) on the Monday after the week ends. This correctly captures entries for US-based employees whose local midnight may differ by up to 8 hours.</p>
 
-  <h4>Future entries</h4>
-  <p>Clockify occasionally sync entries dated slightly in the future due to timezone offsets. These will be captured if their UTC <code>Start Date Time</code> falls within the filter window — this is expected and harmless.</p>
+ <h4>Future entries</h4>
+ <p>Clockify occasionally sync entries dated slightly in the future due to timezone offsets. These will be captured if their UTC <code>Start Date Time</code> falls within the filter window - this is expected and harmless.</p>
 
-  <!-- 10 -->
-  <h2 id="s10"><span class="section-num">10.</span> Rebuild Instructions</h2>
+ <!-- 10 -->
+ <h2 id="s10"><span class="section-num">10.</span> Rebuild Instructions</h2>
 
-  <p>To regenerate the dashboard for the most recent completed week, paste the following prompt into Claude Code from the <code>harpin Main</code> working directory:</p>
+ <p>To regenerate the dashboard for the most recent completed week, paste the following prompt into Claude Code from the <code>harpin Main</code> working directory:</p>
 
-  <div class="callout">
-    <strong>Rebuild prompt (copy exactly):</strong><br><br>
-    Run <code>python3 "Inbox/generate_labor_hours.py"</code> and open the output HTML file.
-  </div>
+ <div class="callout">
+ <strong>Rebuild prompt (copy exactly):</strong><br><br>
+ Run <code>python3 "Inbox/generate_labor_hours.py"</code> and open the output HTML file.
+ </div>
 
-  <p>That's it — the script handles everything: credential retrieval, Fibery query, pagination, aggregation, classification, HTML generation, and saving the file.</p>
+ <p>That's it - the script handles everything: credential retrieval, Fibery query, pagination, aggregation, classification, HTML generation, and saving the file.</p>
 
-  <h4>To rebuild with changes to the script</h4>
-  <ol>
-    <li>Edit <code>Inbox/generate_labor_hours.py</code></li>
-    <li>Run: <code>python3 "Inbox/generate_labor_hours.py"</code></li>
-    <li>Open the output HTML to verify</li>
-  </ol>
+ <h4>To rebuild with changes to the script</h4>
+ <ol>
+ <li>Edit <code>Inbox/generate_labor_hours.py</code></li>
+ <li>Run: <code>python3 "Inbox/generate_labor_hours.py"</code></li>
+ <li>Open the output HTML to verify</li>
+ </ol>
 
-  <h4>To change the week (run for a specific past week)</h4>
-  <p>Replace the dynamic date block near the top of the script with hardcoded values:</p>
-  <pre><code># Replace the dynamic date block with:
-week_start = datetime.date(2026, 3, 30)  # the Monday of the desired week
-week_end   = week_start + timedelta(days=7)</code></pre>
-  <p>Then re-run. Remove the override afterward to restore dynamic behavior.</p>
+ <h4>To change the week (run for a specific past week)</h4>
+ <p>Replace the dynamic date block near the top of the script with hardcoded values:</p>
+ <pre><code># Replace the dynamic date block with:
+week_start = datetime.date(2026, 3, 30) # the Monday of the desired week
+week_end = week_start + timedelta(days=7)</code></pre>
+ <p>Then re-run. Remove the override afterward to restore dynamic behavior.</p>
 
-  <h4>To add a new column (e.g., billable hours only)</h4>
-  <ol>
-    <li>Add the field to the <code>q/select</code> list in the query</li>
-    <li>Track the new value in the <code>employees</code> aggregation dict</li>
-    <li>Add a column to the HTML table headers and the row-building function</li>
-  </ol>
+ <h4>To add a new column (e.g., billable hours only)</h4>
+ <ol>
+ <li>Add the field to the <code>q/select</code> list in the query</li>
+ <li>Track the new value in the <code>employees</code> aggregation dict</li>
+ <li>Add a column to the HTML table headers and the row-building function</li>
+ </ol>
 
-  <h4>Manual verification</h4>
-  <p>After regenerating, spot-check two or three employees against their Clockify timesheet or Fibery records at <code>https://harpin-ai.fibery.io</code> → Agreement Management → Labor Costs.</p>
+ <h4>Manual verification</h4>
+ <p>After regenerating, spot-check two or three employees against their Clockify timesheet or Fibery records at <code>https://harpin-ai.fibery.io</code> → Agreement Management → Labor Costs.</p>
 
-  <!-- Google Drive -->
-  <h2 id="drive"><span class="section-num">§</span> Google Drive Distribution</h2>
-  <p>The generator automatically uploads each dashboard to the <strong>harpin Dashboards</strong> Shared Drive after saving locally. The previous file is moved to Archive before uploading the new one.</p>
-  <h4>Folder structure</h4>
-  <pre><code>harpin Dashboards (Shared Drive)
+ <!-- Google Drive -->
+ <h2 id="drive"><span class="section-num">§</span> Google Drive Distribution</h2>
+ <p>The generator automatically uploads each dashboard to the <strong>harpin Dashboards</strong> Shared Drive after saving locally. The previous file is moved to Archive before uploading the new one.</p>
+ <h4>Folder structure</h4>
+ <pre><code>harpin Dashboards (Shared Drive)
 └── Labor Hours/
-    ├── labor-hours-week-of-YYYY-MM-DD.html   ← current week
-    └── Archive/                               ← previous weeks</code></pre>
-  <h4>Credentials (all in macOS Keychain)</h4>
-  <table>
-    <tr><th>Keychain service</th><th>Account</th><th>Value</th></tr>
-    <tr><td>google-drive</td><td>service-account-key-path</td><td>~/.harpin/credentials/google-drive-service-account.json</td></tr>
-    <tr><td>google-drive</td><td>harpin-dashboards-folder-id</td><td>Shared Drive root ID</td></tr>
-    <tr><td>google-drive</td><td>labor-hours-folder-id</td><td>Labor Hours subfolder ID</td></tr>
-    <tr><td>google-drive</td><td>labor-hours-archive-id</td><td>Labor Hours/Archive subfolder ID</td></tr>
-  </table>
-  <h4>Service account</h4>
-  <p><code>dashboard-uploader@aerobic-pivot-493618-k3.iam.gserviceaccount.com</code> — added as Contributor on the harpin Dashboards Shared Drive. Key file stored at <code>~/.harpin/credentials/google-drive-service-account.json</code> (chmod 600, never committed to git).</p>
-  <h4>Monday automation (macOS Launch Agent)</h4>
-  <p>A Launch Agent runs the generator every Monday at 1:00am automatically.</p>
-  <pre><code>Plist: ~/Library/LaunchAgents/ai.harpin.labor-hours.plist
-Log:   harpin Main/Time Tracking/Labor Hours/run.log</code></pre>
-  <p>To check last run: <code>cat "harpin Main/Time Tracking/Labor Hours/run.log"</code><br>
-  To reload after editing the plist: <code>launchctl unload ~/Library/LaunchAgents/ai.harpin.labor-hours.plist &amp;&amp; launchctl load ~/Library/LaunchAgents/ai.harpin.labor-hours.plist</code></p>
+ ├── labor-hours-week-of-YYYY-MM-DD.html ← current week
+ └── Archive/ ← previous weeks</code></pre>
+ <h4>Credentials (all in macOS Keychain)</h4>
+ <table>
+ <tr><th>Keychain service</th><th>Account</th><th>Value</th></tr>
+ <tr><td>google-drive</td><td>service-account-key-path</td><td>~/.harpin/credentials/google-drive-service-account.json</td></tr>
+ <tr><td>google-drive</td><td>harpin-dashboards-folder-id</td><td>Shared Drive root ID</td></tr>
+ <tr><td>google-drive</td><td>labor-hours-folder-id</td><td>Labor Hours subfolder ID</td></tr>
+ <tr><td>google-drive</td><td>labor-hours-archive-id</td><td>Labor Hours/Archive subfolder ID</td></tr>
+ </table>
+ <h4>Service account</h4>
+ <p><code>dashboard-uploader@aerobic-pivot-493618-k3.iam.gserviceaccount.com</code> - added as Contributor on the harpin Dashboards Shared Drive. Key file stored at <code>~/.harpin/credentials/google-drive-service-account.json</code> (chmod 600, never committed to git).</p>
+ <h4>Monday automation (macOS Launch Agent)</h4>
+ <p>A Launch Agent runs the generator every Monday at 1:00am automatically.</p>
+ <pre><code>Plist: ~/Library/LaunchAgents/ai.harpin.labor-hours.plist
+Log: harpin Main/Time Tracking/Labor Hours/run.log</code></pre>
+ <p>To check last run: <code>cat "harpin Main/Time Tracking/Labor Hours/run.log"</code><br>
+ To reload after editing the plist: <code>launchctl unload ~/Library/LaunchAgents/ai.harpin.labor-hours.plist &amp;&amp; launchctl load ~/Library/LaunchAgents/ai.harpin.labor-hours.plist</code></p>
 
-  <!-- Email Notification -->
-  <h2 id="email"><span class="section-num">§</span> Email Notification</h2>
-  <p>After each successful Drive upload, the generator sends an HTML email notification with the report summary and a link to the file.</p>
-  <h4>Email details</h4>
-  <table>
-    <tr><th>Field</th><th>Value</th></tr>
-    <tr><td>From</td><td>jess.williams@harpin.ai (temporary — move to operations@harpin.ai once added to workspace)</td></tr>
-    <tr><td>To</td><td>operations@harpin.ai (test recipient — expand when ready)</td></tr>
-    <tr><td>Reply-To</td><td>jess.williams@harpin.ai</td></tr>
-    <tr><td>Subject</td><td>Labor Hours Report — Week of [dates]</td></tr>
-    <tr><td>Transport</td><td>Gmail SMTP SSL (smtp.gmail.com:465) using app password</td></tr>
-  </table>
-  <h4>Email body</h4>
-  <p>Styled HTML email containing: week label, Drive link button, summary table (Over / Under / Exactly 40h / Zero Hours counts), and download instructions explaining the file is static and must be downloaded before viewing.</p>
-  <h4>Credentials (macOS Keychain)</h4>
-  <table>
-    <tr><th>Keychain service</th><th>Account</th><th>Value</th></tr>
-    <tr><td>google-workspace-email</td><td>jess-app-password</td><td>16-character Google app password for jess.williams@harpin.ai (temporary sender)</td></tr>
-  </table>
-  <h4>Setup: create the app password</h4>
-  <ol>
-    <li>Sign into <code>jess.williams@harpin.ai</code> at <a href="https://myaccount.google.com">myaccount.google.com</a></li>
-    <li>Go to <strong>Security → 2-Step Verification</strong> (must be enabled) → scroll to <strong>App passwords</strong></li>
-    <li>Create a new app password — name it <em>Labor Hours Script</em></li>
-    <li>Copy the 16-character password and store it in Keychain:</li>
-  </ol>
-  <pre><code>security add-generic-password -s google-workspace-email -a jess-app-password -w "YOUR-16-CHAR-PASSWORD"</code></pre>
-  <p class="callout warn">Once operations@harpin.ai is set up, update <code>smtp_user</code>, <code>to_addr</code>, and the Keychain account name in the script, and re-run the setup step above for the new address.</p>
-  <h4>Expanding recipients</h4>
-  <p>When ready to send to additional recipients, update the <code>to_addr</code> variable in the email section of <code>generate_labor_hours.py</code>. For multiple recipients, change it to a list and update <code>sendmail()</code> accordingly.</p>
+ <!-- Email Notification -->
+ <h2 id="email"><span class="section-num">§</span> Email Notification</h2>
+ <p>After each successful Drive upload, the generator sends an HTML email notification with the report summary and a link to the file.</p>
+ <h4>Email details</h4>
+ <table>
+ <tr><th>Field</th><th>Value</th></tr>
+ <tr><td>From</td><td>jess.williams@harpin.ai (temporary - move to operations@harpin.ai once added to workspace)</td></tr>
+ <tr><td>To</td><td>operations@harpin.ai (test recipient - expand when ready)</td></tr>
+ <tr><td>Reply-To</td><td>jess.williams@harpin.ai</td></tr>
+ <tr><td>Subject</td><td>Labor Hours Report - Week of [dates]</td></tr>
+ <tr><td>Transport</td><td>Gmail SMTP SSL (smtp.gmail.com:465) using app password</td></tr>
+ </table>
+ <h4>Email body</h4>
+ <p>Styled HTML email containing: week label, Drive link button, summary table (Over / Under / Exactly 40h / Zero Hours counts), and download instructions explaining the file is static and must be downloaded before viewing.</p>
+ <h4>Credentials (macOS Keychain)</h4>
+ <table>
+ <tr><th>Keychain service</th><th>Account</th><th>Value</th></tr>
+ <tr><td>google-workspace-email</td><td>jess-app-password</td><td>16-character Google app password for jess.williams@harpin.ai (temporary sender)</td></tr>
+ </table>
+ <h4>Setup: create the app password</h4>
+ <ol>
+ <li>Sign into <code>jess.williams@harpin.ai</code> at <a href="https://myaccount.google.com">myaccount.google.com</a></li>
+ <li>Go to <strong>Security → 2-Step Verification</strong> (must be enabled) → scroll to <strong>App passwords</strong></li>
+ <li>Create a new app password - name it <em>Labor Hours Script</em></li>
+ <li>Copy the 16-character password and store it in Keychain:</li>
+ </ol>
+ <pre><code>security add-generic-password -s google-workspace-email -a jess-app-password -w "YOUR-16-CHAR-PASSWORD"</code></pre>
+ <p class="callout warn">Once operations@harpin.ai is set up, update <code>smtp_user</code>, <code>to_addr</code>, and the Keychain account name in the script, and re-run the setup step above for the new address.</p>
+ <h4>Expanding recipients</h4>
+ <p>When ready to send to additional recipients, update the <code>to_addr</code> variable in the email section of <code>generate_labor_hours.py</code>. For multiple recipients, change it to a list and update <code>sendmail()</code> accordingly.</p>
 
-  <!-- Changelog -->
-  <h2 id="changelog"><span class="section-num">§</span> Changelog</h2>
-  <table>
-    <tr><th>Version</th><th>Date</th><th>Change</th></tr>
-    <tr><td>1.0</td><td>2026-04-15</td><td>Initial version. Generator script created. Covers Over/Under/Exact 40h sections, KPI cards, paginated Fibery fetch, dynamic week detection.</td></tr>
-    <tr><td>1.1</td><td>2026-04-15</td><td>Sortable columns on all table headers (click to sort asc/desc, ⇅ icon indicates state). KPI tiles are now clickable — each scrolls smoothly to its corresponding section. <code>CONTRACTOR_MAP</code> dict added to script; when populated, a Company column appears automatically in both tables. Files moved to <code>Time Tracking/</code> folder.</td></tr>
-    <tr><td>1.2</td><td>2026-04-15</td><td>Zero Hours section added. Script now fetches all Clockify Users at startup and matches them to time entries by Fibery entity ID (not name string). Anyone with no entries in the week appears as a gray chip in a new Zero Hours section. KPI grid expanded to 5 tiles.</td></tr>
-    <tr><td>1.3</td><td>2026-04-15</td><td>Projects column now shows all projects (no truncation). Each project displays its percentage of the employee's total hours, sorted by hours descending. Aggregation changed from a set to a dict tracking hours per project.</td></tr>
-    <tr><td>1.4</td><td>2026-04-15</td><td>Tasks added to Projects column. Display is now hierarchical: Project (X%) with indented tasks beneath each, each showing their % of employee total. Task field fetched from <code>Agreement Management/Task</code>. Entries with no task show "(no task)" only when mixed with named tasks.</td></tr>
-    <tr><td>1.5</td><td>2026-04-15</td><td>Tasks made collapsible using native HTML <code>&lt;details&gt;</code>/<code>&lt;summary&gt;</code>. Each project row has a ▶ toggle; clicking expands/collapses its task list. No JavaScript required.</td></tr>
-    <tr><td>1.6</td><td>2026-04-15</td><td>Added <code>EXCLUDE_NAMES</code> set at top of script. Excluded from all sections (over, under, exact, zero hours): Drew Tsao, Marina Statuta, Marley Gibbs, Riz Asghar. Case-insensitive match against both time entry names and Clockify User records.</td></tr>
-    <tr><td>1.7</td><td>2026-04-15</td><td>Added "ray atkin" (space-separated) to exclusion list. "ray.atkin" (dot-separated) remains included — these are two distinct Clockify records matched by exact lowercase name string.</td></tr>
-    <tr><td>1.8</td><td>2026-04-15</td><td>Added Nastya Sidorovich and Amrik Das to exclusion list. PRD updated to document the purpose of <code>EXCLUDE_NAMES</code>: used for duplicate Clockify accounts and offboarded employees who have not yet been deactivated in Fibery.</td></tr>
-    <tr><td>1.9</td><td>2026-04-15</td><td>Added RET as first contractor company in <code>CONTRACTOR_MAP</code>. RET employees: Debesh Satapathy, Sourabh Sharma, Yash Pradhan, Abhilash Panda, Vishal Pal, Subhashree Baral, Meghna Das, Prabhat Subudhi, Sathyaraj Anandhan. Company column now appears in Over and Under 40h tables.</td></tr>
-    <tr><td>2.0</td><td>2026-04-15</td><td>Added Coherent to <code>CONTRACTOR_MAP</code>. Coherent employees: Eugen Alkhimov, Paul Cozma, Denys Kozko, Kiryl Bialitski, Vasily Denisov, Alexander Evtushenko, Dzmitry Gradomski, Inna Kostrykina, Yauheni Shaikevich, Sergey Vologa, Ivan Zenov, Yauhen Dashkevich, Tatsiana Kantarovich, Pavel Kostoglod, Tatiana Prokhorchuk, Sandra Muniz, Olga Rutskaya.</td></tr>
-    <tr><td>2.1</td><td>2026-04-15</td><td>Exactly 40 Hours section converted from pill chips to a full sortable table matching the Over/Under sections. Columns: Employee, Company (if mapped), Total Hours, Entries, Projects. Chip styles removed from CSS.</td></tr>
-    <tr><td>2.2</td><td>2026-04-15</td><td>Added Tanmay Doiphode to RET in <code>CONTRACTOR_MAP</code>.</td></tr>
-    <tr><td>2.3</td><td>2026-04-15</td><td>Company column default changed from "—" to "harpin AI" for any employee not explicitly mapped in <code>CONTRACTOR_MAP</code>. harpin AI employees shown in muted gray; contractor companies shown in bold.</td></tr>
-    <tr><td>2.4</td><td>2026-04-17</td><td>Google Drive auto-upload added. Generator now uploads to harpin Dashboards Shared Drive → Labor Hours/ after each run; previous file archived to Labor Hours/Archive/ automatically. Service account: dashboard-uploader@aerobic-pivot-493618-k3.iam.gserviceaccount.com. All credentials in macOS Keychain. Monday 1am Launch Agent created at ~/Library/LaunchAgents/ai.harpin.labor-hours.plist; run log at Time Tracking/Labor Hours/run.log. File structure reorganised: generator at Time Tracking/Labor Hours/, output to Time Tracking/Labor Hours/Weekly/, PRD to Time Tracking/Labor Hours/PRD/.</td></tr>
-    <tr><td>2.5</td><td>2026-04-19</td><td>Email notification added. After each run the generator sends an HTML email from jess.williams@harpin.ai to operations@harpin.ai (test recipient) via Gmail SMTP SSL. Email includes week label, HTML file as attachment, Over/Under/Exact/Zero summary counts, and download instructions. App password stored in Keychain under google-workspace-email / jess-app-password. Run time changed to 11:00am (local). Sender will move to operations@harpin.ai once that account is provisioned.</td></tr>
-    <tr><td>2.6</td><td>2026-04-19</td><td>Per-company expected hours added. RET contractors benchmark at 45h/week (9h/day × 5 days); all others remain at 40h/week. COMPANY_EXPECTED_HOURS dict and expected_hours() function added to script. Over/Under/Exact classification, row display, KPI labels, and section titles updated to reflect per-person targets. Target column added to Over and Under tables. Exact section renamed to "Exactly on Target" to avoid implying anyone over target also hit it.</td></tr>
-    <tr><td>2.7</td><td>2026-04-19</td><td>Exactly on Target section now sorted by company name first, then alphabetically by employee within each company.</td></tr>
-    <tr><td>2.8</td><td>2026-04-19</td><td>Added "josh bass" to EXCLUDE_NAMES — duplicate Clockify account of the active "josh" record.</td></tr>
-    <tr><td>2.9</td><td>2026-04-23</td><td>Removed "josh bass" from EXCLUDE_NAMES; added USER_EXPECTED_HOURS dict with per-user target overrides. Josh Bass target set to 20h/week (part-time). expected_hours() now checks USER_EXPECTED_HOURS before falling back to company/default.</td></tr>
-    <tr><td>2.10</td><td>2026-04-27</td><td>Added "josh" to USER_EXPECTED_HOURS at 20h/week (part-time). Both "josh" and "josh bass" now share the same 20h target.</td></tr>
-    <tr><td>2.11</td><td>2026-04-27</td><td>Added "olivia deguzman" to EXCLUDE_NAMES.</td></tr>
-    <tr><td>2.12</td><td>2026-04-27</td><td>Renamed all category labels to "Hours Submitted — [Category]" format across KPI cards and section headers: Over Target, Under Target, Exactly on Target, Zero.</td></tr>
-    <tr><td>2.13</td><td>2026-05-04</td><td>Added Edison Black to <code>USER_EXPECTED_HOURS</code> with a 20h/week target (part-time). Clockify display name: "Edison Black".</td></tr>
-    <tr><td>2.17</td><td>2026-05-05</td><td>Added KForce as a contractor company in <code>CONTRACTOR_MAP</code>. KForce employees: Kaleb Silva (kaleb.silva).</td></tr>
-    <tr><td>2.16</td><td>2026-05-05</td><td>Added Anastasia Abuya to <code>EXCLUDE_NAMES</code> — not logging time for now, re-include when ready. Jean Marc and Xander also pending exclusion once they have Clockify accounts.</td></tr>
-    <tr><td>2.15</td><td>2026-05-04</td><td>Added Bernard Williams to <code>USER_EXPECTED_HOURS</code> with a 20h/week target (part-time). Clockify display name: "Bernard Williams".</td></tr>
-    <tr><td>2.14</td><td>2026-05-04</td><td>Added <code>HOURS_TOLERANCE = 0.05</code> (3 minutes) to classification logic. "Over" requires hours &gt; target + 0.05; "Under" requires hours &lt; target − 0.05; "Exact" uses abs difference ≤ 0.05. Fixes floating-point rounding where summed decimal hours land at e.g. 39.9999 and incorrectly classify as Under.</td></tr>
-  </table>
+ <!-- Changelog -->
+ <h2 id="changelog"><span class="section-num">§</span> Changelog</h2>
+ <table>
+ <tr><th>Version</th><th>Date</th><th>Change</th></tr>
+ <tr><td>1.0</td><td>2026-04-15</td><td>Initial version. Generator script created. Covers Over/Under/Exact 40h sections, KPI cards, paginated Fibery fetch, dynamic week detection.</td></tr>
+ <tr><td>1.1</td><td>2026-04-15</td><td>Sortable columns on all table headers (click to sort asc/desc, ⇅ icon indicates state). KPI tiles are now clickable - each scrolls smoothly to its corresponding section. <code>CONTRACTOR_MAP</code> dict added to script; when populated, a Company column appears automatically in both tables. Files moved to <code>Time Tracking/</code> folder.</td></tr>
+ <tr><td>1.2</td><td>2026-04-15</td><td>Zero Hours section added. Script now fetches all Clockify Users at startup and matches them to time entries by Fibery entity ID (not name string). Anyone with no entries in the week appears as a gray chip in a new Zero Hours section. KPI grid expanded to 5 tiles.</td></tr>
+ <tr><td>1.3</td><td>2026-04-15</td><td>Projects column now shows all projects (no truncation). Each project displays its percentage of the employee's total hours, sorted by hours descending. Aggregation changed from a set to a dict tracking hours per project.</td></tr>
+ <tr><td>1.4</td><td>2026-04-15</td><td>Tasks added to Projects column. Display is now hierarchical: Project (X%) with indented tasks beneath each, each showing their % of employee total. Task field fetched from <code>Agreement Management/Task</code>. Entries with no task show "(no task)" only when mixed with named tasks.</td></tr>
+ <tr><td>1.5</td><td>2026-04-15</td><td>Tasks made collapsible using native HTML <code>&lt;details&gt;</code>/<code>&lt;summary&gt;</code>. Each project row has a ▶ toggle; clicking expands/collapses its task list. No JavaScript required.</td></tr>
+ <tr><td>1.6</td><td>2026-04-15</td><td>Added <code>EXCLUDE_NAMES</code> set at top of script. Excluded from all sections (over, under, exact, zero hours): Drew Tsao, Marina Statuta, Marley Gibbs, Riz Asghar. Case-insensitive match against both time entry names and Clockify User records.</td></tr>
+ <tr><td>1.7</td><td>2026-04-15</td><td>Added "ray atkin" (space-separated) to exclusion list. "ray.atkin" (dot-separated) remains included - these are two distinct Clockify records matched by exact lowercase name string.</td></tr>
+ <tr><td>1.8</td><td>2026-04-15</td><td>Added Nastya Sidorovich and Amrik Das to exclusion list. PRD updated to document the purpose of <code>EXCLUDE_NAMES</code>: used for duplicate Clockify accounts and offboarded employees who have not yet been deactivated in Fibery.</td></tr>
+ <tr><td>1.9</td><td>2026-04-15</td><td>Added RET as first contractor company in <code>CONTRACTOR_MAP</code>. RET employees: Debesh Satapathy, Sourabh Sharma, Yash Pradhan, Abhilash Panda, Vishal Pal, Subhashree Baral, Meghna Das, Prabhat Subudhi, Sathyaraj Anandhan. Company column now appears in Over and Under 40h tables.</td></tr>
+ <tr><td>2.0</td><td>2026-04-15</td><td>Added Coherent to <code>CONTRACTOR_MAP</code>. Coherent employees: Eugen Alkhimov, Paul Cozma, Denys Kozko, Kiryl Bialitski, Vasily Denisov, Alexander Evtushenko, Dzmitry Gradomski, Inna Kostrykina, Yauheni Shaikevich, Sergey Vologa, Ivan Zenov, Yauhen Dashkevich, Tatsiana Kantarovich, Pavel Kostoglod, Tatiana Prokhorchuk, Sandra Muniz, Olga Rutskaya.</td></tr>
+ <tr><td>2.1</td><td>2026-04-15</td><td>Exactly 40 Hours section converted from pill chips to a full sortable table matching the Over/Under sections. Columns: Employee, Company (if mapped), Total Hours, Entries, Projects. Chip styles removed from CSS.</td></tr>
+ <tr><td>2.2</td><td>2026-04-15</td><td>Added Tanmay Doiphode to RET in <code>CONTRACTOR_MAP</code>.</td></tr>
+ <tr><td>2.3</td><td>2026-04-15</td><td>Company column default changed from " - " to "harpin AI" for any employee not explicitly mapped in <code>CONTRACTOR_MAP</code>. harpin AI employees shown in muted gray; contractor companies shown in bold.</td></tr>
+ <tr><td>2.4</td><td>2026-04-17</td><td>Google Drive auto-upload added. Generator now uploads to harpin Dashboards Shared Drive → Labor Hours/ after each run; previous file archived to Labor Hours/Archive/ automatically. Service account: dashboard-uploader@aerobic-pivot-493618-k3.iam.gserviceaccount.com. All credentials in macOS Keychain. Monday 1am Launch Agent created at ~/Library/LaunchAgents/ai.harpin.labor-hours.plist; run log at Time Tracking/Labor Hours/run.log. File structure reorganised: generator at Time Tracking/Labor Hours/, output to Time Tracking/Labor Hours/Weekly/, PRD to Time Tracking/Labor Hours/PRD/.</td></tr>
+ <tr><td>2.5</td><td>2026-04-19</td><td>Email notification added. After each run the generator sends an HTML email from jess.williams@harpin.ai to operations@harpin.ai (test recipient) via Gmail SMTP SSL. Email includes week label, HTML file as attachment, Over/Under/Exact/Zero summary counts, and download instructions. App password stored in Keychain under google-workspace-email / jess-app-password. Run time changed to 11:00am (local). Sender will move to operations@harpin.ai once that account is provisioned.</td></tr>
+ <tr><td>2.6</td><td>2026-04-19</td><td>Per-company expected hours added. RET contractors benchmark at 45h/week (9h/day × 5 days); all others remain at 40h/week. COMPANY_EXPECTED_HOURS dict and expected_hours() function added to script. Over/Under/Exact classification, row display, KPI labels, and section titles updated to reflect per-person targets. Target column added to Over and Under tables. Exact section renamed to "Exactly on Target" to avoid implying anyone over target also hit it.</td></tr>
+ <tr><td>2.7</td><td>2026-04-19</td><td>Exactly on Target section now sorted by company name first, then alphabetically by employee within each company.</td></tr>
+ <tr><td>2.8</td><td>2026-04-19</td><td>Added "josh bass" to EXCLUDE_NAMES - duplicate Clockify account of the active "josh" record.</td></tr>
+ <tr><td>2.9</td><td>2026-04-23</td><td>Removed "josh bass" from EXCLUDE_NAMES; added USER_EXPECTED_HOURS dict with per-user target overrides. Josh Bass target set to 20h/week (part-time). expected_hours() now checks USER_EXPECTED_HOURS before falling back to company/default.</td></tr>
+ <tr><td>2.10</td><td>2026-04-27</td><td>Added "josh" to USER_EXPECTED_HOURS at 20h/week (part-time). Both "josh" and "josh bass" now share the same 20h target.</td></tr>
+ <tr><td>2.11</td><td>2026-04-27</td><td>Added "olivia deguzman" to EXCLUDE_NAMES.</td></tr>
+ <tr><td>2.12</td><td>2026-04-27</td><td>Renamed all category labels to "Hours Submitted - [Category]" format across KPI cards and section headers: Over Target, Under Target, Exactly on Target, Zero.</td></tr>
+ <tr><td>2.13</td><td>2026-05-04</td><td>Added Edison Black to <code>USER_EXPECTED_HOURS</code> with a 20h/week target (part-time). Clockify display name: "Edison Black".</td></tr>
+ <tr><td>2.17</td><td>2026-05-05</td><td>Added KForce as a contractor company in <code>CONTRACTOR_MAP</code>. KForce employees: Kaleb Silva (kaleb.silva).</td></tr>
+ <tr><td>2.16</td><td>2026-05-05</td><td>Added Anastasia Abuya to <code>EXCLUDE_NAMES</code> - not logging time for now, re-include when ready. Jean Marc and Xander also pending exclusion once they have Clockify accounts.</td></tr>
+ <tr><td>2.15</td><td>2026-05-04</td><td>Added Bernard Williams to <code>USER_EXPECTED_HOURS</code> with a 20h/week target (part-time). Clockify display name: "Bernard Williams".</td></tr>
+ <tr><td>2.14</td><td>2026-05-04</td><td>Added <code>HOURS_TOLERANCE = 0.05</code> (3 minutes) to classification logic. "Over" requires hours &gt; target + 0.05; "Under" requires hours &lt; target − 0.05; "Exact" uses abs difference ≤ 0.05. Fixes floating-point rounding where summed decimal hours land at e.g. 39.9999 and incorrectly classify as Under.</td></tr>
+ </table>
 
 </div>
 </body>

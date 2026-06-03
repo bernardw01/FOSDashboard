@@ -1,0 +1,42 @@
+---
+description: Documentation punctuation - no em dashes; use hyphens or commas
+globs: docs/**,README.md
+alwaysApply: false
+---
+
+# Documentation style (FOS Dashboard)
+
+## No em dashes
+
+Do **not** use the em dash character (`—`, U+2014) anywhere in documentation under `docs/` or in `README.md`.
+
+This includes PRD text, feature specs, changelogs, tables, and HTML implementation notes.
+
+### Use instead
+
+| Avoid | Prefer |
+| --- | --- |
+| `Phase A — scope` | `Phase A - scope` or `Phase A: scope` |
+| `version 2.7.0 — sync` | `version 2.7.0 - sync` |
+| `KPIs — total spend` | `KPIs: total spend` or `KPIs (total spend)` |
+| Missing version placeholder `—` | `TBD` or `(none)` |
+
+Use a **plain ASCII hyphen** (`-`) with spaces when you need a break between clauses. Use a **colon** when introducing a list or explanation.
+
+### Encoding
+
+Save docs as **UTF-8**. If you see mojibake like `â€"`, that was a corrupted em dash; replace with `-`, not another Unicode dash.
+
+### PRD file headers
+
+Match `google-apps-script-core.mdc`:
+
+```markdown
+**PRD version 2.7.0** - `src/Code.js` constant `FOS_PRD_VERSION` ...
+```
+
+```markdown
+| 2026-06-02 | 2.7.0 | **Title.** Description sentence. MINOR -> **2.7.0**. | Cursor |
+```
+
+Changelog summary cells use periods and commas, not em dashes between title and body.

@@ -1,13 +1,13 @@
-# Admin settings — collapsible groups & usage analytics
+# Admin settings - collapsible groups & usage analytics
 
-> **PRD version 2.3.0** — see `docs/FOS-Dashboard-PRD.md` (**FR-107**, **AC-63**). *(Current product version is 2.4.0 — see [013](013-app-versions-registry.md).)* Builds on [011 — Admin settings environment panel](011-admin-settings-environment-panel.md) and [004 — User activity logging](004-user-activity-logging.md).
+> **PRD version 2.3.0** - see `docs/FOS-Dashboard-PRD.md` (**FR-107**, **AC-63**). *(Current product version is 2.4.0 - see [013](013-app-versions-registry.md).)* Builds on [011 - Admin settings environment panel](011-admin-settings-environment-panel.md) and [004 - User activity logging](004-user-activity-logging.md).
 
 ## Goal
 
 Improve the **ADMIN** Settings panel (`#panel-settings`, feature **011**) in two ways:
 
-1. **Collapsible configuration groups** — every dashboard / platform Script Property group is an accordion section; **all sections start collapsed** so the page is scannable before editing.
-2. **In-panel usage analytics** — a new **first** section summarizes dashboard adoption from the **`User Activity`** tab in the authorization spreadsheet (`AUTH_SPREADSHEET_ID`, tab name from `AUTH_USER_ACTIVITY_SHEET_NAME`, default **`User Activity`**) for the **past 30 calendar days**, with **by-route** and **by-user** tables plus a **stacked bar chart** (events per day, stacked by route).
+1. **Collapsible configuration groups** - every dashboard / platform Script Property group is an accordion section; **all sections start collapsed** so the page is scannable before editing.
+2. **In-panel usage analytics** - a new **first** section summarizes dashboard adoption from the **`User Activity`** tab in the authorization spreadsheet (`AUTH_SPREADSHEET_ID`, tab name from `AUTH_USER_ACTIVITY_SHEET_NAME`, default **`User Activity`**) for the **past 30 calendar days**, with **by-route** and **by-user** tables plus a **stacked bar chart** (events per day, stacked by route).
 
 Non-admin users remain unchanged (no Settings link).
 
@@ -30,7 +30,7 @@ Non-admin users remain unchanged (no Settings link).
 | Area | Detail |
 |------|--------|
 | **Collapsible groups** | Wrap existing registry groups (`platform-auth`, `agreement`, `utilization`, …) in Bootstrap collapse; **collapsed on first paint**; chevron / `aria-expanded` on header click. |
-| **Usage panel (first)** | New group id `usage-analytics`, title **Usage — last 30 days**; also collapsible, **collapsed by default**. |
+| **Usage panel (first)** | New group id `usage-analytics`, title **Usage - last 30 days**; also collapsible, **collapsed by default**. |
 | **Data source** | Read-only aggregate from **`User Activity`** tab. Reuse `getUserActivitySheetOrNull_()` / header-by-name resolution from `src/userActivityLog.js`. |
 | **Time window** | Rolling **30 calendar days** inclusive of “today” in **`Session.getScriptTimeZone()`**. |
 | **Event filter** | `page_load`, `nav_view`, `refresh` only. |
@@ -54,8 +54,8 @@ Non-admin users remain unchanged (no Settings link).
 
 1. Intro card (unchanged from 011).
 2. Alerts + loading.
-3. **`#settings-usage-host`** — Usage section (first).
-4. **`#settings-groups`** — collapsible config groups.
+3. **`#settings-usage-host`** - Usage section (first).
+4. **`#settings-groups`** - collapsible config groups.
 5. Sticky Save / Discard footer.
 
 ### Usage panel content
@@ -74,23 +74,23 @@ Non-admin users remain unchanged (no Settings link).
 
 ```javascript
 {
-  ok: true,
-  windowDays: 30,
-  timezone: 'America/Chicago',
-  rangeStart: '2026-04-16',
-  rangeEnd: '2026-05-15',
-  sheetName: 'User Activity',
-  totalEvents: 1234,
-  uniqueUsers: 12,
-  byRoute: [
-    { route: 'agreement-dashboard', label: 'Agreement Dashboard', events: 400, uniqueUsers: 10 }
-  ],
-  byUser: [
-    { email: 'user@example.com', role: 'ADMIN', team: 'Finance', events: 120 }
-  ],
-  byDay: [ { date: '2026-05-15', total: 42, byRoute: { ... } } ],
-  topRoutes: ['agreement-dashboard', 'operations', ...],
-  warnings: ['TRUNCATED_ROWS']
+ ok: true,
+ windowDays: 30,
+ timezone: 'America/Chicago',
+ rangeStart: '2026-04-16',
+ rangeEnd: '2026-05-15',
+ sheetName: 'User Activity',
+ totalEvents: 1234,
+ uniqueUsers: 12,
+ byRoute: [
+ { route: 'agreement-dashboard', label: 'Agreement Dashboard', events: 400, uniqueUsers: 10 }
+ ],
+ byUser: [
+ { email: 'user@example.com', role: 'ADMIN', team: 'Finance', events: 120 }
+ ],
+ byDay: [ { date: '2026-05-15', total: 42, byRoute: { ... } } ],
+ topRoutes: ['agreement-dashboard', 'operations', ...],
+ warnings: ['TRUNCATED_ROWS']
 }
 ```
 

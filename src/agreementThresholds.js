@@ -1,18 +1,18 @@
 /**
- * PRD version 2.7.0 â€” sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.7.0 - sync with docs/FOS-Dashboard-PRD.md
  *
- * Agreement-dashboard constants per agreement-dashboard-prd-v2.md Â§8:
- *   - Â§8.1 Alert thresholds (with optional Script Property overrides).
- *   - Â§8.2 Workflow state color map.
- *   - Â§8.3 Agreement type color map.
- *   - Â§8.4 Margin color thresholds (derived from LOW_MARGIN_THRESHOLD).
- *   - Â§8.5 Customer color palette (deterministic cycling).
- *   - Â§8.6 Internal company identification rules.
+ * Agreement-dashboard constants per agreement-dashboard-prd-v2.md Section 8:
+ *   - Section 8.1 Alert thresholds (with optional Script Property overrides).
+ *   - Section 8.2 Workflow state color map.
+ *   - Section 8.3 Agreement type color map.
+ *   - Section 8.4 Margin color thresholds (derived from LOW_MARGIN_THRESHOLD).
+ *   - Section 8.5 Customer color palette (deterministic cycling).
+ *   - Section 8.6 Internal company identification rules.
  *
- * v1.19.0 â€” Delivery Dashboard helpers:
- *   - Â§D.11 Completion bucket map (4-tier).
- *   - Â§D.10 Margin variance bucket map (3-tier).
- *   - Monthly P&L margin coloring reuses the Â§D.10 variance buckets relative
+ * v1.19.0 - Delivery Dashboard helpers:
+ *   - Section D.11 Completion bucket map (4-tier).
+ *   - Section D.10 Margin variance bucket map (3-tier).
+ *   - Monthly P&L margin coloring reuses the Section D.10 variance buckets relative
  *     to the agreement's Target Margin.
  *
  * Defaults live in code. Optional Script Properties (overlaid by
@@ -22,17 +22,17 @@
  *   AGREEMENT_THRESHOLD_EXPIRY_DAYS
  *   AGREEMENT_TOP_N_RECOGNITION_BARS
  *   AGREEMENT_INTERNAL_COMPANY_NAMES   (comma-separated)
- *   AGREEMENT_SANKEY_LINK_OPACITY      (0â€“1, default 0.35)
+ *   AGREEMENT_SANKEY_LINK_OPACITY      (0-1, default 0.35)
  *   AGREEMENT_SANKEY_INCLUDE_INTERNAL  (boolean, default false)
  *
  * v1.19.0 Delivery Dashboard Script Properties (all optional):
  *   DELIVERY_COMPLETION_UNDER_PCT      (default 25)
  *   DELIVERY_COMPLETION_BUILDING_PCT   (default 75)
  *   DELIVERY_COMPLETION_OVER_PCT       (default 100)
- *   DELIVERY_MARGIN_VARIANCE_AMBER_PTS (default 5  â€” within N pts BELOW target)
+ *   DELIVERY_MARGIN_VARIANCE_AMBER_PTS (default 5  - within N pts BELOW target)
  */
 
-/** @const {!Object} Â§8.2 workflow state â†’ hex color (harpin.ai palette). */
+/** @const {!Object} Section 8.2 workflow state  ->  hex color (harpin.ai palette). */
 var WORKFLOW_STATE_COLOR_ = {
   'Delivery In Progress': '#52C9E5',
   'Proposal Delivered': '#20B4C4',
@@ -45,7 +45,7 @@ var WORKFLOW_STATE_COLOR_ = {
 /** @const {string} Fallback color for workflow states not in the map. */
 var WORKFLOW_STATE_COLOR_FALLBACK_ = '#A0AEC0';
 
-/** @const {!Object} Â§8.3 agreement type â†’ hex color. */
+/** @const {!Object} Section 8.3 agreement type  ->  hex color. */
 var AGREEMENT_TYPE_COLOR_ = {
   Subscription: '#52C9E5',
   Services: '#007FA7',
@@ -56,7 +56,7 @@ var AGREEMENT_TYPE_COLOR_ = {
 /** @const {string} */
 var AGREEMENT_TYPE_COLOR_FALLBACK_ = '#A0AEC0';
 
-/** @const {!Array<string>} Â§8.5 customer palette (deterministic cycling). */
+/** @const {!Array<string>} Section 8.5 customer palette (deterministic cycling). */
 var CUSTOMER_PALETTE_ = [
   '#52C9E5',
   '#007FA7',
@@ -70,11 +70,11 @@ var CUSTOMER_PALETTE_ = [
   '#0fb9b1',
 ];
 
-/** @const {!Array<string>} Â§8.6 default internal-company names. */
+/** @const {!Array<string>} Section 8.6 default internal-company names. */
 var INTERNAL_COMPANY_NAMES_DEFAULT_ = ['harpin.ai'];
 
 /**
- * Â§D.11 Delivery Dashboard completion-percent buckets. Drives the
+ * Section D.11 Delivery Dashboard completion-percent buckets. Drives the
  * Active Projects table's `% Complete` progress-bar fill color.
  *   under     0% â‰¤ pct < 25%   blue
  *   building  25% â‰¤ pct < 75%  teal
@@ -89,7 +89,7 @@ var COMPLETION_COLOR_ = {
   over: '#fd9644',
 };
 
-/** @const {!Object} Â§D.10 Delivery margin-variance bucket colors. */
+/** @const {!Object} Section D.10 Delivery margin-variance bucket colors. */
 var MARGIN_VARIANCE_COLOR_ = {
   green: '#43D6BA',
   amber: '#f9c74f',
@@ -97,7 +97,7 @@ var MARGIN_VARIANCE_COLOR_ = {
   neutral: '#A0AEC0',
 };
 
-/** @const {!Object} Â§8.1 defaults (used when no Script Property override). */
+/** @const {!Object} Section 8.1 defaults (used when no Script Property override). */
 var THRESHOLD_DEFAULTS_ = {
   LOW_MARGIN_THRESHOLD: 35,
   INTERNAL_LABOR_THRESHOLD: 5000,
@@ -214,11 +214,11 @@ function getAgreementThresholds_() {
 }
 
 /**
- * Â§D.11 Returns one of `under` / `building` / `on-track` / `over` for a
+ * Section D.11 Returns one of `under` / `building` / `on-track` / `over` for a
  * completion percent. Null inputs map to `neutral` and the caller should
  * use the muted-gray color.
  *
- * @param {?number} pct  Completion percent (0â€“100; > 100 is over).
+ * @param {?number} pct  Completion percent (0-100; > 100 is over).
  * @param {!{ underMax: number, buildingMax: number, overMin: number }} cfg
  * @return {string}
  */
@@ -240,17 +240,17 @@ function completionBucket_(pct, cfg) {
 }
 
 /**
- * Â§D.10 / Â§M.7 Margin variance bucket â€” used for both the Active Projects
+ * Section D.10 / Section M.7 Margin variance bucket - used for both the Active Projects
  * Margin column dot and the per-month Margin % cell coloring in the
  * Delivery P&L grid.
  *
- *   variance â‰¥ 0                          â†’ green
- *   âˆ’amberPts â‰¤ variance < 0              â†’ amber
- *   variance < âˆ’amberPts                  â†’ red
- *   null margin / null target / NaN       â†’ neutral
+ *   variance â‰¥ 0                           ->  green
+ *   âˆ’amberPts â‰¤ variance < 0               ->  amber
+ *   variance < âˆ’amberPts                   ->  red
+ *   null margin / null target / NaN        ->  neutral
  *
- * @param {?number} actualPct    Actual margin (0â€“100, may be negative).
- * @param {?number} targetPct    Target margin (0â€“100).
+ * @param {?number} actualPct    Actual margin (0-100, may be negative).
+ * @param {?number} targetPct    Target margin (0-100).
  * @param {!{ amberPts: number }} cfg
  * @return {string}
  */
@@ -268,12 +268,12 @@ function marginVarianceBucket_(actualPct, targetPct, cfg) {
 }
 
 /**
- * Â§8.4 margin-bucket color for a numeric current-margin percent.
- *   margin < 0                     â†’ danger
- *   0 â‰¤ margin < lowMargin         â†’ caution (medium teal)
- *   lowMargin â‰¤ margin < 60        â†’ acceptable (teal action)
- *   margin â‰¥ 60                    â†’ healthy (green-teal)
- *   null / NaN / Internal          â†’ dim
+ * Section 8.4 margin-bucket color for a numeric current-margin percent.
+ *   margin < 0                      ->  danger
+ *   0 â‰¤ margin < lowMargin          ->  caution (medium teal)
+ *   lowMargin â‰¤ margin < 60         ->  acceptable (teal action)
+ *   margin â‰¥ 60                     ->  healthy (green-teal)
+ *   null / NaN / Internal           ->  dim
  *
  * @param {?number} margin
  * @param {number} lowMargin
@@ -296,7 +296,7 @@ function marginBucketColor_(margin, lowMargin) {
 }
 
 /**
- * Assigns a stable color to each customer name by cycling the Â§8.5 palette
+ * Assigns a stable color to each customer name by cycling the Section 8.5 palette
  * after sorting the input list. The same name always gets the same color
  * within a render pass.
  *
@@ -320,7 +320,7 @@ function buildCustomerColorMap_(customerNamesSortedByValueDesc, palette) {
 }
 
 /**
- * Â§8.6 internal-company test. Returns true if any of:
+ * Section 8.6 internal-company test. Returns true if any of:
  *   - company.funnelStage is empty
  *   - company.segment === 'Internal'
  *   - company has no contract value AND no linked external customers

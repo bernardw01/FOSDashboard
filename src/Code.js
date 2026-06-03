@@ -1,7 +1,7 @@
 /**
- * PRD version 2.7.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.7.0 - sync with docs/FOS-Dashboard-PRD.md
  *
- * FOS Dashboard — Apps Script entry points.
+ * FOS Dashboard - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
@@ -24,7 +24,7 @@ function getFosPrdVersion_() {
 
 /**
  * Shared HtmlService chrome for Web App pages (favicon, viewport, sandbox).
- * Favicon must use setFaviconUrl with an HTTPS PNG URL — HtmlService ignores
+ * Favicon must use setFaviconUrl with an HTTPS PNG URL - HtmlService ignores
  * <link rel="icon"> in HTML files and rejects data: URLs.
  *
  * @param {GoogleAppsScript.HTML.HtmlOutput} output
@@ -62,8 +62,8 @@ function doGet(e) {
     return applyWebAppHtmlChrome_(deny.evaluate(), 'Access not granted');
   }
 
-  // Append a `page_load` row to the User Activity tab (FR-60–FR-66).
-  // Wrapped — logging failures must never break the dashboard render.
+  // Append a `page_load` row to the User Activity tab (FR-60-FR-66).
+  // Wrapped - logging failures must never break the dashboard render.
   try {
     recordPageLoad_(auth);
   } catch (e) {
@@ -216,7 +216,7 @@ function buildNavigationModel_(auth) {
 
   // Only attach the public Fibery deep-link config when the signed-in user
   // is explicitly cleared via the `fibery_access` column. Users without the
-  // flag never receive the host or path template — defense in depth so
+  // flag never receive the host or path template - defense in depth so
   // browser devtools / view-source can't surface a workspace URL.
   if (fiberyAccess) {
     var deepLinkCfg = null;

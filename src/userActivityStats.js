@@ -1,5 +1,5 @@
 /**
- * PRD version 2.7.0 â€” sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.7.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin usage analytics (feature 012).
  *
@@ -30,7 +30,7 @@ var USAGE_STATS_ROUTE_LABELS_ = {
   'agreement-dashboard': 'Agreement Dashboard',
   operations: 'Utilization',
   'labor-hours': 'Labor hours',
-  delivery: 'Delivery â€” Projects & P&L',
+  delivery: 'Delivery - Projects & P&L',
   'revenue-review': 'Revenue review',
   settings: 'Settings',
   shell: 'Shell / data source',
@@ -435,6 +435,6 @@ function parseUsageDateStr_(dateStr, tz) {
  */
 function _diag_sampleUsageStats() {
   var r = buildAdminUsageStatsPayload_();
-  console.log('usage stats â†’', JSON.stringify(r).slice(0, 4000));
+  console.log('usage stats  -> ', JSON.stringify(r).slice(0, 4000));
   return r;
 }

@@ -1,5 +1,5 @@
 /**
- * PRD version 2.7.0 â€” sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.7.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard orchestrator (route id `operations`, panel
  * `#panel-operations`). Reads `Agreement Management/Labor Costs` from Fibery
@@ -8,24 +8,24 @@
  * the client renders for the Phase A surfaces in
  * docs/features/005-utilization-management-dashboard.md.
  *
- * No persistent server-side cache of payloads â€” Fibery is source of truth.
+ * No persistent server-side cache of payloads - Fibery is source of truth.
  * The browser owns presentation cache (`sessionStorage`) with a configurable
  * TTL surfaced through `getUtilizationCacheTtlMinutes()`.
  *
  * Public surface (client-callable via google.script.run):
  *   getUtilizationDashboardData(rangeStart?, rangeEnd?)
- *     â€” returns the full view-model payload for the date window (includes
+ *     - returns the full view-model payload for the date window (includes
  *       `laborHours` target config for the Labor Hours panel, feature 007).
  *   getUtilizationCacheTtlMinutes()
- *     â€” returns the configured default TTL minutes (Script Property
+ *     - returns the configured default TTL minutes (Script Property
  *       UTILIZATION_CACHE_TTL_MINUTES, default 10).
  *
  * Internal diagnostics (run from the Apps Script editor):
- *   _diag_pingUtilization()           â€” verifies host + token reach Fibery.
- *   _diag_sampleUtilizationPayload()  â€” fetches a tiny window + dumps shapes.
- *   _diag_sampleUtilizationAlerts()   â€” fetches the configured default range
+ *   _diag_pingUtilization()           - verifies host + token reach Fibery.
+ *   _diag_sampleUtilizationPayload()  - fetches a tiny window + dumps shapes.
+ *   _diag_sampleUtilizationAlerts()   - fetches the configured default range
  *                                       + dumps the per-rule alert breakdown.
- *   _diag_sampleUtilizationPending()  â€” distribution of Approval +
+ *   _diag_sampleUtilizationPending()  - distribution of Approval +
  *                                       Time Entry Status values; introduced
  *                                       in v1.14.1 to verify the pending-
  *                                       detection fix against live data.
@@ -38,7 +38,7 @@ var UTILIZATION_CACHE_TTL_PROP_ = 'UTILIZATION_CACHE_TTL_MINUTES';
  * Returns the configured default TTL (minutes) for the utilization dashboard
  * client cache. Floored at 1 minute; falsy / non-positive values fall back to
  * the default. The browser may override per-user via a localStorage preference
- * (FR-76b â€” analogous to the agreement dashboard's FR-56b).
+ * (FR-76b - analogous to the agreement dashboard's FR-56b).
  *
  * @return {number}
  */
@@ -121,11 +121,11 @@ function buildUtilizationDashboardPayload_(rangeStart, rangeEnd) {
   var kpis = computeUtilizationKpis_(rows);
   var dimensions = buildUtilizationDimensions_(rows, thresholds);
   var aggregates = buildUtilizationAggregates_(rows, thresholds);
-  // Phase C â€” per-person Ã— per-week trajectory (capacity-scaled), feeds the
+  // Phase C - per-person  x  per-week trajectory (capacity-scaled), feeds the
   // heatmap surface and the under/over-utilized alert rules.
   aggregates.byPersonWeek = buildByPersonWeek_(rows, range, thresholds);
   var pendingApprovals = collectPendingApprovals_(rows);
-  // Phase C â€” rule-based attention items (mirrors Â§6 on the Agreement Dashboard).
+  // Phase C - rule-based attention items (mirrors Section 6 on the Agreement Dashboard).
   var alerts = buildUtilizationAlerts_(rows, aggregates.byPersonWeek, thresholds, range, now);
 
   var warnings = [];
@@ -159,7 +159,7 @@ function buildUtilizationDashboardPayload_(rangeStart, rangeEnd) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* Diagnostics â€” run manually from the Apps Script editor.                    */
+/* Diagnostics - run manually from the Apps Script editor.                    */
 /* ------------------------------------------------------------------------- */
 
 /**
@@ -170,7 +170,7 @@ function buildUtilizationDashboardPayload_(rangeStart, rangeEnd) {
  */
 function _diag_pingUtilization() {
   var r = fiberyPing_();
-  console.log('fiberyPing_ (utilization) â†’', JSON.stringify(r));
+  console.log('fiberyPing_ (utilization)  -> ', JSON.stringify(r));
   return r;
 }
 
@@ -189,7 +189,7 @@ function _diag_sampleUtilizationPayload() {
   var q = buildLaborCostsQuery_(startIso, endIso, 25, 0);
   var single = fiberyQuery_(q);
   if (!single.ok) {
-    console.log('_diag_sampleUtilizationPayload (fetch failed) â†’', JSON.stringify(single));
+    console.log('_diag_sampleUtilizationPayload (fetch failed)  -> ', JSON.stringify(single));
     return single;
   }
   var rows = normalizeLaborRows_(single.rows || [], thresholds);
@@ -202,7 +202,7 @@ function _diag_sampleUtilizationPayload() {
     firstNormalized: rows[0] || null,
     kpis: computeUtilizationKpis_(rows),
   };
-  console.log('_diag_sampleUtilizationPayload â†’', JSON.stringify(summary).slice(0, 4000));
+  console.log('_diag_sampleUtilizationPayload  -> ', JSON.stringify(summary).slice(0, 4000));
   return summary;
 }
 
@@ -219,7 +219,7 @@ function _diag_sampleUtilizationAlerts() {
   var range = resolveRange_(null, null, now, thresholds);
   var fetched = fetchAllLaborCosts_(range.start, range.end);
   if (!fetched.ok) {
-    console.log('_diag_sampleUtilizationAlerts (fetch failed) â†’', JSON.stringify(fetched));
+    console.log('_diag_sampleUtilizationAlerts (fetch failed)  -> ', JSON.stringify(fetched));
     return fetched;
   }
   var rows = normalizeLaborRows_(fetched.rows, thresholds);
@@ -240,12 +240,12 @@ function _diag_sampleUtilizationAlerts() {
       return { severity: a.severity, kind: a.kind, title: a.title };
     }),
   };
-  console.log('_diag_sampleUtilizationAlerts â†’', JSON.stringify(summary).slice(0, 4000));
+  console.log('_diag_sampleUtilizationAlerts  -> ', JSON.stringify(summary).slice(0, 4000));
   return summary;
 }
 
 /**
- * Distribution probe (v1.14.1) â€” counts Approval + Time-Entry-Status values
+ * Distribution probe (v1.14.1) - counts Approval + Time-Entry-Status values
  * over the configured default range and reports how many rows the current
  * `isPendingApproval_` predicate flags as pending. Use after a sync or
  * approval workflow change to confirm the count matches expectation.
@@ -258,7 +258,7 @@ function _diag_sampleUtilizationPending() {
   var range = resolveRange_(null, null, now, thresholds);
   var fetched = fetchAllLaborCosts_(range.start, range.end);
   if (!fetched.ok) {
-    console.log('_diag_sampleUtilizationPending (fetch failed) â†’', JSON.stringify(fetched));
+    console.log('_diag_sampleUtilizationPending (fetch failed)  -> ', JSON.stringify(fetched));
     return fetched;
   }
   var rows = normalizeLaborRows_(fetched.rows, thresholds);
@@ -272,7 +272,7 @@ function _diag_sampleUtilizationPending() {
     var t = String(r.timeEntryStatus == null ? '(null)' : r.timeEntryStatus).trim() || '(empty)';
     approvalCounts[a] = (approvalCounts[a] || 0) + 1;
     statusCounts[t] = (statusCounts[t] || 0) + 1;
-    var k = a + ' Ã— ' + t;
+    var k = a + '  x  ' + t;
     matrix[k] = (matrix[k] || 0) + 1;
     if (r.isPending) {
       pendingCount++;
@@ -288,7 +288,7 @@ function _diag_sampleUtilizationPending() {
     timeEntryStatusCounts: statusCounts,
     pairCounts: matrix,
   };
-  console.log('_diag_sampleUtilizationPending â†’', JSON.stringify(summary).slice(0, 4000));
+  console.log('_diag_sampleUtilizationPending  -> ', JSON.stringify(summary).slice(0, 4000));
   return summary;
 }
 
@@ -298,7 +298,7 @@ function _diag_sampleUtilizationPending() {
 
 /**
  * Builds one page of the `Agreement Management/Labor Costs` query. Field paths
- * match `docs/features/005-utilization-management-dashboard.md` Â§"Data source".
+ * match `docs/features/005-utilization-management-dashboard.md` Section "Data source".
  *
  * @param {string} startIso ISO datetime (inclusive lower bound).
  * @param {string} endIso ISO datetime (exclusive upper bound).
@@ -346,9 +346,9 @@ function buildLaborCostsQuery_(startIso, endIso, limit, offset) {
         ['>=', ['Agreement Management/Start Date Time'], '$startIso'],
         ['<', ['Agreement Management/Start Date Time'], '$endIso'],
       ],
-      // q/order-by uses the wrapped-vector form documented in PRD v1.9.2 â€” the
+      // q/order-by uses the wrapped-vector form documented in PRD v1.9.2 - the
       // field-path itself MUST be an array even when single-segment. Bare-string
-      // keys raise `Unknown order by expression {"v":"â€¦"}` on raw REST.
+      // keys raise `Unknown order by expression {"v":"..."}` on raw REST.
       'q/order-by': [[['Agreement Management/Start Date Time'], 'q/desc']],
       'q/limit': limit,
       'q/offset': offset,
@@ -396,15 +396,15 @@ function fetchAllLaborCosts_(startIso, endIso) {
 
 /**
  * Coerces raw Fibery labor rows into the canonical client-ready shape (see
- * Â§"Server contract" in 005-utilization-management-dashboard.md). Adds the
+ * Section "Server contract" in 005-utilization-management-dashboard.md). Adds the
  * derived fields the rest of the pipeline relies on:
  *   - billable: boolean
  *   - hours: number (Fibery returns text)
  *   - day: 'YYYY-MM-DD'
  *   - week: 'YYYY-Www' (ISO Monday-anchored)
- *   - isPending: Â§U.7 derived
- *   - isInternal: Â§U.11 derived
- *   - revenueFromLabor: hours Ã— billRate when both known, else null
+ *   - isPending: Section U.7 derived
+ *   - isInternal: Section U.11 derived
+ *   - revenueFromLabor: hours  x  billRate when both known, else null
  *
  * @param {!Array<!Object>} rawRows
  * @param {!Object} thresholds
@@ -468,11 +468,11 @@ function normalizeLaborRows_(rawRows, thresholds) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* KPIs (Â§U.1â€“Â§U.7)                                                           */
+/* KPIs (Section U.1-Section U.7)                                                           */
 /* ------------------------------------------------------------------------- */
 
 /**
- * Computes the Â§U.1â€“Â§U.7 KPI bundle plus distinct-dimension counts. Numbers
+ * Computes the Section U.1-Section U.7 KPI bundle plus distinct-dimension counts. Numbers
  * stay full-precision; the client formats for display.
  *
  * @param {!Array<!Object>} rows
@@ -543,7 +543,7 @@ function computeUtilizationKpis_(rows) {
 /* ------------------------------------------------------------------------- */
 
 /**
- * Builds the Â§"dimensions" view-model â€” sorted lists of unique values per
+ * Builds the Section "dimensions" view-model - sorted lists of unique values per
  * facet, each carrying enough metadata for the client filter dropdowns and
  * chart palettes. Customer + Person + Role are sorted by hours desc so the
  * top entries surface first.
@@ -615,7 +615,7 @@ function buildUtilizationDimensions_(rows, thresholds) {
   var persons = sortByHoursDesc_(mapToArray_(personMap));
   var roles = sortByHoursDesc_(mapToArray_(roleMap));
 
-  // Stable customer colors: cycle the Â§8.5 palette by sorted-hours order.
+  // Stable customer colors: cycle the Section 8.5 palette by sorted-hours order.
   var customerNames = [];
   for (var ci = 0; ci < customers.length; ci++) {
     customerNames.push(customers[ci].name);
@@ -625,7 +625,7 @@ function buildUtilizationDimensions_(rows, thresholds) {
     customers[c].color = customerColorMap[customers[c].name] || thresholds.customerPalette[c % thresholds.customerPalette.length];
   }
 
-  // Project rows inherit their customer's color so the Â§N.5 bar reads as a
+  // Project rows inherit their customer's color so the Section N.5 bar reads as a
   // grouped view of customer slices.
   for (var pj = 0; pj < projects.length; pj++) {
     var custColor = customerColorMap[projects[pj].customer || ''];
@@ -659,7 +659,7 @@ function buildUtilizationDimensions_(rows, thresholds) {
 }
 
 /**
- * Builds the Â§"aggregates" view-model â€” server-precomputed slices for the
+ * Builds the Section "aggregates" view-model - server-precomputed slices for the
  * Phase A charts so the first paint doesn't depend on client aggregation.
  * Top-N caps apply to byCustomer / byProject / byPerson; byWeek + byRole are
  * uncapped (the chart axes handle natural counts).
@@ -773,7 +773,7 @@ function buildUtilizationAggregates_(rows, thresholds) {
 }
 
 /**
- * Phase C â€” per-person Ã— per-week aggregate that feeds the heatmap surface
+ * Phase C - per-person  x  per-week aggregate that feeds the heatmap surface
  * and the under/over-utilized alert rules. Each entry carries the raw hours
  * (filterable downstream), the capacity-scaled utilization% for that week,
  * and a `partial` flag for weeks that overlap a range edge.
@@ -783,7 +783,7 @@ function buildUtilizationAggregates_(rows, thresholds) {
  * not 60%). The alert rules ignore partial weeks entirely.
  *
  * Roles are recorded as a comma-joined string of distinct role names that
- * the person logged time under in that week â€” the client uses this to drive
+ * the person logged time under in that week - the client uses this to drive
  * the heatmap-local Role filter without re-aggregating from `rows`.
  *
  * @param {!Array<!Object>} rows
@@ -908,7 +908,7 @@ function parseIsoMs_(iso) {
 
 /**
  * Returns the inclusive Monday-anchored ISO range for an ISO week key
- * (e.g. '2026-W19' â†’ start 2026-05-04T00:00:00Z, end 2026-05-11T00:00:00Z).
+ * (e.g. '2026-W19'  ->  start 2026-05-04T00:00:00Z, end 2026-05-11T00:00:00Z).
  *
  * @param {string} weekKey
  * @return {!{startIso: string, endIso: string}}
@@ -991,7 +991,7 @@ function resolveRange_(rangeStart, rangeEnd, now, thresholds) {
     }
   }
   if (startDate.getTime() > endDate.getTime()) {
-    // Caller passed start > end â€” swap and flag as clamped so the client can
+    // Caller passed start > end - swap and flag as clamped so the client can
     // surface a non-fatal warning.
     var tmp = startDate;
     startDate = endDate;
@@ -1081,21 +1081,21 @@ function isBillableText_(v) {
 }
 
 /**
- * Â§U.7 pending-approval predicate.
+ * Section U.7 pending-approval predicate.
  *
  * As of v1.14.1 the rule is:
- *   1. Explicit `approval = 'approved'`   â†’ NEVER pending (regardless of
- *      `timeEntryStatus`). This was the v1.14.0 false-positive bug â€” many
+ *   1. Explicit `approval = 'approved'`    ->  NEVER pending (regardless of
+ *      `timeEntryStatus`). This was the v1.14.0 false-positive bug - many
  *      Clockify-synced rows are explicitly Approved but carry an empty
  *      `Time Entry Status`, which the previous logic interpreted as pending.
- *   2. Explicit `approval âˆˆ {unapproved, pending}` â†’ pending.
+ *   2. Explicit `approval âˆˆ {unapproved, pending}`  ->  pending.
  *   3. When approval is missing / unknown, only consider the row pending if
  *      `timeEntryStatus` *actively* says so (`not_submitted` or `pending`).
  *      A blank timeEntryStatus alone is NO LONGER pending.
  *
  * Net effect: a row with `approval = "Approved"` is treated as approved even
  * when the time-entry-status sync is incomplete; a row with no approval
- * metadata at all is treated as approved (safe default â€” false negatives
+ * metadata at all is treated as approved (safe default - false negatives
  * are visible in the Pending Approvals widget once Fibery flags them).
  *
  * @param {?string} approval

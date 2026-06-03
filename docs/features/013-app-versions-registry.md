@@ -1,6 +1,6 @@
 # App Versions registry (auth spreadsheet)
 
-> **PRD version 2.6.14** — see `docs/FOS-Dashboard-PRD.md` (**FR-108**, **AC-64**). Builds on [002 — Spreadsheet user authorization](002-spreadsheet-user-authorization.md).
+> **PRD version 2.6.14** - see `docs/FOS-Dashboard-PRD.md` (**FR-108**, **AC-64**). Builds on [002 - Spreadsheet user authorization](002-spreadsheet-user-authorization.md).
 
 ## Goal
 
@@ -44,16 +44,16 @@ Track **PRD / deployment versions** in the same spreadsheet as user authorizatio
 
 ```javascript
 {
-  ok: true,
-  catalogAvailable: true,
-  currentVersion: '2.3.0',
-  currentDescription: '…',
-  latestVersion: '2.4.0',
-  isLatest: false,
-  latestUrl: 'https://script.google.com/.../exec',
-  latestDescription: '…',
-  latestReleasedAt: '2026-05-16T…',
-  releases: [ { releasedAt, description, prdVersion, url, available }, … ]
+ ok: true,
+ catalogAvailable: true,
+ currentVersion: '2.3.0',
+ currentDescription: '…',
+ latestVersion: '2.4.0',
+ isLatest: false,
+ latestUrl: 'https://script.google.com/.../exec',
+ latestDescription: '…',
+ latestReleasedAt: '2026-05-16T…',
+ releases: [ { releasedAt, description, prdVersion, url, available }, … ]
 }
 ```
 
@@ -70,7 +70,7 @@ Track **PRD / deployment versions** in the same spreadsheet as user authorizatio
 
 1. Bump `FOS_PRD_VERSION` and `FOS_RELEASE_DESCRIPTION` in `src/Code.js` (and PRD / headers per project rules).
 2. Deploy Web App (`clasp push` + new deployment version in Apps Script).
-3. Open the app once (or wait for first user) — row appears with **URL** filled and **Available** = `FALSE`.
+3. Open the app once (or wait for first user) - row appears with **URL** filled and **Available** = `FALSE`.
 4. When ready to notify users, set **Available** to `TRUE` for that version (and confirm **URL**).
 5. Optionally add rows for older versions with their historical URLs and **Available** as needed.
 

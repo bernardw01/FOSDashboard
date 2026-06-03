@@ -1,16 +1,16 @@
 # Feature: Scenario Planning
 
-> **PRD version TBD** — see `docs/FOS-Dashboard-PRD.md` (FR/AC numbers reserved when this feature is scheduled for release).
+> **PRD version TBD** - see `docs/FOS-Dashboard-PRD.md` (FR/AC numbers reserved when this feature is scheduled for release).
 
-> **Imported baseline PRD:** [`docs/financial_scenario_modeling_prd.md`](../financial_scenario_modeling_prd.md) (Financial Scenario Modeling & Forecasting Platform, May 2026). This file is the **FOS Dashboard** adaptation: same product intent, constrained to **Google Apps Script + HtmlService**, **Exec** access, and **Drive JSON** storage.  
-> **Parent product baseline:** `docs/FOS-Dashboard-PRD.md`  
-> **Authorization:** [002 — Spreadsheet user authorization](002-spreadsheet-user-authorization.md) (`Role` column)  
-> **Actuals sources (read-only):** [003 — Agreement Dashboard](003-agreement-dashboard-fibery-client-cache.md), [006 — Delivery P&L](006-delivery-project-pnl.md), [005 — Utilization](005-utilization-management-dashboard.md), [009 — Historical snapshots](009-dashboard-historical-snapshots.md)  
-> **Storage pattern reference:** [009 — Dashboard historical snapshots](009-dashboard-historical-snapshots.md) (Drive JSON layout)
+> **Imported baseline PRD:** [`docs/financial_scenario_modeling_prd.md`](../financial_scenario_modeling_prd.md) (Financial Scenario Modeling & Forecasting Platform, May 2026). This file is the **FOS Dashboard** adaptation: same product intent, constrained to **Google Apps Script + HtmlService**, **Exec** access, and **Drive JSON** storage. 
+> **Parent product baseline:** `docs/FOS-Dashboard-PRD.md` 
+> **Authorization:** [002 - Spreadsheet user authorization](002-spreadsheet-user-authorization.md) (`Role` column) 
+> **Actuals sources (read-only):** [003 - Agreement Dashboard](003-agreement-dashboard-fibery-client-cache.md), [006 - Delivery P&L](006-delivery-project-pnl.md), [005 - Utilization](005-utilization-management-dashboard.md), [009 - Historical snapshots](009-dashboard-historical-snapshots.md) 
+> **Storage pattern reference:** [009 - Dashboard historical snapshots](009-dashboard-historical-snapshots.md) (Drive JSON layout)
 
 ## Executive summary
 
-harpin leadership needs **flexible forecasting beyond month-end close**: baseline conservative plans, upside scenarios (e.g. **+5 new customers in 12 months**), **resource planning** (e.g. **3 vs 5 engineers**), and **multi-year contract** integration (e.g. **Princess** 5-year SOWs)—without the version-control and cell-by-cell QA burden of a **15-tab spreadsheet**.
+harpin leadership needs **flexible forecasting beyond month-end close**: baseline conservative plans, upside scenarios (e.g. **+5 new customers in 12 months**), **resource planning** (e.g. **3 vs 5 engineers**), and **multi-year contract** integration (e.g. **Princess** 5-year SOWs) - without the version-control and cell-by-cell QA burden of a **15-tab spreadsheet**.
 
 **Scenario Planning** adds a **top-level FOS Dashboard route** that:
 
@@ -18,7 +18,7 @@ harpin leadership needs **flexible forecasting beyond month-end close**: baselin
 - **seeds from actuals** (Fibery, Delivery P&L, Utilization; optional historical snapshots) but **stores scenarios separately** as **JSON in Google Drive**,
 - provides a **scenario modeling engine**, **reusable deal templates** (customer profiles), **revenue + staffing forecasts**, and **comparison dashboards**,
 - integrates **Fibery read-only** in early phases; **QuickBooks** read-only in a later phase.
-- implements **Tier 1** capabilities (driver-linked compute, non-destructive branching, plan vs actual, assumption registry, instant recompute, committed vs hypothetical layers) benchmarked against modern FP&A tools (Runway, Pigment)—see [Core capabilities](#core-capabilities-runway--pigment-benchmark).
+- implements **Tier 1** capabilities (driver-linked compute, non-destructive branching, plan vs actual, assumption registry, instant recompute, committed vs hypothetical layers) benchmarked against modern FP&A tools (Runway, Pigment) - see [Core capabilities](#core-capabilities-runway--pigment-benchmark).
 
 ## Business context
 
@@ -38,7 +38,7 @@ The modeling engine must reflect **both service delivery and recurring subscript
 
 | Audience | Examples | In-app role (v1) |
 | --- | --- | --- |
-| **Primary** | Executive leadership, founders, ops/finance leadership | **Exec** role — full Scenario Planning access |
+| **Primary** | Executive leadership, founders, ops/finance leadership | **Exec** role - full Scenario Planning access |
 | **Secondary** | Sales leadership, delivery management | No route access v1; may consume exports |
 | **Reviewers** | Scott, Ray (spreadsheet QA today) | Assumption/lineage review on saved scenarios |
 | **External** | Investors, advisors, strategic partners | **Investor dashboard** view + export (Phase G backlog) |
@@ -70,22 +70,22 @@ Phases below map to [Tier 1](#tier-1--required) and [Tier 2](#tier-2--high-value
 
 | Phase | Scope | Tier | Status |
 | --- | --- | --- | --- |
-| **Phase A — Route shell + access + storage** | Top-level nav **`scenario-planning`** · `#panel-scenario-planning` · **Exec** gate · Drive folder + `index.json` · scenario list / create / duplicate / archive · **`scenarioKind`** on manifest (`baseline` \| `working` \| `archived`) | — | **Planned** |
-| **Phase B — Baseline from actuals + plan vs actual** | Seed from live or snapshot actuals · **`actualsAsOf`** / **`seedSource`** · **plan vs actual timeline** (actual \| plan \| variance for elapsed months) · **reforecast** (re-seed actuals, preserve hypotheticals) · no write-back | **T1** | **Planned** |
-| **Phase C — Deal templates (profiles)** | Reusable **customer profiles** (OOP): create, clone, edit · **immutable `profileVersion` pinning** on scenario references · built-in archetypes (**subscription onboarding**, enterprise consulting, managed services) | **T2** | **Planned** |
-| **Phase D — Driver engine + variables** | **Driver-linked compute graph** (globals → profiles → instances → revenue → P&L → cash; staffing → utilization) · year-by-year horizon (unbounded) · adjustable scenario variables · **instant recompute** + cached `computed` · monthly / Q / annual rollups | **T1** | **Planned** |
-| **Phase E — Revenue, staffing & capacity** | Service / subscription / hybrid revenue · **headcount plan feeds P&L, cash, and utilization** (not isolated tables) · staffing categories · capacity gaps · labor cost forecast | **T1**, **T2** | **Planned** |
-| **Phase F — Financial outputs + P&L→cash** | Monthly **P&L**, **cash** (simplified operating cash from P&L + DSO/DPO/payroll lag v1), **FTE**, **utilization**, **revenue by customer** · gross margin · optional EBITDA · **cash runway** KPI | **T1**, **T2** | **Planned** |
-| **Phase G — Dashboards, compare & export** | Executive summary · **non-destructive compare** (pinned baseline id) · **assumption diff vs baseline** · **sensitivity strip** (one-variable delta) · **time-grain toggle** (month/Q/year) shared with Compare · **board snapshot** export (CSV + print/HTML) | **T1**, **T2** | **Planned** |
-| **Phase H — Committed layer refresh** | **Refresh committed** from Fibery (milestones, Princess-class contracts, pipeline) **without wiping hypothetical instances** · merge into committed slice only | **T1** | **Planned** |
-| **Phase I — QuickBooks read** | Revenue history, payroll, contractor spend, expenses (read-only seed/actuals overlay) | — | **Backlog** |
-| **Phase J — Investor export** | Investor dashboard slice + polished export format (PDF/HTML) beyond Phase G board snapshot | **T2** | **Backlog** |
+| **Phase A - Route shell + access + storage** | Top-level nav **`scenario-planning`** · `#panel-scenario-planning` · **Exec** gate · Drive folder + `index.json` · scenario list / create / duplicate / archive · **`scenarioKind`** on manifest (`baseline` \| `working` \| `archived`) | - | **Planned** |
+| **Phase B - Baseline from actuals + plan vs actual** | Seed from live or snapshot actuals · **`actualsAsOf`** / **`seedSource`** · **plan vs actual timeline** (actual \| plan \| variance for elapsed months) · **reforecast** (re-seed actuals, preserve hypotheticals) · no write-back | **T1** | **Planned** |
+| **Phase C - Deal templates (profiles)** | Reusable **customer profiles** (OOP): create, clone, edit · **immutable `profileVersion` pinning** on scenario references · built-in archetypes (**subscription onboarding**, enterprise consulting, managed services) | **T2** | **Planned** |
+| **Phase D - Driver engine + variables** | **Driver-linked compute graph** (globals → profiles → instances → revenue → P&L → cash; staffing → utilization) · year-by-year horizon (unbounded) · adjustable scenario variables · **instant recompute** + cached `computed` · monthly / Q / annual rollups | **T1** | **Planned** |
+| **Phase E - Revenue, staffing & capacity** | Service / subscription / hybrid revenue · **headcount plan feeds P&L, cash, and utilization** (not isolated tables) · staffing categories · capacity gaps · labor cost forecast | **T1**, **T2** | **Planned** |
+| **Phase F - Financial outputs + P&L→cash** | Monthly **P&L**, **cash** (simplified operating cash from P&L + DSO/DPO/payroll lag v1), **FTE**, **utilization**, **revenue by customer** · gross margin · optional EBITDA · **cash runway** KPI | **T1**, **T2** | **Planned** |
+| **Phase G - Dashboards, compare & export** | Executive summary · **non-destructive compare** (pinned baseline id) · **assumption diff vs baseline** · **sensitivity strip** (one-variable delta) · **time-grain toggle** (month/Q/year) shared with Compare · **board snapshot** export (CSV + print/HTML) | **T1**, **T2** | **Planned** |
+| **Phase H - Committed layer refresh** | **Refresh committed** from Fibery (milestones, Princess-class contracts, pipeline) **without wiping hypothetical instances** · merge into committed slice only | **T1** | **Planned** |
+| **Phase I - QuickBooks read** | Revenue history, payroll, contractor spend, expenses (read-only seed/actuals overlay) | - | **Backlog** |
+| **Phase J - Investor export** | Investor dashboard slice + polished export format (PDF/HTML) beyond Phase G board snapshot | **T2** | **Backlog** |
 
 ## Core capabilities (Runway / Pigment benchmark)
 
 Capabilities distilled from off-the-shelf FP&A tools ([Runway](https://runway.com), [Pigment](https://www.pigment.com)) that **must** or **should** appear in the FOS build. Harpin-specific differentiators (Fibery milestones, subscription order forms, FOS actuals seed) sit on top of this foundation.
 
-### Tier 1 — Required
+### Tier 1 - Required
 
 Without these, Scenario Planning risks rebuilding spreadsheet chaos in JSON.
 
@@ -97,9 +97,9 @@ Without these, Scenario Planning risks rebuilding spreadsheet chaos in JSON.
 | **T1.4** | **Rolling reforecast** | **Reforecast** action: re-seed actuals from Live/snapshot while **preserving** hypothetical deal instances and staffing assumptions. | B |
 | **T1.5** | **Assumption registry (first-class UI)** | **Assumptions** tab lists every driver: name, value, source (`global` \| `profile` \| `instance` \| `committed`), **`profileVersion`**, last editor, timestamp. **Diff vs baseline** in Compare. | G |
 | **T1.6** | **Instant recompute + cached outputs** | On assumption edit or save: invalidate `computed`, recompute (target ≤5s). UI shows stale state if compute pending/failed. User does not manually refresh five output tabs. | D, F |
-| **T1.7** | **Committed vs hypothetical layers** | Two logical layers in every scenario: **committed** (Fibery/QBO-sourced) and **hypothetical** (profile instances). **Refresh committed** updates milestones/order forms **only**—never deletes hypotheticals. | B, H |
+| **T1.7** | **Committed vs hypothetical layers** | Two logical layers in every scenario: **committed** (Fibery/QBO-sourced) and **hypothetical** (profile instances). **Refresh committed** updates milestones/order forms **only** - never deletes hypotheticals. | B, H |
 
-### Tier 2 — High value (prioritize early)
+### Tier 2 - High value (prioritize early)
 
 | # | Capability | Requirement | Primary phase |
 | --- | --- | --- | --- |
@@ -114,38 +114,38 @@ Without these, Scenario Planning risks rebuilding spreadsheet chaos in JSON.
 
 Before a phase ships, validate:
 
-> Guy can **duplicate the baseline**, add one **enterprise consulting** instance from a template, change hiring from **3 → 5 engineers**, and Scott/Ray can see **why** revenue, margin, cash, and utilization moved—via the **Assumptions** registry and **Compare** diff—**without opening a spreadsheet**.
+> Guy can **duplicate the baseline**, add one **enterprise consulting** instance from a template, change hiring from **3 → 5 engineers**, and Scott/Ray can see **why** revenue, margin, cash, and utilization moved - via the **Assumptions** registry and **Compare** diff - **without opening a spreadsheet**.
 
 ### Driver dependency graph (T1.1)
 
 ```text
 scenario.globals ──┬── profile.defaults ── instance.overrides
-                   │
-                   ├── committed layer (Fibery seed / refresh)
-                   │
-                   ▼
-            revenue engine (service · subscription · hybrid)
-                   │
-       ┌───────────┼───────────┐
-       ▼           ▼           ▼
-  rev/customer   staffing    utilization
-       │           │           │
-       └─────► monthly P&L ◄──┘
-                   │
-                   ▼
-            cash (DSO/DPO/payroll lag)
-                   │
-                   ▼
-         computed cache (invalidated on edit)
+ │
+ ├── committed layer (Fibery seed / refresh)
+ │
+ ▼
+ revenue engine (service · subscription · hybrid)
+ │
+ ┌───────────┼───────────┐
+ ▼ ▼ ▼
+ rev/customer staffing utilization
+ │ │ │
+ └─────► monthly P&L ◄──┘
+ │
+ ▼
+ cash (DSO/DPO/payroll lag)
+ │
+ ▼
+ computed cache (invalidated on edit)
 ```
 
 ## Problem statement
 
 Today, Guy’s forward planning relies on a **multi-tab spreadsheet** maintained on an individual laptop. That workflow creates:
 
-- **Version control confusion** — multiple copies, unclear “source of truth.”
-- **High QA cost** — Scott and Ray validate individual cells and formulas rather than business assumptions.
-- **Limited agility** — hard to compare a conservative baseline vs upside cases outside month-end close rhythms.
+- **Version control confusion** - multiple copies, unclear “source of truth.”
+- **High QA cost** - Scott and Ray validate individual cells and formulas rather than business assumptions.
+- **Limited agility** - hard to compare a conservative baseline vs upside cases outside month-end close rhythms.
 
 Scenario Planning moves this into the **FOS Dashboard**: structured, auditable, JSON-backed models that **start from actuals** but live **entirely outside** systems of record.
 
@@ -163,13 +163,13 @@ Scenario Planning moves this into the **FOS Dashboard**: structured, auditable, 
 - As an **Exec planner**, I want to adjust **scenario variables** (revenue, deal timing, staffing, margins, overhead, hiring timelines, salaries), **so that** I can run what-if simulations in one place.
 - As an **Exec planner**, I want to compare **hiring plans** (e.g. **3 vs 5 engineers**) and see **utilization gaps** and **labor cost**, **so that** staffing decisions are data-driven.
 - As an **Exec planner**, I want **Princess** and other **multi-year contracts** from Fibery in the baseline, **so that** I do not re-key milestone schedules.
-- As a **reviewer** (Scott, Ray), I want an **assumption registry with diff vs baseline**, **so that** QA focuses on business rules—not spreadsheet copies.
+- As a **reviewer** (Scott, Ray), I want an **assumption registry with diff vs baseline**, **so that** QA focuses on business rules - not spreadsheet copies.
 - As an **Exec planner**, I want **plan and actual on one timeline** and **reforecast** when new actuals arrive, **so that** forward plans stay grounded without rebuilding hypotheticals.
 - As **Exec leadership**, I want an **executive dashboard** (revenue, margin, staffing, growth KPIs), **compare**, and **board export**, **so that** we can present scenarios without rebuilding decks in Sheets.
 
 ## Scenario modeling engine
 
-Imported PRD §5.1 — implemented inside the FOS Web App (not a separate product). Must satisfy **Tier 1** capabilities [T1.1–T1.7](#tier-1--required).
+Imported PRD §5.1 - implemented inside the FOS Web App (not a separate product). Must satisfy **Tier 1** capabilities [T1.1 - T1.7](#tier-1--required).
 
 ### Scenario kinds (T1.2)
 
@@ -208,7 +208,7 @@ Precedence: **`instance.overrides` > `profile.defaults` > `scenario.globals`**.
 
 ## Deal templates (customer profiles)
 
-Imported PRD §5.2 — stored as **`profiles/<profileId>.json`** (OOP **classes**); scenarios hold **instances** with overrides.
+Imported PRD §5.2 - stored as **`profiles/<profileId>.json`** (OOP **classes**); scenarios hold **instances** with overrides.
 
 ### Built-in archetypes (seed library in Phase C)
 
@@ -220,78 +220,78 @@ Imported PRD §5.2 — stored as **`profiles/<profileId>.json`** (OOP **classes*
 
 ### Template operations
 
-- Create · **clone** · edit · assign default assumptions · **version** (**required:** immutable **`profileVersion`** pinned on scenario references — T2.5)
+- Create · **clone** · edit · assign default assumptions · **version** (**required:** immutable **`profileVersion`** pinned on scenario references - T2.5)
 - Editing a profile **creates a new version**; scenarios referencing an older **`profileVersion`** are unchanged until the user **upgrades** the reference
 
 ### Profile schema (extended)
 
 ```javascript
 {
-  profileSchemaVersion: 1,
-  id: 'enterprise-consulting',
-  name: 'Enterprise consulting engagement',
-  templateKind: 'enterprise-consulting', // subscription-onboarding | enterprise-consulting | managed-services | custom
-  description: '…',
-  defaults: {
-    contractType: 'services',              // services | subscription | hybrid
-    revenueModel: 'milestone',           // milestone | mrr | hybrid
-    initialAcv: 500000,
-    acvGrowthRateAnnual: 0.05,
-    mrr: null,
-    seatCount: null,
-    seatGrowthRateMonthly: null,
-    churnRateMonthly: null,
-    targetMarginPct: 0.35,
-    rampMonths: 6,
-    contractDurationMonths: 36,
-    billingPattern: 'monthly-milestones',
-    deliveryPhases: [],                    // optional phase timeline
-    fteDemand: { engineers: 2, deliveryLeads: 0.5, contractors: 0, offshore: 0, fractional: 0 },
-    utilizationTargetPct: 0.75,
-    implementationHours: null,
-    supportHoursPerMonth: null
-  }
+ profileSchemaVersion: 1,
+ id: 'enterprise-consulting',
+ name: 'Enterprise consulting engagement',
+ templateKind: 'enterprise-consulting', // subscription-onboarding | enterprise-consulting | managed-services | custom
+ description: '…',
+ defaults: {
+ contractType: 'services', // services | subscription | hybrid
+ revenueModel: 'milestone', // milestone | mrr | hybrid
+ initialAcv: 500000,
+ acvGrowthRateAnnual: 0.05,
+ mrr: null,
+ seatCount: null,
+ seatGrowthRateMonthly: null,
+ churnRateMonthly: null,
+ targetMarginPct: 0.35,
+ rampMonths: 6,
+ contractDurationMonths: 36,
+ billingPattern: 'monthly-milestones',
+ deliveryPhases: [], // optional phase timeline
+ fteDemand: { engineers: 2, deliveryLeads: 0.5, contractors: 0, offshore: 0, fractional: 0 },
+ utilizationTargetPct: 0.75,
+ implementationHours: null,
+ supportHoursPerMonth: null
+ }
 }
 ```
 
-**Subscription onboarding** profile (`templateKind: 'subscription-onboarding'`) — example defaults:
+**Subscription onboarding** profile (`templateKind: 'subscription-onboarding'`) - example defaults:
 
 ```javascript
 {
-  profileSchemaVersion: 1,
-  id: 'subscription-onboarding',
-  name: 'Subscription onboarding',
-  templateKind: 'subscription-onboarding',
-  description: 'Initial implementation plus order forms for ongoing subscription revenue.',
-  defaults: {
-    contractType: 'subscription',
-    revenueModel: 'mrr',
-    initialAcv: null,
-    mrr: 10000,
-    seatCount: 100,
-    seatGrowthRateMonthly: 0.02,
-    churnRateMonthly: 0.01,
-    rampMonths: 3,
-    implementationHours: 120,
-    supportHoursPerMonth: 8,
-    orderForms: [
-      {
-        label: 'Ongoing subscription — base seats',
-        kind: 'recurring',
-        startOffsetMonths: 0,
-        durationMonths: 12,
-        mrr: 10000,
-        renewalAssumption: 'auto-renew'
-      },
-      {
-        label: 'Order form — usage / expansion tier',
-        kind: 'expansion',
-        startOffsetMonths: 6,
-        trigger: 'seat-threshold',
-        incrementalMrr: 2500
-      }
-    ]
-  }
+ profileSchemaVersion: 1,
+ id: 'subscription-onboarding',
+ name: 'Subscription onboarding',
+ templateKind: 'subscription-onboarding',
+ description: 'Initial implementation plus order forms for ongoing subscription revenue.',
+ defaults: {
+ contractType: 'subscription',
+ revenueModel: 'mrr',
+ initialAcv: null,
+ mrr: 10000,
+ seatCount: 100,
+ seatGrowthRateMonthly: 0.02,
+ churnRateMonthly: 0.01,
+ rampMonths: 3,
+ implementationHours: 120,
+ supportHoursPerMonth: 8,
+ orderForms: [
+ {
+ label: 'Ongoing subscription - base seats',
+ kind: 'recurring',
+ startOffsetMonths: 0,
+ durationMonths: 12,
+ mrr: 10000,
+ renewalAssumption: 'auto-renew'
+ },
+ {
+ label: 'Order form - usage / expansion tier',
+ kind: 'expansion',
+ startOffsetMonths: 6,
+ trigger: 'seat-threshold',
+ incrementalMrr: 2500
+ }
+ ]
+ }
 }
 ```
 
@@ -299,7 +299,7 @@ Imported PRD §5.2 — stored as **`profiles/<profileId>.json`** (OOP **classes*
 
 ## Revenue forecasting
 
-Imported PRD §5.3 — computed from committed (Fibery) + hypothetical (instances).
+Imported PRD §5.3 - computed from committed (Fibery) + hypothetical (instances).
 
 | Revenue type | Forecast inputs |
 | --- | --- |
@@ -328,7 +328,7 @@ Staffing inputs are **drivers**, not a standalone grid:
 | Staffing input | Downstream effect |
 | --- | --- |
 | FTE start date + role + salary/cost | **Labor line** in monthly P&L |
-| Payroll timing assumption | **Cash outflow** (with payroll lag — T2.3) |
+| Payroll timing assumption | **Cash outflow** (with payroll lag - T2.3) |
 | Capacity hours (FTE × availability) | **Utilization** vs demand from deal instances |
 | Contractor hours / rates | P&L labor + cash + utilization (non-FTE bucket) |
 
@@ -340,12 +340,12 @@ Changing “3 vs 5 engineers” must move **P&L, cash, FTE, and utilization** in
 | --- | --- |
 | Hiring timelines | Plan when to add FTE |
 | Resource shortages | Flag months under capacity |
-| Utilization % | Align with [005 — Utilization](005-utilization-management-dashboard.md) semantics where practical |
+| Utilization % | Align with [005 - Utilization](005-utilization-management-dashboard.md) semantics where practical |
 | Forecasted labor costs | Feed P&L and cash |
 
 ## Financial forecasting outputs
 
-Imported PRD §5.5 — monthly minimum per product decision; extended metrics below.
+Imported PRD §5.5 - monthly minimum per product decision; extended metrics below.
 
 | Category | Metrics |
 | --- | --- |
@@ -372,20 +372,20 @@ v1 uses **simplified operating cash**, not a full balance sheet:
 
 - P&L revenue and expenses drive cash with configurable **`dsoDays`**, **`dpoDays`**, **`payrollLagDays`** on `scenario.globals`
 - **Opening cash** from seed
-- Executive KPI strip includes **cash runway months** (cash ÷ trailing burn or modeled forward burn — define in implementation plan)
+- Executive KPI strip includes **cash runway months** (cash ÷ trailing burn or modeled forward burn - define in implementation plan)
 
 Computed snapshots are cached in scenario JSON (`computed: { asOf, invalidatedAt?, … }`) and **invalidated on any assumption change** (T1.6).
 
 ## Dashboards & reporting
 
-Imported PRD §5.6 — tabs/views within `#panel-scenario-planning`.
+Imported PRD §5.6 - tabs/views within `#panel-scenario-planning`.
 
 | View | Contents |
 | --- | --- |
 | **Executive** | Revenue forecast, profitability trends, staffing forecasts, growth projections, KPI strip (see [Suggested KPIs](#suggested-kpis)) · **time-grain toggle** month / Q / year (T2.4) |
 | **Assumptions** | **Assumption registry** (T1.5): all drivers, sources, profile versions, last editor · filter committed vs hypothetical |
 | **Scenario comparison** | Side-by-side vs **pinned baseline** · KPI + table variance · **assumption diff** · **sensitivity strip** for one-variable delta (T2.1) · same KPI defs as Executive (T2.4) |
-| **Investor** | ARR growth, revenue trajectory, margin expansion — **Phase J**; Phase G ships **board snapshot** export first (T2.6) |
+| **Investor** | ARR growth, revenue trajectory, margin expansion - **Phase J**; Phase G ships **board snapshot** export first (T2.6) |
 
 Charts: reuse **Chart.js** (already in FOS) where appropriate; FOS dark chrome throughout.
 
@@ -411,123 +411,123 @@ End-to-end path for an **Exec planner** (build → update → display → compar
 
 ```mermaid
 journey
-  title Exec planner — scenario lifecycle
-  section Enter
-    Open FOS Dashboard: 5: Exec
-    Select Scenario planning: 5: Exec
-  section Build
-    Seed baseline from actuals: 4: Exec
-    Add deal instances from templates: 4: Exec
-    Extend planning years: 5: Exec
-  section Update
-    Adjust variables and staffing: 4: Exec
-    Save to Drive JSON: 5: Exec
-    Duplicate for what-if branch: 5: Exec
-  section Display
-    Review Executive KPIs and tables: 5: Exec
-    Drill monthly P and L and cash: 4: Exec
-    Compare scenarios side by side: 5: Exec
-  section Review
-    Verify assumptions and lineage: 4: Exec, Reviewer
-    Share or export projections: 3: Exec
+ title Exec planner - scenario lifecycle
+ section Enter
+ Open FOS Dashboard: 5: Exec
+ Select Scenario planning: 5: Exec
+ section Build
+ Seed baseline from actuals: 4: Exec
+ Add deal instances from templates: 4: Exec
+ Extend planning years: 5: Exec
+ section Update
+ Adjust variables and staffing: 4: Exec
+ Save to Drive JSON: 5: Exec
+ Duplicate for what-if branch: 5: Exec
+ section Display
+ Review Executive KPIs and tables: 5: Exec
+ Drill monthly P and L and cash: 4: Exec
+ Compare scenarios side by side: 5: Exec
+ section Review
+ Verify assumptions and lineage: 4: Exec, Reviewer
+ Share or export projections: 3: Exec
 ```
 
-### Detailed flow — build, update, and display
+### Detailed flow - build, update, and display
 
 ```mermaid
 flowchart TB
-  subgraph ENTER["Enter Scenario Planning"]
-    A([Exec opens FOS Dashboard]) --> B{Role = Exec?}
-    B -->|No| B1[Nav hidden / API denied]
-    B -->|Yes| C[Click Scenario planning]
-    C --> D[Load scenario catalog from Drive index.json]
-  end
+ subgraph ENTER["Enter Scenario Planning"]
+ A([Exec opens FOS Dashboard]) --> B{Role = Exec?}
+ B -->|No| B1[Nav hidden / API denied]
+ B -->|Yes| C[Click Scenario planning]
+ C --> D[Load scenario catalog from Drive index.json]
+ end
 
-  subgraph BUILD["Build a scenario"]
-    D --> E{Start how?}
-    E -->|New empty| F[Create scenario shell + manifest]
-    E -->|Seed from actuals| G[Pick Live data or snapshot date]
-    G --> H[Server reads Fibery + Delivery + Utilization]
-    H --> I[Write baseline JSON to Drive]
-    I --> J[Set actualsAsOf + seedSource on manifest]
-    F --> K[Configure scenario globals]
-    J --> K
-    K --> L[Add calendar years year-by-year]
-    L --> M[Pick deal template or clone profile]
-    M --> N[Instantiate customer with overrides]
-    N --> O[Set deal timing revenue staffing vars]
-    O --> P[Server computes monthly rollups]
-    P --> Q[(Save manifest + model.json to Drive)]
-  end
+ subgraph BUILD["Build a scenario"]
+ D --> E{Start how?}
+ E -->|New empty| F[Create scenario shell + manifest]
+ E -->|Seed from actuals| G[Pick Live data or snapshot date]
+ G --> H[Server reads Fibery + Delivery + Utilization]
+ H --> I[Write baseline JSON to Drive]
+ I --> J[Set actualsAsOf + seedSource on manifest]
+ F --> K[Configure scenario globals]
+ J --> K
+ K --> L[Add calendar years year-by-year]
+ L --> M[Pick deal template or clone profile]
+ M --> N[Instantiate customer with overrides]
+ N --> O[Set deal timing revenue staffing vars]
+ O --> P[Server computes monthly rollups]
+ P --> Q[(Save manifest + model.json to Drive)]
+ end
 
-  subgraph UPDATE["Update a scenario"]
-    Q --> R[Select existing scenario]
-    R --> S{Change type?}
-    S -->|Edit assumptions| T[Years / Deals / Staffing / Assumptions tabs]
-    S -->|Add hypothetical deals| U[Attach new template instances]
-    S -->|Refresh committed layer| V[Re-read Fibery milestones e.g. Princess]
-    S -->|Branch what-if| W[Duplicate scenario → new id]
-    T --> X[Adjust variables]
-    U --> X
-    V --> Y[Merge into committed slice only]
-    Y --> X
-    W --> K
-    X --> P
-    P --> Q2[(Save — update index + audit fields)]
-  end
+ subgraph UPDATE["Update a scenario"]
+ Q --> R[Select existing scenario]
+ R --> S{Change type?}
+ S -->|Edit assumptions| T[Years / Deals / Staffing / Assumptions tabs]
+ S -->|Add hypothetical deals| U[Attach new template instances]
+ S -->|Refresh committed layer| V[Re-read Fibery milestones e.g. Princess]
+ S -->|Branch what-if| W[Duplicate scenario → new id]
+ T --> X[Adjust variables]
+ U --> X
+ V --> Y[Merge into committed slice only]
+ Y --> X
+ W --> K
+ X --> P
+ P --> Q2[(Save - update index + audit fields)]
+ end
 
-  subgraph DISPLAY["Display and decide"]
-    Q2 --> Z[Executive tab — KPI strip]
-    Z --> AA[Tables: P and L · cash · FTE · utilization]
-    AA --> AB[Revenue by customer committed vs hypothetical]
-    AB --> AC{Need comparison?}
-    AC -->|Yes| AD[Compare tab — pick 2+ scenarios]
-    AD --> AE[Side-by-side KPIs + variance vs baseline]
-    AC -->|No| AF[Assumptions tab — lineage for QA]
-    AE --> AF
-    AF --> AG([Decision: hiring · pipeline · investor narrative])
-  end
+ subgraph DISPLAY["Display and decide"]
+ Q2 --> Z[Executive tab - KPI strip]
+ Z --> AA[Tables: P and L · cash · FTE · utilization]
+ AA --> AB[Revenue by customer committed vs hypothetical]
+ AB --> AC{Need comparison?}
+ AC -->|Yes| AD[Compare tab - pick 2+ scenarios]
+ AD --> AE[Side-by-side KPIs + variance vs baseline]
+ AC -->|No| AF[Assumptions tab - lineage for QA]
+ AE --> AF
+ AF --> AG([Decision: hiring · pipeline · investor narrative])
+ end
 
-  ENTER --> BUILD
-  BUILD --> UPDATE
-  UPDATE --> DISPLAY
+ ENTER --> BUILD
+ BUILD --> UPDATE
+ UPDATE --> DISPLAY
 ```
 
 ### System touchpoints (read vs write)
 
 ```mermaid
 flowchart LR
-  subgraph READ["Read-only actuals"]
-    FIB[Fibery agreements + milestones]
-    DEL[Delivery P and L patterns]
-    UTIL[Utilization / labor baselines]
-    SNAP[Historical snapshot bundle]
-  end
+ subgraph READ["Read-only actuals"]
+ FIB[Fibery agreements + milestones]
+ DEL[Delivery P and L patterns]
+ UTIL[Utilization / labor baselines]
+ SNAP[Historical snapshot bundle]
+ end
 
-  subgraph APP["FOS Scenario Planning"]
-    SEED[Seed / refresh committed]
-    ENG[Scenario engine + compute]
-    UI[Executive · Compare · Assumptions UI]
-  end
+ subgraph APP["FOS Scenario Planning"]
+ SEED[Seed / refresh committed]
+ ENG[Scenario engine + compute]
+ UI[Executive · Compare · Assumptions UI]
+ end
 
-  subgraph WRITE["Scenario storage"]
-    IDX[index.json catalog]
-    PROF[profiles/*.json templates]
-    SCN[scenarios/id/*.json models]
-  end
+ subgraph WRITE["Scenario storage"]
+ IDX[index.json catalog]
+ PROF[profiles/*.json templates]
+ SCN[scenarios/id/*.json models]
+ end
 
-  FIB --> SEED
-  DEL --> SEED
-  UTIL --> SEED
-  SNAP --> SEED
-  SEED --> ENG
-  PROF --> ENG
-  ENG --> SCN
-  ENG --> IDX
-  SCN --> UI
-  IDX --> UI
-  UI -->|Save / duplicate| SCN
-  UI -->|Profile CRUD| PROF
+ FIB --> SEED
+ DEL --> SEED
+ UTIL --> SEED
+ SNAP --> SEED
+ SEED --> ENG
+ PROF --> ENG
+ ENG --> SCN
+ ENG --> IDX
+ SCN --> UI
+ IDX --> UI
+ UI -->|Save / duplicate| SCN
+ UI -->|Profile CRUD| PROF
 ```
 
 | Phase | User intent | Primary UI | Persists to |
@@ -541,11 +541,11 @@ flowchart LR
 
 | Rule | Detail |
 | --- | --- |
-| **Entitlement** | **`Role` = `Exec`** (case-insensitive, trimmed — same pattern as **`ADMIN`** for Settings). |
+| **Entitlement** | **`Role` = `Exec`** (case-insensitive, trimmed - same pattern as **`ADMIN`** for Settings). |
 | **Server** | `requireAuthForApi_()` + **`requireExecForScenarioPlanning_()`** on all scenario/profile/compute APIs. |
 | **Navigation** | `scenario-planning` omitted from nav for non-Exec. |
 | **Drive** | Exec users access scenarios **only via server APIs** in v1 (no raw Drive URLs). |
-| **Audit** | `createdBy` / `updatedBy` on manifest; [004 — User Activity](004-user-activity-logging.md) for `scenario_planning_*` events. |
+| **Audit** | `createdBy` / `updatedBy` on manifest; [004 - User Activity](004-user-activity-logging.md) for `scenario_planning_*` events. |
 
 Imported PRD §6.2 (RBAC, encrypted storage) is satisfied by **Workspace auth + Exec gate + Google Drive ACLs**; no separate auth provider.
 
@@ -562,19 +562,19 @@ Imported PRD §6.2 (RBAC, encrypted storage) is satisfied by **Workspace auth + 
 | Layer | Role | Storage | Mutability |
 | --- | --- | --- | --- |
 | **Actuals** | Ground truth for seeding | Fibery (live), [snapshots](009-dashboard-historical-snapshots.md), future QuickBooks read | Read-only |
-| **Scenario — committed** | Fibery-sourced agreements, milestones, order forms | Inside scenario JSON **`committed`** slice | **Refresh committed** only (T1.7) |
-| **Scenario — hypothetical** | Profile instances, staffing what-ifs | Inside scenario JSON **`hypothetical`** slice | User edit |
-| **Scenario — computed** | Derived P&L, cash, KPIs | `computed` cache in scenario JSON | Regenerated on recompute (T1.6) |
+| **Scenario - committed** | Fibery-sourced agreements, milestones, order forms | Inside scenario JSON **`committed`** slice | **Refresh committed** only (T1.7) |
+| **Scenario - hypothetical** | Profile instances, staffing what-ifs | Inside scenario JSON **`hypothetical`** slice | User edit |
+| **Scenario - computed** | Derived P&L, cash, KPIs | `computed` cache in scenario JSON | Regenerated on recompute (T1.6) |
 
 **Seeding (Phase B):** Agreement ([003](003-agreement-dashboard-fibery-client-cache.md)), Delivery P&L ([006](006-delivery-project-pnl.md)), Utilization ([005](005-utilization-management-dashboard.md)); optional snapshot date via [010](010-dashboard-historical-data-source.md).
 
 **Reforecast (T1.4):** Updates **committed** + **`actualsAsOf`** from latest actuals; **does not** remove or overwrite **`hypothetical.instances[]`** or user staffing overrides.
 
-**Refresh committed (Phase H):** Same as partial reforecast—Fibery milestone/agreement pull into **`committed`** only.
+**Refresh committed (Phase H):** Same as partial reforecast - Fibery milestone/agreement pull into **`committed`** only.
 
 ## Data integrations
 
-Imported PRD §5.7 — **FOS adaptation** (no standalone Node/React stack).
+Imported PRD §5.7 - **FOS adaptation** (no standalone Node/React stack).
 
 | Source | Phase | Data (read-only) | Sync |
 | --- | --- | --- | --- |
@@ -593,14 +593,14 @@ Root: **`SCENARIO_PLANNING_DRIVE_FOLDER_ID`**
 
 ```text
 <root>/
-  index.json
-  profiles/
-    <profileId>.json
-  scenarios/
-    <scenarioId>/
-      manifest.json               # scenarioKind, baselineScenarioId, locked, actualsAsOf, …
-      model.json                  # globals, committed, hypothetical, assumptions[]
-      computed.json               # optional shard: cached rollups (or embedded in model.json)
+ index.json
+ profiles/
+ <profileId>.json
+ scenarios/
+ <scenarioId>/
+ manifest.json # scenarioKind, baselineScenarioId, locked, actualsAsOf, …
+ model.json # globals, committed, hypothetical, assumptions[]
+ computed.json # optional shard: cached rollups (or embedded in model.json)
 ```
 
 ### Manifest fields (extended)
@@ -625,24 +625,24 @@ Rolling index written with **`LockService`** on mutations. Each scenario entry i
 
 ```javascript
 {
-  indexVersion: 1,
-  updatedAt: '2026-05-22T…',
-  baselineScenarioId: 'uuid-of-current-baseline',
-  scenarios: [
-    {
-      id: 'uuid-or-slug',
-      name: 'Baseline FY26–FY30',
-      scenarioKind: 'baseline',
-      status: 'active',
-      actualsAsOf: '2026-04-30',
-      years: [2026, 2027, 2028, 2029, 2030],
-      updatedAt: '…',
-      updatedBy: 'user@harpin.ai'
-    }
-  ],
-  profiles: [
-    { id: '…', name: 'Enterprise consulting', templateKind: 'enterprise-consulting', profileVersion: 1 }
-  ]
+ indexVersion: 1,
+ updatedAt: '2026-05-22T…',
+ baselineScenarioId: 'uuid-of-current-baseline',
+ scenarios: [
+ {
+ id: 'uuid-or-slug',
+ name: 'Baseline FY26 - FY30',
+ scenarioKind: 'baseline',
+ status: 'active',
+ actualsAsOf: '2026-04-30',
+ years: [2026, 2027, 2028, 2029, 2030],
+ updatedAt: '…',
+ updatedBy: 'user@harpin.ai'
+ }
+ ],
+ profiles: [
+ { id: '…', name: 'Enterprise consulting', templateKind: 'enterprise-consulting', profileVersion: 1 }
+ ]
 }
 ```
 
@@ -650,29 +650,29 @@ Rolling index written with **`LockService`** on mutations. Each scenario entry i
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────────┐
-│ Scenario planning              [ Scenario ▾ ] [ Duplicate ] [ + New ] [ Save ]│
-│ Baseline FY26–FY30 · actuals through Apr 2026 · last saved …                 │
+│ Scenario planning [ Scenario ▾ ] [ Duplicate ] [ + New ] [ Save ]│
+│ Baseline FY26 - FY30 · actuals through Apr 2026 · last saved … │
 ├────────────────────────────────────────────────────────────────────────────┤
 │ [ Executive ] [ Years ] [ Deals ] [ Staffing ] [ Assumptions ] [ Compare ] [ Export ] │
 ├────────────────────────────────────────────────────────────────────────────┤
-│ KPI: Revenue · Gross margin · EBITDA? · Cash · FTE · Utilization · ARR/MRR   │
+│ KPI: Revenue · Gross margin · EBITDA? · Cash · FTE · Utilization · ARR/MRR │
 ├────────────────────────────────────────────────────────────────────────────┤
-│ Workspace: charts + tables (monthly / Q / annual toggle)                     │
+│ Workspace: charts + tables (monthly / Q / annual toggle) │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Executive** — leadership KPIs and trends (imported §5.6).
-- **Deals** — template library + instances (committed vs hypothetical).
-- **Staffing** — hiring plans, contractor mix, capacity gaps.
-- **Assumptions** — assumption registry + diff vs baseline (T1.5).
-- **Compare** — pinned baseline vs working scenarios + sensitivity strip (T2.1).
-- **Export** — board snapshot CSV / print / HTML (T2.6).
+- **Executive** - leadership KPIs and trends (imported §5.6).
+- **Deals** - template library + instances (committed vs hypothetical).
+- **Staffing** - hiring plans, contractor mix, capacity gaps.
+- **Assumptions** - assumption registry + diff vs baseline (T1.5).
+- **Compare** - pinned baseline vs working scenarios + sensitivity strip (T2.1).
+- **Export** - board snapshot CSV / print / HTML (T2.6).
 
 Branding: `.fos-agreement-root`, `.fos-section-card`, `.fos-agreement-kpi` ([007](007-labor-hours-dashboard.md), [008](008-revenue-review-dashboard.md)).
 
 ## Non-functional requirements
 
-Imported PRD §6 — **Apps Script realistic targets.**
+Imported PRD §6 - **Apps Script realistic targets.**
 
 | Area | Target |
 | --- | --- |
@@ -687,7 +687,7 @@ Imported PRD §6 — **Apps Script realistic targets.**
 - **Write-back** to Fibery, QuickBooks, or the legacy spreadsheet
 - **Standalone** forecasting app (separate from FOS Dashboard)
 - **Full replacement** of all 15 spreadsheet tabs in Phase A
-- **AI-assisted forecasting** (imported PRD §9 — future)
+- **AI-assisted forecasting** (imported PRD §9 - future)
 - **Comments / approval workflows / shared editing** (future)
 - **Multi-entity / multi-company** modeling (open question)
 - **Generic BI explorer** ([000-overview](000-overview.md))
@@ -713,14 +713,14 @@ From imported PRD §9:
 - [ ] **Given** configured Drive folder, **when** Exec creates/duplicates/archives a scenario, **then** `index.json` and `scenarios/<id>/` update correctly.
 - [ ] **Given** saved scenario JSON, **when** inspected, **then** no API tokens or Script Property secrets are present.
 
-### Tier 1 — driver engine & layers
+### Tier 1 - driver engine & layers
 
 - [ ] **Given** a change to hiring count or deal timing, **when** the user saves, **then** P&L, cash, FTE, utilization, and revenue-by-customer **all update** from one recompute within 5s (T1.1, T1.6).
 - [ ] **Given** a **baseline** scenario, **when** a user opens it without unlock, **then** assumptions are **read-only**; **Duplicate** creates a **`working`** copy (T1.2).
 - [ ] **Given** months ≤ **`actualsAsOf`**, **when** viewing Executive tables, **then** **actual**, **plan**, and **variance** columns appear (T1.3).
 - [ ] **Given** a scenario with hypothetical deals, **when** user runs **Reforecast**, **then** **`actualsAsOf`** and **committed** update and **hypothetical instances remain** (T1.4).
 - [ ] **Given** the Assumptions tab, **when** opened, **then** every material driver shows value, source, profile version, and last editor (T1.5).
-- [ ] **Given** **Refresh committed**, **when** Fibery data changes, **then** only the **committed** slice updates—not hypothetical instances (T1.7).
+- [ ] **Given** **Refresh committed**, **when** Fibery data changes, **then** only the **committed** slice updates - not hypothetical instances (T1.7).
 
 ### Baseline & separation
 
@@ -734,7 +734,7 @@ From imported PRD §9:
 - [ ] **Given** a scenario, **when** user adds years, **then** horizon extends without a fixed cap.
 - [ ] **Given** scenario variables change, **when** user saves, **then** monthly P&L, cash, FTE, utilization, and revenue-by-customer outputs refresh.
 
-### Tier 2 — compare, sensitivity, export
+### Tier 2 - compare, sensitivity, export
 
 - [ ] **Given** pinned baseline + working scenario, **when** user opens **Compare**, **then** side-by-side KPIs use the **same definitions** as Executive at the selected time grain (T2.4).
 - [ ] **Given** Compare, **when** user selects one assumption for sensitivity, **then** KPI **delta vs baseline** displays without requiring a new scenario file (T2.1).
@@ -757,7 +757,7 @@ From imported PRD §9:
 
 ## Suggested KPIs
 
-Imported PRD §14 — primary executive/compare strip.
+Imported PRD §14 - primary executive/compare strip.
 
 | Group | KPIs |
 | --- | --- |
@@ -769,7 +769,7 @@ Imported PRD §14 — primary executive/compare strip.
 
 | Property | Default | Purpose |
 | --- | --- | --- |
-| `SCENARIO_PLANNING_DRIVE_FOLDER_ID` | — | Drive root |
+| `SCENARIO_PLANNING_DRIVE_FOLDER_ID` | - | Drive root |
 | `SCENARIO_PLANNING_ENABLED` | `true` | Kill-switch |
 | `SCENARIO_PLANNING_MAX_YEARS` | unset | Optional cap |
 
@@ -790,25 +790,25 @@ Imported PRD §14 — primary executive/compare strip.
 
 | # | Question | Source | Notes |
 | --- | --- | --- | --- |
-| 1 | **Cash model depth** — full 3-statement vs operating cash from P&L + DSO/DPO? | FOS discovery | **Resolved for v1:** simplified operating cash (T2.3); full BS backlog |
+| 1 | **Cash model depth** - full 3-statement vs operating cash from P&L + DSO/DPO? | FOS discovery | **Resolved for v1:** simplified operating cash (T2.3); full BS backlog |
 | 2 | **EBITDA** in v1 or Phase F+ only? | Imported §5.5 | Open |
-| 3 | **Utilization formula** — match Operations exactly or planning-specific capacity? | FOS discovery | Open |
-| 4 | **Scenario variants** — duplicate scenario vs in-scenario branches? | FOS discovery | **Resolved:** duplicate → **`working`** scenario; sensitivity strip for single-variable (T1.2, T2.1) |
-| 5 | **Profile versioning** — pin `profileVersion` on scenario reference? | FOS discovery | **Resolved:** required (T2.5) |
-| 6 | **Legacy spreadsheet import** — one-time migration vs seed-only? | FOS discovery | Open |
-| 7 | **Compare MVP** — full side-by-side tables vs KPI delta strip only? | Imported §5.6 | **Resolved:** both — full compare + sensitivity strip (T2.1, T2.4) |
+| 3 | **Utilization formula** - match Operations exactly or planning-specific capacity? | FOS discovery | Open |
+| 4 | **Scenario variants** - duplicate scenario vs in-scenario branches? | FOS discovery | **Resolved:** duplicate → **`working`** scenario; sensitivity strip for single-variable (T1.2, T2.1) |
+| 5 | **Profile versioning** - pin `profileVersion` on scenario reference? | FOS discovery | **Resolved:** required (T2.5) |
+| 6 | **Legacy spreadsheet import** - one-time migration vs seed-only? | FOS discovery | Open |
+| 7 | **Compare MVP** - full side-by-side tables vs KPI delta strip only? | Imported §5.6 | **Resolved:** both - full compare + sensitivity strip (T2.1, T2.4) |
 | 8 | **Sensitivity analysis** depth in Phase G? | Imported §5.6 | **Resolved:** one-variable KPI delta in v1 (T2.1); multi-variable tornado backlog |
 | 9 | **Investor export format** (PDF, HTML, CSV)? | Imported §12 | Phase G board snapshot first (T2.6); Phase J polished investor pack |
-| 10 | **QuickBooks** — MCP vs direct API; which entities first? | Imported §5.7 | Open |
+| 10 | **QuickBooks** - MCP vs direct API; which entities first? | Imported §5.7 | Open |
 | 11 | **Multi-company / multi-entity** support? | Imported §12 | Open |
 | 12 | **Shard** `model.json` vs `years/YYYY.json` / separate `computed.json`? | FOS discovery | Open |
 | 13 | **Data refresh cadence** for Fibery seed (manual only vs scheduled)? | Imported §12 | Open |
 
 ## Related documents
 
-- [`docs/financial_scenario_modeling_prd.md`](../financial_scenario_modeling_prd.md) — imported full PRD (external stack recommendations superseded by this feature file).
-- `docs/features/014-scenario-planning-implementation-plan.md` — not yet written.
-- `docs/FOS-Dashboard-PRD.md` — FR/AC when Phase A ships.
+- [`docs/financial_scenario_modeling_prd.md`](../financial_scenario_modeling_prd.md) - imported full PRD (external stack recommendations superseded by this feature file).
+- `docs/features/014-scenario-planning-implementation-plan.md` - not yet written.
+- `docs/FOS-Dashboard-PRD.md` - FR/AC when Phase A ships.
 
 ## Changelog
 

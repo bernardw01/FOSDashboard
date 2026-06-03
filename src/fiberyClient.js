@@ -1,5 +1,5 @@
 /**
- * PRD version 2.7.0 â€” sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.7.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Fibery REST API client (Apps Script UrlFetchApp).
  *
@@ -7,13 +7,13 @@
  *   FIBERY_API_TOKEN (read-only on the server; never returned to the client).
  * - Targets the workspace identified by Script Property FIBERY_HOST
  *   (e.g. "harpin-ai.fibery.io"; no scheme, no trailing slash).
- * - Sends one or more {command, args} objects per POST to /api/commands â€”
+ * - Sends one or more {command, args} objects per POST to /api/commands  - 
  *   Fibery returns a same-length array of results.
  *
  * Public:
- *   fiberyQuery_(query)             â€” single fibery.entity/query command
- *   fiberyBatchQuery_(queries)      â€” N commands in one round-trip
- *   fiberyPing_()                   â€” fibery/version, for diagnostics
+ *   fiberyQuery_(query)             - single fibery.entity/query command
+ *   fiberyBatchQuery_(queries)      - N commands in one round-trip
+ *   fiberyPing_()                   - fibery/version, for diagnostics
  *
  * No payloads or tokens are logged. Errors are mapped to a small {ok:false,reason}
  * shape so the caller can render a friendly message without leaking internals.
@@ -32,7 +32,7 @@ var FIBERY_HTTP_TIMEOUT_MS_ = 55000;
  * Executes a single fibery.entity/query command. Convenience wrapper around
  * fiberyBatchQuery_ for the one-query case.
  *
- * @param {!Object} queryOrSpec Either a bare query body (`q/from`, `q/select`, â€¦)
+ * @param {!Object} queryOrSpec Either a bare query body (`q/from`, `q/select`, ...)
  *   or a `{ query, params }` object matching the args shape.
  * @return {!{ ok: true, rows: !Array }|!{ ok: false, reason: string, message: string }}
  */

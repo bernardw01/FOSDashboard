@@ -1,8 +1,8 @@
 # Feature: Expenses dashboard (spreadsheet-backed)
 
-> **PRD version 2.7.0** — shipped in web app **v2.5.0+** with **FR-109** / **AC-65**; nav under **Finance** group (**v2.5.1**); **Finance team / ADMIN only** (**v2.5.3**, broadened to **FINANCE team / EXEC / ADMIN** in **v2.6.1**); chart layout + risk map (**v2.5.5**–**v2.5.6**); customer table under Sankey (**v2.5.7**); **submission cycle by employee** chart (**v2.7.0**).
+> **PRD version 2.7.0** - shipped in web app **v2.5.0+** with **FR-109** / **AC-65**; nav under **Finance** group (**v2.5.1**); **Finance team / ADMIN only** (**v2.5.3**, broadened to **FINANCE team / EXEC / ADMIN** in **v2.6.1**); chart layout + risk map (**v2.5.5** - **v2.5.6**); customer table under Sankey (**v2.5.7**); **submission cycle by employee** chart (**v2.7.0**).
 
-> **Implementation plan:** [`docs/features/015-expenses-dashboard-implementation-plan.md`](015-expenses-dashboard-implementation-plan.md) — **Status:** implemented (PRD **2.5.0**).
+> **Implementation plan:** [`docs/features/015-expenses-dashboard-implementation-plan.md`](015-expenses-dashboard-implementation-plan.md) - **Status:** implemented (PRD **2.5.0**).
 
 ## Data source review
 
@@ -10,13 +10,13 @@
 
 ### Deployed schema (authoritative)
 
-The **`expenses`** tab in **`AUTH_SPREADSHEET_ID`** has **17** columns (**A–Q**). Exactly **one** column is named **`Vendor`** (payee). **`Transaction ID`** is the last column (`Q`).
+The **`expenses`** tab in **`AUTH_SPREADSHEET_ID`** has **17** columns (**A - Q**). Exactly **one** column is named **`Vendor`** (payee). **`Transaction ID`** is the last column (`Q`).
 
 ### Reference sample workbook (validation only)
 
 A **Year-to-Date Spend** `.xlsx` was used early in spec work (single sheet `sheet`, **1708** data rows in that file). **Do not** assume that file’s column count matches production: an extra trailing **`Vendor`** column existed in the export and has been **dropped** in the live sheet. All implementation and pivots MUST use § **Sheet columns (as deployed)** below.
 
-**Data-quality signals from that sample** (approximate — re-validate on current data):
+**Data-quality signals from that sample** (approximate - re-validate on current data):
 
 | Signal | Approx. count |
 | --- | ---: |
@@ -24,19 +24,19 @@ A **Year-to-Date Spend** `.xlsx` was used early in spec work (single sheet `shee
 | Rows missing **`Purchase date`** | **576** (**~34%**) → need **effective date fallback** |
 | Rows missing **`Posted Date`** | Many (posted often null on pending lines) |
 
-**Approval state** (sample distribution): includes `Actioned`, `Approved`, `Missing Requirements`, `Requested`, `(None)` — optional **filter-by-approval** for a later phase; v1 may show **`Approval state`** in the drawer only.
+**Approval state** (sample distribution): includes `Actioned`, `Approved`, `Missing Requirements`, `Requested`, `(None)` - optional **filter-by-approval** for a later phase; v1 may show **`Approval state`** in the drawer only.
 
 **Department** diversity (sample top): `Finance`, `Technology Delivery`, `Revenue Operations`, `Client Engagement`, `Solutions Engineering`, `Delivery Management`, `Product Management`, `Chief Operations Officer`, `Operations`, `Sales`.
 
 **Attributed customers** (sample top): e.g. `Princess Cruise Lines, Ltd.`, `Internal harpin`, `Travel + Leisure Operations, Inc.`, `Marriott International, Inc.` (full list emerges from sheet).
 
-### R0 — confirm on live Sheets tab
+### R0 - confirm on live Sheets tab
 
 1. Open **`AUTH_SPREADSHEET_ID`** → tab **`expenses`** (or configured name).
-2. Confirm **17** headers **A–Q** match § **Sheet columns (as deployed)** (one **`Vendor`** column).
+2. Confirm **17** headers **A - Q** match § **Sheet columns (as deployed)** (one **`Vendor`** column).
 3. Map each header to **canonical fields** via tolerant matching + overrides (same pattern as `AUTH_USERS_SHEET_NAME` / column overrides in `src/authUsersSheet.js`).
 
-**Minimum columns (product contract) — map from this export:**
+**Minimum columns (product contract) - map from this export:**
 
 | Canonical field | Source column | Notes |
 | --- | --- | --- |
@@ -72,10 +72,10 @@ A **Year-to-Date Spend** `.xlsx` was used early in spec work (single sheet `shee
 `expenseEffectiveDate = Purchase date ?? Posted Date ?? Submission Date`
 
 - Prefer **`Purchase date`** for charts when present (reflects behavior on the ground).
-- When null, cascade so **missing purchase date (~34% in sample)** still lands in a month bucket — otherwise charts under-count badly.
+- When null, cascade so **missing purchase date (~34% in sample)** still lands in a month bucket - otherwise charts under-count badly.
 - Optional `payload.warnings` entry when **>0 rows** relied on fallback (no per-row spam).
 
-**Zero amounts (dashboard scope):** After parsing **`Amount by category`**, **drop** any row whose amount is effectively **nil spend** (`amount === 0` or **`Math.abs(amount) ≤ $0.005`** to ignore float/format dust). Such rows MUST **not** appear in **`rows[]`**, KPI totals, charts, the main grid, drawer drill-downs, or CSV export — only **non-material** spreadsheet lines remain in Sheet for audit; the dashboard is **non-zero spend only**.
+**Zero amounts (dashboard scope):** After parsing **`Amount by category`**, **drop** any row whose amount is effectively **nil spend** (`amount === 0` or **`Math.abs(amount) ≤ $0.005`** to ignore float/format dust). Such rows MUST **not** appear in **`rows[]`**, KPI totals, charts, the main grid, drawer drill-downs, or CSV export - only **non-material** spreadsheet lines remain in Sheet for audit; the dashboard is **non-zero spend only**.
 
 ---
 
@@ -98,7 +98,7 @@ Add a **top-level** navigation route **Expenses** that surfaces **spend by depar
 
 - Writing back to the sheet or approving expenses in-app.
 - Replacing QuickBooks or the spreadsheet as the system of record.
-- Fibery integration (unless later linked by customer name to `companies[]` — optional future).
+- Fibery integration (unless later linked by customer name to `companies[]` - optional future).
 
 ---
 
@@ -119,24 +119,24 @@ Use **dark Operations / Agreement chrome**: `#panel-expenses.fos-agreement-root`
 ### A. Header row
 
 - Title: **Expenses**
-- Subtitle: data range covered (min–max **`effectiveDate`** in filtered set), **row count**, **last refreshed** timestamp from server.
-- **Refresh** (manual) + optional **Auto-refresh** / TTL (follow Agreement / Revenue review pattern; respect snapshot mode — see § Snapshot mode).
+- Subtitle: data range covered (min - max **`effectiveDate`** in filtered set), **row count**, **last refreshed** timestamp from server.
+- **Refresh** (manual) + optional **Auto-refresh** / TTL (follow Agreement / Revenue review pattern; respect snapshot mode - see § Snapshot mode).
 - **Filters** (collapsible or inline):
-  - **Date range** (defaults e.g. last **12** complete months + current month, or “all time” if row count is small — product choice in R0).
-  - **Department** (multi-select or “All”).
-  - **Customer** (All / Attributed only / Unattributed only / pick customer).
-  - **Search** (vendor, memo, **`Transaction ID`**, employee name — client-side over normalized rows).
+ - **Date range** (defaults e.g. last **12** complete months + current month, or “all time” if row count is small - product choice in R0).
+ - **Department** (multi-select or “All”).
+ - **Customer** (All / Attributed only / Unattributed only / pick customer).
+ - **Search** (vendor, memo, **`Transaction ID`**, employee name - client-side over normalized rows).
 
-### B. KPI strip (3–4 cards)
+### B. KPI strip (3 - 4 cards)
 
 | Card | Suggestion |
 | --- | --- |
 | **Total spend** | Sum of `amount` in current filter. |
 | **Customer-attributed** | Sum where `customer` non-empty; subtext: **% of total**. |
 | **Unattributed** | Sum where `customer` empty; subtext: **% of total**. |
-| **Departments** | Count of distinct `department` in filter (or “largest month” — optional fourth card). |
+| **Departments** | Count of distinct `department` in filter (or “largest month” - optional fourth card). |
 
-### C. Primary chart — **Spend by department by month**
+### C. Primary chart - **Spend by department by month**
 
 - **X-axis:** Month (`yyyy-mm` labels, chronological).
 - **Y-axis:** Currency (compact format, existing `formatMoneyCompact`).
@@ -147,10 +147,10 @@ Use **dark Operations / Agreement chrome**: `#panel-expenses.fos-agreement-root`
 
 ### D. **Spend by category by month** (stacked bar + drill-down)
 
-- **Placement:** Second primary chart card (below or beside § C — product choice on `lg` breakpoint).
+- **Placement:** Second primary chart card (below or beside § C - product choice on `lg` breakpoint).
 - **X-axis:** Month (`yyyy-mm`), same filter window as the rest of the panel.
 - **Y-axis:** Currency (`formatMoneyCompact`).
-- **Series:** **Stacked bar** per month; each segment = **`Category`** (sheet column **Category** → normalized `category`). **Top N** categories by total spend in the filtered set; long tail merged into **Other** (same pattern as department chart; default **N = 8–10**, configurable constant).
+- **Series:** **Stacked bar** per month; each segment = **`Category`** (sheet column **Category** → normalized `category`). **Top N** categories by total spend in the filtered set; long tail merged into **Other** (same pattern as department chart; default **N = 8 - 10**, configurable constant).
 - **Empty / null category:** Bucket as **`Uncategorized`** (single stack color, listed in legend).
 - **Interaction (required):** **`onClick`** (or equivalent) on a **stack segment** resolves **month + category** (including **`Other`** / **`Uncategorized`** semantics) and opens the **same right-hand drawer** (§ G) listing **only** expense lines matching that **month ∩ category** (and still respecting global filters: department, customer, date range, search). Matches **Delivery** P&L chart → month drill-down pattern (`onClick` → modal/drawer), but filter dimension is **category** instead of revenue month items.
 - **Optional:** Click **month** baseline (total bar height) → drawer for **all** lines in that month (no category slice); legend click → highlight only (out of scope unless product asks).
@@ -166,7 +166,7 @@ Use **dark Operations / Agreement chrome**: `#panel-expenses.fos-agreement-root`
 - **Filters:** Respects the same date / department / employee / customer / search filters as the rest of the panel.
 - **Empty state:** Copy when no qualifying lines in the current filter.
 
-### F. Secondary section — **Customer attribution**
+### F. Secondary section - **Customer attribution**
 
 - **Horizontal bar** or **donut:** Top **customers** by attributed spend + **Unattributed** bucket.
 - Small table: Customer · Total · % of attributed · % of overall.
@@ -176,7 +176,7 @@ Use **dark Operations / Agreement chrome**: `#panel-expenses.fos-agreement-root`
 
 - One row per **expense line** (post-filter), default columns: **Purchase date · Effective date (if differs) · Amount · Currency · Department · GL Customer · Vendor · Category · Activity type · Employee · Approval state · Transaction ID · Memo** (trim for density; drawer shows full detail).
 - Sortable headers (client-side), paginate or virtualize if >500 rows (R0: cap server rows with `EXPENSES_MAX_ROWS` + `partial: true` warning).
-- Row click / Enter → same **drawer** for that single line (or multi-select later — out of scope v1).
+- Row click / Enter → same **drawer** for that single line (or multi-select later - out of scope v1).
 
 ### H. Right slide-out drawer (drill-down)
 
@@ -190,7 +190,7 @@ Reuse **`.fos-util-drawer`** pattern (backdrop + `open` class, close affordance,
 **Contexts to support (v1):**
 
 1. From **department** chart: `{ month, department? }`
-2. From **category** chart: `{ month, category }` — category is the **display** bucket name (`Other`, `Uncategorized` included)
+2. From **category** chart: `{ month, category }` - category is the **display** bucket name (`Other`, `Uncategorized` included)
 3. From customer viz: `{ customer | UNATTRIBUTED }`
 4. From main table: `{ rowId }` or full row payload passed client-side
 
@@ -248,26 +248,26 @@ Reuse **`.fos-util-drawer`** pattern (backdrop + `open` class, close affordance,
 ### Normalized row (server → client)
 
 ```ts
-/** Example shape — finalize in implementation. Only non-zero spend rows (see spec). */
+/** Example shape - finalize in implementation. Only non-zero spend rows (see spec). */
 {
-  id: string;              // row index + fetchedAt or Transaction ID when present
-  purchaseDate: string | null;   // yyyy-mm-dd
-  effectiveDate: string;       // yyyy-mm-dd (after fallback chain)
-  amount: number;              // always |amount| > 0.005 after server filter
-  currencyCode?: string;   // e.g. USD
-  department: string;
-  customer: string;        // from GL Customer Name; empty => unattributed
-  vendor?: string;
-  category?: string;
-  activityType?: string;
-  employeeId?: string;
-  employeeName?: string;
-  memo?: string;
-  submissionDate?: string | null;
-  postedDate?: string | null;
-  approvalState?: string | null;
-  attendees?: string | null;
-  transactionId?: string | null;
+ id: string; // row index + fetchedAt or Transaction ID when present
+ purchaseDate: string | null; // yyyy-mm-dd
+ effectiveDate: string; // yyyy-mm-dd (after fallback chain)
+ amount: number; // always |amount| > 0.005 after server filter
+ currencyCode?: string; // e.g. USD
+ department: string;
+ customer: string; // from GL Customer Name; empty => unattributed
+ vendor?: string;
+ category?: string;
+ activityType?: string;
+ employeeId?: string;
+ employeeName?: string;
+ memo?: string;
+ submissionDate?: string | null;
+ postedDate?: string | null;
+ approvalState?: string | null;
+ attendees?: string | null;
+ transactionId?: string | null;
 }
 ```
 
@@ -275,8 +275,8 @@ Reuse **`.fos-util-drawer`** pattern (backdrop + `open` class, close affordance,
 
 - Input set = server payload **`rows`** (already excludes zero amounts).
 - Month key from **`effectiveDate`** (never from purchase-only if absent).
-- `byMonthDept: Map<yyyy-mm, Map<department, sum>>` — § C chart
-- `byMonthCategory: Map<yyyy-mm, Map<categoryDisplay, sum>>` — § D chart (**`Uncategorized`**, **`Other`** as needed)
+- `byMonthDept: Map<yyyy-mm, Map<department, sum>>` - § C chart
+- `byMonthCategory: Map<yyyy-mm, Map<categoryDisplay, sum>>` - § D chart (**`Uncategorized`**, **`Other`** as needed)
 - `byCustomer: Map<customerKey, sum>` including `''` → Unattributed
 - Derived: KPIs, chart series, table rows, drawer filters
 
@@ -289,7 +289,7 @@ Reuse **`.fos-util-drawer`** pattern (backdrop + `open` class, close affordance,
 - `SpreadsheetApp.openById(AUTH_SPREADSHEET_ID).getSheetByName(...).getDataRange().getValues()`.
 - Header row detection + tolerant column match (reuse `findHeaderIndex_` style from auth).
 - Date parsing: support Sheets `Date` objects and ISO-like strings.
-- Amount parsing: `Number`, strip `$`, handle parentheses negatives if finance uses accounting notation — then **discard** row if **`Math.abs(parsedAmount) ≤ 0.005`** (treat as zero for dashboard purposes; no warning per row unless product wants an aggregate “N zero-amount rows skipped” in **`payload.meta`** optional).
+- Amount parsing: `Number`, strip `$`, handle parentheses negatives if finance uses accounting notation - then **discard** row if **`Math.abs(parsedAmount) ≤ 0.005`** (treat as zero for dashboard purposes; no warning per row unless product wants an aggregate “N zero-amount rows skipped” in **`payload.meta`** optional).
 
 ### Client
 
@@ -300,13 +300,13 @@ Reuse **`.fos-util-drawer`** pattern (backdrop + `open` class, close affordance,
 
 ## Edge cases
 
-- **Missing columns:** Fail soft — if `department` missing, show single “Unknown” series and log warning.
+- **Missing columns:** Fail soft - if `department` missing, show single “Unknown” series and log warning.
 - **Missing category:** Blank / null **`Category`** cell → **`Uncategorized`** bucket in § D chart and drawer drill-down titles.
 - **Bad dates / amounts:** Skip row with warning counter in `payload.warnings` (invalid/unparseable).
 - **Zero / immaterial amounts:** Omit from payload (**no** KPI/chart/table/drawer/CSV visibility); epsilon **$0.005** aligns with Revenue review variance materiality elsewhere in app.
-- **Ambiguous headers:** If two columns share the same header label, header-based lookup is unsafe — fail with a clear **`payload.warnings`** message (unique names or explicit column-index mapping required).
-- **Effective date cascade:** Rows with **all three** dates null — skip row or park under **“Undated”** bucket with KPI warning (rare).
-- **Timezone:** Month bucket uses **consistent** TZ (recommend **America/Chicago** to match snapshot job, or **user local** — pick one in R0).
+- **Ambiguous headers:** If two columns share the same header label, header-based lookup is unsafe - fail with a clear **`payload.warnings`** message (unique names or explicit column-index mapping required).
+- **Effective date cascade:** Rows with **all three** dates null - skip row or park under **“Undated”** bucket with KPI warning (rare).
+- **Timezone:** Month bucket uses **consistent** TZ (recommend **America/Chicago** to match snapshot job, or **user local** - pick one in R0).
 
 ---
 
@@ -362,27 +362,27 @@ Reuse **`.fos-util-drawer`** pattern (backdrop + `open` class, close affordance,
 
 | Date | Change |
 | --- | --- |
-| 2026-05-27 | **v2.5.8** — Expenses drilldowns now use a sortable **modal table** (no slide-out drawer); copy CSV shows temporary **Data copied to clipboard** alert. |
-| 2026-05-27 | **v2.5.7** — **Customer attribution** table directly under Sankey; risk map MoM **0%** when prior month spend is zero. |
-| 2026-05-27 | **v2.5.6** — **Software vendor risk map:** Software category only; bubbles = vendors (color = vendor); **focus-month** range slider; metrics per selected month. |
-| 2026-05-27 | **v2.5.5** — Dept + category monthly charts **side by side**; **software × vendor × month** stacked bar; **category risk map** bubble (MoM % vs YTD, txn size, quadrant interpretation). Script Properties **`EXPENSES_SOFTWARE_CATEGORY_MATCH`**, **`EXPENSES_CHART_VENDOR_TOP_N`**. |
-| 2026-05-27 | **v2.5.3** — **Clear all filters**; **Finance** `Team` or **ADMIN** `Role` required (nav + server). |
-| 2026-05-28 | **v2.6.1** — Access broadened: visible when **any** of `Team = FINANCE`, `Role = EXEC`, or `Role = ADMIN` (`canAccessExpensesDashboard_`). |
-| 2026-05-27 | **v2.5.2** — Removed **Expense lines** table; **Sankey** (dept → attributed/unattributed → customer); checkbox multi-select filters (dept, employee, customer) + summary/chips. |
-| 2026-05-27 | **Nav v2.5.1** — **Expenses** moved under new sidebar **Finance** group (after **Delivery**); route id unchanged. |
-| 2026-05-27 | **Shipped v2.5.0** — feature doc + plan status updated; implementation checklist marked done (R0 remains operator). |
-| 2026-05-27 | **[Implementation plan](015-expenses-dashboard-implementation-plan.md)** — phased server/client/nav/charts/drawer/test checklist added. |
+| 2026-05-27 | **v2.5.8** - Expenses drilldowns now use a sortable **modal table** (no slide-out drawer); copy CSV shows temporary **Data copied to clipboard** alert. |
+| 2026-05-27 | **v2.5.7** - **Customer attribution** table directly under Sankey; risk map MoM **0%** when prior month spend is zero. |
+| 2026-05-27 | **v2.5.6** - **Software vendor risk map:** Software category only; bubbles = vendors (color = vendor); **focus-month** range slider; metrics per selected month. |
+| 2026-05-27 | **v2.5.5** - Dept + category monthly charts **side by side**; **software × vendor × month** stacked bar; **category risk map** bubble (MoM % vs YTD, txn size, quadrant interpretation). Script Properties **`EXPENSES_SOFTWARE_CATEGORY_MATCH`**, **`EXPENSES_CHART_VENDOR_TOP_N`**. |
+| 2026-05-27 | **v2.5.3** - **Clear all filters**; **Finance** `Team` or **ADMIN** `Role` required (nav + server). |
+| 2026-05-28 | **v2.6.1** - Access broadened: visible when **any** of `Team = FINANCE`, `Role = EXEC`, or `Role = ADMIN` (`canAccessExpensesDashboard_`). |
+| 2026-05-27 | **v2.5.2** - Removed **Expense lines** table; **Sankey** (dept → attributed/unattributed → customer); checkbox multi-select filters (dept, employee, customer) + summary/chips. |
+| 2026-05-27 | **Nav v2.5.1** - **Expenses** moved under new sidebar **Finance** group (after **Delivery**); route id unchanged. |
+| 2026-05-27 | **Shipped v2.5.0** - feature doc + plan status updated; implementation checklist marked done (R0 remains operator). |
+| 2026-05-27 | **[Implementation plan](015-expenses-dashboard-implementation-plan.md)** - phased server/client/nav/charts/drawer/test checklist added. |
 | 2026-05-27 | **Category × month stacked bar:** Second chart (**`Category`** stacks, top N + **Other**, **Uncategorized**); **segment click** → drawer with underlying transactions (**month ∩ category**). Aggregations **`byMonthCategory`**, Chart.js **`onClick`**, AC + verification expanded. Optional **`EXPENSES_CHART_CATEGORY_TOP_N`**. |
 | 2026-05-27 | **Zero-amount rows:** Omit from **`rows`** and all aggregates/UI/export after parse; **`|amount| ≤ $0.005`** epsilon. Server filter + acceptance + verification updated. |
-| 2026-05-27 | **Sheet schema finalized:** **`expenses`** = **17** columns **A–Q**; single **`Vendor`**; **`Transaction ID`** in column **Q**. Reference `.xlsx` had an obsolete second **`Vendor`** — removed from spec narrative; quirks/R0/checklist normalized. Consolidated changelog entries. |
+| 2026-05-27 | **Sheet schema finalized:** **`expenses`** = **17** columns **A - Q**; single **`Vendor`**; **`Transaction ID`** in column **Q**. Reference `.xlsx` had an obsolete second **`Vendor`** - removed from spec narrative; quirks/R0/checklist normalized. Consolidated changelog entries. |
 | 2026-05-27 | Initial proposal: top-level Expenses route, department × month, customer attribution, drawer drill-down. |
 
 ---
 
 ## References
 
-- `src/authUsersSheet.js` — spreadsheet read + header tolerance.
-- `src/DashboardShell.html` — `.fos-util-drawer`, panel patterns, `formatMoneyCompact`.
-- `src/Code.js` — `buildNavigationModel_()` for top-level routes.
-- `docs/features/010-dashboard-historical-data-source.md` — Live vs snapshot (FR-105).
-- `docs/features/004-user-activity-logging.md` — activity whitelist pattern.
+- `src/authUsersSheet.js` - spreadsheet read + header tolerance.
+- `src/DashboardShell.html` - `.fos-util-drawer`, panel patterns, `formatMoneyCompact`.
+- `src/Code.js` - `buildNavigationModel_()` for top-level routes.
+- `docs/features/010-dashboard-historical-data-source.md` - Live vs snapshot (FR-105).
+- `docs/features/004-user-activity-logging.md` - activity whitelist pattern.

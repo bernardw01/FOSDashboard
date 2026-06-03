@@ -1,6 +1,6 @@
 # Dashboard historical snapshots
 
-> **PRD version 2.6.8** — see `docs/FOS-Dashboard-PRD.md` (**FR-42**, **FR-40**, **FR-104**, **AC-60**).
+> **PRD version 2.6.8** - see `docs/FOS-Dashboard-PRD.md` (**FR-42**, **FR-40**, **FR-104**, **AC-60**).
 
 ## Goal
 
@@ -8,7 +8,7 @@ Run a **daily scheduled job** that captures the normalized JSON payloads used by
 
 ## Status
 
-**Delivered v2.0.0** — server job + Drive storage. **UI (data source selector):** [010-dashboard-historical-data-source.md](010-dashboard-historical-data-source.md) (**v2.1.0**).
+**Delivered v2.0.0** - server job + Drive storage. **UI (data source selector):** [010-dashboard-historical-data-source.md](010-dashboard-historical-data-source.md) (**v2.1.0**).
 
 ## Storage layout (Option A)
 
@@ -16,14 +16,14 @@ Root folder: Script Property **`FOS_SNAPSHOT_DRIVE_FOLDER_ID`** (create via **`e
 
 ```
 <root>/
-  index.json                 # rolling catalog of recent snapshot dates
-  YYYY-MM-DD/
-    manifest.json
-    agreement.json
-    utilization.json
-    delivery-projects.json
-    delivery-pnl/
-      <agreementId>.json
+ index.json # rolling catalog of recent snapshot dates
+ YYYY-MM-DD/
+ manifest.json
+ agreement.json
+ utilization.json
+ delivery-projects.json
+ delivery-pnl/
+ <agreementId>.json
 ```
 
 ### Manifest (`snapshotManifestVersion: 1`)
@@ -47,7 +47,7 @@ Root folder: Script Property **`FOS_SNAPSHOT_DRIVE_FOLDER_ID`** (create via **`e
 
 | Property | Default | Purpose |
 |----------|---------|---------|
-| `FOS_SNAPSHOT_DRIVE_FOLDER_ID` | — | Required after setup |
+| `FOS_SNAPSHOT_DRIVE_FOLDER_ID` | - | Required after setup |
 | `FOS_SNAPSHOT_TIMEZONE` | `America/Chicago` | Snapshot calendar date |
 | `SNAPSHOT_UTILIZATION_LOOKBACK_DAYS` | `90` | Utilization window |
 | `SNAPSHOT_PNL_BATCH_SIZE` | `8` | Projects per execution (max 25) |
@@ -59,14 +59,14 @@ Root folder: Script Property **`FOS_SNAPSHOT_DRIVE_FOLDER_ID`** (create via **`e
 
 1. In the Apps Script editor, run **`ensureSnapshotDriveFolder()`** once (or set `FOS_SNAPSHOT_DRIVE_FOLDER_ID` manually).
 2. Run **`installDailySnapshotTrigger()`** as the account that should own snapshot files.
-3. Optional smoke test: **`_diag_runSnapshotForDate('2026-05-14')`** — always pass **`YYYY-MM-DD`** (the editor does not supply parameters if you click Run with no args; use **`_diag_runSnapshotForDate()`** with no args only on builds that default to today, or pass a string literal in the run dialog). Verify the date folder in Drive and a row on **Snapshot Runs**.
+3. Optional smoke test: **`_diag_runSnapshotForDate('2026-05-14')`** - always pass **`YYYY-MM-DD`** (the editor does not supply parameters if you click Run with no args; use **`_diag_runSnapshotForDate()`** with no args only on builds that default to today, or pass a string literal in the run dialog). Verify the date folder in Drive and a row on **Snapshot Runs**.
 4. List recent dates: **`_diag_listSnapshots()`**.
 5. Teardown: **`removeDailySnapshotTriggers()`**.
 
 ## Modules
 
-- `src/dashboardSnapshotStore.js` — Drive I/O, manifest, retention
-- `src/dashboardSnapshotJob.js` — orchestration, triggers, logging
+- `src/dashboardSnapshotStore.js` - Drive I/O, manifest, retention
+- `src/dashboardSnapshotJob.js` - orchestration, triggers, logging
 
 ## Out of scope
 

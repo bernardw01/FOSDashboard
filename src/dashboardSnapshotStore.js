@@ -1,13 +1,13 @@
 /**
- * PRD version 2.7.0 â€” sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.7.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Historical dashboard snapshot storage (Option A): Google Drive folder
  * with per-date subfolders, JSON artifacts, and a manifest per day.
  *
  * Script Properties:
- *   FOS_SNAPSHOT_DRIVE_FOLDER_ID   â€” required root folder id
- *   FOS_SNAPSHOT_TIMEZONE          â€” default America/Chicago
- *   SNAPSHOT_RETENTION_DAYS        â€” default 90
+ *   FOS_SNAPSHOT_DRIVE_FOLDER_ID   - required root folder id
+ *   FOS_SNAPSHOT_TIMEZONE          - default America/Chicago
+ *   SNAPSHOT_RETENTION_DAYS        - default 90
  */
 
 /** @const {number} */
@@ -46,7 +46,7 @@ function ensureSnapshotDriveFolder() {
       DriveApp.getFolderById(existing);
       return { ok: true, folderId: existing, created: false };
     } catch (e) {
-      /* fall through â€” recreate */
+      /* fall through - recreate */
     }
   }
   try {
@@ -423,7 +423,7 @@ function _diag_listSnapshots() {
 }
 
 /* ------------------------------------------------------------------------- */
-/* Authorized read API (Web App â€” historical data source UI).                 */
+/* Authorized read API (Web App - historical data source UI).                 */
 /* ------------------------------------------------------------------------- */
 
 /** @const {!Object<string, number>} */
@@ -509,12 +509,12 @@ function isSnapshotCatalogStatus_(status) {
  */
 function formatSnapshotCatalogLabel_(snapshotDate, status) {
   var parts = parseSnapshotDateParts_(snapshotDate);
-  var label = 'Snapshot â€” ' + snapshotDate;
+  var label = 'Snapshot - ' + snapshotDate;
   if (parts) {
     try {
       var d = new Date(parts.y, parts.m - 1, parts.d);
       label =
-        'Snapshot â€” ' +
+        'Snapshot - ' +
         Utilities.formatDate(d, resolveSnapshotTimezone_(), 'MMM d, yyyy');
     } catch (_) {
       /* keep ISO label */

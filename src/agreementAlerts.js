@@ -1,13 +1,13 @@
 /**
- * PRD version 2.7.0 â€” sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.7.0 - sync with docs/FOS-Dashboard-PRD.md
  *
- * Â§6 alert evaluation for the Agreement Management dashboard. Each rule maps
- * directly to agreement-dashboard-prd-v2.md Â§6.1â€“Â§6.7, plus v1.21.0
+ * Section 6 alert evaluation for the Agreement Management dashboard. Each rule maps
+ * directly to agreement-dashboard-prd-v2.md Section 6.1-Section 6.7, plus v1.21.0
  * delivery-risk heuristics (pacing, cost vs recognition, low recognition near
  * duration end). Output is a list of
- * { kind, severity, id, title, body, agreementId } cards sorted Critical â†’
- * Warning â†’ Informational, ready for the client to render in the Attention
- * Items panel (Â§7.7). Field `kind` groups cards in the UI: `margin`, `revenue`,
+ * { kind, severity, id, title, body, agreementId } cards sorted Critical  -> 
+ * Warning  ->  Informational, ready for the client to render in the Attention
+ * Items panel (Section 7.7). Field `kind` groups cards in the UI: `margin`, `revenue`,
  * `internal`, `renewal`, and `all_clear` (standalone, not grouped).
  */
 
@@ -22,9 +22,9 @@ var ALERT_SEV_INFO_ = 'info';
 var ALERT_SEV_RANK_ = { critical: 0, warning: 1, info: 2 };
 
 /**
- * Evaluates Â§6.1â€“Â§6.7 plus delivery-risk rules against the enriched agreement
+ * Evaluates Section 6.1-Section 6.7 plus delivery-risk rules against the enriched agreement
  * set + future revenue items. Returns an empty-but-valid list (one "all good"
- * info card) when no rule fires (Â§6.7).
+ * info card) when no rule fires (Section 6.7).
  *
  * @param {!Array<!Object>} agreements  Enriched per fiberyAgreementDashboard.js
  *   (each has `name`, `state`, `type`, `progress`, `customer`, `plannedRev`,
@@ -58,7 +58,7 @@ function evaluateAlerts_(agreements, futureRevenueItems, thresholds) {
         id: 'neg-margin:' + a.id,
         kind: 'margin',
         severity: ALERT_SEV_CRITICAL_,
-        title: a.name + ' â€” Negative Margin (' + formatMargin_(a.margin) + '%)',
+        title: a.name + ' - Negative Margin (' + formatMargin_(a.margin) + '%)',
         body:
           formatCurrency_(a.laborCosts) +
           ' in labor costs logged against ' +
@@ -83,7 +83,7 @@ function evaluateAlerts_(agreements, futureRevenueItems, thresholds) {
         id: 'low-margin:' + a.id,
         kind: 'margin',
         severity: ALERT_SEV_WARNING_,
-        title: a.name + ' â€” Low Margin (' + formatMargin_(a.margin) + '%)',
+        title: a.name + ' - Low Margin (' + formatMargin_(a.margin) + '%)',
         body:
           'Margin is below the ' +
           thresholds.lowMargin +
@@ -100,7 +100,7 @@ function evaluateAlerts_(agreements, futureRevenueItems, thresholds) {
         id: 'unsched:' + a.id,
         kind: 'revenue',
         severity: ALERT_SEV_WARNING_,
-        title: a.name + ' â€” Revenue Not Scheduled',
+        title: a.name + ' - Revenue Not Scheduled',
         body:
           'This agreement is in active delivery but revenue milestones are not scheduled. ' +
           'Activate the billing schedule in Fibery.',
@@ -114,7 +114,7 @@ function evaluateAlerts_(agreements, futureRevenueItems, thresholds) {
         id: 'internal-labor:' + a.id,
         kind: 'internal',
         severity: ALERT_SEV_WARNING_,
-        title: a.name + ' (Internal) â€” ' + formatCurrency_(a.laborCosts) + ' Unattributed Labor',
+        title: a.name + ' (Internal) - ' + formatCurrency_(a.laborCosts) + ' Unattributed Labor',
         body:
           'Internal agreement has significant labor costs with no associated revenue. ' +
           'Confirm these costs are captured in overhead budgeting.',
@@ -128,7 +128,7 @@ function evaluateAlerts_(agreements, futureRevenueItems, thresholds) {
         id: 'proposal-empty:' + a.id,
         kind: 'revenue',
         severity: ALERT_SEV_WARNING_,
-        title: a.name + ' â€” Proposal Pending Activation',
+        title: a.name + ' - Proposal Pending Activation',
         body:
           'Proposal is delivered but no revenue milestones have been created. ' +
           'Activate billing schedule if engagement is confirmed.',
@@ -144,14 +144,14 @@ function evaluateAlerts_(agreements, futureRevenueItems, thresholds) {
           id: 'expiring:' + a.id,
           kind: 'renewal',
           severity: ALERT_SEV_INFO_,
-          title: a.name + ' â€” Expiring in ' + Math.round(daysToEnd) + ' days',
+          title: a.name + ' - Expiring in ' + Math.round(daysToEnd) + ' days',
           body: 'Agreement is approaching its end date. Initiate renewal discussion if applicable.',
           agreementId: a.id,
         });
       }
     }
 
-    // v1.21.0 â€” Recognition pacing vs linear duration plan (non-Internal).
+    // v1.21.0 - Recognition pacing vs linear duration plan (non-Internal).
     if (
       a.type !== 'Internal' &&
       a.state === 'Delivery In Progress' &&
@@ -168,7 +168,7 @@ function evaluateAlerts_(agreements, futureRevenueItems, thresholds) {
             id: 'pace-behind:' + a.id,
             kind: 'revenue',
             severity: ALERT_SEV_WARNING_,
-            title: a.name + ' â€” Recognition behind linear plan',
+            title: a.name + ' - Recognition behind linear plan',
             body:
               'About ' +
               formatMargin_(elapsedFrac * 100) +
@@ -185,7 +185,7 @@ function evaluateAlerts_(agreements, futureRevenueItems, thresholds) {
       }
     }
 
-    // v1.21.0 â€” Labor + ODC materially above recognized revenue.
+    // v1.21.0 - Labor + ODC materially above recognized revenue.
     if (
       a.type !== 'Internal' &&
       Number(a.revRec || 0) >= 8000
@@ -196,7 +196,7 @@ function evaluateAlerts_(agreements, futureRevenueItems, thresholds) {
           id: 'cost-exceeds-rec:' + a.id,
           kind: 'margin',
           severity: ALERT_SEV_CRITICAL_,
-          title: a.name + ' â€” Costs exceed recognized revenue',
+          title: a.name + ' - Costs exceed recognized revenue',
           body:
             formatCurrency_(totalCost) +
             ' in labor + materials & ODC vs ' +
@@ -207,7 +207,7 @@ function evaluateAlerts_(agreements, futureRevenueItems, thresholds) {
       }
     }
 
-    // v1.21.0 â€” Low recognition with duration ending soon.
+    // v1.21.0 - Low recognition with duration ending soon.
     if (
       a.type !== 'Internal' &&
       a.state === 'Delivery In Progress' &&
@@ -226,7 +226,7 @@ function evaluateAlerts_(agreements, futureRevenueItems, thresholds) {
           id: 'low-rec-near-end:' + a.id,
           kind: 'revenue',
           severity: ALERT_SEV_WARNING_,
-          title: a.name + ' â€” Low recognition before duration end',
+          title: a.name + ' - Low recognition before duration end',
           body:
             'Ends in about ' +
             Math.round(daysLeft) +
@@ -286,7 +286,7 @@ function isNumber_(n) {
  */
 function formatMargin_(n) {
   if (!isNumber_(n)) {
-    return 'â€”';
+    return ' - ';
   }
   return (Math.round(n * 10) / 10).toString();
 }

@@ -1,5 +1,5 @@
 /**
- * PRD version 2.7.0 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.7.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Bundled favicon PNG bytes (base64). Mirrored to Drive for HtmlOutput.setFaviconUrl
  * (Apps Script ignores <link rel="icon"> in HTML files and rejects data: URLs).
@@ -83,7 +83,7 @@ function ensureFaviconDriveMirror_(blob, hash, props) {
       props.setProperty(FOS_FAVICON_CONTENT_HASH_PROP_, hash);
       return replacement.getId();
     } catch (e) {
-      /* fall through — create fresh */
+      /* fall through - create fresh */
     }
   }
 

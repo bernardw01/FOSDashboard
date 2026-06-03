@@ -38,21 +38,21 @@ Recommended structure:
 
 ```text
 project-root/
-  src/
-    main.ts
-    sheets.ts
-    ui.ts
-    services/
-    utils/
-  html/
-    index.html
-    sidebar.html
-  appsscript.json
-  package.json
-  tsconfig.json
-  .clasp.json
-  .claspignore
-  README.md
+ src/
+ main.ts
+ sheets.ts
+ ui.ts
+ services/
+ utils/
+ html/
+ index.html
+ sidebar.html
+ appsscript.json
+ package.json
+ tsconfig.json
+ .clasp.json
+ .claspignore
+ README.md
 ```
 
 Keep business logic separate from UI and platform-specific entry points.
@@ -118,15 +118,15 @@ Recommended `tsconfig.json`:
 
 ```json
 {
-  "compilerOptions": {
-    "target": "ES5",
-    "module": "none",
-    "outDir": "dist",
-    "rootDir": "src",
-    "types": ["google-apps-script"],
-    "strict": true,
-    "noImplicitAny": true
-  }
+ "compilerOptions": {
+ "target": "ES5",
+ "module": "none",
+ "outDir": "dist",
+ "rootDir": "src",
+ "types": ["google-apps-script"],
+ "strict": true,
+ "noImplicitAny": true
+ }
 }
 ```
 
@@ -152,7 +152,7 @@ Bad:
 
 ```ts
 rows.forEach((row, i) => {
-  sheet.getRange(i + 1, 1).setValue(row.name);
+ sheet.getRange(i + 1, 1).setValue(row.name);
 });
 ```
 
@@ -184,11 +184,11 @@ Recommended scripts in `package.json`:
 
 ```json
 {
-  "scripts": {
-    "build": "tsc",
-    "push": "npm run build && clasp push",
-    "deploy": "npm run build && clasp push && clasp version \"Release\" && clasp deploy"
-  }
+ "scripts": {
+ "build": "tsc",
+ "push": "npm run build && clasp push",
+ "deploy": "npm run build && clasp push && clasp version \"Release\" && clasp deploy"
+ }
 }
 ```
 
@@ -221,11 +221,11 @@ Use `PropertiesService`:
 
 ```ts
 function getConfigValue(key: string): string {
-  const value = PropertiesService.getScriptProperties().getProperty(key);
-  if (!value) {
-    throw new Error(`Missing required script property: ${key}`);
-  }
-  return value;
+ const value = PropertiesService.getScriptProperties().getProperty(key);
+ if (!value) {
+ throw new Error(`Missing required script property: ${key}`);
+ }
+ return value;
 }
 ```
 
@@ -249,12 +249,12 @@ Example:
 
 ```ts
 function safeGetLeads() {
-  try {
-    return { success: true, data: getLeads() };
-  } catch (error) {
-    console.error(error);
-    return { success: false, error: "Unable to load leads." };
-  }
+ try {
+ return { success: true, data: getLeads() };
+ } catch (error) {
+ console.error(error);
+ return { success: false, error: "Unable to load leads." };
+ }
 }
 ```
 
@@ -270,14 +270,14 @@ Example:
 
 ```html
 <script>
-  google.script.run
-    .withSuccessHandler(function(result) {
-      console.log(result);
-    })
-    .withFailureHandler(function(error) {
-      console.error(error);
-    })
-    .safeGetLeads();
+ google.script.run
+ .withSuccessHandler(function(result) {
+ console.log(result);
+ })
+ .withFailureHandler(function(error) {
+ console.error(error);
+ })
+ .safeGetLeads();
 </script>
 ```
 
@@ -299,9 +299,9 @@ Example:
 
 ```ts
 const SHEETS = {
-  leads: "Leads",
-  clients: "Clients",
-  logs: "Logs"
+ leads: "Leads",
+ clients: "Clients",
+ logs: "Logs"
 } as const;
 ```
 
@@ -309,10 +309,10 @@ Prefer this shape:
 
 ```ts
 type Lead = {
-  name: string;
-  email: string;
-  phone?: string;
-  status: string;
+ name: string;
+ email: string;
+ phone?: string;
+ status: string;
 };
 ```
 
@@ -391,7 +391,7 @@ Requires:
 
 ```ts
 function doGet() {
-  return HtmlService.createHtmlOutputFromFile("index");
+ return HtmlService.createHtmlOutputFromFile("index");
 }
 ```
 
@@ -403,10 +403,10 @@ Usually requires:
 
 ```ts
 function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu("Custom App")
-    .addItem("Open Sidebar", "showSidebar")
-    .addToUi();
+ SpreadsheetApp.getUi()
+ .createMenu("Custom App")
+ .addItem("Open Sidebar", "showSidebar")
+ .addToUi();
 }
 ```
 
@@ -436,8 +436,8 @@ Example:
 
 ```ts
 function test_getLeads() {
-  const leads = getLeads();
-  Logger.log(JSON.stringify(leads, null, 2));
+ const leads = getLeads();
+ Logger.log(JSON.stringify(leads, null, 2));
 }
 ```
 
@@ -464,9 +464,9 @@ Example:
 const lock = LockService.getScriptLock();
 lock.waitLock(30000);
 try {
-  // critical write operation
+ // critical write operation
 } finally {
-  lock.releaseLock();
+ lock.releaseLock();
 }
 ```
 

@@ -1,16 +1,16 @@
-# Admin settings — environment configuration panel
+# Admin settings - environment configuration panel
 
-> **PRD version 2.2.0** — see `docs/FOS-Dashboard-PRD.md` (**FR-106**, **AC-62**).
+> **PRD version 2.2.0** - see `docs/FOS-Dashboard-PRD.md` (**FR-106**, **AC-62**).
 
 ## Goal
 
-Give **ADMIN** users a **Settings** surface in the Web App (replacing the current “Coming soon” placeholder) to view and edit **Apps Script Script Properties** that tune dashboard behavior—grouped by functional area—with **tooltips**, **validation**, and a **“use built-in default”** toggle for every setting that has a code default.
+Give **ADMIN** users a **Settings** surface in the Web App (replacing the current “Coming soon” placeholder) to view and edit **Apps Script Script Properties** that tune dashboard behavior - grouped by functional area - with **tooltips**, **validation**, and a **“use built-in default”** toggle for every setting that has a code default.
 
 Non-admin users must **not** see or invoke this panel.
 
 ## Status
 
-**Delivered v2.2.0** — ADMIN-only Settings panel; non-admins do not see the sidebar link. `AUTH_SPREADSHEET_ID` and `FOS_SNAPSHOT_DRIVE_FOLDER_ID` are read-only in the UI.
+**Delivered v2.2.0** - ADMIN-only Settings panel; non-admins do not see the sidebar link. `AUTH_SPREADSHEET_ID` and `FOS_SNAPSHOT_DRIVE_FOLDER_ID` are read-only in the UI.
 
 ## Background
 
@@ -32,7 +32,7 @@ The **Settings** control in the sidebar (`#settings-link`, FR-10b) opens a **com
 |------|--------|
 | Source of truth | Users sheet **`Role`** column ([feature 002](002-spreadsheet-user-authorization.md)). |
 | Match | `String(role).trim().toUpperCase() === 'ADMIN'`. |
-| Server | Every admin API MUST call `requireAuthForApi_()` then `requireAdminRole_(auth)`; non-admin → safe error (`NOT_AUTHORIZED` or `FORBIDDEN` — pick one and document). |
+| Server | Every admin API MUST call `requireAuthForApi_()` then `requireAdminRole_(auth)`; non-admin → safe error (`NOT_AUTHORIZED` or `FORBIDDEN` - pick one and document). |
 | Client | Navigation model includes `isAdmin: boolean`. Settings link behavior: **ADMIN** → `showSettingsPanel()`; **non-admin** → hide link **or** keep link with “Contact your administrator” (product choice: **hide** recommended). |
 | Sheet ops | Admins are assigned by editing the Users tab; no in-app role promotion in v1. |
 
@@ -41,12 +41,12 @@ The **Settings** control in the sidebar (`#settings-link`, FR-10b) opens a **com
 ### Entry and layout
 
 - **Route id:** `settings` (new top-level panel, not nested under Operations/Delivery).
-- **Trigger:** Click **Settings** (gear) at the bottom of the sidebar—same `.fos-nav-btn` chrome as today.
+- **Trigger:** Click **Settings** (gear) at the bottom of the sidebar - same `.fos-nav-btn` chrome as today.
 - **Panel:** `#panel-settings` in `#main-panel`, consistent with other dashboards (topbar title **Settings**, dark card sections).
 - **Structure:**
-  1. Page intro (one paragraph): changes apply to **all users** of this Apps Script deployment; may take effect on next dashboard fetch or refresh.
-  2. **Accordion or stacked cards** per **group** (see below).
-  3. Sticky footer: **Save changes** (primary), **Discard** (secondary), **last saved** timestamp + optional “N unsaved changes” badge.
+ 1. Page intro (one paragraph): changes apply to **all users** of this Apps Script deployment; may take effect on next dashboard fetch or refresh.
+ 2. **Accordion or stacked cards** per **group** (see below).
+ 3. Sticky footer: **Save changes** (primary), **Discard** (secondary), **last saved** timestamp + optional “N unsaved changes” badge.
 
 ### Per-setting controls
 
@@ -55,9 +55,9 @@ The **Settings** control in the sidebar (`#settings-link`, FR-10b) opens a **com
 | **Label** | Human-readable name (not necessarily the Script Property key). |
 | **Key** | Monospace sublabel, e.g. `UTILIZATION_TARGET_PERCENT` (read-only). |
 | **Tooltip** | Bootstrap tooltip or `title` + info icon (`bi-info-circle`); documents purpose, units, and valid range. |
-| **Use default** toggle | When **on**: field disabled; server **deletes** the Script Property key (or companion override flag—see data model); UI shows resolved default value as hint text. When **off**: user edits custom value. |
+| **Use default** toggle | When **on**: field disabled; server **deletes** the Script Property key (or companion override flag - see data model); UI shows resolved default value as hint text. When **off**: user edits custom value. |
 | **Value input** | Type-appropriate: number, boolean (switch), short text, CSV text, JSON textarea (validated on save). |
-| **Required** badge | For keys with no default (e.g. `AUTH_SPREADSHEET_ID`) — toggle hidden; empty = misconfiguration warning. |
+| **Required** badge | For keys with no default (e.g. `AUTH_SPREADSHEET_ID`) - toggle hidden; empty = misconfiguration warning. |
 | **Sensitive** | Masked display; never echo full secret on load (see security). |
 
 ### Groups (display order)
@@ -66,17 +66,17 @@ Groups align with README / feature specs so admins think in product terms:
 
 | Group id | Title | Feature specs |
 |----------|--------|-----------------|
-| `platform-auth` | **Platform — Authorization & sheets** | [002](002-spreadsheet-user-authorization.md) |
-| `platform-activity` | **Platform — User activity logging** | [004](004-user-activity-logging.md) |
-| `fibery-api` | **Fibery — API connection** | [003](003-agreement-dashboard-fibery-client-cache.md), [005](005-utilization-management-dashboard.md) |
-| `fibery-deeplinks` | **Fibery — Deep link templates** | [005](005-utilization-management-dashboard.md), [008](008-revenue-review-dashboard.md) |
+| `platform-auth` | **Platform - Authorization & sheets** | [002](002-spreadsheet-user-authorization.md) |
+| `platform-activity` | **Platform - User activity logging** | [004](004-user-activity-logging.md) |
+| `fibery-api` | **Fibery - API connection** | [003](003-agreement-dashboard-fibery-client-cache.md), [005](005-utilization-management-dashboard.md) |
+| `fibery-deeplinks` | **Fibery - Deep link templates** | [005](005-utilization-management-dashboard.md), [008](008-revenue-review-dashboard.md) |
 | `agreement` | **Agreement Dashboard** | [003](003-agreement-dashboard-fibery-client-cache.md) |
 | `utilization` | **Utilization (Operations)** | [005](005-utilization-management-dashboard.md) |
 | `labor-hours` | **Labor hours** | [007](007-labor-hours-dashboard.md) |
-| `delivery` | **Delivery — Projects & P&L** | [006](006-delivery-project-pnl.md) |
+| `delivery` | **Delivery - Projects & P&L** | [006](006-delivery-project-pnl.md) |
 | `snapshots` | **Historical snapshots** | [009](009-dashboard-historical-snapshots.md), [010](010-dashboard-historical-data-source.md) |
 
-Optional **v1.1** group `snapshots-ops`: read-only status (last run, folder id) + links to editor functions—out of scope for v1 unless explicitly approved.
+Optional **v1.1** group `snapshots-ops`: read-only status (last run, folder id) + links to editor functions - out of scope for v1 unless explicitly approved.
 
 ### Visual / a11y
 
@@ -91,18 +91,18 @@ Introduce **`src/adminSettingsRegistry.js`** (name tentative) exporting a **read
 
 ```javascript
 {
-  key: 'UTILIZATION_TARGET_PERCENT',
-  group: 'utilization',
-  label: 'Target utilization %',
-  description: 'Top of the green utilization band; used in KPI coloring and alerts.',
-  type: 'number',           // number | boolean | string | csv | json
-  defaultValue: 85,         // null if no code default
-  min: 1,
-  max: 100,
-  required: false,
-  sensitive: false,
-  allowDefaultToggle: true, // false when defaultValue === null
-  validate: function(value) { ... }  // optional server-side
+ key: 'UTILIZATION_TARGET_PERCENT',
+ group: 'utilization',
+ label: 'Target utilization %',
+ description: 'Top of the green utilization band; used in KPI coloring and alerts.',
+ type: 'number', // number | boolean | string | csv | json
+ defaultValue: 85, // null if no code default
+ min: 1,
+ max: 100,
+ required: false,
+ sensitive: false,
+ allowDefaultToggle: true, // false when defaultValue === null
+ validate: function(value) { ... } // optional server-side
 }
 ```
 
@@ -110,7 +110,7 @@ Introduce **`src/adminSettingsRegistry.js`** (name tentative) exporting a **read
 
 **Persistence rule (write):** if **use default** → `deleteProperty(key)`; else `setProperty(key, serializedValue)`.
 
-Do **not** duplicate default literals in the registry and threshold modules long-term—registry defaults should match `*_DEFAULT_` constants or import shared defaults in a follow-up refactor.
+Do **not** duplicate default literals in the registry and threshold modules long-term - registry defaults should match `*_DEFAULT_` constants or import shared defaults in a follow-up refactor.
 
 ## Setting catalog (v1 scope)
 
@@ -118,32 +118,32 @@ Do **not** duplicate default literals in the registry and threshold modules long
 
 All keys below exist today unless marked **v1 read-only**. Tooltips in the implementation should be copied from the **Tooltip** column (expanded in UI).
 
-#### Platform — Authorization & sheets
+#### Platform - Authorization & sheets
 
 | Key | Default | Type | Tooltip (summary) |
 |-----|---------|------|-------------------|
-| `AUTH_SPREADSHEET_ID` | — | string | **Required.** Google Sheet ID for Users + activity tabs. Wrong ID fails closed for all users. |
+| `AUTH_SPREADSHEET_ID` | - | string | **Required.** Google Sheet ID for Users + activity tabs. Wrong ID fails closed for all users. |
 | `AUTH_USERS_SHEET_NAME` | `Users` | string | Tab name for authorized users. |
 | `AUTH_COL_EMAIL` | `Email` | string | Header name for email column (row 1 exact match). |
 | `AUTH_COL_ROLE` | `Role` | string | Header for role; use `ADMIN` for settings access. |
 | `AUTH_COL_TEAM` | `Team` | string | Header for team. |
 | `AUTH_COL_FIBERY_ACCESS` | `fibery_access` | string | Header for per-user Fibery drawer link gate. |
 
-#### Platform — User activity
+#### Platform - User activity
 
 | Key | Default | Type | Tooltip (summary) |
 |-----|---------|------|-------------------|
 | `AUTH_USER_ACTIVITY_SHEET_NAME` | `User Activity` | string | Tab for append-only activity log. |
 | `USER_ACTIVITY_LOGGING_ENABLED` | on | boolean | Kill-switch: `false`/`no`/`0` disables logging. |
 
-#### Fibery — API
+#### Fibery - API
 
 | Key | Default | Type | Tooltip (summary) |
 |-----|---------|------|-------------------|
-| `FIBERY_HOST` | — | string | Workspace host **without** `https://` (e.g. `harpin-ai.fibery.io`). Required for live Fibery dashboards. |
-| `FIBERY_API_TOKEN` | — | secret | **Required for Fibery.** Bearer token; set-only in UI (never show existing value). |
+| `FIBERY_HOST` | - | string | Workspace host **without** `https://` (e.g. `harpin-ai.fibery.io`). Required for live Fibery dashboards. |
+| `FIBERY_API_TOKEN` | - | secret | **Required for Fibery.** Bearer token; set-only in UI (never show existing value). |
 
-#### Fibery — Deep links
+#### Fibery - Deep links
 
 | Key | Default | Type | Tooltip (summary) |
 |-----|---------|------|-------------------|
@@ -157,13 +157,13 @@ All keys below exist today unless marked **v1 read-only**. Tooltips in the imple
 
 | Key | Default | Type | Tooltip (summary) |
 |-----|---------|------|-------------------|
-| `AGREEMENT_CACHE_TTL_MINUTES` | `10` | number | Server seed for client auto-refresh TTL (0–1440). |
+| `AGREEMENT_CACHE_TTL_MINUTES` | `10` | number | Server seed for client auto-refresh TTL (0 - 1440). |
 | `AGREEMENT_THRESHOLD_LOW_MARGIN` | `35` | number | Low-margin alert threshold (%). |
 | `AGREEMENT_THRESHOLD_INTERNAL_LABOR` | `5000` | number | Internal labor $ alert threshold. |
 | `AGREEMENT_THRESHOLD_EXPIRY_DAYS` | `60` | number | Renewal / expiry window (days). |
-| `AGREEMENT_TOP_N_RECOGNITION_BARS` | `10` | number | Top-N agreements in recognition chart (1–50). |
+| `AGREEMENT_TOP_N_RECOGNITION_BARS` | `10` | number | Top-N agreements in recognition chart (1 - 50). |
 | `AGREEMENT_INTERNAL_COMPANY_NAMES` | `harpin.ai` | csv | Comma-separated internal company names. |
-| `AGREEMENT_SANKEY_LINK_OPACITY` | `0.35` | number | Sankey link opacity (0–1). |
+| `AGREEMENT_SANKEY_LINK_OPACITY` | `0.35` | number | Sankey link opacity (0 - 1). |
 | `AGREEMENT_SANKEY_INCLUDE_INTERNAL` | `false` | boolean | Include Internal-type agreements in Sankey. |
 
 #### Utilization
@@ -204,21 +204,21 @@ All keys below exist today unless marked **v1 read-only**. Tooltips in the imple
 | `DELIVERY_EXCLUDE_INTERNAL` | `true` | boolean | Hide Internal-type projects from list. |
 | `DELIVERY_PNL_INCLUDE_PROJECTED_ODC` | `true` | boolean | Include projected ODC in monthly P&L. |
 | `DELIVERY_PNL_MAX_LABOR_ROWS` | `10000` | number | Max labor rows per P&L fetch (`0` = unlimited). |
-| `DELIVERY_COMPLETION_UNDER_PCT` | `25` | number | % Complete bar — under bucket upper bound. |
-| `DELIVERY_COMPLETION_BUILDING_PCT` | `75` | number | % Complete — building bucket upper bound. |
-| `DELIVERY_COMPLETION_OVER_PCT` | `100` | number | % Complete — over when above this. |
+| `DELIVERY_COMPLETION_UNDER_PCT` | `25` | number | % Complete bar - under bucket upper bound. |
+| `DELIVERY_COMPLETION_BUILDING_PCT` | `75` | number | % Complete - building bucket upper bound. |
+| `DELIVERY_COMPLETION_OVER_PCT` | `100` | number | % Complete - over when above this. |
 | `DELIVERY_MARGIN_VARIANCE_AMBER_PTS` | `5` | number | Margin vs target amber band (percentage points). |
 
 #### Historical snapshots
 
 | Key | Default | Type | Tooltip (summary) |
 |-----|---------|------|-------------------|
-| `FOS_SNAPSHOT_DRIVE_FOLDER_ID` | — | string | **v1 read-only** in UI. Drive folder root; set via `ensureSnapshotDriveFolder()`. Display masked id + copy button. |
+| `FOS_SNAPSHOT_DRIVE_FOLDER_ID` | - | string | **v1 read-only** in UI. Drive folder root; set via `ensureSnapshotDriveFolder()`. Display masked id + copy button. |
 | `FOS_SNAPSHOT_TIMEZONE` | `America/Chicago` | string | IANA timezone for snapshot calendar date. |
-| `SNAPSHOT_UTILIZATION_LOOKBACK_DAYS` | `90` | number | Utilization window length for daily job (1–365). |
-| `SNAPSHOT_PNL_BATCH_SIZE` | `8` | number | Projects per P&L batch (1–25). |
+| `SNAPSHOT_UTILIZATION_LOOKBACK_DAYS` | `90` | number | Utilization window length for daily job (1 - 365). |
+| `SNAPSHOT_PNL_BATCH_SIZE` | `8` | number | Projects per P&L batch (1 - 25). |
 | `SNAPSHOT_RETENTION_DAYS` | `90` | number | Delete snapshot folders older than N days. |
-| `SNAPSHOT_TRIGGER_HOUR` | `2` | number | Local hour (0–23) for daily trigger. |
+| `SNAPSHOT_TRIGGER_HOUR` | `2` | number | Local hour (0 - 23) for daily trigger. |
 | `FOS_SNAPSHOT_LOG_SHEET_NAME` | `Snapshot Runs` | string | Log tab name on auth spreadsheet. |
 
 ### Out of scope for v1 UI (remain editor-only)
@@ -233,8 +233,8 @@ All keys below exist today unless marked **v1 read-only**. Tooltips in the imple
 | Function | Auth | Returns / behavior |
 |----------|------|------------------|
 | `getAdminSettingsPanel()` | ADMIN | `{ ok, groups: [{ id, title, settings: [{ key, label, description, type, defaultValue, useDefault, value, min, max, required, sensitive, readOnly }] }] }` |
-| `saveAdminSettings(updates)` | ADMIN | `{ ok, saved: string[], errors?: [{ key, message }] }` — atomic validation; partial save **not** allowed if any field invalid. |
-| `resetAdminSettingsGroup(groupId)` | ADMIN | Optional v1.1 — delete all keys in group. |
+| `saveAdminSettings(updates)` | ADMIN | `{ ok, saved: string[], errors?: [{ key, message }] }` - atomic validation; partial save **not** allowed if any field invalid. |
+| `resetAdminSettingsGroup(groupId)` | ADMIN | Optional v1.1 - delete all keys in group. |
 
 **Navigation:** extend `buildNavigationModel_()` with `isAdmin: boolean` (derived from role).
 
@@ -254,7 +254,7 @@ All keys below exist today unless marked **v1 read-only**. Tooltips in the imple
 
 | Event | Route | Label |
 |-------|-------|-------|
-| `settings_panel_open` | `settings` | — |
+| `settings_panel_open` | `settings` | - |
 | `admin_settings_save` | `settings` | `keys=key1,key2,…` |
 | `admin_settings_save_error` | `settings` | safe error code |
 
@@ -279,10 +279,10 @@ All keys below exist today unless marked **v1 read-only**. Tooltips in the imple
 
 ## Dependencies
 
-- [001 — Dashboard shell](001-dashboard-shell-navigation.md) — Settings affordance, panel pattern.
-- [002 — Authorization](002-spreadsheet-user-authorization.md) — Role column, `requireAuthForApi_()`.
-- [004 — User activity](004-user-activity-logging.md) — new event types.
-- Existing threshold modules — parsers must stay aligned with registry.
+- [001 - Dashboard shell](001-dashboard-shell-navigation.md) - Settings affordance, panel pattern.
+- [002 - Authorization](002-spreadsheet-user-authorization.md) - Role column, `requireAuthForApi_()`.
+- [004 - User activity](004-user-activity-logging.md) - new event types.
+- Existing threshold modules - parsers must stay aligned with registry.
 
 ## PRD / version (on implementation)
 
@@ -293,4 +293,4 @@ All keys below exist today unless marked **v1 read-only**. Tooltips in the imple
 
 ## Related documents
 
-- [Implementation plan](011-admin-settings-environment-panel-implementation-plan.md) — phased delivery, file list, test plan.
+- [Implementation plan](011-admin-settings-environment-panel-implementation-plan.md) - phased delivery, file list, test plan.

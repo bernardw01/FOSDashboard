@@ -1,5 +1,5 @@
 /**
- * PRD version 2.7.0 â€” sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.7.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Spreadsheet-backed **Expenses** dashboard (feature 015). Reads expense lines
  * from AUTH_SPREADSHEET_ID tab AUTH_EXPENSES_SHEET_NAME (default `expenses`).
@@ -271,7 +271,7 @@ function buildExpensesDashboardPayload_() {
     warnings.push(
       'Duplicate header labels detected (' +
         dupLabels.slice(0, 6).join(', ') +
-        (dupLabels.length > 6 ? ', â€¦' : '') +
+        (dupLabels.length > 6 ? ', ...' : '') +
         '). Verify column mapping.'
     );
   }
@@ -307,10 +307,10 @@ function buildExpensesDashboardPayload_() {
   }
 
   if (idxDepartment < 0) {
-    warnings.push('Department column "' + cfg.colDepartment + '" not found â€” rows use "Unknown".');
+    warnings.push('Department column "' + cfg.colDepartment + '" not found - rows use "Unknown".');
   }
   if (idxCustomer < 0) {
-    warnings.push('Customer column "' + cfg.colCustomer + '" not found â€” all rows treated as unattributed.');
+    warnings.push('Customer column "' + cfg.colCustomer + '" not found - all rows treated as unattributed.');
   }
 
   var rows = [];

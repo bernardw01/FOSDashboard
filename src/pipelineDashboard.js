@@ -1,5 +1,5 @@
 /**
- * PRD version 2.7.0 â€” sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.7.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Sales **Pipeline** dashboard (feature 016). Reads HubSpot deals synced into
  * Fibery (`HubSpot/Deal`) through fiberyClient.js and returns a normalized,
@@ -27,7 +27,7 @@ var PIPELINE_QUERY_PAGE_LIMIT_ = 1000;
 var PIPELINE_QUERY_MAX_PAGES_ = 10;
 
 /**
- * Default case-insensitive stage-name â†’ bucket map (R0 confirmed values).
+ * Default case-insensitive stage-name  ->  bucket map (R0 confirmed values).
  * Operators can extend / override via PIPELINE_STAGE_BUCKET_MAP_JSON.
  * @const {!Object<string, string>}
  */
@@ -61,7 +61,7 @@ function requirePipelineAccessForApi_() {
 }
 
 /**
- * Pipeline dashboard (Sales nav group) â€” visible when ANY is true:
+ * Pipeline dashboard (Sales nav group) - visible when ANY is true:
  * team = CLIENT-ENGAGEMENT, role = EXEC, or role = ADMIN.
  * @param {{ email?: string, role?: string, team?: string }} auth
  * @return {boolean}
@@ -394,7 +394,7 @@ function buildPipelineDashboardPayload_() {
   if (unmappedList.length) {
     warnings.push(
       'Unmapped deal stage(s) bucketed as "other": ' + unmappedList.slice(0, 8).join(', ') +
-        (unmappedList.length > 8 ? ', â€¦' : '') +
+        (unmappedList.length > 8 ? ', ...' : '') +
         '. Set PIPELINE_STAGE_BUCKET_MAP_JSON to map them.'
     );
   }
