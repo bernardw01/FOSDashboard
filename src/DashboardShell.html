@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.6.15 — sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.7.0 — sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -229,6 +229,10 @@
       position: relative;
       min-height: 280px;
       max-height: 420px;
+    }
+    #panel-expenses .exp-chart-canvas-wrap--cycle {
+      min-height: 360px;
+      max-height: 520px;
     }
     #panel-expenses .exp-risk-month-control .form-range {
       accent-color: var(--ag-accent);
@@ -3993,6 +3997,20 @@
               <div id="exp-sankey-wrap" class="fos-sankey-wrap" role="img" aria-label="Expense flow Sankey diagram"></div>
             </section>
 
+            <section class="fos-section-card mb-3" aria-labelledby="exp-chart-submission-cycle-h">
+              <h2 id="exp-chart-submission-cycle-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Average expense submission time by employee</h2>
+              <p class="small mb-2" style="color: var(--ag-text-muted)">
+                Cycle time = days from <strong>Purchase date</strong> to <strong>Submission Date</strong> (filtered rows only; employees need both dates on at least one line).
+                Sorted highest average first.
+              </p>
+              <div class="exp-chart-canvas-wrap exp-chart-canvas-wrap--cycle">
+                <canvas id="exp-chart-submission-cycle" role="img" aria-label="Average expense submission cycle time by employee"></canvas>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="exp-submission-cycle-empty" style="color: var(--ag-text-muted)">
+                No lines with both purchase and submission dates in the current filter.
+              </p>
+            </section>
+
             <section class="fos-section-card mb-3" aria-labelledby="exp-cust-h">
               <h2 id="exp-cust-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Customer attribution</h2>
               <div class="table-responsive">
@@ -4448,6 +4466,7 @@
         expensesCategory: null,
         expensesSoftware: null,
         expensesRisk: null,
+        expensesSubmissionCycle: null,
       };
       var currentTablePayload = null;
       var currentTab = 'allActive';
@@ -4836,6 +4855,8 @@
         expChartCategory: document.getElementById('exp-chart-category'),
         expChartSoftware: document.getElementById('exp-chart-software'),
         expChartRisk: document.getElementById('exp-chart-risk'),
+        expChartSubmissionCycle: document.getElementById('exp-chart-submission-cycle'),
+        expSubmissionCycleEmpty: document.getElementById('exp-submission-cycle-empty'),
         expSoftwareEmpty: document.getElementById('exp-software-empty'),
         expSoftwareCatLabel: document.getElementById('exp-software-cat-label'),
         expRiskEmpty: document.getElementById('exp-risk-empty'),
@@ -12699,6 +12720,7 @@
         chartDeptTopN: 10,
         chartCategoryTopN: 10,
         chartVendorTopN: 12,
+        chartSubmissionCycleTopN: 25,
         softwareCategoryMatch: 'software',
         drawerCsv: '',
         modalRows: [],
@@ -12759,6 +12781,147 @@
           try { chartInstances.expensesRisk.destroy(); } catch (e) { /* ignore */ }
           chartInstances.expensesRisk = null;
         }
+        if (chartInstances.expensesSubmissionCycle) {
+          try { chartInstances.expensesSubmissionCycle.destroy(); } catch (e) { /* ignore */ }
+          chartInstances.expensesSubmissionCycle = null;
+        }
+      }
+
+      function expensesEmployeeKey_(row) {
+        var name = row && row.employeeName != null ? String(row.employeeName).trim() : '';
+        if (name) return name;
+        var id = row && row.employeeId != null ? String(row.employeeId).trim() : '';
+        if (id) return id;
+        return '(Unknown employee)';
+      }
+
+      function expensesSubmissionCycleDays_(row) {
+        var purchase = row && row.purchaseDate;
+        var submission = row && row.submissionDate;
+        if (!purchase || !submission) return null;
+        var p = new Date(String(purchase) + 'T12:00:00');
+        var s = new Date(String(submission) + 'T12:00:00');
+        if (isNaN(p.getTime()) || isNaN(s.getTime())) return null;
+        var days = (s.getTime() - p.getTime()) / 86400000;
+        if (!isFinite(days) || days < 0) return null;
+        return days;
+      }
+
+      function expensesFormatCycleDays_(n) {
+        var x = Number(n);
+        if (!isFinite(x)) return '—';
+        if (Math.abs(x) < 10) return (Math.round(x * 10) / 10).toFixed(1) + ' days';
+        return Math.round(x) + ' days';
+      }
+
+      function buildExpensesSubmissionCycleByEmployee_(filteredRows, topN) {
+        var byEmp = {};
+        for (var i = 0; i < filteredRows.length; i++) {
+          var days = expensesSubmissionCycleDays_(filteredRows[i]);
+          if (days === null) continue;
+          var key = expensesEmployeeKey_(filteredRows[i]);
+          if (!byEmp[key]) byEmp[key] = { sum: 0, count: 0 };
+          byEmp[key].sum += days;
+          byEmp[key].count++;
+        }
+        var list = [];
+        for (var k in byEmp) {
+          if (Object.prototype.hasOwnProperty.call(byEmp, k)) {
+            list.push({
+              name: k,
+              avgDays: byEmp[k].sum / byEmp[k].count,
+              count: byEmp[k].count,
+            });
+          }
+        }
+        list.sort(function (a, b) { return b.avgDays - a.avgDays; });
+        var cap = Number(topN);
+        if (isFinite(cap) && cap > 0 && list.length > cap) {
+          list = list.slice(0, cap);
+        }
+        return list;
+      }
+
+      function renderExpensesSubmissionCycleChart_(filteredRows) {
+        var topN = expensesState.chartSubmissionCycleTopN || 25;
+        var rank = buildExpensesSubmissionCycleByEmployee_(filteredRows, topN);
+        if (chartInstances.expensesSubmissionCycle) {
+          try { chartInstances.expensesSubmissionCycle.destroy(); } catch (e) { /* ignore */ }
+          chartInstances.expensesSubmissionCycle = null;
+        }
+        if (!els.expChartSubmissionCycle || typeof Chart === 'undefined') return;
+        var hasData = rank.length > 0;
+        if (els.expSubmissionCycleEmpty) {
+          els.expSubmissionCycleEmpty.classList.toggle('d-none', hasData);
+        }
+        if (els.expChartSubmissionCycle.parentElement) {
+          els.expChartSubmissionCycle.parentElement.style.display = hasData ? '' : 'none';
+        }
+        if (!hasData) return;
+        var labels = [];
+        var values = [];
+        var barColors = [];
+        for (var ri = 0; ri < rank.length; ri++) {
+          labels.push(rank[ri].name);
+          values.push(Math.round(rank[ri].avgDays * 10) / 10);
+          barColors.push(expensesPalette_(ri));
+        }
+        var ctx = els.expChartSubmissionCycle.getContext('2d');
+        chartInstances.expensesSubmissionCycle = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Avg days (purchase → submission)',
+              data: values,
+              backgroundColor: barColors,
+              borderWidth: 1,
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function (ctx) {
+                    var idx = ctx.dataIndex;
+                    var pt = rank[idx];
+                    if (!pt) return '';
+                    return [
+                      'Avg cycle: ' + expensesFormatCycleDays_(pt.avgDays),
+                      'Lines: ' + pt.count,
+                    ];
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                ticks: {
+                  maxRotation: 55,
+                  minRotation: 0,
+                  autoSkip: false,
+                  font: { size: 10 },
+                },
+              },
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: 'Average days',
+                  font: { size: 11 },
+                },
+                ticks: {
+                  callback: function (v) {
+                    return expensesFormatCycleDays_(v).replace(/ days$/, 'd');
+                  },
+                },
+              },
+            },
+          },
+        });
       }
 
       function expensesMonthLabelsFromRows_(rows) {
@@ -13677,11 +13840,24 @@
 
         expensesDestroyCharts_();
 
-        if (filteredRows.length && monthLabels.length) {
+        if (filteredRows.length) {
           loadChartJs()
             .then(function () {
-            if (!els.expChartDept || typeof Chart === 'undefined') return;
+            if (typeof Chart === 'undefined') return;
             if ((navState.activeNavId || '') !== 'expenses') return;
+            renderExpensesSubmissionCycleChart_(filteredRows);
+            if (!monthLabels.length || !els.expChartDept) {
+              if (els.expSoftwareEmpty) els.expSoftwareEmpty.classList.remove('d-none');
+              if (els.expChartSoftware && els.expChartSoftware.parentElement) {
+                els.expChartSoftware.parentElement.style.display = 'none';
+              }
+              if (els.expRiskEmpty) els.expRiskEmpty.classList.remove('d-none');
+              if (els.expRiskMonthControl) els.expRiskMonthControl.classList.add('d-none');
+              if (els.expChartRisk && els.expChartRisk.parentElement) {
+                els.expChartRisk.parentElement.style.display = 'none';
+              }
+              return;
+            }
             var deptDatasets = [];
             var dk = 0;
             for (var di = 0; di < deptTopKeys.length; di++) {
@@ -13889,6 +14065,10 @@
             console && console.warn && console.warn('Expenses charts: Chart.js load failed', err);
           });
         } else {
+          if (els.expSubmissionCycleEmpty) els.expSubmissionCycleEmpty.classList.remove('d-none');
+          if (els.expChartSubmissionCycle && els.expChartSubmissionCycle.parentElement) {
+            els.expChartSubmissionCycle.parentElement.style.display = 'none';
+          }
           expensesState.riskSoftwareRows = [];
           expensesState.riskMonthLabels = [];
           if (els.expSoftwareEmpty) els.expSoftwareEmpty.classList.remove('d-none');
@@ -14128,6 +14308,8 @@
             Number(payload.chartConfig.categoryTopN) || expensesState.chartCategoryTopN;
           expensesState.chartVendorTopN =
             Number(payload.chartConfig.vendorTopN) || expensesState.chartVendorTopN;
+          expensesState.chartSubmissionCycleTopN =
+            Number(payload.chartConfig.submissionCycleTopN) || expensesState.chartSubmissionCycleTopN;
           if (payload.chartConfig.softwareCategoryMatch) {
             expensesState.softwareCategoryMatch = String(payload.chartConfig.softwareCategoryMatch);
           }

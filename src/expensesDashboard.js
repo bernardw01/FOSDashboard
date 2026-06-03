@@ -1,5 +1,5 @@
 /**
- * PRD version 2.6.15 â€” sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.7.0 â€” sync with docs/FOS-Dashboard-PRD.md
  *
  * Spreadsheet-backed **Expenses** dashboard (feature 015). Reads expense lines
  * from AUTH_SPREADSHEET_ID tab AUTH_EXPENSES_SHEET_NAME (default `expenses`).
@@ -8,7 +8,8 @@
  *   AUTH_EXPENSES_SHEET_NAME, AUTH_EXPENSES_MAX_ROWS
  *   AUTH_EXPENSES_COL_* column header overrides
  *   EXPENSES_CHART_CATEGORY_TOP_N, EXPENSES_CHART_DEPT_TOP_N,
- *   EXPENSES_CHART_VENDOR_TOP_N, EXPENSES_SOFTWARE_CATEGORY_MATCH
+ *   EXPENSES_CHART_VENDOR_TOP_N, EXPENSES_CHART_SUBMISSION_CYCLE_TOP_N,
+ *   EXPENSES_SOFTWARE_CATEGORY_MATCH
  */
 
 /** @const {number} */
@@ -39,7 +40,7 @@ function requireExpensesAccessForApi_() {
  *   partial?: boolean,
  *   warnings?: !Array<string>,
  *   meta?: !Object,
- *   chartConfig?: { categoryTopN: number, deptTopN: number },
+ *   chartConfig?: { categoryTopN: number, deptTopN: number, submissionCycleTopN: number },
  *   message?: string
  * }}
  */
@@ -107,6 +108,7 @@ function getExpensesProps_() {
     categoryTopN: num('EXPENSES_CHART_CATEGORY_TOP_N', 10),
     deptTopN: num('EXPENSES_CHART_DEPT_TOP_N', 10),
     vendorTopN: num('EXPENSES_CHART_VENDOR_TOP_N', 12),
+    submissionCycleTopN: num('EXPENSES_CHART_SUBMISSION_CYCLE_TOP_N', 25),
     softwareCategoryMatch: str('EXPENSES_SOFTWARE_CATEGORY_MATCH', 'software'),
   };
 }
@@ -258,6 +260,7 @@ function buildExpensesDashboardPayload_() {
       chartConfig: {
         categoryTopN: cfg.categoryTopN,
         deptTopN: cfg.deptTopN,
+        submissionCycleTopN: cfg.submissionCycleTopN,
       },
     };
   }
@@ -445,6 +448,7 @@ function buildExpensesDashboardPayload_() {
       categoryTopN: cfg.categoryTopN,
       deptTopN: cfg.deptTopN,
       vendorTopN: cfg.vendorTopN,
+      submissionCycleTopN: cfg.submissionCycleTopN,
       softwareCategoryMatch: cfg.softwareCategoryMatch,
     },
   };

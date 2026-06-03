@@ -1,6 +1,6 @@
 # Feature: Expenses dashboard (spreadsheet-backed)
 
-> **PRD version 2.6.1** — shipped in web app **v2.5.0+** with **FR-109** / **AC-65**; nav under **Finance** group (**v2.5.1**); **Finance team / ADMIN only** (**v2.5.3**, broadened to **FINANCE team / EXEC / ADMIN** in **v2.6.1**); chart layout + risk map (**v2.5.5**–**v2.5.6**); customer table under Sankey (**v2.5.7**).
+> **PRD version 2.7.0** — shipped in web app **v2.5.0+** with **FR-109** / **AC-65**; nav under **Finance** group (**v2.5.1**); **Finance team / ADMIN only** (**v2.5.3**, broadened to **FINANCE team / EXEC / ADMIN** in **v2.6.1**); chart layout + risk map (**v2.5.5**–**v2.5.6**); customer table under Sankey (**v2.5.7**); **submission cycle by employee** chart (**v2.7.0**).
 
 > **Implementation plan:** [`docs/features/015-expenses-dashboard-implementation-plan.md`](015-expenses-dashboard-implementation-plan.md) — **Status:** implemented (PRD **2.5.0**).
 
@@ -156,19 +156,29 @@ Use **dark Operations / Agreement chrome**: `#panel-expenses.fos-agreement-root`
 - **Optional:** Click **month** baseline (total bar height) → drawer for **all** lines in that month (no category slice); legend click → highlight only (out of scope unless product asks).
 - **Implementation note:** Lazy-load **Chart.js** once for Expenses panel; use `getElementsAtEventForMode(..., 'nearest', { intersect: true })` (or Chart.js v4 equivalent) so **segment** hits are reliable; tooltip shows category + amount + % of month.
 
-### E. Secondary section — **Customer attribution**
+### E. **Average submission cycle time by employee** (v2.7.0)
+
+- **Chart:** Vertical bar chart (`#exp-chart-submission-cycle`); one bar per employee.
+- **Metric:** Mean **days** from **`Purchase date`** to **`Submission date`** on each filtered row where **both** dates are present; rows with missing purchase or submission dates, or submission before purchase, are excluded from the average.
+- **Employee key:** `Full name` (fallback `Employee - ID`, then `(Unknown employee)`).
+- **Sort:** Descending by average cycle time (slowest submitters leftmost / first).
+- **Top-N:** Default **25** employees (`EXPENSES_CHART_SUBMISSION_CYCLE_TOP_N`; surfaced on `chartConfig.submissionCycleTopN`).
+- **Filters:** Respects the same date / department / employee / customer / search filters as the rest of the panel.
+- **Empty state:** Copy when no qualifying lines in the current filter.
+
+### F. Secondary section — **Customer attribution**
 
 - **Horizontal bar** or **donut:** Top **customers** by attributed spend + **Unattributed** bucket.
 - Small table: Customer · Total · % of attributed · % of overall.
 - **Interaction:** Click customer or Unattributed → drawer with filtered lines.
 
-### F. Detail table (sortable)
+### G. Detail table (sortable)
 
 - One row per **expense line** (post-filter), default columns: **Purchase date · Effective date (if differs) · Amount · Currency · Department · GL Customer · Vendor · Category · Activity type · Employee · Approval state · Transaction ID · Memo** (trim for density; drawer shows full detail).
 - Sortable headers (client-side), paginate or virtualize if >500 rows (R0: cap server rows with `EXPENSES_MAX_ROWS` + `partial: true` warning).
 - Row click / Enter → same **drawer** for that single line (or multi-select later — out of scope v1).
 
-### G. Right slide-out drawer (drill-down)
+### H. Right slide-out drawer (drill-down)
 
 Reuse **`.fos-util-drawer`** pattern (backdrop + `open` class, close affordance, keyboard Esc):
 

@@ -1,5 +1,5 @@
 /**
- * PRD version 2.6.15 â€” sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.7.0 â€” sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement-dashboard constants per agreement-dashboard-prd-v2.md Â§8:
  *   - Â§8.1 Alert thresholds (with optional Script Property overrides).

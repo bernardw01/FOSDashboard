@@ -1,11 +1,11 @@
 /**
- * PRD version 2.6.15 — sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.7.0 — sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard — Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.6.15';
+var FOS_PRD_VERSION = '2.7.0';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '2.6.15';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'Web App favicon via setFaviconUrl and Drive mirror (HtmlService ignores HTML link tags).';
+  'Expenses dashboard: average submission cycle time by employee (vertical bar chart).';
 
 /**
  * @return {string}
