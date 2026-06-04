@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.7.0 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.8.0 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -2695,7 +2695,7 @@
           <div id="pipeline-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
           <div class="fos-agreement-inner shadow-lg">
             <div class="alert alert-info py-2 px-3 small mb-3 d-none" id="pipeline-live-only" role="status">
-              Historical snapshots do not include pipeline deals. Switch to <strong>Live data</strong> in the sidebar to use this dashboard.
+              This snapshot does not include pipeline deals. Switch to <strong>Live data</strong> in the sidebar for current data.
             </div>
 
             <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
@@ -3896,7 +3896,7 @@
             </div>
 
             <div class="alert alert-info py-2 px-3 small mb-3 d-none" id="exp-live-only" role="status">
-              Historical snapshots do not include expense lines. Switch to <strong>Live data</strong> in the sidebar to use this dashboard.
+              This snapshot does not include expense lines. Switch to <strong>Live data</strong> in the sidebar for current data.
             </div>
 
             <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
@@ -4910,6 +4910,8 @@
         agreement: null,
         utilization: null,
         deliveryProjects: null,
+        expenses: null,
+        pipeline: null,
         pnlByAgreementId: {},
         bundleLoading: false,
         catalogSnapshots: [],
@@ -4981,6 +4983,9 @@
           els.lhRefreshBtn,
           els.rrRefreshBtn,
           els.rrTtlSelect,
+          els.expRefreshBtn,
+          els.pipelineRefreshBtn,
+          els.pipelineExportBtn,
         ];
         for (var i = 0; i < controls.length; i++) {
           var el = controls[i];
@@ -5059,6 +5064,8 @@
         dataSourceState.agreement = null;
         dataSourceState.utilization = null;
         dataSourceState.deliveryProjects = null;
+        dataSourceState.expenses = null;
+        dataSourceState.pipeline = null;
         dataSourceState.pnlByAgreementId = {};
         dataSourceState.bundleLoading = false;
         writeDataSourcePref_('live', null);
@@ -5079,6 +5086,12 @@
         if (bundle.deliveryProjects) {
           writeDeliveryCache(bundle.deliveryProjects);
         }
+        if (bundle.expenses) {
+          writeExpensesCache(bundle.expenses);
+        }
+        if (bundle.pipeline) {
+          writePipelineCache(bundle.pipeline);
+        }
       }
 
       function invalidatePanelRenderStateForSnapshot_() {
@@ -5087,6 +5100,7 @@
         deliveryRenderState.lastRenderedFetchedAt = null;
         revenueReviewRenderState.lastRenderedFetchedAt = null;
         expensesRenderState.lastRenderedFetchedAt = null;
+        pipelineState.lastRenderedFetchedAt = null;
         laborHoursFetchCache_.key = null;
         laborHoursFetchCache_.payload = null;
       }
@@ -5103,6 +5117,8 @@
           showRevenueReview();
         } else if (id === 'expenses') {
           showExpenses();
+        } else if (id === 'pipeline') {
+          showPipeline();
         } else if (id === 'delivery') {
           showDelivery();
         }
@@ -5198,6 +5214,8 @@
             dataSourceState.agreement = bundle.agreement;
             dataSourceState.utilization = bundle.utilization;
             dataSourceState.deliveryProjects = bundle.deliveryProjects;
+            dataSourceState.expenses = bundle.expenses || null;
+            dataSourceState.pipeline = bundle.pipeline || null;
             dataSourceState.pnlByAgreementId = {};
             applySnapshotBundleToCaches_(bundle);
             invalidatePanelRenderStateForSnapshot_();
@@ -14798,20 +14816,38 @@
       }
 
       function showPipelineLiveOrSnapshot_() {
-        var disableRefresh = !isLiveDataSource_();
-        if (els.pipelineLiveOnly) {
-          if (disableRefresh) els.pipelineLiveOnly.classList.remove('d-none');
-          else els.pipelineLiveOnly.classList.add('d-none');
-        }
-        if (els.pipelineRefreshBtn) els.pipelineRefreshBtn.disabled = disableRefresh;
-        if (els.pipelineExportBtn) els.pipelineExportBtn.disabled = disableRefresh;
-        if (disableRefresh) {
-          if (pipelineState.forecastChart) { pipelineState.forecastChart.destroy(); pipelineState.forecastChart = null; }
+        var snap = !isLiveDataSource_();
+        if (els.pipelineRefreshBtn) els.pipelineRefreshBtn.disabled = snap;
+        if (els.pipelineExportBtn) els.pipelineExportBtn.disabled = snap;
+
+        if (snap) {
+          var snapPayload = dataSourceState.pipeline;
+          if (snapPayload && snapPayload.ok !== false) {
+            if (els.pipelineLiveOnly) els.pipelineLiveOnly.classList.add('d-none');
+            if (els.pipelineSubtitle) {
+              els.pipelineSubtitle.textContent =
+                'Snapshot as of ' +
+                formatSnapshotBannerDate_(getSnapshotDate_()) +
+                ' (HubSpot deals via Fibery)';
+            }
+            applyPipelinePayload_(snapPayload);
+            return;
+          }
+          if (els.pipelineLiveOnly) els.pipelineLiveOnly.classList.remove('d-none');
+          if (pipelineState.forecastChart) {
+            pipelineState.forecastChart.destroy();
+            pipelineState.forecastChart = null;
+          }
           pipelineState.payload = null;
-          if (els.pipelineSubtitle) els.pipelineSubtitle.textContent = 'Select Live data to load pipeline deals.';
+          if (els.pipelineSubtitle) {
+            els.pipelineSubtitle.textContent = 'Pipeline data not available for this snapshot date.';
+          }
           if (els.pipelineStageWrap) els.pipelineStageWrap.innerHTML = '';
           if (els.pipelineFunnel) els.pipelineFunnel.innerHTML = '';
-          if (els.pipelineViewTabs) { els.pipelineViewTabs.innerHTML = ''; els.pipelineViewTabs.classList.add('d-none'); }
+          if (els.pipelineViewTabs) {
+            els.pipelineViewTabs.innerHTML = '';
+            els.pipelineViewTabs.classList.add('d-none');
+          }
           if (els.pipelineWarn) els.pipelineWarn.classList.add('d-none');
           if (els.pipelinePartialNote) els.pipelinePartialNote.classList.add('d-none');
           if (els.pipelineKpiTotal) els.pipelineKpiTotal.textContent = '$0';
@@ -14819,6 +14855,8 @@
           if (els.pipelineKpiBest) els.pipelineKpiBest.textContent = '$0';
           return;
         }
+
+        if (els.pipelineLiveOnly) els.pipelineLiveOnly.classList.add('d-none');
         showPipelineMaybeLoad_();
       }
 
@@ -14876,19 +14914,29 @@
       }
 
       function showExpensesLiveOrSnapshot_() {
-        var disableRefresh = !isLiveDataSource_();
+        var snap = !isLiveDataSource_();
+        if (els.expRefreshBtn) els.expRefreshBtn.disabled = snap;
 
-        if (els.expLiveOnly) {
-          if (disableRefresh) els.expLiveOnly.classList.remove('d-none');
-          else els.expLiveOnly.classList.add('d-none');
-        }
-        if (els.expRefreshBtn) els.expRefreshBtn.disabled = disableRefresh;
-
-        if (disableRefresh) {
+        if (snap) {
+          var snapPayload = dataSourceState.expenses;
+          if (snapPayload && snapPayload.ok !== false) {
+            if (els.expLiveOnly) els.expLiveOnly.classList.add('d-none');
+            if (els.expSubtitle) {
+              els.expSubtitle.textContent =
+                'Snapshot as of ' +
+                formatSnapshotBannerDate_(getSnapshotDate_()) +
+                ' (expense lines)';
+            }
+            applyExpensesPayload_(snapPayload);
+            return;
+          }
+          if (els.expLiveOnly) els.expLiveOnly.classList.remove('d-none');
           expensesDestroyCharts_();
           if (els.expSankeyWrap) els.expSankeyWrap.innerHTML = '';
           expensesState.payload = null;
-          if (els.expSubtitle) els.expSubtitle.textContent = 'Select Live data to load expense lines.';
+          if (els.expSubtitle) {
+            els.expSubtitle.textContent = 'Expense data not available for this snapshot date.';
+          }
           if (els.expFetchError) els.expFetchError.classList.add('d-none');
           if (els.expWarn) els.expWarn.classList.add('d-none');
           if (els.expPartialNote) els.expPartialNote.classList.add('d-none');
@@ -14901,6 +14949,8 @@
           if (els.expFilterSummary) els.expFilterSummary.textContent = ' - ';
           return;
         }
+
+        if (els.expLiveOnly) els.expLiveOnly.classList.add('d-none');
         showExpensesMaybeLoad_();
       }
 

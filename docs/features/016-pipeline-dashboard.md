@@ -1,6 +1,6 @@
 # Feature: Pipeline dashboard (Sales - Fibery HubSpot deals)
 
-> **Status: Released v2.6.0.** Shipped as a **MINOR** bump (**PRD 2.6.0**) with **FR-110** and **AC-66**, a new **Sales** nav group, server module `src/pipelineDashboard.js`, and the `#panel-pipeline` client surface. See `016-pipeline-dashboard-implementation-plan.md`.
+> **PRD version 2.8.0** - **Status: Released v2.6.0** (panel); **snapshot `pipeline.json` v2.8.0**. Shipped with **FR-110** and **AC-66**, **Sales** nav group, `src/pipelineDashboard.js`, `#panel-pipeline`. See `016-pipeline-dashboard-implementation-plan.md`.
 
 > **Source mockup:** `harpin-dashboard-v3.html` (harpin AI - Pipeline Dashboard). The mockup wires directly to a HubSpot MCP and ships a light harpin theme. This feature **reuses the mockup's layout and section structure only** - data comes from **Fibery `HubSpot/Deal`** via the existing Fibery client, and the surface adopts the **current dark dashboard chrome**, not the mockup palette.
 
@@ -131,7 +131,7 @@ Add a new **top-level sidebar group "Sales"** - positioned **directly beneath Ho
 - **Normalized deal shape (client payload):** `{ id, name, company, pipeline, stage, bucket, amount, weightedAmount, probability, forecastCategory, forecastCategoryIsDerived, owner, closeDate, lastStageChangeDate, daysInStage, isWon, isClosed, description, nextStep, hubspotLink }`.
 - **Aggregates (server-computed):** per-bucket `{ count, total }`, KPI totals (Total/Commit/Best), quarter buckets `{ quarter → { won, commit, best, pipeline } }`.
 - **Config (Script Properties):** `PIPELINE_STAGE_BUCKET_MAP_JSON` (stage-name → bucket), `PIPELINE_MAX_ROWS` (cap + `partial` flag), optional `PIPELINE_VIEW_FILTERS_JSON` (pipeline display names), `PIPELINE_DASHBOARD_TTL_MS` (client cache). Registered in `adminSettingsRegistry.js`.
-- **Cache:** optional client cache key `fos_pipeline_dashboard_v1` (sessionStorage), `cacheSchemaVersion` on payload, mirroring the Expenses pattern. **Snapshot job:** decide at planning whether to add Pipeline to the Drive snapshot bundle (default v1: **live-only**, not in snapshots - note in `dashboard-snapshot-cache-sync.mdc` if added).
+- **Cache:** optional client cache key `fos_pipeline_dashboard_v1` (sessionStorage), `cacheSchemaVersion` on payload. **Snapshot job (v2.8.0):** daily run writes **`pipeline.json`** via `buildPipelineDashboardPayload_()`; skippable with **`SNAPSHOT_INCLUDE_PIPELINE`**.
 - **Migration:** none (additive feature; no schema changes to existing payloads).
 
 ## Operations
@@ -170,7 +170,7 @@ Add a new **top-level sidebar group "Sales"** - positioned **directly beneath Ho
 - [ ] `DashboardShell.html` - `#panel-pipeline` (KPIs, stage accordion, quarter chart, funnel, view tabs, Export CSV), dark-theme styling, client cache, global loading wiring.
 - [ ] `adminSettingsRegistry.js` - register new Script Properties.
 - [ ] `userActivityLog.js` - whitelist `pipeline_*` event types.
-- [ ] Decide snapshot inclusion; update `dashboard-snapshot-cache-sync.mdc` artifacts if added.
+- [x] Snapshot inclusion (**v2.8.0**): `pipeline.json` in feature **009**; see `dashboard-snapshot-cache-sync.mdc`.
 - [ ] PRD: bump to **2.6.0**, add **FR-110** + **AC-66 / AC-67**, §13 changelog row; sync `FOS_PRD_VERSION` + **all** `src/*` headers; update `000-overview.md` and this doc's header.
 - [ ] Run local smoke test; verify acceptance criteria.
 - [ ] Commit: `feat: Pipeline dashboard under Sales nav group (PRD 2.6.0)`.

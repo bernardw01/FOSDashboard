@@ -1,5 +1,5 @@
 /**
- * PRD version 2.7.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.8.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Historical dashboard snapshot storage (Option A): Google Drive folder
  * with per-date subfolders, JSON artifacts, and a manifest per day.
@@ -432,6 +432,8 @@ var SNAPSHOT_EXPECTED_SCHEMA_VERSIONS_ = {
   utilization: 2,
   'delivery-projects': 1,
   'delivery-pnl': 4,
+  expenses: 1,
+  pipeline: 1,
 };
 
 /** @const {!Object<string, string>} */
@@ -439,6 +441,8 @@ var SNAPSHOT_ARTIFACT_FILES_ = {
   agreement: 'agreement.json',
   utilization: 'utilization.json',
   'delivery-projects': 'delivery-projects.json',
+  expenses: 'expenses.json',
+  pipeline: 'pipeline.json',
 };
 
 /**
@@ -686,12 +690,14 @@ function getDashboardSnapshotCatalog() {
  *   agreement: ?Object,
  *   utilization: ?Object,
  *   deliveryProjects: ?Object,
+ *   expenses: ?Object,
+ *   pipeline: ?Object,
  *   warnings?: !Array<string>,
  *   message?: string
  * }}
  */
 function getDashboardSnapshotCoreBundle(snapshotDate) {
-  requireAuthForApi_();
+  var auth = requireAuthForApi_();
   var dateKey = requireSnapshotDate_(snapshotDate);
   var warnings = [];
   var empty = {
@@ -701,6 +707,8 @@ function getDashboardSnapshotCoreBundle(snapshotDate) {
     agreement: null,
     utilization: null,
     deliveryProjects: null,
+    expenses: null,
+    pipeline: null,
     warnings: warnings,
   };
 
@@ -731,6 +739,8 @@ function getDashboardSnapshotCoreBundle(snapshotDate) {
     dateFolder,
     SNAPSHOT_ARTIFACT_FILES_['delivery-projects']
   );
+  var expenses = readOptionalSnapshotArtifact_(dateFolder, 'expenses', warnings);
+  var pipeline = readOptionalSnapshotArtifact_(dateFolder, 'pipeline', warnings);
 
   var agreementOk = validateSnapshotArtifactSchema_(agreement, 'agreement', warnings);
   var utilOk = validateSnapshotArtifactSchema_(utilization, 'utilization', warnings);
@@ -761,6 +771,19 @@ function getDashboardSnapshotCoreBundle(snapshotDate) {
   tagSnapshotPayloadSource_(agreement);
   tagSnapshotPayloadSource_(utilization);
   tagSnapshotPayloadSource_(deliveryProjects);
+  if (expenses) {
+    tagSnapshotPayloadSource_(expenses);
+  }
+  if (pipeline) {
+    tagSnapshotPayloadSource_(pipeline);
+  }
+
+  if (!canAccessExpensesDashboard_(auth)) {
+    expenses = null;
+  }
+  if (!canAccessPipelineDashboard_(auth)) {
+    pipeline = null;
+  }
 
   return {
     ok: true,
@@ -769,8 +792,39 @@ function getDashboardSnapshotCoreBundle(snapshotDate) {
     agreement: agreement,
     utilization: utilization,
     deliveryProjects: deliveryProjects,
+    expenses: expenses,
+    pipeline: pipeline,
     warnings: warnings.length ? warnings : undefined,
   };
+}
+
+/**
+ * @param {GoogleAppsScript.Drive.Folder} dateFolder
+ * @param {string} artifactKey
+ * @param {!Array<string>} warnings
+ * @return {?Object}
+ * @private
+ */
+function readOptionalSnapshotArtifact_(dateFolder, artifactKey, warnings) {
+  var fileName = SNAPSHOT_ARTIFACT_FILES_[artifactKey];
+  if (!fileName) {
+    return null;
+  }
+  var payload = readSnapshotJsonFromDateFolder_(dateFolder, fileName);
+  if (!payload) {
+    warnings.push(
+      artifactKey + ' not included in this snapshot (captured before Expenses/Pipeline were added).'
+    );
+    return null;
+  }
+  if (!validateSnapshotArtifactSchema_(payload, artifactKey, warnings)) {
+    return null;
+  }
+  if (payload.ok === false) {
+    warnings.push((payload.message) || artifactKey + ' snapshot unavailable.');
+    return null;
+  }
+  return payload;
 }
 
 /**

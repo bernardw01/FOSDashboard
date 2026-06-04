@@ -1,5 +1,5 @@
 /**
- * PRD version 2.7.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.8.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Daily historical dashboard snapshot job. Fetches live Fibery payloads,
  * writes JSON artifacts to Google Drive (`dashboardSnapshotStore.js`),
@@ -14,6 +14,8 @@
  *   SNAPSHOT_RETENTION_DAYS            - default 90
  *   SNAPSHOT_TRIGGER_HOUR              - default 2 (local script TZ)
  *   FOS_SNAPSHOT_LOG_SHEET_NAME        - default Snapshot Runs
+ *   SNAPSHOT_INCLUDE_EXPENSES          - default true
+ *   SNAPSHOT_INCLUDE_PIPELINE          - default true
  *   AUTH_SPREADSHEET_ID                - same spreadsheet as Users tab
  *
  * Public (editor / trigger):
@@ -35,6 +37,12 @@ var SNAPSHOT_TRIGGER_HOUR_PROP_ = 'SNAPSHOT_TRIGGER_HOUR';
 
 /** @const {string} */
 var SNAPSHOT_LOG_SHEET_PROP_ = 'FOS_SNAPSHOT_LOG_SHEET_NAME';
+
+/** @const {string} */
+var SNAPSHOT_INCLUDE_EXPENSES_PROP_ = 'SNAPSHOT_INCLUDE_EXPENSES';
+
+/** @const {string} */
+var SNAPSHOT_INCLUDE_PIPELINE_PROP_ = 'SNAPSHOT_INCLUDE_PIPELINE';
 
 /** @const {string} */
 var SNAPSHOT_QUEUE_DATE_PROP_ = 'SNAPSHOT_QUEUE_DATE';
@@ -320,6 +328,44 @@ function runDashboardSnapshotForDate_(snapshotDate, force) {
       false
     );
 
+    if (resolveSnapshotIncludeExpenses_()) {
+      var expenses = buildExpensesDashboardPayload_();
+      if (expenses.ok) {
+        var expensesMeta = writeSnapshotArtifact_(snapshotDate, 'expenses.json', expenses);
+        appendManifestDataset_(
+          manifest,
+          'expenses',
+          'expenses.json',
+          expensesMeta,
+          expenses.cacheSchemaVersion,
+          expenses.fetchedAt,
+          { rowCount: (expenses.rows || []).length },
+          !!expenses.partial
+        );
+      } else {
+        manifest.warnings.push('Expenses snapshot failed: ' + (expenses.message || 'unknown'));
+      }
+    }
+
+    if (resolveSnapshotIncludePipeline_()) {
+      var pipeline = buildPipelineDashboardPayload_();
+      if (pipeline.ok) {
+        var pipelineMeta = writeSnapshotArtifact_(snapshotDate, 'pipeline.json', pipeline);
+        appendManifestDataset_(
+          manifest,
+          'pipeline',
+          'pipeline.json',
+          pipelineMeta,
+          pipeline.cacheSchemaVersion,
+          pipeline.fetchedAt,
+          { dealCount: (pipeline.deals || []).length },
+          !!pipeline.partial
+        );
+      } else {
+        manifest.warnings.push('Pipeline snapshot failed: ' + (pipeline.message || 'unknown'));
+      }
+    }
+
     writeSnapshotManifest_(snapshotDate, manifest);
 
     var projectIds = collectSnapshotPnlAgreementIds_(delivery);
@@ -544,8 +590,50 @@ function finalizeSnapshotManifest_(snapshotDate, manifest) {
   } else {
     manifest.status = 'complete';
   }
+  if (manifest.status === 'complete' && manifest.warnings && manifest.warnings.length) {
+    for (var w = 0; w < manifest.warnings.length; w++) {
+      var warnMsg = String(manifest.warnings[w] || '');
+      if (/Expenses snapshot failed|Pipeline snapshot failed/i.test(warnMsg)) {
+        manifest.status = 'partial';
+        break;
+      }
+    }
+  }
   manifest.completedAt = new Date().toISOString();
   writeSnapshotManifest_(snapshotDate, manifest);
+}
+
+/**
+ * @return {boolean}
+ * @private
+ */
+function resolveSnapshotIncludeExpenses_() {
+  return resolveSnapshotIncludeFlag_(SNAPSHOT_INCLUDE_EXPENSES_PROP_);
+}
+
+/**
+ * @return {boolean}
+ * @private
+ */
+function resolveSnapshotIncludePipeline_() {
+  return resolveSnapshotIncludeFlag_(SNAPSHOT_INCLUDE_PIPELINE_PROP_);
+}
+
+/**
+ * @param {string} propKey
+ * @return {boolean}
+ * @private
+ */
+function resolveSnapshotIncludeFlag_(propKey) {
+  var raw = PropertiesService.getScriptProperties().getProperty(propKey);
+  if (raw === null || raw === undefined) {
+    return true;
+  }
+  var t = String(raw).trim().toLowerCase();
+  if (!t) {
+    return true;
+  }
+  return t !== 'false' && t !== '0' && t !== 'no';
 }
 
 /**

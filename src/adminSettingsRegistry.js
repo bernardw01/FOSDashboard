@@ -1,5 +1,5 @@
 /**
- * PRD version 2.7.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.8.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -568,6 +568,22 @@ function getAdminSettingsCatalog_() {
       'Tab name for Snapshot Runs log on the auth spreadsheet.',
       'string',
       'Snapshot Runs'
+    ),
+    adminSettingEntry_(
+      'SNAPSHOT_INCLUDE_EXPENSES',
+      'snapshots',
+      'Include expenses in snapshot',
+      'When false, the daily job skips expenses.json (live Expenses panel still works).',
+      'boolean',
+      true
+    ),
+    adminSettingEntry_(
+      'SNAPSHOT_INCLUDE_PIPELINE',
+      'snapshots',
+      'Include pipeline in snapshot',
+      'When false, the daily job skips pipeline.json (live Pipeline panel still works).',
+      'boolean',
+      true
     ),
   ];
 }

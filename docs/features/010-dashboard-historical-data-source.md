@@ -1,6 +1,6 @@
 # Dashboard historical data source (UI)
 
-> **PRD version 2.1.0** - see `docs/FOS-Dashboard-PRD.md` (**FR-105**, **AC-61**). Storage job: [009-dashboard-historical-snapshots.md](009-dashboard-historical-snapshots.md).
+> **PRD version 2.8.0** - see `docs/FOS-Dashboard-PRD.md` (**FR-105**, **AC-61**). Storage job: [009-dashboard-historical-snapshots.md](009-dashboard-historical-snapshots.md).
 
 ## Goal
 
@@ -8,7 +8,7 @@ A **Data source** control in the left sidebar lets authorized users view all das
 
 ## Status
 
-**Delivered v2.1.0**
+**Delivered v2.1.0** (core Fibery panels). **Expenses + Pipeline in snapshot mode:** **v2.8.0**.
 
 ## UI
 
@@ -28,8 +28,10 @@ A **Data source** control in the left sidebar lets authorized users view all das
 | Function | Purpose |
 |----------|---------|
 | `getDashboardSnapshotCatalog()` | Authorized list of snapshots + synthetic Live option metadata |
-| `getDashboardSnapshotCoreBundle(snapshotDate)` | `agreement`, `utilization`, `deliveryProjects`, `manifest` |
+| `getDashboardSnapshotCoreBundle(snapshotDate)` | `agreement`, `utilization`, `deliveryProjects`, optional `expenses`, `pipeline`, `manifest` |
 | `getDashboardSnapshotPnl(snapshotDate, agreementId)` | Lazy Delivery P&L artifact |
+
+`getDashboardSnapshotCoreBundle` omits **`expenses`** / **`pipeline`** when the current user lacks Finance / Client Engagement access (same rules as live APIs).
 
 ## Panel behavior (snapshot mode)
 
@@ -41,6 +43,8 @@ A **Data source** control in the left sidebar lets authorized users view all das
 | Labor hours | Week slice from `bundle.utilization` only (no Fibery) |
 | Delivery list | `bundle.deliveryProjects` |
 | Delivery P&L | `getDashboardSnapshotPnl` per selected project |
+| Expenses | `bundle.expenses` when present; else inline "not available" message |
+| Pipeline | `bundle.pipeline` when present; else inline "not available" message |
 
 ## Activity logging
 
@@ -50,3 +54,5 @@ Route **`shell`**: `data_source_change`, `snapshot_bundle_load_start`, `snapshot
 
 - Agreement alerts/KPIs in snapshots reflect job **fetch-time** semantics (see feature 009).
 - Utilization date range is not user-adjustable in snapshot mode.
+- Expenses snapshot reflects spreadsheet contents at job run time (not re-filtered by snapshot date).
+- Snapshot dates before **v2.8.0** lack `expenses.json` / `pipeline.json`; those panels show a legacy message until a new snapshot is taken.

@@ -1,5 +1,5 @@
 /**
- * PRD version 2.7.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.8.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Sales **Pipeline** dashboard (feature 016). Reads HubSpot deals synced into
  * Fibery (`HubSpot/Deal`) through fiberyClient.js and returns a normalized,
@@ -294,6 +294,9 @@ function fetchAllPipelineDeals_(maxRows) {
 }
 
 /**
+ * Normalized pipeline payload (live API and daily snapshot job).
+ * Does not check user authorization; callers must gate access.
+ *
  * @return {!Object} client payload
  * @private
  */

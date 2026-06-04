@@ -1,11 +1,11 @@
 /**
- * PRD version 2.7.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.8.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.7.0';
+var FOS_PRD_VERSION = '2.8.0';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '2.7.0';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'Expenses dashboard: average submission cycle time by employee (vertical bar chart).';
+  'Historical snapshots now include Expenses and Pipeline datasets (expenses.json, pipeline.json).';
 
 /**
  * @return {string}

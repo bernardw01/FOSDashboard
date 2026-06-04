@@ -1,6 +1,6 @@
 # Feature: Expenses dashboard (spreadsheet-backed)
 
-> **PRD version 2.7.0** - shipped in web app **v2.5.0+** with **FR-109** / **AC-65**; nav under **Finance** group (**v2.5.1**); **Finance team / ADMIN only** (**v2.5.3**, broadened to **FINANCE team / EXEC / ADMIN** in **v2.6.1**); chart layout + risk map (**v2.5.5** - **v2.5.6**); customer table under Sankey (**v2.5.7**); **submission cycle by employee** chart (**v2.7.0**).
+> **PRD version 2.8.0** - shipped in web app **v2.5.0+** with **FR-109** / **AC-65**; nav under **Finance** group (**v2.5.1**); **FINANCE team / EXEC / ADMIN** (**v2.6.1**); **historical snapshot `expenses.json`** (**v2.8.0**, feature **009**); chart layout + risk map (**v2.5.5** - **v2.5.6**); customer table under Sankey (**v2.5.7**); **submission cycle by employee** chart (**v2.7.0**).
 
 > **Implementation plan:** [`docs/features/015-expenses-dashboard-implementation-plan.md`](015-expenses-dashboard-implementation-plan.md) - **Status:** implemented (PRD **2.5.0**).
 
@@ -204,7 +204,7 @@ Reuse **`.fos-util-drawer`** pattern (backdrop + `open` class, close affordance,
 2. **Authorization (v2.6.1):** `canAccessExpensesDashboard_()` allows access when **any** of `Team = FINANCE`, `Role = EXEC`, or `Role = ADMIN` is true; nav omits the **Finance** group and the server returns **FORBIDDEN** otherwise.
 3. **Server endpoint:** e.g. `getExpensesDashboardData()` reads the configured tab from `AUTH_SPREADSHEET_ID`, normalizes rows, returns `{ rows: [...], fetchedAt, warnings?, partial? }` with stable field names. **Normalize excludes zero-amount rows** (see “Zero amounts” under Data source review); returned **`rows`** contain only spends that contribute to KPIs/charts/tables/export.
 4. **Client:** New `#panel-expenses`; lazy fetch on first open; `sessionStorage` cache + TTL optional (key e.g. `fos_expenses_dashboard_v1`, `cacheSchemaVersion: 1`). Client MUST NOT re-introduce discarded zero rows unless product adds an explicit “Raw sheet rows” toggle (out of scope v1). **Charts:** At minimum **two** stacked bar charts (§ C **department** × month, § D **category** × month) using shared **Chart.js** load path; **category** chart **segment click** MUST open the drawer with **transaction-level** rows for that **month + category** (see § G).
-5. **Snapshot / Live data:** If **Live data** is off (FR-105), either hide Expenses with explanation or ship a snapshot artifact in a later phase (recommend: **Phase A = Live only** with clear empty state in snapshot mode).
+5. **Snapshot / Live data (v2.8.0):** When **Live data** is off (FR-105), Expenses renders from **`expenses.json`** in the core snapshot bundle when the file exists; Refresh is disabled. Snapshot dates before **v2.8.0** show an inline message (see feature **010**).
 6. **Activity logging:** Whitelist events such as `expenses_refresh`, `expenses_filter_change`, `expenses_drawer_open` (label includes drill context: `dept \| category \| customer \| row`), `expenses_export_csv` (labels include filter summary, no PII beyond what’s already logged elsewhere).
 
 ---

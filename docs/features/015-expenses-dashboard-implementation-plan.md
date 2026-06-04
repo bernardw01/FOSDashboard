@@ -1,6 +1,6 @@
 # Implementation plan - Expenses dashboard (spreadsheet-backed)
 
-> Companion to [015-expenses-dashboard.md](015-expenses-dashboard.md). **Status: shipped** - web app **v2.5.0** / PRD **2.5.0** (**FR-109**, **AC-65**). Daily Drive snapshot bundle still has **no** `expenses.json` (panel **Live-only** under **FR-105** until a follow-up adds an artifact).
+> Companion to [015-expenses-dashboard.md](015-expenses-dashboard.md). **Status: shipped** - web app **v2.5.0** / PRD **2.5.0** (**FR-109**, **AC-65**). **Snapshot `expenses.json`:** shipped **v2.8.0** (feature **009** / **010**).
 
 ## Summary
 

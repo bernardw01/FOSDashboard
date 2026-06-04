@@ -15,10 +15,12 @@ The **daily snapshot job** (`src/dashboardSnapshotJob.js`) persists the **same n
 | `utilization.json` | `buildUtilizationDashboardPayload_(start, end)` | `UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_` | `UTIL_CACHE_SCHEMA_VERSION` |
 | `delivery-projects.json` | `buildDeliveryDashboardPayloadFromAgreement_` | `DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_` | `DELIVERY_CACHE_SCHEMA_VERSION` |
 | `delivery-pnl/<id>.json` | `buildDeliveryProjectMonthlyPnLInternal_` | `DELIVERY_PNL_CACHE_SCHEMA_VERSION_` | `DELIVERY_PNL_CACHE_SCHEMA_VERSION` |
+| `expenses.json` | `buildExpensesDashboardPayload_()` | `EXPENSES_CACHE_SCHEMA_VERSION_` | `EXPENSES_CACHE_SCHEMA_VERSION` |
+| `pipeline.json` | `buildPipelineDashboardPayload_()` | `PIPELINE_CACHE_SCHEMA_VERSION_` | `PIPELINE_CACHE_SCHEMA_VERSION` |
 
 Manifest rows use `payload.cacheSchemaVersion` via `appendManifestDataset_` in the job; bump the **server** constant and the job will record the new version automatically.
 
-**Exception (v2.5.0):** **Expenses** (`getExpensesDashboardData()` / `src/expensesDashboard.js`) is **not** written to the daily snapshot bundle yet. Payload or `cacheSchemaVersion` changes there still need **server ↔ client** alignment and may warrant `sessionStorage` key bumps, but they **do not** require a new Drive artifact or manifest row until product adds **`expenses.json`** (see **FR-109** / **AC-65**).
+Optional job flags: **`SNAPSHOT_INCLUDE_EXPENSES`** and **`SNAPSHOT_INCLUDE_PIPELINE`** (default true). Legacy snapshot dates without these files remain loadable; the client shows an inline message when a panel has no artifact.
 
 ## Required steps when changing cache structure
 

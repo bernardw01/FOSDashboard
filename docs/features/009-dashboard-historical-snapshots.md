@@ -1,14 +1,14 @@
 # Dashboard historical snapshots
 
-> **PRD version 2.6.8** - see `docs/FOS-Dashboard-PRD.md` (**FR-42**, **FR-40**, **FR-104**, **AC-60**).
+> **PRD version 2.8.0** - see `docs/FOS-Dashboard-PRD.md` (**FR-42**, **FR-40**, **FR-104**, **AC-60**).
 
 ## Goal
 
-Run a **daily scheduled job** that captures the normalized JSON payloads used by all FOS dashboards and stores them in **Google Drive**, so a future UI can let users view **“as of”** historical data without changing today’s live Fibery fetch behavior.
+Run a **daily scheduled job** that captures the normalized JSON payloads used by all FOS dashboards and stores them in **Google Drive**, so a future UI can let users view **"as of"** historical data without changing today's live Fibery fetch behavior.
 
 ## Status
 
-**Delivered v2.0.0** - server job + Drive storage. **UI (data source selector):** [010-dashboard-historical-data-source.md](010-dashboard-historical-data-source.md) (**v2.1.0**).
+**Delivered v2.0.0** - server job + Drive storage. **UI (data source selector):** [010-dashboard-historical-data-source.md](010-dashboard-historical-data-source.md) (**v2.1.0**). **Expenses + Pipeline artifacts:** **v2.8.0**.
 
 ## Storage layout (Option A)
 
@@ -22,6 +22,8 @@ Root folder: Script Property **`FOS_SNAPSHOT_DRIVE_FOLDER_ID`** (create via **`e
  agreement.json
  utilization.json
  delivery-projects.json
+ expenses.json
+ pipeline.json
  delivery-pnl/
  <agreementId>.json
 ```
@@ -41,7 +43,20 @@ Root folder: Script Property **`FOS_SNAPSHOT_DRIVE_FOLDER_ID`** (create via **`e
 | `agreement.json` | `buildAgreementDashboardPayload_(snapshotDate)` | Future revenue filtered as of snapshot date |
 | `utilization.json` | `buildUtilizationDashboardPayload_(start, end)` | Default 90-day window ending snapshot date |
 | `delivery-projects.json` | `buildDeliveryDashboardPayloadFromAgreement_` | No extra Fibery fetch |
+| `expenses.json` | `buildExpensesDashboardPayload_()` | Spreadsheet tab at job run time; skip when **`SNAPSHOT_INCLUDE_EXPENSES`** is false |
+| `pipeline.json` | `buildPipelineDashboardPayload_()` | Fibery `HubSpot/Deal`; skip when **`SNAPSHOT_INCLUDE_PIPELINE`** is false |
 | `delivery-pnl/*.json` | `buildDeliveryProjectMonthlyPnLInternal_` | Batched; continuation trigger if needed; `cacheSchemaVersion: 4` (labor by role in chart payload, v2.6.8) |
+
+### Failure policy
+
+| Dataset | On failure |
+|---------|------------|
+| Agreement | Entire run **failed** |
+| Utilization | Warning; continue |
+| Delivery projects | Follows agreement |
+| Expenses | Warning; manifest may be **partial** |
+| Pipeline | Warning; manifest may be **partial** |
+| Delivery P&L | Per-project failure; manifest **partial** |
 
 ## Script Properties
 
@@ -54,6 +69,8 @@ Root folder: Script Property **`FOS_SNAPSHOT_DRIVE_FOLDER_ID`** (create via **`e
 | `SNAPSHOT_RETENTION_DAYS` | `90` | Drive folder pruning |
 | `SNAPSHOT_TRIGGER_HOUR` | `2` | Daily trigger hour (script timezone) |
 | `FOS_SNAPSHOT_LOG_SHEET_NAME` | `Snapshot Runs` | Log tab in `AUTH_SPREADSHEET_ID` |
+| `SNAPSHOT_INCLUDE_EXPENSES` | `true` | When false, job skips `expenses.json` |
+| `SNAPSHOT_INCLUDE_PIPELINE` | `true` | When false, job skips `pipeline.json` |
 
 ## Operations runbook
 
@@ -73,6 +90,6 @@ Root folder: Script Property **`FOS_SNAPSHOT_DRIVE_FOLDER_ID`** (create via **`e
 - Spreadsheet index tab (Option B hybrid)
 - GCS backend (Option C)
 
-## Read API (v2.1.0)
+## Read API (v2.1.0+)
 
-Implemented on `dashboardSnapshotStore.js`: `getDashboardSnapshotCatalog`, `getDashboardSnapshotCoreBundle`, `getDashboardSnapshotPnl`. See feature **010**.
+Implemented on `dashboardSnapshotStore.js`: `getDashboardSnapshotCatalog`, `getDashboardSnapshotCoreBundle`, `getDashboardSnapshotPnl`. Core bundle includes optional **`expenses`** and **`pipeline`** (v2.8.0). See feature **010**.
