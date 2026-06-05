@@ -1,5 +1,5 @@
 /**
- * PRD version 2.8.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.8.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings panel API (feature 011).
  */

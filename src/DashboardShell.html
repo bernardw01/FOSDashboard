@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.8.0 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.8.1 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -8618,11 +8618,9 @@
 
       // Phase C - Alerts panel ----------------------------------------------
       // v1.17.0 - Renders the Utilization Alerts panel as a list grouped by
-      // alert **kind** (Under-utilized, Over-allocated, Stale approvals).
-      // Replaces the v1.16.0 by-person grouping based on operator feedback:
-      // managers want to triage a class of issue at a time, not a person at
-      // a time. Panel-level cards (`stale_approval_rollup`, `all_clear`)
-      // remain as standalone flat cards above the grouped section.
+      // alert **kind** (Under-utilized, Over-allocated).
+      // Panel-level cards (`all_clear`) remain as standalone flat cards above
+      // the grouped section.
       //
       // Default expand state per group (v1.21.1): **all collapsed** until the
       // user clicks a group header. `utilState.alerts.expanded[kind] === true`
@@ -8813,7 +8811,6 @@
       // Kinds that are panel-level summaries and MUST stay as standalone
       // flat cards above the grouped section (they have nothing to "expand").
       var UTIL_ALERT_STANDALONE_KINDS_ = {
-        stale_approval_rollup: true,
         all_clear: true,
       };
 
@@ -8828,8 +8825,6 @@
         switch (kind) {
           case 'under_utilized':       return 'Under-utilized';
           case 'over_allocated':       return 'Over-allocated';
-          case 'stale_approval':       return 'Stale approvals';
-          case 'stale_approval_rollup':return 'Stale approvals (rollup)';
           case 'all_clear':            return 'All clear';
         }
         // Humanize unknown kinds: replace `_` with spaces, capitalize first.
@@ -8902,19 +8897,6 @@
           'operations',
           'severity=' + (alert.severity || '?') + ' · kind=' + (alert.kind || '?')
         );
-        // v1.14.1 - stale-approval rollup card scrolls the user to the
-        // Pending Approvals widget and expands its Show all toggle so the
-        // long tail is immediately reachable.
-        if (alert.kind === 'stale_approval_rollup') {
-          utilState.pending.showAll = true;
-          var p = utilState.payload;
-          if (p) renderPendingApprovals(applyFilters(p.rows || []));
-          var heading = document.getElementById('util-pending-heading');
-          if (heading && heading.scrollIntoView) {
-            heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-          return;
-        }
         if (alert.target && alert.target.rowId) {
           openDetailDrawer(alert.target.rowId, 'alert');
           return;

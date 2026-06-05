@@ -1,11 +1,11 @@
 /**
- * PRD version 2.8.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.8.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Phase C - Utilization rule evaluator. Returns an ordered list of
  * attention items for the Operations panel, mirroring the
  * Agreement Dashboard's Section 6 alert pattern (src/agreementAlerts.js).
  *
- * Three rule families:
+ * Two rule families:
  *   1. Under-utilized       - Warning. A person whose mean weekly utilization%
  *                             across the last 3 complete ISO weeks in the
  *                             range is `< thresholds.underPercent`. Persons
@@ -14,16 +14,12 @@
  *   2. Over-allocated       - Critical. A person whose weekly utilization%
  *                             is `> thresholds.overPercent` in any two
  *                             consecutive complete weeks in the range.
- *   3. Stale approvals      - Warning when `isPending && now - startDateTime
- *                             >= staleApprovalWarnDays`; escalates to
- *                             Critical past `staleApprovalCritDays`. Oldest
- *                             first inside each severity bucket.
  *
  * Output shape (each entry):
  *   {
  *     id: string,            // stable per-target for client dedupe
  *     severity: 'critical' | 'warning' | 'info',
- *     kind: string,          // 'under_utilized' | 'over_allocated' | 'stale_approval' | 'all_clear'
+ *     kind: string,          // 'under_utilized' | 'over_allocated' | 'all_clear'
  *     title: string,         // single-line UI title
  *     body: string,          // one or two short sentences
  *     target: {              // hint the client uses to deep-link / drill
@@ -48,17 +44,9 @@ var UTIL_ALERT_SEV_INFO_ = 'info';
 var UTIL_ALERT_SEV_RANK_ = { critical: 0, warning: 1, info: 2 };
 
 /**
- * Cap on per-row stale-approval cards in the Alerts panel (v1.14.1).
- * Anything beyond the cap is folded into a single rollup info card so the
- * panel doesn't balloon to thousands of items when a sync backlog exists.
- * @const {number}
- */
-var UTIL_ALERT_STALE_CAP_ = 20;
-
-/**
  * Evaluates the Phase C rule set and returns the ranked alert list.
  *
- * @param {!Array<!Object>} rows  Normalized labor-cost rows.
+ * @param {!Array<!Object>} rows  Normalized labor-cost rows (reserved; unused).
  * @param {!Array<!Object>} byPersonWeek  Output of `buildByPersonWeek_`  - 
  *   one entry per (personKey, week) with `utilizationPct`, `partial`, etc.
  * @param {!Object} thresholds  Output of `getUtilizationThresholds_()`.
@@ -153,87 +141,13 @@ function buildUtilizationAlerts_(rows, byPersonWeek, thresholds, range, now) {
     }
   }
 
-  // Rule 3 - Stale approvals. Independent of the byPersonWeek index.
-  // v1.14.1: collect candidates first, then cap at UTIL_ALERT_STALE_CAP_
-  // oldest individual cards + one rollup info card so the Alerts panel
-  // stays scannable even when a multi-thousand-row approval backlog exists.
-  var staleCandidates = [];
-  for (var ri = 0; ri < rows.length; ri++) {
-    var r = rows[ri];
-    if (!r || !r.isPending) {
-      continue;
-    }
-    var ageDays = daysBetween_(r.startDateTime, now);
-    if (ageDays === null || ageDays < thresholds.staleApprovalWarnDays) {
-      continue;
-    }
-    staleCandidates.push({ row: r, ageDays: ageDays });
-  }
-  // Oldest first.
-  staleCandidates.sort(function (a, b) {
-    return Number(b.ageDays || 0) - Number(a.ageDays || 0);
-  });
-  var staleVisible = staleCandidates.slice(0, UTIL_ALERT_STALE_CAP_);
-  var staleHiddenCount = Math.max(0, staleCandidates.length - staleVisible.length);
-  for (var sci = 0; sci < staleVisible.length; sci++) {
-    var entry = staleVisible[sci];
-    var sr = entry.row;
-    var sAgeDays = entry.ageDays;
-    var sev = sAgeDays >= thresholds.staleApprovalCritDays ? UTIL_ALERT_SEV_CRITICAL_ : UTIL_ALERT_SEV_WARNING_;
-    alerts.push({
-      id: 'util-stale:' + (sr.id || (sr.userId + ':' + sr.startDateTime)),
-      severity: sev,
-      kind: 'stale_approval',
-      title:
-        (sr.userName || 'Unknown user') + ' - Pending approval ' +
-        Math.round(sAgeDays) + ' days old',
-      body:
-        formatHours_(sr.hours) + ' hrs on ' + (sr.customer || '(Unassigned)') +
-        ' Â· ' + (sr.projectName || '(No project)') +
-        ' (' + (sr.day || sr.startDateTime || ' - ') + ').',
-      target: { rowId: sr.id || null, person: sr.userId || sr.userName || null },
-    });
-  }
-  if (staleHiddenCount > 0) {
-    // Roll up the rest into one Warning card. The body summarises age range +
-    // a count breakdown so the Pending Approvals widget remains the
-    // drill-into surface for the long tail.
-    var oldestHidden = staleVisible[staleVisible.length - 1];
-    var hiddenList = staleCandidates.slice(UTIL_ALERT_STALE_CAP_);
-    var critHidden = 0;
-    for (var hi = 0; hi < hiddenList.length; hi++) {
-      if (hiddenList[hi].ageDays >= thresholds.staleApprovalCritDays) {
-        critHidden++;
-      }
-    }
-    var oldestHiddenAge = hiddenList[0] ? Math.round(hiddenList[0].ageDays) : 0;
-    var newestHiddenAge = hiddenList[hiddenList.length - 1]
-      ? Math.round(hiddenList[hiddenList.length - 1].ageDays)
-      : 0;
-    alerts.push({
-      id: 'util-stale-rollup',
-      severity: UTIL_ALERT_SEV_WARNING_,
-      kind: 'stale_approval_rollup',
-      title:
-        '+' + staleHiddenCount + ' more pending â‰¥ ' +
-        thresholds.staleApprovalWarnDays + ' days' +
-        (critHidden ? ' (' + critHidden + ' â‰¥ ' + thresholds.staleApprovalCritDays + ')' : ''),
-      body:
-        'Showing the ' + staleVisible.length + ' oldest individual cards (oldest ' +
-        Math.round(oldestHidden.ageDays) + ' days). The remaining ' +
-        staleHiddenCount + ' span ' + newestHiddenAge + '-' + oldestHiddenAge + ' days. ' +
-        'Open the Pending Approvals widget to drill into the full list.',
-      target: {},
-    });
-  }
-
   if (!alerts.length) {
     alerts.push({
       id: 'util-all-clear',
       severity: UTIL_ALERT_SEV_INFO_,
       kind: 'all_clear',
       title: 'No utilization alerts in the current range',
-      body: 'All persons are within target utilization and no pending approvals are aging.',
+      body: 'All persons are within target utilization in the current range.',
       target: {},
     });
   }
@@ -243,11 +157,6 @@ function buildUtilizationAlerts_(rows, byPersonWeek, thresholds, range, now) {
     var rb = UTIL_ALERT_SEV_RANK_[b.severity];
     if (ra !== rb) {
       return ra - rb;
-    }
-    // Stale approvals: oldest first inside the same severity bucket; everything
-    // else falls back to title for deterministic ordering.
-    if (a.kind === 'stale_approval' && b.kind === 'stale_approval') {
-      return String(b.id).localeCompare(String(a.id));
     }
     return String(a.title).localeCompare(String(b.title));
   });
@@ -301,31 +210,6 @@ function filterCompleteWeeks_(ordered) {
 /** @private */
 function weekKey_(e) {
   return e ? e.week : null;
-}
-
-/**
- * Whole-day difference between an ISO timestamp and a Date. Returns null
- * when the timestamp can't be parsed.
- *
- * @param {?string} iso
- * @param {!Date} now
- * @return {?number}
- * @private
- */
-function daysBetween_(iso, now) {
-  if (!iso) {
-    return null;
-  }
-  var d;
-  try {
-    d = new Date(iso);
-  } catch (_) {
-    return null;
-  }
-  if (!isFinite(d.getTime())) {
-    return null;
-  }
-  return Math.max(0, (now.getTime() - d.getTime()) / 86400000);
 }
 
 /** @private */
