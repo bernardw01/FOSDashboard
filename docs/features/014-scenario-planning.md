@@ -807,7 +807,7 @@ Imported PRD §14 - primary executive/compare strip.
 ## Related documents
 
 - [`docs/financial_scenario_modeling_prd.md`](../financial_scenario_modeling_prd.md) - imported full PRD (external stack recommendations superseded by this feature file).
-- `docs/features/014-scenario-planning-implementation-plan.md` - not yet written.
+- [014-scenario-planning-implementation-plan.md](014-scenario-planning-implementation-plan.md) - phased delivery plan (R1-R7 + backlog).
 - `docs/FOS-Dashboard-PRD.md` - FR/AC when Phase A ships.
 
 ## Changelog
