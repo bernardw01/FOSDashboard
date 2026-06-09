@@ -1544,11 +1544,12 @@
       background: var(--ag-surface2);
       padding: 8px;
     }
+    /* Intrinsic pixel size from width/height attributes — do not scale to 100%
+       or cell + label sizes change when week/person counts change. */
     #util-heatmap-svg {
       display: block;
-      width: 100%;
-      height: auto;
       font-family: 'Inter', system-ui, sans-serif;
+      font-size: 14px;
     }
     .fos-util-heatmap-empty {
       position: absolute;
@@ -1598,7 +1599,7 @@
       flex-wrap: wrap;
       gap: 8px;
       align-items: center;
-      font-size: 0.74rem;
+      font-size: 0.78rem;
       color: var(--ag-text-muted);
       margin-bottom: 10px;
     }
@@ -8905,8 +8906,10 @@
         var totalW = labelW + weeks.length * (cellW + gutter);
         var totalH = headerH + personKeys.length * (cellH + gutter);
         svg.setAttribute('viewBox', '0 0 ' + totalW + ' ' + totalH);
-        svg.setAttribute('width', totalW);
-        svg.setAttribute('height', totalH);
+        svg.setAttribute('width', String(totalW));
+        svg.setAttribute('height', String(totalH));
+        svg.setAttribute('preserveAspectRatio', 'xMinYMin meet');
+        svg.removeAttribute('style');
         svg.innerHTML = '';
 
         // <defs> with the diagonal hatch pattern used for partial-week cells.
@@ -8925,6 +8928,7 @@
           t.setAttribute('x', labelW + wi * (cellW + gutter) + cellW / 2);
           t.setAttribute('y', headerH - 8);
           t.setAttribute('text-anchor', 'middle');
+          t.setAttribute('dominant-baseline', 'auto');
           // Render the week portion only (e.g. 'W19') to keep the header tight.
           t.textContent = (weeks[wi] || '').split('-W')[1] ? 'W' + weeks[wi].split('-W')[1] : weeks[wi];
           svg.appendChild(t);
@@ -8939,8 +8943,9 @@
           var label = document.createElementNS(svgNS, 'text');
           label.setAttribute('class', 'fos-util-heatmap-person-label');
           label.setAttribute('x', labelW - 8);
-          label.setAttribute('y', rowY + cellH / 2 + 4);
+          label.setAttribute('y', rowY + cellH / 2);
           label.setAttribute('text-anchor', 'end');
+          label.setAttribute('dominant-baseline', 'middle');
           var fullName = personMeta[personKey] || personKey;
           label.textContent = fullName.length > 22 ? fullName.slice(0, 21) + '…' : fullName;
           var labelTitle = document.createElementNS(svgNS, 'title');
