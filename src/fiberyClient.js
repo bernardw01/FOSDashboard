@@ -1,5 +1,5 @@
 /**
- * PRD version 2.8.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.11.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Fibery REST API client (Apps Script UrlFetchApp).
  *
@@ -13,6 +13,7 @@
  * Public:
  *   fiberyQuery_(query)             - single fibery.entity/query command
  *   fiberyBatchQuery_(queries)      - N commands in one round-trip
+ *   fiberyBatchCommands_(commands)  - arbitrary Fibery commands (create/update)
  *   fiberyPing_()                   - fibery/version, for diagnostics
  *
  * No payloads or tokens are logged. Errors are mapped to a small {ok:false,reason}
@@ -124,6 +125,72 @@ function fiberyBatchQuery_(queries) {
   }
 
   return { ok: true, results: rows };
+}
+
+/**
+ * Executes arbitrary Fibery API commands in one POST. Each entry must be
+ * `{ command: string, args: object }`. Results are returned in input order.
+ *
+ * @param {!Array<{ command: string, args: !Object }>} commands
+ * @return {!{ ok: true, results: !Array<*> }|!{ ok: false, reason: string, message: string }}
+ */
+function fiberyBatchCommands_(commands) {
+  var cfg = readFiberyConfig_();
+  if (!cfg.ok) {
+    return cfg;
+  }
+  if (!commands || !commands.length) {
+    return { ok: true, results: [] };
+  }
+
+  var resp;
+  try {
+    resp = UrlFetchApp.fetch('https://' + cfg.host + '/api/commands', {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { Authorization: 'Token ' + cfg.token },
+      payload: JSON.stringify(commands),
+      muteHttpExceptions: true,
+      followRedirects: false,
+    });
+  } catch (e) {
+    fiberyWarn_('fetch threw', e);
+    return { ok: false, reason: 'FIBERY_NETWORK', message: 'Could not reach Fibery.' };
+  }
+
+  var code = resp.getResponseCode();
+  if (code === 401 || code === 403) {
+    fiberyWarn_('auth rejected by Fibery (' + code + ')', null);
+    return { ok: false, reason: 'FIBERY_AUTH', message: 'Fibery rejected the API token.' };
+  }
+  if (code < 200 || code >= 300) {
+    fiberyWarn_('non-2xx from Fibery (' + code + ')', null);
+    return { ok: false, reason: 'FIBERY_HTTP', message: 'Fibery returned HTTP ' + code + '.' };
+  }
+
+  var body;
+  try {
+    body = JSON.parse(resp.getContentText());
+  } catch (e) {
+    fiberyWarn_('JSON parse failed', e);
+    return { ok: false, reason: 'FIBERY_PARSE', message: 'Could not parse the Fibery response.' };
+  }
+  if (!Array.isArray(body)) {
+    return { ok: false, reason: 'FIBERY_PARSE', message: 'Unexpected Fibery response shape.' };
+  }
+
+  var results = new Array(body.length);
+  for (var j = 0; j < body.length; j++) {
+    var item = body[j];
+    if (!item || item.success !== true) {
+      var msg = (item && item.result && item.result.message) || 'Fibery command failed.';
+      fiberyWarn_('command error: ' + msg, null);
+      return { ok: false, reason: 'FIBERY_RESULT_ERROR', message: msg };
+    }
+    results[j] = item.result;
+  }
+
+  return { ok: true, results: results };
 }
 
 /**

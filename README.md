@@ -197,8 +197,6 @@ Configuration for this Web App lives in the Apps Script project under **Project 
 | `UTILIZATION_TOP_N_PROJECTS` | No | Cap for Hours-by-Project chart rows. | `20` |
 | `UTILIZATION_TOP_N_CUSTOMERS` | No | Cap for Hours-by-Customer chart rows. | `20` |
 | `UTILIZATION_HEATMAP_TOP_N_PERSONS` | No | Max heatmap rows (separate from Top-N persons for the bar chart). | `30` |
-| `UTILIZATION_STALE_APPROVAL_WARN_DAYS` | No | Stale-approval alert: warning age (days). | `7` |
-| `UTILIZATION_STALE_APPROVAL_CRIT_DAYS` | No | Stale-approval alert: critical age (days); must be **>** warn days. | `14` |
 | `LABOR_HOURS_DEFAULT_WEEKLY_TARGET` | No | Default weekly hour target for Labor hours / `laborHours` payload (hours). | `40` |
 | `LABOR_HOURS_PARTNER_WEEKLY_TARGET` | No | Weekly target when `clockifyUserCompany` matches a partner substring (hours). | `45` |
 | `LABOR_HOURS_PARTNER_COMPANY_SUBSTRINGS` | No | CSV of case-insensitive substrings matched against `clockifyUserCompany` for partner target. | `ret,coherent,kforce` |

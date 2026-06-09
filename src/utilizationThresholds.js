@@ -1,5 +1,5 @@
 /**
- * PRD version 2.8.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.11.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard constants per
  * docs/features/005-utilization-management-dashboard.md:
@@ -23,8 +23,6 @@
  *   UTILIZATION_TOP_N_PROJECTS            (default 20)
  *   UTILIZATION_TOP_N_CUSTOMERS           (default 20)
  *   UTILIZATION_HEATMAP_TOP_N_PERSONS     (default 30 - Phase C heatmap row cap)
- *   UTILIZATION_STALE_APPROVAL_WARN_DAYS  (default 7  - Phase C stale-approval rule)
- *   UTILIZATION_STALE_APPROVAL_CRIT_DAYS  (default 14 - Phase C stale-approval rule)
  *
  * Labor Hours dashboard (route `labor-hours`, feature 007) reuses the same
  * labor rows; optional Script Properties (read by `getLaborHoursConfig_()`):
@@ -47,9 +45,9 @@
  * Agreement panel.
  */
 
-/** @const {number} Bumped when the client cache shape changes. v2 adds the
- *  Phase C `aggregates.byPersonWeek` and `alerts[]` blocks (v1.14.0). */
-var UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_ = 2;
+/** @const {number} Bumped when the client cache shape changes. v3 drops labor
+ *  approval / pending-approvals fields (v2.11.0). */
+var UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_ = 3;
 
 /** @const {number} Default Fibery `q/limit` per labor-cost page. */
 var UTILIZATION_QUERY_PAGE_LIMIT_ = 1000;
@@ -72,13 +70,6 @@ var UTILIZATION_BILLABLE_COLORS_ = {
   NON_BILLABLE: '#A0AEC0',
 };
 
-/** @const {!Object} Approval-state colors (used by Phase C / Pending Approvals). */
-var UTILIZATION_APPROVAL_COLORS_ = {
-  APPROVED: '#43D6BA',
-  PENDING: '#f9c74f',
-  UNAPPROVED: '#fc5c65',
-  UNKNOWN: '#A0AEC0',
-};
 
 /** @const {!Array<string>} Role-palette hues (deterministic by sorted hours). */
 var UTILIZATION_ROLE_PALETTE_ = [
@@ -111,9 +102,6 @@ var UTILIZATION_DEFAULTS_ = {
   // Phase C - heatmap row cap (separate from TOP_N_PERSONS so the donut/bar
   // and the heatmap can scale independently).
   HEATMAP_TOP_N_PERSONS: 30,
-  // Phase C - stale-approval bucket boundaries in days.
-  STALE_APPROVAL_WARN_DAYS: 7,
-  STALE_APPROVAL_CRIT_DAYS: 14,
   INTERNAL_COMPANY_NAMES: ['harpin.ai', 'Harpin'],
 };
 
@@ -136,7 +124,6 @@ var UTILIZATION_DEFAULTS_ = {
  *   internalCompanyNames: !Array<string>,
  *   bucketColors: !Object,
  *   billableColors: !Object,
- *   approvalColors: !Object,
  *   rolePalette: !Array<string>,
  *   customerPalette: !Array<string>
  * }}
@@ -188,23 +175,10 @@ function getUtilizationThresholds_() {
     props.getProperty('UTILIZATION_HEATMAP_TOP_N_PERSONS'),
     UTILIZATION_DEFAULTS_.HEATMAP_TOP_N_PERSONS
   );
-  var staleWarnDays = parsePositiveNumber_(
-    props.getProperty('UTILIZATION_STALE_APPROVAL_WARN_DAYS'),
-    UTILIZATION_DEFAULTS_.STALE_APPROVAL_WARN_DAYS
-  );
-  var staleCritDays = parsePositiveNumber_(
-    props.getProperty('UTILIZATION_STALE_APPROVAL_CRIT_DAYS'),
-    UTILIZATION_DEFAULTS_.STALE_APPROVAL_CRIT_DAYS
-  );
-
   var internalNames = parseCsvList_(props.getProperty('UTILIZATION_INTERNAL_COMPANY_NAMES'));
   if (!internalNames.length) {
     internalNames = UTILIZATION_DEFAULTS_.INTERNAL_COMPANY_NAMES.slice();
   }
-
-  // Ensure WARN < CRIT so the stale-approval bucket math is monotonic.
-  var warnDaysClean = Math.max(1, Math.round(staleWarnDays));
-  var critDaysClean = Math.max(warnDaysClean + 1, Math.round(staleCritDays));
 
   return {
     cacheTtlMinutes: Math.max(1, Math.round(ttl)),
@@ -218,12 +192,9 @@ function getUtilizationThresholds_() {
     topNProjects: Math.max(1, Math.round(topNProjects)),
     topNCustomers: Math.max(1, Math.round(topNCustomers)),
     heatmapTopNPersons: Math.max(1, Math.round(heatmapTopN)),
-    staleApprovalWarnDays: warnDaysClean,
-    staleApprovalCritDays: critDaysClean,
     internalCompanyNames: internalNames,
     bucketColors: UTILIZATION_BUCKET_COLORS_,
     billableColors: UTILIZATION_BILLABLE_COLORS_,
-    approvalColors: UTILIZATION_APPROVAL_COLORS_,
     rolePalette: UTILIZATION_ROLE_PALETTE_.slice(),
     customerPalette: CUSTOMER_PALETTE_.slice(),
   };

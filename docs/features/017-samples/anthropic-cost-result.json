@@ -1,0 +1,19 @@
+{
+  "_comment": "Redacted exemplar - one results[] entry from cost_report grouped by workspace_id + description.",
+  "result": {
+    "currency": "USD",
+    "amount": 204.423383,
+    "workspace_id": null,
+    "description": "Claude Haiku 4.5 Usage - Input Tokens",
+    "cost_type": "tokens",
+    "context_window": "0-200k",
+    "model": "claude-haiku-4-5-20251001",
+    "service_tier": "standard",
+    "token_type": "uncached_input_tokens",
+    "inference_geo": "not_available"
+  },
+  "_phase0_stats_7d_grouped": {
+    "result_rows": 496,
+    "group_by": ["workspace_id", "description"]
+  }
+}

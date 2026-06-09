@@ -1,0 +1,32 @@
+{
+  "_comment": "Redacted exemplar - one claude_code row with model_breakdown (2026-06-01). Subscription rows not observed in Phase 0 window.",
+  "date": "2026-06-01T00:00:00Z",
+  "actor": {
+    "type": "api_actor",
+    "api_key_name": "person-key-name-redacted"
+  },
+  "organization_id": "3f4ca16f-80b7-461e-b01e-a14f3d9a9817",
+  "terminal_type": "intellij",
+  "customer_type": "api",
+  "subscription_type": null,
+  "core_metrics": {
+    "num_sessions": 1,
+    "lines_of_code": { "added": 242, "removed": 129 }
+  },
+  "tool_actions": {
+    "edit_tool": { "accepted": 52, "rejected": 0 }
+  },
+  "model_breakdown": [
+    {
+      "model": "claude-sonnet-4-6[1m]",
+      "tokens": {
+        "input": 10163,
+        "output": 65074,
+        "cache_read": 16641491,
+        "cache_creation": 1618016
+      },
+      "estimated_cost": { "currency": "USD", "amount": 1207 }
+    }
+  ],
+  "_phase0_note": "Flatten each model_breakdown[] item to one AI Usage Data/Usage row."
+}

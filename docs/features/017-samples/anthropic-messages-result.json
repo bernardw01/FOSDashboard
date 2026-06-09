@@ -1,0 +1,32 @@
+{
+  "_comment": "Redacted exemplar - one results[] entry from usage_report/messages (2026-06-01 bucket). Harpin AI org.",
+  "bucket": {
+    "starting_at": "2026-06-01T00:00:00Z",
+    "ending_at": "2026-06-02T00:00:00Z"
+  },
+  "result": {
+    "uncached_input_tokens": 73270,
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 286238
+    },
+    "cache_read_input_tokens": 1650616,
+    "output_tokens": 30566,
+    "server_tool_use": {
+      "web_search_requests": 0
+    },
+    "api_key_id": "apikey_REDACTED",
+    "workspace_id": null,
+    "account_id": null,
+    "service_account_id": null,
+    "model": "claude-haiku-4-5-20251001",
+    "service_tier": null,
+    "context_window": null,
+    "inference_geo": null
+  },
+  "_phase0_stats_7d": {
+    "result_rows": 306,
+    "with_account_id": 0,
+    "with_api_key_id": 306
+  }
+}

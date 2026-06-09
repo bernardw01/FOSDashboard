@@ -1,6 +1,6 @@
 # Feature: Utilization Management Dashboard (Fibery Labor Costs)
 
-> **PRD version 2.8.1** - see `docs/FOS-Dashboard-PRD.md`. Phase A was delivered in v1.12.0 (new FRs FR-70 - FR-76 + AC-22 / AC-23 + new **§8 Utilization Management Dashboard** added to the main PRD). Phase B was delivered in v1.13.0 (FR-77 - FR-79 + AC-24 / AC-25 + AC-26). v1.13.1 is a UX-polish patch shared with the Agreement Dashboard (loading overlay + sticky panel render - see AC-27 in the main PRD). **Phase C was delivered in v1.14.0** (FR-80 / FR-81 / FR-82 + AC-28 / AC-29 / AC-30 / AC-31 / AC-32 / AC-33 / AC-34 / AC-35 in the main PRD - adds the Utilization Alerts panel, Person × Week heatmap with a heatmap-local Role filter (top 30 contributors), Pending Approvals widget, and row-detail drawer; bumps the client cache schema 1 → 2 to carry `aggregates.byPersonWeek` + `alerts[]`). **v1.15.0** rebuilds the row-detail drawer's **Open in Fibery →** anchor: the old hard-coded URL (wrong host, wrong path, wrong slug) is replaced by a server-supplied deep-link template, and the anchor is gated by a new **`fibery_access`** column on the Users sheet (FR-83 / FR-84 + AC-36 / AC-37). **v1.16.0** reorganizes the Utilization Alerts panel from a flat list to **per-person collapsible groups** (server payload unchanged; presentation transform only - see FR-80 v1.16.0 clause + AC-38). **v1.17.0** revises the grouping axis from `target.person` to alert **`kind`** (Under-utilized / Over-allocated / Stale approvals) per operator feedback that managers triage one class of issue at a time, and adds a **Collapse all** button in the panel header that closes every group in one click (FR-80 v1.17.0 clause + AC-38 revision + new AC-39). **v1.18.0** ships four targeted improvements: (a) **Heatmap cell click → modal** listing the contributing labor entries (replaces the v1.14.0 pin-Person + switch-range drill that forced a fresh Fibery fetch on every click - FR-85 + AC-40); (b) **Persons multi-select alpha-sort** in the menu while preserving the server's hours-desc order for heatmap rows (FR-87 + AC-42); (c) **Fibery link tolerance** - loose-match column header fallback in `findHeaderIndex_`, scheme/trailing-slash scrub in `getFiberyDeepLinkConfig_`, devtools console diagnostic in `getFiberyLaborCostUrl_`, and a new `_diag_fiberyAccess()` editor helper (FR-88 + AC-42); plus the Agreement Dashboard milestones modal (FR-86 + AC-41 - see feature 003).
+> **PRD version 2.11.0** - see `docs/FOS-Dashboard-PRD.md`. **v2.11.0** removes labor time-approval tracking (Pending Approvals KPI/widget, Approval columns, cache schema **3**). Phase A–C history through v1.18.0 unchanged; see main PRD **§8** and **AC-69**.
 
 ## Status
 
@@ -11,7 +11,8 @@
 | **UX polish (v1.13.1)** | (1) Semi-transparent **`.fos-loading-overlay`** added inside `#panel-operations .fos-agreement-inner` - toggled on at the start of every `fetchUtilizationFromServer()` call and off in both handlers, covering initial load / Refresh / range change / background stale-refresh. (2) **Sticky panel render** - navigating away and back no longer re-runs `applyUtilPayload(cached)` when the cached payload's `fetchedAt` matches what the DOM already shows, preserving Chart.js + Detail-Table state across panel toggles. `applyStoredFilters_()` moves inside the no-skip branch so a cross-tab filter change cannot desync state from DOM. Stale-detection + background fetch logic (FR-73) still fires. See main PRD **FR-73**, **AC-27**. | v1.13.1 | **Delivered v1.13.1** |
 | **Phase C - Heatmap + alerts + approval queue** | Person × Week utilization heatmap (custom SVG, top-30 contributors, **heatmap-local Role filter**, partial-week hatch overlay, click → pin Person + switch range) · Pending Approvals widget (cap 50, Show all toggle, age badges) · Utilization Alerts panel (`src/utilizationAlerts.js`: under-utilized / over-allocated / stale approvals) · Row-detail **drawer** (off-canvas right, Open in Fibery deep link, closable via button / backdrop / Escape) · Client cache schema bumped 1 → 2 to carry `aggregates.byPersonWeek` + `alerts[]` | v1.14.0 | **Delivered v1.14.0** |
 | **Phase C correctness patch (v1.14.1)** | `isPendingApproval_` no longer flags `Approval = Approved` rows whose `Time Entry Status` is blank as pending (was producing 7,000+ false-positive stale-approval alerts in the field). New editor helper `_diag_sampleUtilizationPending()` dumps the Approval × Time-Entry-Status distribution + the count the predicate flags as pending, for verifying the fix against live data. See main PRD **FR-80**, **AC-28**. | v1.14.1 | **Delivered v1.14.1** |
-| **Alerts patch (v2.8.1)** | **Stale-approval alert rules removed** from `src/utilizationAlerts.js` (no `stale_approval` / `stale_approval_rollup` cards; fixes mojibake in rollup titles). Utilization Alerts panel evaluates **Under-utilized** and **Over-allocated** only; approval pending age remains on the **Pending Approvals** widget. See main PRD **FR-80**, **AC-28**, **AC-38**. | v2.8.1 | **Delivered v2.8.1** |
+| **Alerts patch (v2.8.1)** | **Stale-approval alert rules removed** from `src/utilizationAlerts.js` (no `stale_approval` / `stale_approval_rollup` cards). Utilization Alerts panel evaluates **Under-utilized** and **Over-allocated** only. See main PRD **FR-80**, **AC-28**. | v2.8.1 | **Delivered v2.8.1** |
+| **Approval removal (v2.11.0)** | Labor time-approval no longer tracked: drops `isPending`, Pending Approvals KPI/widget, Approval columns, approval Fibery fields, `UTILIZATION_STALE_APPROVAL_*` settings; cache schema **2 → 3**. See **AC-69**. | v2.11.0 | **Delivered v2.11.0** |
 
 ## Goal
 
@@ -24,7 +25,7 @@ Reuse the existing Fibery wiring (`src/fiberyClient.js`, batched `/api/commands`
 - As a **delivery lead**, I want to see how many billable hours each **customer** consumed last quarter so I can spot under- or over-served accounts.
 - As an **engineering manager**, I want to filter to a single **project** and see exactly which people logged time, broken out by role.
 - As a **resource planner**, I want a **utilization %** KPI (billable ÷ total hours) per person so I can identify under-utilized capacity and over-allocated risk.
-- As a **finance reviewer**, I want a **Pending Approvals** count so unapproved time entries surface before the invoice cycle.
+- As a **finance reviewer**, I want utilization KPIs focused on hours and billable mix — we no longer track labor time-approval in this dashboard (removed v2.11.0).
 - As an **executive**, I want to click a **Customer** bar and have every chart on the page re-render to that customer - and then click a **Project** bar to drill further in, with a clear chip bar showing what I've filtered to.
 - As an **analyst**, I want to scroll to a **Detail Table** below the charts and see the exact labor-cost rows behind whatever I've filtered to (with sortable columns and an export-ready row format).
 - As an **admin**, I want no Fibery tokens or secrets in any cached JSON; the client only ever sees normalized labor data.
@@ -132,8 +133,6 @@ Fields read (paths verified via Fibery `describe_database` + a sample query on `
  userId, userName, clockifyUserCompany,
  clockifyUserRole, userRole,
  userRoleBillRate, userRoleCostRate, // null when unknown
- approval, timeEntryStatus, // sanitized enum names
- isPending: boolean, // §U.7 derived
  isInternal: boolean, // §U.11 (Clockify User Company in UTILIZATION_INTERNAL_COMPANY_NAMES OR agreementType === 'Internal')
  revenueFromLabor: number | null // hours × userRoleBillRate when known
  }, ...
@@ -143,8 +142,10 @@ Fields read (paths verified via Fibery `describe_database` + a sample query on `
  totalHours, billableHours, utilizationPct,
  totalCost, effectiveCostRate,
  effectiveBillRate, effectiveBillRateCoverage, // null + 0..1 fraction
- pendingApprovalsCount, distinctPersons, distinctProjects, distinctCustomers
+ distinctPersons, distinctProjects, distinctCustomers
  },
+
+ // v2.11.0: removed approval, timeEntryStatus, isPending, pendingApprovalsCount, pendingApprovals[]
 
  dimensions: {
  customers: [{ name, hours, billableHours, color }],
@@ -160,10 +161,8 @@ Fields read (paths verified via Fibery `describe_database` + a sample query on `
  byRole: [{ name, hours, billableHours }],
  byWeek: [{ week, hours, billableHours, nonBillableHours }],
  billableVsNonBillable: [{ week, billable, nonBillable }]
- },
-
- pendingApprovals: [ /* same row shape, filtered to isPending=true */ ]
-}
+ }
+ // v2.11.0: removed pendingApprovals block; cacheSchemaVersion 3
 ```
 
 **Aggregations are server-precomputed** for the **unfiltered** view so the first paint is fast. When the client applies filters, it **re-aggregates from `rows` in-memory** - no server roundtrip required unless the date range changes.
@@ -187,7 +186,7 @@ Fields read (paths verified via Fibery `describe_database` + a sample query on `
 | # | Component | Phase | Library | Drill behavior |
 | --- | --- | --- | --- | --- |
 | §N.1 | **Page header** - title "Utilization Management Dashboard" · subtitle "{N} hours · {M} entries · range {start} - {end}". **No in-panel logo** as of v1.13.0 - the app sidebar (`.fos-brand-logo`) is the single source of brand. (Phase A through v1.12.0 carried a duplicate logo + `.agreement-logo-sep` divider; Phase B removes them.) | A · B (cleanup) | HTML | - |
-| §N.2 | **KPI strip** - six cards: Total Hours · Billable Hours · Utilization % · Total Cost · Effective Bill Rate · Pending Approvals | A | HTML | Click a KPI scrolls/focuses the most-relevant chart or table |
+| §N.2 | **KPI strip** - five cards: Total Hours · Billable Hours · Utilization % · Total Cost · Effective Bill Rate (**Pending Approvals removed v2.11.0**) | A | HTML | Click a KPI scrolls/focuses the most-relevant chart or table |
 | §N.3 | **Filter bar** - Date range preset (Last 30 / 90 / 6mo / YTD / Custom, default 90d) · Customer multi-select · Project multi-select · Billable toggle (All / Billable / Non-billable) · **Internal labor toggle** (Include / Exclude internal labor, default Include) · Active-filter chip row · "Clear filters" button | A | HTML | Chips have `×` to remove individual dimensions |
 | §N.4 | **Hours by Customer** - horizontal bar, top-N (default 20), customer palette | A | Chart.js v4 | Click bar → toggle Customer in filter set |
 | §N.5 | **Hours by Project** - horizontal bar, top-N. Each bar color-coded by its customer | A | Chart.js v4 | Click bar → toggle Project in filter set |
@@ -196,8 +195,8 @@ Fields read (paths verified via Fibery `describe_database` + a sample query on `
 | §N.8 | **Weekly trend** - line chart, X axis = ISO week, two series: Total Hours · Billable Hours | A | Chart.js v4 | Click point → set date range to that week (drill-into-week) |
 | §N.9 | **Billable vs Non-billable** - stacked bar per week | A | Chart.js v4 | Click bar segment → toggle Billable filter |
 | §N.10 | **Utilization heatmap** - Person × Week grid, color buckets per §U.10 | C | Custom SVG | Click cell → set Person + Date filter to that cell |
-| §N.11 | **Pending Approvals** - list (top 50) of `isPending` rows sorted by `startDateTime` desc | C | HTML | Click row → opens detail drawer |
-| §N.12 | **Detail Table** - every row matching the active filter: Date · Person · Customer · Project · Role · Hours · Cost · Bill Rate · Approval | B | HTML (sortable, paginated 100/page) | Click row → detail drawer (Phase C) |
+| §N.11 | ~~**Pending Approvals**~~ **Removed v2.11.0** | C | - | - |
+| §N.12 | **Detail Table** - every row matching the active filter: Date · Person · Customer · Project · Role · Hours · Cost · Bill Rate (**Approval column removed v2.11.0**) | B | HTML (sortable, paginated 100/page) | Click row → detail drawer (Phase C) |
 
 ## Drill-down model
 

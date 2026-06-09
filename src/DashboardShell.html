@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.8.1 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.11.0 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -1504,21 +1504,6 @@
       font-weight: 600;
       border: 1px solid transparent;
     }
-    .fos-util-detail-table .fos-util-pill-approved {
-      background: rgba(67, 214, 186, 0.12);
-      border-color: rgba(67, 214, 186, 0.4);
-      color: #43D6BA;
-    }
-    .fos-util-detail-table .fos-util-pill-pending {
-      background: rgba(249, 199, 79, 0.12);
-      border-color: rgba(249, 199, 79, 0.4);
-      color: #f9c74f;
-    }
-    .fos-util-detail-table .fos-util-pill-unapproved {
-      background: rgba(252, 92, 101, 0.12);
-      border-color: rgba(252, 92, 101, 0.4);
-      color: #fc5c65;
-    }
     .fos-util-detail-table .fos-util-pill-unknown {
       background: rgba(160, 174, 192, 0.12);
       border-color: rgba(160, 174, 192, 0.4);
@@ -1548,7 +1533,7 @@
     }
 
     /* ------------------------------------------------------------------- */
-    /* Phase C (v1.14.0) - Utilization heatmap + Pending Approvals + drawer. */
+    /* Phase C (v1.14.0) - Utilization heatmap + row-detail drawer. */
     /* ------------------------------------------------------------------- */
     .fos-util-heatmap-wrap {
       position: relative;
@@ -1649,70 +1634,6 @@
     .fos-util-heatmap-cell-overlay-partial {
       fill: url(#fos-util-heatmap-partial-hatch);
       pointer-events: none;
-    }
-
-    /* Pending Approvals list ----------------------------------------------- */
-    .fos-util-pending-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      max-height: 480px;
-      overflow-y: auto;
-      padding-right: 4px;
-    }
-    .fos-util-pending-item {
-      display: grid;
-      grid-template-columns: auto 1fr auto;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 12px;
-      background: var(--ag-surface2);
-      border: 1px solid var(--ag-border);
-      border-radius: 8px;
-      cursor: pointer;
-      transition: border-color 0.12s ease, transform 0.12s ease;
-    }
-    .fos-util-pending-item:hover {
-      border-color: var(--ag-accent);
-      transform: translateX(2px);
-    }
-    .fos-util-pending-item .age-badge {
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      padding: 2px 8px;
-      border-radius: 10px;
-      background: rgba(249, 199, 79, 0.18);
-      color: #f9c74f;
-      border: 1px solid rgba(249, 199, 79, 0.4);
-      text-transform: uppercase;
-    }
-    .fos-util-pending-item .age-badge.stale-crit {
-      background: rgba(252, 92, 101, 0.18);
-      color: #fc5c65;
-      border-color: rgba(252, 92, 101, 0.4);
-    }
-    .fos-util-pending-item .title {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--ag-text);
-      line-height: 1.2;
-    }
-    .fos-util-pending-item .meta {
-      font-size: 0.74rem;
-      color: var(--ag-text-muted);
-      margin-top: 2px;
-    }
-    .fos-util-pending-item .hours {
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: var(--ag-text);
-    }
-    .fos-util-pending-empty {
-      padding: 20px 12px;
-      text-align: center;
-      color: var(--ag-text-muted);
-      font-style: italic;
     }
 
     /* Row-detail drawer ---------------------------------------------------- */
@@ -3068,10 +2989,10 @@
               <div class="fos-util-chip-row mt-2" id="util-chip-row" aria-live="polite"></div>
             </section>
 
-            <!-- Utilization Alerts (Phase C) - under-utilized / over-allocated /
-                 stale-approval items, mirrors the Agreement Dashboard's
-                 Attention Items pattern. As of v1.17.0 the items are grouped
-                 by alert kind with a Collapse all affordance. -->
+            <!-- Utilization Alerts (Phase C) - under-utilized / over-allocated;
+                 mirrors the Agreement Dashboard Attention Items pattern.
+                 As of v1.17.0 the items are grouped by alert kind with a
+                 Collapse all affordance. -->
             <section class="fos-section-card mb-3" aria-labelledby="util-attention-heading">
               <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                 <h2 id="util-attention-heading" class="mb-0">Utilization alerts</h2>
@@ -3118,13 +3039,6 @@
                   <div class="label">Effective bill rate</div>
                   <div class="value" id="util-kpi-bill-rate"> - </div>
                   <div class="sub" id="util-kpi-bill-rate-sub">0% coverage</div>
-                </div>
-              </div>
-              <div class="col">
-                <div class="fos-agreement-kpi kpi-margin-low h-100" id="util-kpi-pending-card" title="Rows where Approval = Unapproved OR Time Entry Status ∈ {NOT_SUBMITTED, PENDING}.">
-                  <div class="label">Pending approvals</div>
-                  <div class="value" id="util-kpi-pending">0</div>
-                  <div class="sub" id="util-kpi-pending-sub">0 distinct people</div>
                 </div>
               </div>
             </div>
@@ -3174,9 +3088,9 @@
               </div>
             </div>
 
-            <!-- Heatmap + Pending Approvals (Phase C) -->
+            <!-- Utilization heatmap (Phase C) -->
             <div class="row g-3 mt-1">
-              <div class="col-12 col-xl-8">
+              <div class="col-12">
                 <section class="fos-section-card h-100" aria-labelledby="util-heatmap-heading">
                   <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                     <h2 id="util-heatmap-heading" class="mb-0">Utilization heatmap</h2>
@@ -3194,17 +3108,6 @@
                     <svg id="util-heatmap-svg" role="img" aria-label="Per-person weekly utilization heatmap"></svg>
                     <div class="fos-util-heatmap-empty d-none" id="util-heatmap-empty">No contributors match the current filter.</div>
                   </div>
-                </section>
-              </div>
-              <div class="col-12 col-xl-4">
-                <section class="fos-section-card h-100" aria-labelledby="util-pending-heading">
-                  <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                    <h2 id="util-pending-heading" class="mb-0">Pending approvals</h2>
-                    <span class="small" style="color: var(--ag-text-muted)" id="util-pending-count">0 rows</span>
-                    <button type="button" class="fos-util-clear-btn ms-auto d-none" id="util-pending-show-all">Show all</button>
-                  </div>
-                  <div class="fos-util-pending-list" id="util-pending-list" aria-live="polite"></div>
-                  <div class="fos-util-pending-empty d-none" id="util-pending-empty">No pending rows match the current filter.</div>
                 </section>
               </div>
             </div>
@@ -3228,7 +3131,6 @@
                           <th data-sort-key="hours" class="text-end">Hours <span class="sort-icon">↕</span></th>
                           <th data-sort-key="cost" class="text-end">Cost <span class="sort-icon">↕</span></th>
                           <th data-sort-key="userRoleBillRate" class="text-end">Bill rate <span class="sort-icon">↕</span></th>
-                          <th data-sort-key="approval">Approval <span class="sort-icon">↕</span></th>
                         </tr>
                       </thead>
                       <tbody id="util-detail-tbody"></tbody>
@@ -4244,7 +4146,6 @@
                   <th scope="col">Task</th>
                   <th scope="col" class="num">Hours</th>
                   <th scope="col" class="num">Cost</th>
-                  <th scope="col">Approval</th>
                 </tr>
               </thead>
               <tbody id="utilHeatmapCellBody"></tbody>
@@ -4415,10 +4316,9 @@
       var AGREEMENT_CACHE_SCHEMA_VERSION = 3;
       var AGREEMENT_TTL_PREF_KEY = 'fos_agreement_dashboard_ttl_minutes_v1';
       var UTIL_CACHE_KEY = 'fos_utilization_dashboard_v1';
-      // v2 (PRD 1.14.0) adds aggregates.byPersonWeek + alerts[]. Clients
-      // carrying a v1 payload from a prior session will silently drop their
-      // cache and refetch on first open.
-      var UTIL_CACHE_SCHEMA_VERSION = 2;
+      // v3 (PRD 2.11.0) drops labor approval / pending-approvals fields.
+      // v2 (PRD 1.14.0) added aggregates.byPersonWeek + alerts[].
+      var UTIL_CACHE_SCHEMA_VERSION = 3;
       var UTIL_TTL_PREF_KEY = 'fos_utilization_dashboard_ttl_minutes_v1';
       var UTIL_FILTERS_PREF_KEY = 'fos_utilization_filters_v1';
       var UTIL_FILTERS_SCHEMA_VERSION = 1;
@@ -4502,10 +4402,6 @@
         // science / etc. without disturbing the rest of the dashboard).
         heatmap: {
           roleFilter: {},         // {roleName: true}
-        },
-        // Phase C - Pending Approvals widget state.
-        pending: {
-          showAll: false,         // default cap = 50 rows
         },
         // v1.16.0 / v1.17.0 - Utilization Alerts grouped by `kind`. `expanded`
         // is keyed by alert kind; `true` = user opened the group. Cleared in
@@ -4706,7 +4602,7 @@
         utilDetailPageInfo: document.getElementById('util-detail-page-info'),
         utilDetailPrev: document.getElementById('util-detail-prev'),
         utilDetailNext: document.getElementById('util-detail-next'),
-        // Phase C - Alerts / Heatmap / Pending Approvals / Drawer.
+        // Phase C - Alerts / Heatmap / Drawer.
         utilAttentionList: document.getElementById('util-attention-list'),
         utilAttentionCount: document.getElementById('util-attention-count'),
         utilAttentionCollapseAll: document.getElementById('util-attention-collapse-all'),
@@ -4716,10 +4612,6 @@
         utilHeatmapEmpty: document.getElementById('util-heatmap-empty'),
         utilHeatmapRoleMenu: document.getElementById('util-heatmap-role-menu'),
         utilHeatmapRoleTrigger: document.getElementById('util-heatmap-role-trigger'),
-        utilPendingList: document.getElementById('util-pending-list'),
-        utilPendingCount: document.getElementById('util-pending-count'),
-        utilPendingShowAll: document.getElementById('util-pending-show-all'),
-        utilPendingEmpty: document.getElementById('util-pending-empty'),
         utilDrawer: document.getElementById('util-detail-drawer'),
         utilDrawerBackdrop: document.getElementById('util-drawer-backdrop'),
         utilDrawerBody: document.getElementById('util-drawer-body'),
@@ -7762,7 +7654,7 @@
       function computeKpisClient(rows) {
         var totalHours = 0, billableHours = 0, totalCost = 0;
         var billRateNum = 0, billRateDen = 0;
-        var pending = 0, personSet = {}, projectSet = {}, customerSet = {};
+        var personSet = {}, projectSet = {}, customerSet = {};
         for (var i = 0; i < rows.length; i++) {
           var r = rows[i];
           totalHours += r.hours;
@@ -7772,7 +7664,6 @@
             billRateNum += r.hours * r.userRoleBillRate;
             billRateDen += r.hours;
           }
-          if (r.isPending) pending++;
           var pkey = r.userId || r.userName || '(Unknown user)';
           personSet[pkey] = true;
           var prjKey = r.projectId || ('name::' + r.projectName);
@@ -7788,7 +7679,6 @@
           effectiveCostRate: totalHours > 0 ? totalCost / totalHours : 0,
           effectiveBillRate: billRateDen > 0 ? billRateNum / billRateDen : null,
           effectiveBillRateCoverage: totalHours > 0 ? billRateDen / totalHours : 0,
-          pendingApprovalsCount: pending,
           distinctPersons: setFromKeys(personSet).length,
           distinctProjects: setFromKeys(projectSet).length,
           distinctCustomers: setFromKeys(customerSet).length,
@@ -8078,8 +7968,6 @@
           brateEl.textContent = formatRate(kpis.effectiveBillRate) + '/hr';
           brateSub.textContent = Math.round(((kpis.effectiveBillRateCoverage || 0) * 100)) + '% coverage';
         }
-        document.getElementById('util-kpi-pending').textContent = String(kpis.pendingApprovalsCount || 0);
-        document.getElementById('util-kpi-pending-sub').textContent = String(kpis.distinctProjects || 0) + ' projects';
       }
 
       function destroyUtilChart(key) {
@@ -8452,11 +8340,9 @@
         renderUtilDetailTable(rows);
         // Phase C - Alerts panel (uses server-precomputed alerts from the
         // payload; doesn't depend on the active filter set), Heatmap (honors
-        // global filters + heatmap-local Role filter), Pending Approvals
-        // widget (honors active filter set).
+        // global filters + heatmap-local Role filter).
         renderUtilizationAlerts(p.alerts || []);
         renderUtilHeatmap();
-        renderPendingApprovals(rows);
         loadChartJs()
           .then(function () {
             renderUtilCustomerBar(rows, p.dimensions);
@@ -8480,8 +8366,6 @@
             return row.day || row.startDateTime || '';
           case 'role':
             return row.userRole || row.clockifyUserRole || '';
-          case 'approval':
-            return row.approval || row.timeEntryStatus || '';
           case 'hours':
           case 'cost':
             return Number(row[key] || 0);
@@ -8507,15 +8391,6 @@
           return (av - bv) * dirMul;
         }
         return String(av).localeCompare(String(bv)) * dirMul;
-      }
-      function approvalPillHtml_(row) {
-        var label = row.approval || row.timeEntryStatus || ' - ';
-        var cls = 'fos-util-pill fos-util-pill-unknown';
-        var norm = String(label).toLowerCase();
-        if (norm === 'approved') cls = 'fos-util-pill fos-util-pill-approved';
-        else if (norm === 'pending' || norm === 'not_submitted' || row.isPending) cls = 'fos-util-pill fos-util-pill-pending';
-        else if (norm === 'unapproved') cls = 'fos-util-pill fos-util-pill-unapproved';
-        return '<span class="' + cls + '">' + escapeHtml(label) + '</span>';
       }
       function renderUtilDetailTable(rows) {
         var tbody = els.utilDetailTbody;
@@ -8555,7 +8430,7 @@
         // Render rows.
         var html = '';
         if (!total) {
-          html = '<tr><td colspan="9" class="fos-util-detail-empty">No rows match the current filters.</td></tr>';
+          html = '<tr><td colspan="8" class="fos-util-detail-empty">No rows match the current filters.</td></tr>';
         } else {
           for (var i = startIdx; i < endIdx; i++) {
             var r = sortedRows[i];
@@ -8576,7 +8451,6 @@
                 '<td class="text-end">' + escapeHtml(formatHours(r.hours)) + '</td>' +
                 '<td class="text-end">' + escapeHtml(formatMoneyCompact(r.cost || 0)) + '</td>' +
                 '<td class="text-end">' + escapeHtml(billRate) + '</td>' +
-                '<td>' + approvalPillHtml_(r) + '</td>' +
               '</tr>';
           }
         }
@@ -8599,12 +8473,9 @@
       }
 
       /* ====================================================================
-         Phase C (v1.14.0) - Alerts panel · Utilization heatmap · Pending
-         Approvals widget · Row-detail drawer.
+         Phase C (v1.14.0) - Alerts panel · Utilization heatmap · Row-detail drawer.
          ==================================================================== */
 
-      // Phase C - Default visible pending-approvals cap; "Show all" expands.
-      var UTIL_PENDING_DEFAULT_LIMIT = 50;
       // Phase C - Heatmap row cap (default Script Property
       // UTILIZATION_HEATMAP_TOP_N_PERSONS = 30). Defined here so the client
       // doesn't have to round-trip the server config.
@@ -9277,8 +9148,6 @@
           for (var i = 0; i < rows.length; i++) {
             var r = rows[i];
             var datePart = (r.startDateTime || '').slice(0, 10) || ' - ';
-            var approvalLabel = r.isPending ? 'Pending' : (r.approval || ' - ');
-            var approvalColor = r.isPending ? '#f78c1f' : '#43D6BA';
             var tr = document.createElement('tr');
             tr.innerHTML =
               '<td>' + escapeHtml(datePart) + '</td>' +
@@ -9287,9 +9156,7 @@
               '<td>' + escapeHtml(r.projectName || ' - ') + '</td>' +
               '<td>' + escapeHtml(r.task || ' - ') + '</td>' +
               '<td class="num">' + escapeHtml(formatHours(r.hours || 0)) + '</td>' +
-              '<td class="num">' + escapeHtml(formatMoneyCompact(r.cost || 0)) + '</td>' +
-              '<td><span class="badge-pill" style="background:' + approvalColor + '">' +
-                escapeHtml(approvalLabel) + '</span></td>';
+              '<td class="num">' + escapeHtml(formatMoneyCompact(r.cost || 0)) + '</td>';
             body.appendChild(tr);
           }
         }
@@ -9312,66 +9179,6 @@
         } catch (e) {
           modalEl.classList.add('show');
           modalEl.style.display = 'block';
-        }
-      }
-
-      // Phase C - Pending Approvals widget ----------------------------------
-      function renderPendingApprovals(filteredRows) {
-        var list = els.utilPendingList;
-        if (!list) return;
-        list.innerHTML = '';
-        var pending = [];
-        for (var i = 0; i < filteredRows.length; i++) {
-          if (filteredRows[i].isPending) pending.push(filteredRows[i]);
-        }
-        pending.sort(function (a, b) {
-          var aIso = a.startDateTime || '';
-          var bIso = b.startDateTime || '';
-          if (aIso === bIso) return 0;
-          return aIso < bIso ? 1 : -1;
-        });
-        if (els.utilPendingCount) {
-          els.utilPendingCount.textContent =
-            pending.length + (pending.length === 1 ? ' row' : ' rows');
-        }
-        if (els.utilPendingEmpty) {
-          els.utilPendingEmpty.classList.toggle('d-none', pending.length > 0);
-        }
-        if (els.utilPendingShowAll) {
-          if (pending.length > UTIL_PENDING_DEFAULT_LIMIT) {
-            els.utilPendingShowAll.classList.remove('d-none');
-            els.utilPendingShowAll.textContent = utilState.pending.showAll
-              ? 'Show top ' + UTIL_PENDING_DEFAULT_LIMIT
-              : 'Show all (' + pending.length + ')';
-          } else {
-            els.utilPendingShowAll.classList.add('d-none');
-          }
-        }
-        var visible = utilState.pending.showAll
-          ? pending
-          : pending.slice(0, UTIL_PENDING_DEFAULT_LIMIT);
-        var nowMs = Date.now();
-        for (var v = 0; v < visible.length; v++) {
-          var row = visible[v];
-          var startMs = row.startDateTime ? new Date(row.startDateTime).getTime() : null;
-          var ageDays = startMs ? Math.max(0, (nowMs - startMs) / 86400000) : 0;
-          var badgeClass = ageDays >= 14 ? 'age-badge stale-crit' : 'age-badge';
-          var ageText = Math.round(ageDays) + 'd';
-          var item = document.createElement('div');
-          item.className = 'fos-util-pending-item';
-          item.innerHTML =
-            '<span class="' + badgeClass + '">' + escapeHtml(ageText) + '</span>' +
-            '<div class="min-w-0">' +
-              '<div class="title">' + escapeHtml(row.userName || '(Unknown user)') + ' · ' + escapeHtml(row.day || row.startDateTime || ' - ') + '</div>' +
-              '<div class="meta">' + escapeHtml(row.customer || '(Unassigned)') + ' · ' + escapeHtml(row.projectName || '(No project)') + '</div>' +
-            '</div>' +
-            '<div class="hours">' + escapeHtml(formatHours(row.hours)) + ' h</div>';
-          (function (r) {
-            item.addEventListener('click', function () {
-              openDetailDrawer(r.id, 'pending');
-            });
-          })(row);
-          list.appendChild(item);
         }
       }
 
@@ -9467,10 +9274,7 @@
             row_(costRate, 'Cost rate', true) +
             row_(margin, 'Margin per hr', true) +
             row_(row.billableLabel || (row.billable ? 'Yes' : 'No'), 'Billable') +
-            row_(row.approval || ' - ', 'Approval') +
-            row_(row.timeEntryStatus || ' - ', 'Time entry status') +
             row_(row.dateOfCreation || ' - ', 'Created') +
-            row_(row.dateOfApproval || ' - ', 'Approved at') +
             row_(row.agreementName || ' - ', 'Agreement') +
             row_(row.agreementState || ' - ', 'Agreement state') +
             row_(row.agreementType || ' - ', 'Agreement type') +
@@ -9890,29 +9694,14 @@
           utilState.filters.billable = 'all';
           utilState.filters.internalLabor = 'include';
           utilState.detail.page = 0;
-          // Phase C - also clear the heatmap-local Role filter and the
-          // Pending Approvals "Show all" state on a global Clear so the user
-          // gets the panel back to a clean default.
+          // Phase C - also clear the heatmap-local Role filter on global Clear.
           utilState.heatmap.roleFilter = {};
-          utilState.pending.showAll = false;
           syncBillableButtons();
           syncInternalButtons();
           populateFilterDropdowns(utilState.payload ? utilState.payload.dimensions : null);
           populateHeatmapRoleMenu(utilState.payload && utilState.payload.dimensions ? utilState.payload.dimensions.roles : []);
           renderUtilDashboard();
           logActivity_('util_filter', 'operations', 'clear_all');
-        });
-      }
-
-      // Phase C - Pending Approvals "Show all" toggle.
-      if (els.utilPendingShowAll) {
-        els.utilPendingShowAll.addEventListener('click', function () {
-          utilState.pending.showAll = !utilState.pending.showAll;
-          var p = utilState.payload;
-          if (!p) return;
-          renderPendingApprovals(applyFilters(p.rows || []));
-          logActivity_('util_pending_toggle', 'operations',
-            utilState.pending.showAll ? 'show_all' : 'show_top');
         });
       }
 
@@ -10055,7 +9844,7 @@
             fetchedAt: null,
             range: { start: null, end: null, defaulted: true, clamped: false },
             rows: [],
-            kpis: { totalHours: 0, billableHours: 0, nonBillableHours: 0, utilizationPct: 0, totalCost: 0, effectiveCostRate: 0, effectiveBillRate: null, effectiveBillRateCoverage: 0, pendingApprovalsCount: 0, distinctPersons: 0, distinctProjects: 0, distinctCustomers: 0, rowCount: 0 },
+            kpis: { totalHours: 0, billableHours: 0, nonBillableHours: 0, utilizationPct: 0, totalCost: 0, effectiveCostRate: 0, effectiveBillRate: null, effectiveBillRateCoverage: 0, distinctPersons: 0, distinctProjects: 0, distinctCustomers: 0, rowCount: 0 },
             dimensions: { customers: [], projects: [], persons: [], roles: [] },
             aggregates: { byCustomer: [], byProject: [], byPerson: [], byRole: [], byWeek: [], billableVsNonBillable: [] },
             warnings: [],

@@ -1,5 +1,5 @@
 /**
- * PRD version 2.8.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.11.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -18,6 +18,7 @@ var ADMIN_SETTINGS_GROUPS_ = [
   { id: 'snapshots', title: 'Historical snapshots' },
   { id: 'expenses-dashboard', title: 'Expenses dashboard' },
   { id: 'pipeline-dashboard', title: 'Pipeline dashboard (Sales)' },
+  { id: 'ai-usage-sync', title: 'AI usage sync (Fibery)' },
 ];
 
 /**
@@ -371,24 +372,6 @@ function getAdminSettingsCatalog_() {
       { min: 1, max: 100 }
     ),
     adminSettingEntry_(
-      'UTILIZATION_STALE_APPROVAL_WARN_DAYS',
-      'utilization',
-      'Stale approval warn (days)',
-      'Warning age for pending approvals.',
-      'number',
-      7,
-      { min: 1, max: 365 }
-    ),
-    adminSettingEntry_(
-      'UTILIZATION_STALE_APPROVAL_CRIT_DAYS',
-      'utilization',
-      'Stale approval critical (days)',
-      'Critical age; must be greater than warn days.',
-      'number',
-      14,
-      { min: 2, max: 365 }
-    ),
-    adminSettingEntry_(
       'LABOR_HOURS_DEFAULT_WEEKLY_TARGET',
       'labor-hours',
       'Default weekly target (hours)',
@@ -584,6 +567,83 @@ function getAdminSettingsCatalog_() {
       'When false, the daily job skips pipeline.json (live Pipeline panel still works).',
       'boolean',
       true
+    ),
+    adminSettingEntry_(
+      'FIBERY_AI_USAGE_APP',
+      'ai-usage-sync',
+      'Fibery AI usage app name',
+      'Prefix for AI usage database paths (e.g. AI Usage Data/Usage).',
+      'string',
+      'AI Usage Data'
+    ),
+    adminSettingEntry_(
+      'ANTHROPIC_ADMIN_API_KEY',
+      'ai-usage-sync',
+      'Anthropic Admin API key',
+      'Admin key (sk-ant-admin-...) for Console and claude.ai usage APIs. Required before AI usage sync.',
+      'secret',
+      null,
+      { required: true, sensitive: true }
+    ),
+    adminSettingEntry_(
+      'OPENAI_ADMIN_API_KEY',
+      'ai-usage-sync',
+      'OpenAI Admin API key',
+      'Admin key with Usage read for organization costs API. Required for OpenAI ingest.',
+      'secret',
+      null,
+      { required: true, sensitive: true }
+    ),
+    adminSettingEntry_(
+      'AI_USAGE_SYNC_TIMEZONE',
+      'ai-usage-sync',
+      'AI usage sync timezone',
+      'IANA timezone for Usage Date boundaries (e.g. America/Chicago).',
+      'string',
+      'America/Chicago'
+    ),
+    adminSettingEntry_(
+      'AI_USAGE_DAILY_LOOKBACK_DAYS',
+      'ai-usage-sync',
+      'Daily lookback (days)',
+      'How many recent calendar days the daily job re-pulls.',
+      'number',
+      3,
+      { min: 1, max: 14 }
+    ),
+    adminSettingEntry_(
+      'AI_USAGE_MAX_BACKFILL_DAYS',
+      'ai-usage-sync',
+      'Max backfill (days)',
+      'Maximum date range for on-demand sync.',
+      'number',
+      90,
+      { min: 1, max: 365 }
+    ),
+    adminSettingEntry_(
+      'AI_USAGE_LOG_SHEET_NAME',
+      'ai-usage-sync',
+      'AI usage sync log tab',
+      'Sheet tab name for sync run log in the auth spreadsheet.',
+      'string',
+      'AI Usage Sync Runs'
+    ),
+    adminSettingEntry_(
+      'AI_USAGE_SYNC_ENABLED',
+      'ai-usage-sync',
+      'AI usage sync enabled',
+      'Kill switch for scheduled and on-demand AI usage sync.',
+      'boolean',
+      true
+    ),
+    adminSettingEntry_(
+      'AI_USAGE_SYNC_TRIGGER_HOUR',
+      'ai-usage-sync',
+      'Daily sync trigger hour',
+      'Local script timezone hour (0-23) for runDailyAiUsageSync_. Default 3 (after snapshot).',
+      'number',
+      3,
+      { min: 0, max: 23 }
     ),
   ];
 }

@@ -1,5 +1,5 @@
 /**
- * PRD version 2.8.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.11.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard orchestrator (route id `operations`, panel
  * `#panel-operations`). Reads `Agreement Management/Labor Costs` from Fibery
@@ -25,10 +25,6 @@
  *   _diag_sampleUtilizationPayload()  - fetches a tiny window + dumps shapes.
  *   _diag_sampleUtilizationAlerts()   - fetches the configured default range
  *                                       + dumps the per-rule alert breakdown.
- *   _diag_sampleUtilizationPending()  - distribution of Approval +
- *                                       Time Entry Status values; introduced
- *                                       in v1.14.1 to verify the pending-
- *                                       detection fix against live data.
  */
 
 /** @const {string} */
@@ -68,7 +64,6 @@ function getUtilizationCacheTtlMinutes() {
  *   kpis: !Object,
  *   dimensions: !Object,
  *   aggregates: !Object,
- *   pendingApprovals: !Array<!Object>,
  *   alerts: !Array<!Object>,
  *   laborHours: !Object,
  *   warnings?: !Array<string>,
@@ -109,7 +104,6 @@ function buildUtilizationDashboardPayload_(rangeStart, rangeEnd) {
       kpis: emptyUtilizationKpis_(),
       dimensions: emptyUtilizationDimensions_(),
       aggregates: emptyUtilizationAggregates_(),
-      pendingApprovals: [],
       alerts: [],
       laborHours: laborHoursCfg,
       message: fetched.message || 'Could not load utilization data from Fibery.',
@@ -124,8 +118,6 @@ function buildUtilizationDashboardPayload_(rangeStart, rangeEnd) {
   // Phase C - per-person  x  per-week trajectory (capacity-scaled), feeds the
   // heatmap surface and the under/over-utilized alert rules.
   aggregates.byPersonWeek = buildByPersonWeek_(rows, range, thresholds);
-  var pendingApprovals = collectPendingApprovals_(rows);
-  // Phase C - rule-based attention items (mirrors Section 6 on the Agreement Dashboard).
   var alerts = buildUtilizationAlerts_(rows, aggregates.byPersonWeek, thresholds, range, now);
 
   var warnings = [];
@@ -147,7 +139,6 @@ function buildUtilizationDashboardPayload_(rangeStart, rangeEnd) {
     kpis: kpis,
     dimensions: dimensions,
     aggregates: aggregates,
-    pendingApprovals: pendingApprovals,
     alerts: alerts,
     laborHours: laborHoursCfg,
   };
@@ -244,54 +235,6 @@ function _diag_sampleUtilizationAlerts() {
   return summary;
 }
 
-/**
- * Distribution probe (v1.14.1) - counts Approval + Time-Entry-Status values
- * over the configured default range and reports how many rows the current
- * `isPendingApproval_` predicate flags as pending. Use after a sync or
- * approval workflow change to confirm the count matches expectation.
- *
- * @return {!Object}
- */
-function _diag_sampleUtilizationPending() {
-  var now = new Date();
-  var thresholds = getUtilizationThresholds_();
-  var range = resolveRange_(null, null, now, thresholds);
-  var fetched = fetchAllLaborCosts_(range.start, range.end);
-  if (!fetched.ok) {
-    console.log('_diag_sampleUtilizationPending (fetch failed)  -> ', JSON.stringify(fetched));
-    return fetched;
-  }
-  var rows = normalizeLaborRows_(fetched.rows, thresholds);
-  var approvalCounts = {};
-  var statusCounts = {};
-  var pendingCount = 0;
-  var matrix = {};
-  for (var i = 0; i < rows.length; i++) {
-    var r = rows[i];
-    var a = String(r.approval == null ? '(null)' : r.approval).trim() || '(empty)';
-    var t = String(r.timeEntryStatus == null ? '(null)' : r.timeEntryStatus).trim() || '(empty)';
-    approvalCounts[a] = (approvalCounts[a] || 0) + 1;
-    statusCounts[t] = (statusCounts[t] || 0) + 1;
-    var k = a + '  x  ' + t;
-    matrix[k] = (matrix[k] || 0) + 1;
-    if (r.isPending) {
-      pendingCount++;
-    }
-  }
-  var summary = {
-    ok: true,
-    range: range,
-    rowCount: rows.length,
-    pendingCount: pendingCount,
-    pendingPct: rows.length > 0 ? Math.round((pendingCount / rows.length) * 1000) / 10 : 0,
-    approvalCounts: approvalCounts,
-    timeEntryStatusCounts: statusCounts,
-    pairCounts: matrix,
-  };
-  console.log('_diag_sampleUtilizationPending  -> ', JSON.stringify(summary).slice(0, 4000));
-  return summary;
-}
-
 /* ------------------------------------------------------------------------- */
 /* Query builder + paginator                                                  */
 /* ------------------------------------------------------------------------- */
@@ -322,9 +265,6 @@ function buildLaborCostsQuery_(startIso, endIso, limit, offset) {
         startDateTime: 'Agreement Management/Start Date Time',
         endDateTime: 'Agreement Management/End Date Time',
         dateOfCreation: 'Agreement Management/Date of creation',
-        dateOfApproval: 'Agreement Management/Date of approval',
-        approval: ['Agreement Management/Approval', 'enum/name'],
-        timeEntryStatus: ['Agreement Management/Time Entry Status', 'enum/name'],
         agreementId: ['Agreement Management/Agreement', 'fibery/id'],
         agreementName: ['Agreement Management/Agreement', 'Agreement Management/Name'],
         agreementType: ['Agreement Management/Agreement', 'Agreement Management/Agreement Type', 'enum/name'],
@@ -402,7 +342,6 @@ function fetchAllLaborCosts_(startIso, endIso) {
  *   - hours: number (Fibery returns text)
  *   - day: 'YYYY-MM-DD'
  *   - week: 'YYYY-Www' (ISO Monday-anchored)
- *   - isPending: Section U.7 derived
  *   - isInternal: Section U.11 derived
  *   - revenueFromLabor: hours  x  billRate when both known, else null
  *
@@ -437,7 +376,6 @@ function normalizeLaborRows_(rawRows, thresholds) {
       startDateTime: startIso,
       endDateTime: stringOrNull_(r.endDateTime),
       dateOfCreation: stringOrNull_(r.dateOfCreation),
-      dateOfApproval: stringOrNull_(r.dateOfApproval),
       day: extractDayKey_(startIso),
       week: extractIsoWeekKey_(startIso),
       agreementId: stringOrNull_(r.agreementId),
@@ -455,9 +393,6 @@ function normalizeLaborRows_(rawRows, thresholds) {
       userRole: stringOrNull_(r.userRole),
       userRoleBillRate: billRate,
       userRoleCostRate: costRate,
-      approval: stringOrNull_(r.approval),
-      timeEntryStatus: stringOrNull_(r.timeEntryStatus),
-      isPending: isPendingApproval_(r.approval, r.timeEntryStatus),
       revenueFromLabor: billRate !== null ? hours * billRate : null,
       marginPerHour: billRate !== null && costRate !== null ? billRate - costRate : null,
     };
@@ -468,11 +403,11 @@ function normalizeLaborRows_(rawRows, thresholds) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* KPIs (Section U.1-Section U.7)                                                           */
+/* KPIs (Section U.1-U.6)                                                           */
 /* ------------------------------------------------------------------------- */
 
 /**
- * Computes the Section U.1-Section U.7 KPI bundle plus distinct-dimension counts. Numbers
+ * Computes the Section U.1-U.6 KPI bundle plus distinct-dimension counts. Numbers
  * stay full-precision; the client formats for display.
  *
  * @param {!Array<!Object>} rows
@@ -485,7 +420,6 @@ function computeUtilizationKpis_(rows) {
   var totalCost = 0;
   var billRateNumerator = 0;
   var billRateDenominator = 0;
-  var pendingCount = 0;
   var personSet = {};
   var projectSet = {};
   var customerSet = {};
@@ -499,9 +433,6 @@ function computeUtilizationKpis_(rows) {
     if (r.userRoleBillRate !== null) {
       billRateNumerator += r.hours * r.userRoleBillRate;
       billRateDenominator += r.hours;
-    }
-    if (r.isPending) {
-      pendingCount++;
     }
     if (r.userId) {
       personSet[r.userId] = true;
@@ -530,7 +461,6 @@ function computeUtilizationKpis_(rows) {
     effectiveCostRate: effectiveCostRate,
     effectiveBillRate: effectiveBillRate,
     effectiveBillRateCoverage: billRateCoverage,
-    pendingApprovalsCount: pendingCount,
     distinctPersons: Object.keys(personSet).length,
     distinctProjects: Object.keys(projectSet).length,
     distinctCustomers: Object.keys(customerSet).length,
@@ -930,33 +860,6 @@ function isoWeekRange_(weekKey) {
   return { startIso: weekStart.toISOString(), endIso: weekEnd.toISOString() };
 }
 
-/**
- * Collects rows where `isPending = true`, sorted by startDateTime desc.
- * Phase A only carries them in the payload for KPI math; Phase C surfaces
- * a dedicated widget. Caps at 500 entries to keep payload bounded.
- *
- * @param {!Array<!Object>} rows
- * @return {!Array<!Object>}
- * @private
- */
-function collectPendingApprovals_(rows) {
-  var out = [];
-  for (var i = 0; i < rows.length; i++) {
-    if (rows[i].isPending) {
-      out.push(rows[i]);
-    }
-  }
-  out.sort(function (a, b) {
-    var aIso = a.startDateTime || '';
-    var bIso = b.startDateTime || '';
-    if (aIso === bIso) {
-      return 0;
-    }
-    return aIso < bIso ? 1 : -1;
-  });
-  return out.slice(0, 500);
-}
-
 /* ------------------------------------------------------------------------- */
 /* Date range resolution + helpers                                            */
 /* ------------------------------------------------------------------------- */
@@ -1080,44 +983,6 @@ function isBillableText_(v) {
   return s === 'yes' || s === 'y' || s === 'true' || s === '1';
 }
 
-/**
- * Section U.7 pending-approval predicate.
- *
- * As of v1.14.1 the rule is:
- *   1. Explicit `approval = 'approved'`    ->  NEVER pending (regardless of
- *      `timeEntryStatus`). This was the v1.14.0 false-positive bug - many
- *      Clockify-synced rows are explicitly Approved but carry an empty
- *      `Time Entry Status`, which the previous logic interpreted as pending.
- *   2. Explicit `approval âˆˆ {unapproved, pending}`  ->  pending.
- *   3. When approval is missing / unknown, only consider the row pending if
- *      `timeEntryStatus` *actively* says so (`not_submitted` or `pending`).
- *      A blank timeEntryStatus alone is NO LONGER pending.
- *
- * Net effect: a row with `approval = "Approved"` is treated as approved even
- * when the time-entry-status sync is incomplete; a row with no approval
- * metadata at all is treated as approved (safe default - false negatives
- * are visible in the Pending Approvals widget once Fibery flags them).
- *
- * @param {?string} approval
- * @param {?string} timeEntryStatus
- * @return {boolean}
- * @private
- */
-function isPendingApproval_(approval, timeEntryStatus) {
-  var a = String(approval == null ? '' : approval).trim().toLowerCase();
-  var t = String(timeEntryStatus == null ? '' : timeEntryStatus).trim().toLowerCase();
-  if (a === 'approved') {
-    return false;
-  }
-  if (a === 'unapproved' || a === 'pending') {
-    return true;
-  }
-  if (t === 'not_submitted' || t === 'pending') {
-    return true;
-  }
-  return false;
-}
-
 /** @private */
 function mapToArray_(o) {
   var out = [];
@@ -1152,7 +1017,6 @@ function emptyUtilizationKpis_() {
     effectiveCostRate: 0,
     effectiveBillRate: null,
     effectiveBillRateCoverage: 0,
-    pendingApprovalsCount: 0,
     distinctPersons: 0,
     distinctProjects: 0,
     distinctCustomers: 0,

@@ -182,8 +182,6 @@ All keys below exist today unless marked **v1 read-only**. Tooltips in the imple
 | `UTILIZATION_TOP_N_PROJECTS` | `20` | number | Hours-by-project chart cap. |
 | `UTILIZATION_TOP_N_CUSTOMERS` | `20` | number | Hours-by-customer chart cap. |
 | `UTILIZATION_HEATMAP_TOP_N_PERSONS` | `30` | number | Heatmap row cap. |
-| `UTILIZATION_STALE_APPROVAL_WARN_DAYS` | `7` | number | Stale approval warning age (days). |
-| `UTILIZATION_STALE_APPROVAL_CRIT_DAYS` | `14` | number | Critical stale approval age; must be > warn. |
 
 #### Labor hours
 

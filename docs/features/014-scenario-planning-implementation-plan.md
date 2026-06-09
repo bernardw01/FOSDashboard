@@ -22,7 +22,7 @@ Ship in **vertical slices** so Exec users get value early without waiting for th
 | Release | Phases | User-visible outcome | Suggested PRD bump |
 | --- | --- | --- | --- |
 | **R1 - Foundation** | A | Exec sees **Scenario planning** nav; create/duplicate/archive scenarios; empty or shell model in Drive | **2.9.0** MINOR |
-| **R2 - Ground truth** | B (+ partial D) | **Seed from Live/snapshot**; **`actualsAsOf`**; **committed** layer; read-only **Executive** tables with **plan vs actual** for elapsed months | **2.10.0** MINOR |
+| **R2 - Ground truth** | B (+ partial D) | **Seed from Live/snapshot**; **`actualsAsOf`**; **committed** layer; read-only **Executive** tables with **plan vs actual** for elapsed months | **2.11.0** MINOR |
 | **R3 - Templates** | C | Profile library + built-in archetypes; instantiate deals with **`profileVersion`** pinning | **2.11.0** MINOR |
 | **R4 - Engine** | D, E (core) | **Driver recompute**; hypothetical instances; staffing drives P&L + utilization (cash simplified in R5) | **2.12.0** MINOR |
 | **R5 - Outputs** | F | Monthly **P&L**, **cash** (DSO/DPO/payroll lag), FTE, utilization, revenue-by-customer; **`computed`** cache | **2.13.0** MINOR |

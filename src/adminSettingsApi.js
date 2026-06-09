@@ -1,5 +1,5 @@
 /**
- * PRD version 2.8.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.11.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings panel API (feature 011).
  */
@@ -183,45 +183,6 @@ function validateAdminSettingValue_(entry, value, useDefault) {
 }
 
 /**
- * Resolves warn/crit stale days after applying updates.
- * @param {!Object<string, string>} propsMap
- * @param {!Array<!Object>} updates
- * @return {?string}
- * @private
- */
-function validateUtilizationStaleDaysCrossField_(propsMap, updates) {
-  var byKey = getAdminSettingsByKey_();
-  var warnEntry = byKey['UTILIZATION_STALE_APPROVAL_WARN_DAYS'];
-  var critEntry = byKey['UTILIZATION_STALE_APPROVAL_CRIT_DAYS'];
-  if (!warnEntry || !critEntry) {
-    return null;
-  }
-
-  function resolvedNum(key, entry) {
-    for (var u = 0; u < updates.length; u++) {
-      if (updates[u].key === key) {
-        if (updates[u].useDefault) {
-          return Number(entry.defaultValue);
-        }
-        return parseFloat(String(updates[u].value));
-      }
-    }
-    var raw = propsMap[key];
-    if (!isAdminSettingsPropertySet_(raw)) {
-      return Number(entry.defaultValue);
-    }
-    return parseFloat(String(raw));
-  }
-
-  var warn = resolvedNum('UTILIZATION_STALE_APPROVAL_WARN_DAYS', warnEntry);
-  var crit = resolvedNum('UTILIZATION_STALE_APPROVAL_CRIT_DAYS', critEntry);
-  if (!isFinite(warn) || !isFinite(crit) || crit <= warn) {
-    return 'Stale approval critical days must be greater than warn days.';
-  }
-  return null;
-}
-
-/**
  * @return {{ ok: boolean, isAdmin: boolean, groups: !Array<!Object>, message?: string }}
  */
 function getAdminSettingsPanel() {
@@ -349,17 +310,6 @@ function saveAdminSettings(payload) {
 
   if (errors.length) {
     return { ok: false, errors: errors };
-  }
-
-  var crossErr = validateUtilizationStaleDaysCrossField_(propsMap, toApply);
-  if (crossErr) {
-    return {
-      ok: false,
-      errors: [
-        { key: 'UTILIZATION_STALE_APPROVAL_CRIT_DAYS', message: crossErr },
-        { key: 'UTILIZATION_STALE_APPROVAL_WARN_DAYS', message: crossErr },
-      ],
-    };
   }
 
   var savedKeys = [];
