@@ -1,6 +1,6 @@
 # Feature: Pipeline dashboard (Sales - Fibery HubSpot deals)
 
-> **PRD version 2.8.0** - **Status: Released v2.6.0** (panel); **snapshot `pipeline.json` v2.8.0**. Shipped with **FR-110** and **AC-66**, **Sales** nav group, `src/pipelineDashboard.js`, `#panel-pipeline`. See `016-pipeline-dashboard-implementation-plan.md`.
+> **PRD version 2.11.1** - **Status: Released v2.6.0** (panel); **stage map patch v2.11.1** (`Qualifying`, standalone `Negotiating`); **snapshot `pipeline.json` cache schema 2**. Shipped with **FR-110** and **AC-66**, **Sales** nav group, `src/pipelineDashboard.js`, `#panel-pipeline`. See `016-pipeline-dashboard-implementation-plan.md`.
 
 > **Source mockup:** `harpin-dashboard-v3.html` (harpin AI - Pipeline Dashboard). The mockup wires directly to a HubSpot MCP and ships a light harpin theme. This feature **reuses the mockup's layout and section structure only** - data comes from **Fibery `HubSpot/Deal`** via the existing Fibery client, and the surface adopts the **current dark dashboard chrome**, not the mockup palette.
 
@@ -54,11 +54,13 @@ Buckets (display order): **Prospecting → Discovery → Demo → Validation →
 | Stage text | Bucket |
 | --- | --- |
 | `Prospecting` | `prospecting` |
+| `Qualifying` | `prospecting` |
 | `Discovery` | `discovery` |
 | `Discovery / Demo` | `demo` |
 | `Solutioning / Validation` | `validation` |
 | `Proposing` | `proposing` |
 | `Negotiating / Contract` | `negotiating` |
+| `Negotiating` | `negotiating` |
 | `Closed Won` | `won` |
 | `Closed Lost` | `lost` |
 | `On Hold` | `onhold` |

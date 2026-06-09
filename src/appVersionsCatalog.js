@@ -1,5 +1,5 @@
 /**
- * PRD version 2.11.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.11.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * App Versions tab in the auth spreadsheet - tracks PRD releases and deployment URLs.
  * Feature 013.

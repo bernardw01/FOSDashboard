@@ -1,5 +1,5 @@
 /**
- * PRD version 2.11.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.11.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Historical dashboard snapshot storage (Option A): Google Drive folder
  * with per-date subfolders, JSON artifacts, and a manifest per day.
@@ -433,7 +433,7 @@ var SNAPSHOT_EXPECTED_SCHEMA_VERSIONS_ = {
   'delivery-projects': 1,
   'delivery-pnl': 4,
   expenses: 1,
-  pipeline: 1,
+  pipeline: 2,
 };
 
 /** @const {!Object<string, string>} */

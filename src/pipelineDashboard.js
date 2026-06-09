@@ -1,5 +1,5 @@
 /**
- * PRD version 2.11.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.11.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Sales **Pipeline** dashboard (feature 016). Reads HubSpot deals synced into
  * Fibery (`HubSpot/Deal`) through fiberyClient.js and returns a normalized,
@@ -18,7 +18,7 @@
  */
 
 /** @const {number} */
-var PIPELINE_CACHE_SCHEMA_VERSION_ = 1;
+var PIPELINE_CACHE_SCHEMA_VERSION_ = 2;
 
 /** @const {number} Fibery page size (<= 1000 per API). */
 var PIPELINE_QUERY_PAGE_LIMIT_ = 1000;
@@ -33,6 +33,7 @@ var PIPELINE_QUERY_MAX_PAGES_ = 10;
  */
 var PIPELINE_DEFAULT_STAGE_BUCKET_MAP_ = {
   prospecting: 'prospecting',
+  qualifying: 'prospecting',
   discovery: 'discovery',
   'discovery / demo': 'demo',
   demo: 'demo',
@@ -40,6 +41,7 @@ var PIPELINE_DEFAULT_STAGE_BUCKET_MAP_ = {
   validation: 'validation',
   proposing: 'proposing',
   'proposal sent': 'proposing',
+  negotiating: 'negotiating',
   'negotiating / contract': 'negotiating',
   'negotiation/contract': 'negotiating',
   'closed won': 'won',
