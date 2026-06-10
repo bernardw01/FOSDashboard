@@ -1,6 +1,6 @@
 # Feature: Expenses dashboard (spreadsheet-backed)
 
-> **PRD version 2.8.0** - shipped in web app **v2.5.0+** with **FR-109** / **AC-65**; nav under **Finance** group (**v2.5.1**); **FINANCE team / EXEC / ADMIN** (**v2.6.1**); **historical snapshot `expenses.json`** (**v2.8.0**, feature **009**); chart layout + risk map (**v2.5.5** - **v2.5.6**); customer table under Sankey (**v2.5.7**); **submission cycle by employee** chart (**v2.7.0**).
+> **PRD version 2.11.2** - shipped in web app **v2.5.0+** with **FR-109** / **AC-65**; nav under **Finance** group (**v2.5.1**); **FINANCE team / EXEC / ADMIN** (**v2.6.1**); **historical snapshot `expenses.json`** (**v2.8.0**, feature **009**); chart layout + risk map (**v2.5.5** - **v2.5.6**); customer table under Sankey (**v2.5.7**); **submission cycle by employee** chart (**v2.7.0**).
 
 > **Implementation plan:** [`docs/features/015-expenses-dashboard-implementation-plan.md`](015-expenses-dashboard-implementation-plan.md) - **Status:** implemented (PRD **2.5.0**).
 
@@ -160,7 +160,7 @@ Use **dark Operations / Agreement chrome**: `#panel-expenses.fos-agreement-root`
 
 - **Chart:** Vertical bar chart (`#exp-chart-submission-cycle`); one bar per employee.
 - **Metric:** Mean **days** from **`Purchase date`** to **`Submission date`** on each filtered row where **both** dates are present; rows with missing purchase or submission dates, or submission before purchase, are excluded from the average.
-- **Employee key:** `Full name` (fallback `Employee - ID`, then `(Unknown employee)`).
+- **Employee key:** `Full name` (fallback **`Employee`** column when `Full name` is blank, then `Employee - ID`, then `(Unknown employee)`). Chart labels MUST show the resolved display name, not raw ids (**v2.11.2**).
 - **Sort:** Descending by average cycle time (slowest submitters leftmost / first).
 - **Top-N:** Default **25** employees (`EXPENSES_CHART_SUBMISSION_CYCLE_TOP_N`; surfaced on `chartConfig.submissionCycleTopN`).
 - **Filters:** Respects the same date / department / employee / customer / search filters as the rest of the panel.

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.11.1 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.11.2 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -3378,6 +3378,39 @@
               <span class="small d-none text-danger" id="delivery-fetch-error" role="alert"></span>
             </div>
 
+            <section class="fos-section-card mb-3" aria-labelledby="delivery-filters-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="delivery-filters-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Filters</h2>
+                <button type="button" class="fos-util-clear-btn ms-auto" id="delivery-clear-filters-btn">Clear filters</button>
+              </div>
+              <p class="small mb-2" style="color: var(--ag-text-muted)">
+                Client-side only — narrows the table, signals, and portfolio chart without refetching.
+              </p>
+              <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-4">
+                  <label class="small d-block mb-1" style="color: var(--ag-text-muted)">Customer</label>
+                  <div class="fos-util-multi">
+                    <button type="button" class="multi-trigger w-100" id="delivery-customer-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">All customers</button>
+                    <ul class="dropdown-menu" id="delivery-customer-menu" aria-label="Customer filter"></ul>
+                  </div>
+                </div>
+                <div class="col-12 col-md-4">
+                  <label class="small d-block mb-1" style="color: var(--ag-text-muted)">Agreement type</label>
+                  <div class="fos-util-multi">
+                    <button type="button" class="multi-trigger w-100" id="delivery-type-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">All types</button>
+                    <ul class="dropdown-menu" id="delivery-type-menu" aria-label="Agreement type filter"></ul>
+                  </div>
+                </div>
+                <div class="col-12 col-md-4">
+                  <label class="small d-block mb-1" style="color: var(--ag-text-muted)">Agreement status</label>
+                  <div class="fos-util-multi">
+                    <button type="button" class="multi-trigger w-100" id="delivery-state-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">All statuses</button>
+                    <ul class="dropdown-menu" id="delivery-state-menu" aria-label="Agreement status filter"></ul>
+                  </div>
+                </div>
+              </div>
+            </section>
+
             <!-- v1.21.0 Phase C.2 - portfolio signals from Active Projects rows
                  only (no per-project P&L fetch). Click an item to select that
                  project and scroll it into view. -->
@@ -4344,9 +4377,9 @@
       ];
       var DELIVERY_TTL_PREF_KEY = 'fos_delivery_dashboard_ttl_minutes_v1';
       var DELIVERY_FILTERS_PREF_KEY = 'fos_delivery_filters_v1';
-      var DELIVERY_FILTERS_SCHEMA_VERSION = 1;
+      var DELIVERY_FILTERS_SCHEMA_VERSION = 2;
       var EXPENSES_CACHE_KEY = 'fos_expenses_dashboard_v1';
-      var EXPENSES_CACHE_SCHEMA_VERSION = 1;
+      var EXPENSES_CACHE_SCHEMA_VERSION = 2;
       var EXPENSES_FILTERS_PREF_KEY = 'fos_expenses_filters_v1';
       var EXPENSES_FILTERS_SCHEMA_VERSION = 1;
       var DEFAULT_TTL_MINUTES = 10;
@@ -4676,6 +4709,13 @@
         // + search additions (FR-94 .. FR-98).
         deliverySearchInput: document.getElementById('delivery-search-input'),
         deliverySearchClear: document.getElementById('delivery-search-clear'),
+        deliveryClearFiltersBtn: document.getElementById('delivery-clear-filters-btn'),
+        deliveryCustomerTrigger: document.getElementById('delivery-customer-trigger'),
+        deliveryCustomerMenu: document.getElementById('delivery-customer-menu'),
+        deliveryTypeTrigger: document.getElementById('delivery-type-trigger'),
+        deliveryTypeMenu: document.getElementById('delivery-type-menu'),
+        deliveryStateTrigger: document.getElementById('delivery-state-trigger'),
+        deliveryStateMenu: document.getElementById('delivery-state-menu'),
         deliveryProjectsNoMatch: document.getElementById('delivery-projects-no-match'),
         deliveryPnlToolbar: document.getElementById('delivery-pnl-toolbar'),
         deliveryPnlCsvBtn: document.getElementById('delivery-pnl-csv-btn'),
@@ -10969,6 +11009,11 @@
         sort: { column: 'contractValue', dir: 'desc' },
         selectedId: null,
         searchTerm: '',
+        filters: {
+          customers: {},
+          types: {},
+          states: {},
+        },
         pnlView: 'table',
         projectsByIndex: {},
         lastRenderedFetchedAt: null,
@@ -11071,6 +11116,11 @@
             selectedId: deliveryState.selectedId,
             searchTerm: deliveryState.searchTerm || '',
             pnlView: deliveryState.pnlView === 'chart' ? 'chart' : 'table',
+            filters: {
+              customers: deliveryState.filters.customers || {},
+              types: deliveryState.filters.types || {},
+              states: deliveryState.filters.states || {},
+            },
           };
           localStorage.setItem(DELIVERY_FILTERS_PREF_KEY, JSON.stringify(payload));
         } catch (e) { /* ignore */ }
@@ -11091,6 +11141,17 @@
           if (stored.pnlView === 'chart' || stored.pnlView === 'table') {
             deliveryState.pnlView = stored.pnlView;
           }
+          if (stored.filters && typeof stored.filters === 'object') {
+            if (stored.filters.customers && typeof stored.filters.customers === 'object') {
+              deliveryState.filters.customers = stored.filters.customers;
+            }
+            if (stored.filters.types && typeof stored.filters.types === 'object') {
+              deliveryState.filters.types = stored.filters.types;
+            }
+            if (stored.filters.states && typeof stored.filters.states === 'object') {
+              deliveryState.filters.states = stored.filters.states;
+            }
+          }
         }
         // v1.20.0 (Phase B) - push restored search + view state into the
         // DOM so the controls match `deliveryState` after a panel switch.
@@ -11101,6 +11162,116 @@
           updateDeliverySearchClearVisibility_();
         }
         syncDeliveryViewButtons_(deliveryState.pnlView === 'chart' ? 'chart' : 'table');
+      }
+
+      function deliveryDimensionKey_(value) {
+        var s = value === null || value === undefined ? '' : String(value).trim();
+        return s || ' - ';
+      }
+
+      function deliveryFilterMapHits_(map, key) {
+        var keys = setFromKeys(map || {});
+        if (!keys.length) {
+          return true;
+        }
+        return !!map[key];
+      }
+
+      function filterDeliveryRowsByDimensionFilters_(rows) {
+        var f = deliveryState.filters || {};
+        return (rows || []).filter(function (p) {
+          if (!deliveryFilterMapHits_(f.customers, deliveryDimensionKey_(p.customer))) {
+            return false;
+          }
+          if (!deliveryFilterMapHits_(f.types, deliveryDimensionKey_(p.type))) {
+            return false;
+          }
+          if (!deliveryFilterMapHits_(f.states, deliveryDimensionKey_(p.state))) {
+            return false;
+          }
+          return true;
+        });
+      }
+
+      function deliveryUpdateFilterTriggers_() {
+        var f = deliveryState.filters || {};
+        expensesUpdateMultiTrigger_(els.deliveryCustomerTrigger, 'All customers', 'customer', f.customers);
+        expensesUpdateMultiTrigger_(els.deliveryTypeTrigger, 'All types', 'type', f.types);
+        expensesUpdateMultiTrigger_(els.deliveryStateTrigger, 'All statuses', 'status', f.states);
+      }
+
+      function deliveryOnFilterChange_() {
+        deliveryUpdateFilterTriggers_();
+        writeDeliveryFiltersStored();
+        var cached = readDeliveryCache();
+        renderDeliveryTable((cached && cached.projects) || []);
+        if (deliveryState.selectedId) {
+          markDeliveryRowSelected_(deliveryState.selectedId);
+        }
+        logActivity_('delivery_filter', 'delivery', 'client');
+      }
+
+      function populateDeliveryFilterMenus_(projects) {
+        if (!projects) {
+          projects = [];
+        }
+        var custSet = {};
+        var typeSet = {};
+        var stateSet = {};
+        for (var i = 0; i < projects.length; i++) {
+          custSet[deliveryDimensionKey_(projects[i].customer)] = true;
+          typeSet[deliveryDimensionKey_(projects[i].type)] = true;
+          stateSet[deliveryDimensionKey_(projects[i].state)] = true;
+        }
+        var custs = Object.keys(custSet).sort(function (a, b) { return a.localeCompare(b); });
+        var types = Object.keys(typeSet).sort(function (a, b) { return a.localeCompare(b); });
+        var states = Object.keys(stateSet).sort(function (a, b) { return a.localeCompare(b); });
+
+        function pruneMap_(map, valid) {
+          var keys = setFromKeys(map);
+          for (var pi = 0; pi < keys.length; pi++) {
+            if (!valid[keys[pi]]) {
+              delete map[keys[pi]];
+            }
+          }
+        }
+        pruneMap_(deliveryState.filters.customers, custSet);
+        pruneMap_(deliveryState.filters.types, typeSet);
+        pruneMap_(deliveryState.filters.states, stateSet);
+
+        var onChange = deliveryOnFilterChange_;
+        expensesPopulateMultiMenu_(
+          els.deliveryCustomerMenu,
+          custs,
+          function (k) { return k; },
+          function (k) { return k; },
+          deliveryState.filters.customers,
+          onChange
+        );
+        expensesPopulateMultiMenu_(
+          els.deliveryTypeMenu,
+          types,
+          function (k) { return k; },
+          function (k) { return k; },
+          deliveryState.filters.types,
+          onChange
+        );
+        expensesPopulateMultiMenu_(
+          els.deliveryStateMenu,
+          states,
+          function (k) { return k; },
+          function (k) { return k; },
+          deliveryState.filters.states,
+          onChange
+        );
+        deliveryUpdateFilterTriggers_();
+      }
+
+      function clearDeliveryDimensionFilters_() {
+        deliveryState.filters.customers = {};
+        deliveryState.filters.types = {};
+        deliveryState.filters.states = {};
+        deliveryOnFilterChange_();
       }
 
       function setDeliveryLoading(on) {
@@ -12592,14 +12763,6 @@
         }
       }
 
-      function expensesEmployeeKey_(row) {
-        var name = row && row.employeeName != null ? String(row.employeeName).trim() : '';
-        if (name) return name;
-        var id = row && row.employeeId != null ? String(row.employeeId).trim() : '';
-        if (id) return id;
-        return '(Unknown employee)';
-      }
-
       function expensesSubmissionCycleDays_(row) {
         var purchase = row && row.purchaseDate;
         var submission = row && row.submissionDate;
@@ -12619,13 +12782,29 @@
         return Math.round(x) + ' days';
       }
 
-      function buildExpensesSubmissionCycleByEmployee_(filteredRows, topN) {
+      function buildExpensesEmployeeNameLookup_(rows) {
+        var map = {};
+        for (var i = 0; i < (rows || []).length; i++) {
+          var r = rows[i];
+          var id = r && r.employeeId != null ? String(r.employeeId).trim() : '';
+          var name = r && r.employeeName != null ? String(r.employeeName).trim() : '';
+          if (id && name) {
+            map[id] = name;
+          }
+        }
+        return map;
+      }
+
+      function buildExpensesSubmissionCycleByEmployee_(filteredRows, topN, nameLookup) {
         var byEmp = {};
         for (var i = 0; i < filteredRows.length; i++) {
-          var days = expensesSubmissionCycleDays_(filteredRows[i]);
+          var row = filteredRows[i];
+          var days = expensesSubmissionCycleDays_(row);
           if (days === null) continue;
-          var key = expensesEmployeeKey_(filteredRows[i]);
-          if (!byEmp[key]) byEmp[key] = { sum: 0, count: 0 };
+          var key = expensesEmployeeGroupKey_(row);
+          if (!byEmp[key]) {
+            byEmp[key] = { sum: 0, count: 0, label: expensesEmployeeLabel_(row, nameLookup) };
+          }
           byEmp[key].sum += days;
           byEmp[key].count++;
         }
@@ -12633,7 +12812,7 @@
         for (var k in byEmp) {
           if (Object.prototype.hasOwnProperty.call(byEmp, k)) {
             list.push({
-              name: k,
+              name: byEmp[k].label || k,
               avgDays: byEmp[k].sum / byEmp[k].count,
               count: byEmp[k].count,
             });
@@ -12649,7 +12828,9 @@
 
       function renderExpensesSubmissionCycleChart_(filteredRows) {
         var topN = expensesState.chartSubmissionCycleTopN || 25;
-        var rank = buildExpensesSubmissionCycleByEmployee_(filteredRows, topN);
+        var allRows = (expensesState.payload && expensesState.payload.rows) || filteredRows;
+        var nameLookup = buildExpensesEmployeeNameLookup_(allRows);
+        var rank = buildExpensesSubmissionCycleByEmployee_(filteredRows, topN, nameLookup);
         if (chartInstances.expensesSubmissionCycle) {
           try { chartInstances.expensesSubmissionCycle.destroy(); } catch (e) { /* ignore */ }
           chartInstances.expensesSubmissionCycle = null;
@@ -13041,10 +13222,37 @@
       }
 
       function expensesEmployeeKey_(row) {
-        var n = row && row.employeeName != null ? String(row.employeeName).trim() : '';
-        if (n) return n;
-        var e = row && row.employeeId != null ? String(row.employeeId).trim() : '';
-        if (e) return 'ID ' + e;
+        var name = row && row.employeeName != null ? String(row.employeeName).trim() : '';
+        if (name) {
+          return name;
+        }
+        var id = row && row.employeeId != null ? String(row.employeeId).trim() : '';
+        if (id) {
+          return id;
+        }
+        return '(Unknown employee)';
+      }
+
+      function expensesEmployeeGroupKey_(row) {
+        var id = row && row.employeeId != null ? String(row.employeeId).trim() : '';
+        if (id) {
+          return 'id:' + id;
+        }
+        return 'name:' + expensesEmployeeKey_(row);
+      }
+
+      function expensesEmployeeLabel_(row, lookup) {
+        var name = row && row.employeeName != null ? String(row.employeeName).trim() : '';
+        if (name) {
+          return name;
+        }
+        var id = row && row.employeeId != null ? String(row.employeeId).trim() : '';
+        if (id && lookup && lookup[id]) {
+          return lookup[id];
+        }
+        if (id) {
+          return id;
+        }
         return '(Unknown employee)';
       }
 
@@ -14906,6 +15114,7 @@
           if (ttl > 0 && isCacheStale(data, ttl)) els.deliveryStaleBadge.classList.remove('d-none');
           else els.deliveryStaleBadge.classList.add('d-none');
         }
+        populateDeliveryFilterMenus_(projects);
         renderDeliveryTable(projects);
         // Restore prior selection if the same project still exists.
         if (deliveryState.selectedId) {
@@ -14976,9 +15185,21 @@
         for (var i = 0; i < sorted.length; i++) {
           deliveryState.projectsByIndex[sorted[i].id] = sorted[i];
         }
+        var dimensionFiltered = filterDeliveryRowsByDimensionFilters_(sorted);
         // v1.20.0 (Phase B, FR-98) - case-insensitive substring match
         // across Project + Customer columns.
-        var rows = filterDeliveryRowsBySearch_(sorted);
+        var rows = filterDeliveryRowsBySearch_(dimensionFiltered);
+        if (els.deliveryProjectsCount) {
+          var total = all.length;
+          var visible = rows.length;
+          if (visible !== total) {
+            els.deliveryProjectsCount.textContent =
+              visible + ' of ' + total + ' projects in view';
+          } else {
+            els.deliveryProjectsCount.textContent =
+              total + ' active project' + (total === 1 ? '' : 's');
+          }
+        }
         var body = els.deliveryProjectsBody;
         body.innerHTML = '';
         if (!all.length) {
@@ -16106,6 +16327,11 @@
             if (deliveryState.selectedId) markDeliveryRowSelected_(deliveryState.selectedId);
             els.deliverySearchInput.focus();
           }
+        });
+      }
+      if (els.deliveryClearFiltersBtn) {
+        els.deliveryClearFiltersBtn.addEventListener('click', function () {
+          clearDeliveryDimensionFilters_();
         });
       }
       function updateDeliverySearchClearVisibility_() {

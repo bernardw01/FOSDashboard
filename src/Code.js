@@ -1,11 +1,11 @@
 /**
- * PRD version 2.11.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.11.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.11.1';
+var FOS_PRD_VERSION = '2.11.2';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '2.11.1';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'Pipeline stage map: Qualifying and Negotiating buckets; utilization heatmap fixed cell size with scroll.';
+  'Delivery customer/type/status filters; expenses submission-cycle chart shows employee names.';
 
 /**
  * @return {string}

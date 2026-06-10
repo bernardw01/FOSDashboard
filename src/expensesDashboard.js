@@ -1,5 +1,5 @@
 /**
- * PRD version 2.11.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.11.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Spreadsheet-backed **Expenses** dashboard (feature 015). Reads expense lines
  * from AUTH_SPREADSHEET_ID tab AUTH_EXPENSES_SHEET_NAME (default `expenses`).
@@ -13,7 +13,7 @@
  */
 
 /** @const {number} */
-var EXPENSES_CACHE_SCHEMA_VERSION_ = 1;
+var EXPENSES_CACHE_SCHEMA_VERSION_ = 2;
 
 /** @const {number} Rows with |amount| at or below this are omitted (USD). */
 var EXPENSES_AMOUNT_EPSILON_ = 0.005;
@@ -102,6 +102,7 @@ function getExpensesProps_() {
     colActivity: str('AUTH_EXPENSES_COL_ACTIVITY_TYPE', 'Activity type'),
     colEmployeeId: str('AUTH_EXPENSES_COL_EMPLOYEE_ID', 'Employee - ID'),
     colEmployeeName: str('AUTH_EXPENSES_COL_EMPLOYEE_NAME', 'Full name'),
+    colEmployeeShort: str('AUTH_EXPENSES_COL_EMPLOYEE_SHORT', 'Employee'),
     colCurrency: str('AUTH_EXPENSES_COL_CURRENCY', 'Amount (by category) - Currency'),
     colApproval: str('AUTH_EXPENSES_COL_APPROVAL', 'Approval state'),
     colAttendees: str('AUTH_EXPENSES_COL_ATTENDEES', 'Attendees'),
@@ -293,6 +294,7 @@ function buildExpensesDashboardPayload_() {
   var idxActivity = findHeaderIndex_(h, cfg.colActivity);
   var idxEmployeeId = findHeaderIndex_(h, cfg.colEmployeeId);
   var idxEmployeeName = findHeaderIndex_(h, cfg.colEmployeeName);
+  var idxEmployeeShort = findHeaderIndex_(h, cfg.colEmployeeShort);
   var idxCurrency = findHeaderIndex_(h, cfg.colCurrency);
   var idxApproval = findHeaderIndex_(h, cfg.colApproval);
   var idxAttendees = findHeaderIndex_(h, cfg.colAttendees);
@@ -411,10 +413,23 @@ function buildExpensesDashboardPayload_() {
         idxEmployeeId >= 0 && row[idxEmployeeId] !== null && row[idxEmployeeId] !== undefined
           ? String(row[idxEmployeeId]).trim()
           : '',
-      employeeName:
-        idxEmployeeName >= 0 && row[idxEmployeeName] !== null && row[idxEmployeeName] !== undefined
-          ? String(row[idxEmployeeName]).trim()
-          : '',
+      employeeName: (function () {
+        var full =
+          idxEmployeeName >= 0 && row[idxEmployeeName] !== null && row[idxEmployeeName] !== undefined
+            ? String(row[idxEmployeeName]).trim()
+            : '';
+        if (full) {
+          return full;
+        }
+        if (
+          idxEmployeeShort >= 0 &&
+          row[idxEmployeeShort] !== null &&
+          row[idxEmployeeShort] !== undefined
+        ) {
+          return String(row[idxEmployeeShort]).trim();
+        }
+        return '';
+      })(),
       postedDate: postedIso,
       submissionDate: submissionIso,
       approvalState:

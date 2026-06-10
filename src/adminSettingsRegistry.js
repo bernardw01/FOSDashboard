@@ -1,5 +1,5 @@
 /**
- * PRD version 2.11.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.11.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -117,7 +117,8 @@ function getAdminSettingsCatalog_() {
     adminSettingEntry_('AUTH_EXPENSES_COL_TRANSACTION_ID', 'expenses-dashboard', 'Transaction ID header', '', 'string', 'Transaction ID'),
     adminSettingEntry_('AUTH_EXPENSES_COL_ACTIVITY_TYPE', 'expenses-dashboard', 'Activity type header', '', 'string', 'Activity type'),
     adminSettingEntry_('AUTH_EXPENSES_COL_EMPLOYEE_ID', 'expenses-dashboard', 'Employee ID header', '', 'string', 'Employee - ID'),
-    adminSettingEntry_('AUTH_EXPENSES_COL_EMPLOYEE_NAME', 'expenses-dashboard', 'Employee display name header', 'Uses Full name in default schema.', 'string', 'Full name'),
+    adminSettingEntry_('AUTH_EXPENSES_COL_EMPLOYEE_NAME', 'expenses-dashboard', 'Employee display name header', 'Uses Full name in default schema; falls back to Employee short column when blank.', 'string', 'Full name'),
+    adminSettingEntry_('AUTH_EXPENSES_COL_EMPLOYEE_SHORT', 'expenses-dashboard', 'Employee short name header', 'Fallback when Full name is blank (default sheet column B).', 'string', 'Employee'),
     adminSettingEntry_('AUTH_EXPENSES_COL_CURRENCY', 'expenses-dashboard', 'Currency header', '`Amount (by category) - Currency` column.', 'string', 'Amount (by category) - Currency'),
     adminSettingEntry_('AUTH_EXPENSES_COL_APPROVAL', 'expenses-dashboard', 'Approval header', '', 'string', 'Approval state'),
     adminSettingEntry_('AUTH_EXPENSES_COL_ATTENDEES', 'expenses-dashboard', 'Attendees header', '', 'string', 'Attendees'),
