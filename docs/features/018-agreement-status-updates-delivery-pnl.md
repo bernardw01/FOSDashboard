@@ -1,6 +1,6 @@
 # Feature: Agreement Status Updates on Delivery P&L
 
-> **PRD version 2.12.1** - **Status: Shipped** (v2.12.0; create fix **v2.12.1**). Extends feature **006** (`#panel-delivery`, per-project P&L). Fibery type: **`Agreement Management/Status Updates`**. See [018-agreement-status-updates-delivery-pnl-implementation-plan.md](018-agreement-status-updates-delivery-pnl-implementation-plan.md).
+> **PRD version 2.12.2** - **Status: Shipped** (v2.12.0; create fixes **v2.12.1** enum id, **v2.12.2** document write). Extends feature **006** (`#panel-delivery`, per-project P&L). Fibery type: **`Agreement Management/Status Updates`**. See [018-agreement-status-updates-delivery-pnl-implementation-plan.md](018-agreement-status-updates-delivery-pnl-implementation-plan.md).
 
 ---
 

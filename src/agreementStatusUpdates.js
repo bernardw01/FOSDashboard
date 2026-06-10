@@ -1,5 +1,5 @@
 /**
- * PRD version 2.12.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.12.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement status updates on Delivery P&L (feature 018).
  * Reads and creates rows in Fibery `Agreement Management/Status Updates`.
@@ -113,7 +113,6 @@ function createAgreementStatusUpdate(agreementId, statusKey, updateContent) {
   entity['Agreement Management/Agreement'] = { 'fibery/id': agreementId };
   entity['Agreement Management/Agreement Status'] = { 'fibery/id': enumId };
   entity['Agreement Management/Submitted by'] = email;
-  entity['Agreement Management/Update'] = { 'fibery/document-content': plain };
   entity['Agreement Management/Name'] = statusUpdateDefaultName_(email);
 
   var batch = fiberyBatchCommands_([
@@ -133,6 +132,29 @@ function createAgreementStatusUpdate(agreementId, statusKey, updateContent) {
     id = String(created['fibery/id']);
   } else if (created && created.id) {
     id = String(created.id);
+  }
+  if (!id) {
+    return { ok: false, reason: 'FIBERY_CREATE', message: 'Status update row was created but id was missing.' };
+  }
+
+  // Rich-text/document fields cannot be set inline on create; write via Document Storage.
+  var docSecret = fiberyDocumentSecretForField_(STATUS_UPDATES_DB_, id, 'Agreement Management/Update');
+  if (!docSecret.ok) {
+    console.warn('createAgreementStatusUpdate document secret failed: ' + docSecret.message);
+    return {
+      ok: false,
+      reason: docSecret.reason || 'DOCUMENT_SECRET_FAILED',
+      message: docSecret.message || 'Could not save the update text.',
+    };
+  }
+  var docWrite = fiberySetDocumentContent_(docSecret.secret, plain, 'plain-text');
+  if (!docWrite.ok) {
+    console.warn('createAgreementStatusUpdate document write failed: ' + docWrite.message);
+    return {
+      ok: false,
+      reason: docWrite.reason || 'DOCUMENT_WRITE_FAILED',
+      message: docWrite.message || 'Could not save the update text.',
+    };
   }
   return { ok: true, id: id };
 }

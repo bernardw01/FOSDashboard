@@ -1,5 +1,5 @@
 /**
- * PRD version 2.12.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.12.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Fibery REST API client (Apps Script UrlFetchApp).
  *
@@ -14,6 +14,8 @@
  *   fiberyQuery_(query)             - single fibery.entity/query command
  *   fiberyBatchQuery_(queries)      - N commands in one round-trip
  *   fiberyBatchCommands_(commands)  - arbitrary Fibery commands (create/update)
+ *   fiberyDocumentSecretForField_(type, id, field) - rich-text document secret
+ *   fiberySetDocumentContent_(secret, content, format) - write document body
  *   fiberyPing_()                   - fibery/version, for diagnostics
  *
  * No payloads or tokens are logged. Errors are mapped to a small {ok:false,reason}
@@ -191,6 +193,96 @@ function fiberyBatchCommands_(commands) {
   }
 
   return { ok: true, results: results };
+}
+
+/**
+ * Reads the collaborative-document secret for a rich-text field on an entity.
+ *
+ * @param {string} entityType
+ * @param {string} entityId
+ * @param {string} documentFieldName
+ * @return {!{ ok: true, secret: string }|!{ ok: false, reason: string, message: string }}
+ */
+function fiberyDocumentSecretForField_(entityType, entityId, documentFieldName) {
+  if (!entityType || !entityId || !documentFieldName) {
+    return { ok: false, reason: 'INVALID_ARGS', message: 'Missing document lookup args.' };
+  }
+  var q = {
+    query: {
+      'q/from': entityType,
+      'q/select': {
+        id: 'fibery/id',
+        docSecret: [documentFieldName, 'Collaboration~Documents/secret'],
+      },
+      'q/where': ['=', ['fibery/id'], '$id'],
+      'q/limit': 1,
+    },
+    params: { $id: entityId },
+  };
+  var r = fiberyQuery_(q);
+  if (!r.ok) {
+    return r;
+  }
+  var row = r.rows && r.rows[0];
+  if (!row) {
+    return { ok: false, reason: 'DOCUMENT_SECRET_NOT_FOUND', message: 'Could not load document metadata.' };
+  }
+  var secret = row.docSecret;
+  if (secret && typeof secret === 'object' && secret['Collaboration~Documents/secret']) {
+    secret = secret['Collaboration~Documents/secret'];
+  }
+  secret = secret ? String(secret).trim() : '';
+  if (!secret) {
+    return { ok: false, reason: 'DOCUMENT_SECRET_EMPTY', message: 'Document secret was empty.' };
+  }
+  return { ok: true, secret: secret };
+}
+
+/**
+ * Writes rich-text/document storage content for an existing collaborative document.
+ *
+ * @param {string} secret
+ * @param {string} content
+ * @param {string=} format md | plain-text | html (default md)
+ * @return {!{ ok: true }|!{ ok: false, reason: string, message: string }}
+ */
+function fiberySetDocumentContent_(secret, content, format) {
+  var cfg = readFiberyConfig_();
+  if (!cfg.ok) {
+    return cfg;
+  }
+  if (!secret) {
+    return { ok: false, reason: 'DOCUMENT_SECRET_EMPTY', message: 'Missing document secret.' };
+  }
+  var fmt = format || 'md';
+  var url = 'https://' + cfg.host + '/api/documents/commands?format=' + encodeURIComponent(fmt);
+  var resp;
+  try {
+    resp = UrlFetchApp.fetch(url, {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { Authorization: 'Token ' + cfg.token },
+      payload: JSON.stringify({
+        command: 'create-or-update-documents',
+        args: [{ secret: secret, content: String(content || '') }],
+      }),
+      muteHttpExceptions: true,
+      followRedirects: false,
+    });
+  } catch (e) {
+    fiberyWarn_('document fetch threw', e);
+    return { ok: false, reason: 'FIBERY_NETWORK', message: 'Could not reach Fibery document storage.' };
+  }
+  var code = resp.getResponseCode();
+  if (code === 401 || code === 403) {
+    fiberyWarn_('document auth rejected (' + code + ')', null);
+    return { ok: false, reason: 'FIBERY_AUTH', message: 'Fibery rejected the API token.' };
+  }
+  if (code < 200 || code >= 300) {
+    fiberyWarn_('document non-2xx (' + code + ')', null);
+    return { ok: false, reason: 'FIBERY_HTTP', message: 'Fibery document API returned HTTP ' + code + '.' };
+  }
+  return { ok: true };
 }
 
 /**
