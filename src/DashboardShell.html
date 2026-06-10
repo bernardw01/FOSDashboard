@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.12.2 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.12.3 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -843,6 +843,11 @@
     .fos-delivery-status-readonly {
       font-size: 0.68rem;
       color: var(--ag-text-dim);
+      margin-top: 4px;
+    }
+    .fos-delivery-status-pending {
+      font-size: 0.68rem;
+      color: var(--ag-accent);
       margin-top: 4px;
     }
     #deliveryStatusUpdateModal .form-label {
@@ -4338,7 +4343,7 @@
     </div>
   </div>
 
-  <!-- v2.12.2 - Agreement status update on Delivery P&L (feature 018). -->
+  <!-- v2.12.3 - Agreement status update on Delivery P&L (feature 018). -->
   <div
     class="modal fade fos-modal"
     id="deliveryStatusUpdateModal"
@@ -4463,6 +4468,16 @@
       var DELIVERY_PNL_KEY_PREFIX = 'fos_delivery_pnl_';
       var DELIVERY_PNL_KEY_SUFFIX = '_v5';
       var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 5;
+      var DELIVERY_STATUS_CLIENT_META_ = {
+        on_track: { enumName: 'Agreement On Track', trafficLight: 'green' },
+        at_risk: { enumName: 'Agreement At Risk', trafficLight: 'yellow' },
+        off_trajectory: { enumName: 'Agreement Off Trajectory', trafficLight: 'red' },
+      };
+      var DELIVERY_STATUS_OPTIONS_CLIENT_ = [
+        { key: 'on_track', label: 'Green', enumName: 'Agreement On Track', trafficLight: 'green' },
+        { key: 'at_risk', label: 'Yellow', enumName: 'Agreement At Risk', trafficLight: 'yellow' },
+        { key: 'off_trajectory', label: 'Red', enumName: 'Agreement Off Trajectory', trafficLight: 'red' },
+      ];
       /** Role hues for P&L chart labor stacks (matches Utilization palette). */
       var DELIVERY_PNL_ROLE_PALETTE = [
         '#52C9E5', '#007FA7', '#20B4C4', '#43D6BA', '#fd9644', '#fc5c65',
@@ -11122,6 +11137,7 @@
         monthsByKey: {},
         pnlChart: null,
         csvStatusTimer: null,
+        statusUpdateRollback: null,
       };
       var deliveryRenderState = { lastRenderedFetchedAt: null };
 
@@ -15569,6 +15585,9 @@
           if (excerpt) {
             excerptHtml = '<div class="fos-delivery-status-excerpt">' + escapeHtml(excerpt) + '</div>';
           }
+          if (latest.pending) {
+            excerptHtml += '<div class="fos-delivery-status-pending">Saving to Fibery…</div>';
+          }
         }
 
         if (!legacySnap && isLiveDataSource_()) {
@@ -15618,6 +15637,92 @@
         modal.show();
       }
 
+      function emptyDeliveryStatusUpdatesBlock_() {
+        return {
+          latest: null,
+          history: [],
+          statusOptions: DELIVERY_STATUS_OPTIONS_CLIENT_.slice(),
+          fetchOk: true,
+        };
+      }
+
+      function applyOptimisticStatusUpdateToPayload_(agreementId, statusKey, content) {
+        var meta = DELIVERY_STATUS_CLIENT_META_[statusKey] || {};
+        var row = {
+          id: 'pending-' + Date.now(),
+          agreementId: agreementId,
+          agreementStatus: meta.enumName || statusKey,
+          trafficLight: meta.trafficLight || 'neutral',
+          submittedBy: navState.userEmail || navState.userLabel || '',
+          createdAt: new Date().toISOString(),
+          updatePlain: content,
+          pending: true,
+        };
+        var payload = deliveryState.lastPnlPayload;
+        if (!payload || String(payload.agreementId || '') !== String(agreementId)) {
+          payload = {
+            ok: true,
+            cacheSchemaVersion: DELIVERY_PNL_CACHE_SCHEMA_VERSION,
+            agreementId: agreementId,
+            months: [],
+            statusUpdates: emptyDeliveryStatusUpdatesBlock_(),
+          };
+        } else {
+          payload = JSON.parse(JSON.stringify(payload));
+        }
+        var block = payload.statusUpdates || emptyDeliveryStatusUpdatesBlock_();
+        var history = [row].concat(block.history || []);
+        payload.statusUpdates = {
+          latest: history[0],
+          history: history,
+          statusOptions: block.statusOptions || DELIVERY_STATUS_OPTIONS_CLIENT_.slice(),
+          fetchOk: true,
+        };
+        return payload;
+      }
+
+      function mergeServerStatusUpdateIntoPayload_(payload, result) {
+        var next = payload ? JSON.parse(JSON.stringify(payload)) : {
+          ok: true,
+          cacheSchemaVersion: DELIVERY_PNL_CACHE_SCHEMA_VERSION,
+          agreementId: '',
+          months: [],
+        };
+        if (result && result.statusUpdates) {
+          next.statusUpdates = result.statusUpdates;
+          return next;
+        }
+        var row = result && result.statusUpdate;
+        if (!row) return next;
+        var history = [row];
+        var prior = (payload && payload.statusUpdates && payload.statusUpdates.history) || [];
+        for (var i = 0; i < prior.length; i++) {
+          if (prior[i].pending) continue;
+          if (prior[i].id === row.id) continue;
+          history.push(prior[i]);
+        }
+        next.statusUpdates = {
+          latest: history[0],
+          history: history,
+          statusOptions: DELIVERY_STATUS_OPTIONS_CLIENT_.slice(),
+          fetchOk: true,
+        };
+        return next;
+      }
+
+      function rollbackOptimisticStatusUpdate_(agreementId) {
+        var rb = deliveryState.statusUpdateRollback;
+        if (!rb || rb.agreementId !== agreementId) return;
+        var payload = deliveryState.lastPnlPayload;
+        if (!payload || String(payload.agreementId || '') !== String(agreementId)) return;
+        payload = JSON.parse(JSON.stringify(payload));
+        payload.statusUpdates = rb.statusUpdates || emptyDeliveryStatusUpdatesBlock_();
+        deliveryState.lastPnlPayload = payload;
+        writeDeliveryPnlCache(agreementId, payload);
+        renderDeliveryStatusChip_(payload);
+        deliveryState.statusUpdateRollback = null;
+      }
+
       function submitDeliveryStatusUpdate_() {
         if (!isLiveDataSource_() || !deliveryState.selectedId) return;
         var agreementId = deliveryState.selectedId;
@@ -15636,43 +15741,57 @@
           els.deliveryStatusUpdateError.classList.add('d-none');
           els.deliveryStatusUpdateError.textContent = '';
         }
-        if (els.deliveryStatusUpdateSubmit) {
-          els.deliveryStatusUpdateSubmit.disabled = true;
+        if (els.deliveryPnlError) {
+          els.deliveryPnlError.classList.add('d-none');
+          els.deliveryPnlError.textContent = '';
         }
+
+        var previousBlock = null;
+        if (deliveryState.lastPnlPayload && deliveryState.lastPnlPayload.statusUpdates) {
+          previousBlock = JSON.parse(JSON.stringify(deliveryState.lastPnlPayload.statusUpdates));
+        }
+        deliveryState.statusUpdateRollback = {
+          agreementId: agreementId,
+          statusUpdates: previousBlock,
+        };
+
+        var optimisticPayload = applyOptimisticStatusUpdateToPayload_(agreementId, statusKey, content);
+        deliveryState.lastPnlPayload = optimisticPayload;
+        writeDeliveryPnlCache(agreementId, optimisticPayload);
+        renderDeliveryStatusChip_(optimisticPayload);
+
+        if (els.deliveryStatusUpdateText) {
+          els.deliveryStatusUpdateText.value = '';
+        }
+        if (els.deliveryStatusUpdateModal && bootstrap && bootstrap.Modal) {
+          bootstrap.Modal.getOrCreateInstance(els.deliveryStatusUpdateModal).hide();
+        }
+
         logActivity_('delivery_status_update_submit', 'delivery',
           'agreementId=' + agreementId + ' · status=' + statusKey);
         google.script.run
           .withSuccessHandler(function (result) {
-            if (els.deliveryStatusUpdateSubmit) {
-              els.deliveryStatusUpdateSubmit.disabled = false;
-            }
             if (!result || result.ok === false) {
               var msg = (result && result.message) || 'Could not save the status update.';
-              if (els.deliveryStatusUpdateError) {
-                els.deliveryStatusUpdateError.textContent = msg;
-                els.deliveryStatusUpdateError.classList.remove('d-none');
+              rollbackOptimisticStatusUpdate_(agreementId);
+              if (els.deliveryPnlError) {
+                els.deliveryPnlError.textContent = msg;
+                els.deliveryPnlError.classList.remove('d-none');
               }
               return;
             }
-            if (els.deliveryStatusUpdateModal && bootstrap && bootstrap.Modal) {
-              bootstrap.Modal.getOrCreateInstance(els.deliveryStatusUpdateModal).hide();
-            }
-            try {
-              sessionStorage.removeItem(pnlCacheKeyForAgreement_(agreementId));
-            } catch (e) { /* ignore */ }
-            var project = deliveryState.projectsByIndex[agreementId];
-            if (project) {
-              fetchDeliveryPnlFromServer_(project);
-            }
+            deliveryState.statusUpdateRollback = null;
+            var merged = mergeServerStatusUpdateIntoPayload_(deliveryState.lastPnlPayload, result);
+            deliveryState.lastPnlPayload = merged;
+            writeDeliveryPnlCache(agreementId, merged);
+            renderDeliveryStatusChip_(merged);
           })
           .withFailureHandler(function (err) {
-            if (els.deliveryStatusUpdateSubmit) {
-              els.deliveryStatusUpdateSubmit.disabled = false;
-            }
             var msg = err && err.message ? err.message : 'Submit failed.';
-            if (els.deliveryStatusUpdateError) {
-              els.deliveryStatusUpdateError.textContent = msg;
-              els.deliveryStatusUpdateError.classList.remove('d-none');
+            rollbackOptimisticStatusUpdate_(agreementId);
+            if (els.deliveryPnlError) {
+              els.deliveryPnlError.textContent = msg;
+              els.deliveryPnlError.classList.remove('d-none');
             }
           })
           .createAgreementStatusUpdate(agreementId, statusKey, content);
@@ -15701,7 +15820,15 @@
         if (cached && cached.ok !== false) {
           // Render from cache immediately.
           renderDeliveryMonthlyPnL_(cached, project);
-          if (ttlMinutes > 0 && isCacheStale(cached, ttlMinutes)) {
+          var shouldRefresh = ttlMinutes > 0 && isCacheStale(cached, ttlMinutes);
+          if (!shouldRefresh) {
+            var su = cached.statusUpdates;
+            // Refetch when the status read failed or cache predates fetchOk (legacy v5).
+            if (!su || su.fetchOk !== true) {
+              shouldRefresh = true;
+            }
+          }
+          if (shouldRefresh) {
             fetchDeliveryPnlFromServer_(project);
           }
         } else {

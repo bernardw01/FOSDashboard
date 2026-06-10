@@ -1,5 +1,5 @@
 /**
- * PRD version 2.12.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.12.3 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Anthropic Admin API client for AI usage sync (messages, cost_report, claude_code).
  */

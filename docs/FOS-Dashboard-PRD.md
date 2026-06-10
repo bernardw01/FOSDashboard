@@ -1,10 +1,10 @@
 # Harpin FOS Dashboard (Google Workspace Web App)
 
-**PRD version 2.12.2** - `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
+**PRD version 2.12.3** - `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
 
 Product Requirements Document
 
-Version 2.12.2 - 2026-05-28
+Version 2.12.3 - 2026-05-28
 
 ## 1) Overview
 
@@ -536,6 +536,7 @@ The **Clockify to Fibery Sync** product (see `docs/PRD.md`) remains the **system
 
 | Date | Version | Change Summary | Author |
 | --- | --- | --- | --- |
+| 2026-05-28 | 2.12.3 | **Delivery - status update read + optimistic save.** Status fetch hydrates **`Update`** via Document Storage (`get-documents`); **`statusUpdates.fetchOk`** drives cache refresh. Submit applies optimistic cache/UI first, then syncs to Fibery in background. PATCH → **2.12.3**. | Cursor |
 | 2026-05-28 | 2.12.2 | **Delivery - status update document write fix.** **`createAgreementStatusUpdate`** no longer sets **`Agreement Management/Update`** inline on create; after row create, resolves document **`Collaboration~Documents/secret`** and writes body via **`api/documents/commands`** (`create-or-update-documents`, `plain-text`). **`fiberyClient.js`**: **`fiberyDocumentSecretForField_`**, **`fiberySetDocumentContent_`**. PATCH → **2.12.2**. | Cursor |
 | 2026-05-28 | 2.12.1 | **Delivery - status update create fix.** **`createAgreementStatusUpdate`** sets **`Agreement Management/Agreement Status`** via enum **`fibery/id`** (queried from **`Agreement Management/Agreement Status_Agreement Management/Status Updates`**, cached 6h) instead of **`enum/name`**, which Fibery rejected on create. PATCH → **2.12.1**. | Cursor |
 | 2026-05-28 | 2.12.0 | **Delivery - agreement status updates on P&L.** New **`src/agreementStatusUpdates.js`**: fetch **`Agreement Management/Status Updates`** per agreement, **`createAgreementStatusUpdate`** write path. **`buildDeliveryProjectMonthlyPnLInternal_`** attaches **`statusUpdates`**; **`DELIVERY_PNL_CACHE_SCHEMA_VERSION_`** **4 → 5** (client **`_v5`**); snapshot expected schema **5**. Client: status chip + modal on `#panel-delivery`; snapshot read-only. **FR-112**, **AC-70**; feature **018**. MINOR → **2.12.0**. | Cursor |

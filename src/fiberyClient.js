@@ -1,5 +1,5 @@
 /**
- * PRD version 2.12.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.12.3 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Fibery REST API client (Apps Script UrlFetchApp).
  *
@@ -16,6 +16,7 @@
  *   fiberyBatchCommands_(commands)  - arbitrary Fibery commands (create/update)
  *   fiberyDocumentSecretForField_(type, id, field) - rich-text document secret
  *   fiberySetDocumentContent_(secret, content, format) - write document body
+ *   fiberyGetDocumentContents_(secrets, format) - batch read document bodies
  *   fiberyPing_()                   - fibery/version, for diagnostics
  *
  * No payloads or tokens are logged. Errors are mapped to a small {ok:false,reason}
@@ -283,6 +284,76 @@ function fiberySetDocumentContent_(secret, content, format) {
     return { ok: false, reason: 'FIBERY_HTTP', message: 'Fibery document API returned HTTP ' + code + '.' };
   }
   return { ok: true };
+}
+
+/**
+ * Batch-read collaborative document bodies by secret.
+ *
+ * @param {!Array<string>} secrets
+ * @param {string=} format plain-text | md | html (default plain-text)
+ * @return {!{ ok: true, contents: !Object<string, string> }|
+ *          !{ ok: false, reason: string, message: string }}
+ */
+function fiberyGetDocumentContents_(secrets, format) {
+  var cfg = readFiberyConfig_();
+  if (!cfg.ok) {
+    return cfg;
+  }
+  var contents = {};
+  if (!secrets || !secrets.length) {
+    return { ok: true, contents: contents };
+  }
+  var fmt = format || 'plain-text';
+  var args = [];
+  for (var i = 0; i < secrets.length; i++) {
+    var s = secrets[i] ? String(secrets[i]).trim() : '';
+    if (s) {
+      args.push({ secret: s });
+    }
+  }
+  if (!args.length) {
+    return { ok: true, contents: contents };
+  }
+  var url = 'https://' + cfg.host + '/api/documents/commands?format=' + encodeURIComponent(fmt);
+  var resp;
+  try {
+    resp = UrlFetchApp.fetch(url, {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { Authorization: 'Token ' + cfg.token },
+      payload: JSON.stringify({
+        command: 'get-documents',
+        args: args,
+      }),
+      muteHttpExceptions: true,
+      followRedirects: false,
+    });
+  } catch (e) {
+    fiberyWarn_('document batch read threw', e);
+    return { ok: false, reason: 'FIBERY_NETWORK', message: 'Could not reach Fibery document storage.' };
+  }
+  var code = resp.getResponseCode();
+  if (code === 401 || code === 403) {
+    return { ok: false, reason: 'FIBERY_AUTH', message: 'Fibery rejected the API token.' };
+  }
+  if (code < 200 || code >= 300) {
+    return { ok: false, reason: 'FIBERY_HTTP', message: 'Fibery document API returned HTTP ' + code + '.' };
+  }
+  var body;
+  try {
+    body = JSON.parse(resp.getContentText());
+  } catch (e) {
+    return { ok: false, reason: 'FIBERY_PARSE', message: 'Could not parse document batch response.' };
+  }
+  if (!Array.isArray(body)) {
+    return { ok: false, reason: 'FIBERY_PARSE', message: 'Unexpected document batch response shape.' };
+  }
+  for (var j = 0; j < body.length; j++) {
+    var item = body[j];
+    if (!item || !item.secret) continue;
+    contents[String(item.secret)] = item.content != null ? String(item.content) : '';
+  }
+  return { ok: true, contents: contents };
 }
 
 /**

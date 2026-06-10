@@ -1,5 +1,5 @@
 /**
- * PRD version 2.12.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.12.3 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement status updates on Delivery P&L (feature 018).
  * Reads and creates rows in Fibery `Agreement Management/Status Updates`.
@@ -156,7 +156,20 @@ function createAgreementStatusUpdate(agreementId, statusKey, updateContent) {
       message: docWrite.message || 'Could not save the update text.',
     };
   }
-  return { ok: true, id: id };
+  var createdRow = normalizeStatusUpdateRow_({
+    id: id,
+    createdAt: new Date().toISOString(),
+    submittedBy: email,
+    statusName: enumName,
+    updatePlain: plain,
+    agreementId: agreementId,
+  }, agreementId);
+  return {
+    ok: true,
+    id: id,
+    statusUpdate: createdRow,
+    statusUpdates: buildStatusUpdatesBlock_([createdRow], true),
+  };
 }
 
 /**
@@ -181,7 +194,7 @@ function fetchStatusUpdatesForAgreement_(agreementId, limit) {
         submittedBy: 'Agreement Management/Submitted by',
         statusName: ['Agreement Management/Agreement Status', 'enum/name'],
         statusColor: ['Agreement Management/Agreement Status', 'enum/color'],
-        updatePlain: ['Agreement Management/Update', 'Collaboration~Documents/plain'],
+        updateSecret: ['Agreement Management/Update', 'Collaboration~Documents/secret'],
         agreementId: ['Agreement Management/Agreement', 'fibery/id'],
       },
       'q/where': ['=', ['Agreement Management/Agreement', 'fibery/id'], '$agreementId'],
@@ -199,19 +212,22 @@ function fetchStatusUpdatesForAgreement_(agreementId, limit) {
   for (var i = 0; i < page.length; i++) {
     rows.push(normalizeStatusUpdateRow_(page[i], agreementId));
   }
+  hydrateStatusUpdateDocuments_(rows);
   return { ok: true, rows: rows };
 }
 
 /**
  * @param {!Array<!Object>} rows Normalized rows, newest first.
- * @return {!{ latest: ?Object, history: !Array<!Object>, statusOptions: !Array<!Object> }}
+ * @param {boolean=} fetchOk False when the Fibery read failed (client may refetch).
+ * @return {!{ latest: ?Object, history: !Array<!Object>, statusOptions: !Array<!Object>, fetchOk: boolean }}
  */
-function buildStatusUpdatesBlock_(rows) {
+function buildStatusUpdatesBlock_(rows, fetchOk) {
   var history = rows || [];
   return {
     latest: history.length ? history[0] : null,
     history: history,
     statusOptions: STATUS_UPDATE_OPTIONS_.slice(),
+    fetchOk: fetchOk !== false,
   };
 }
 
@@ -222,22 +238,104 @@ function buildStatusUpdatesBlock_(rows) {
  * @private
  */
 function normalizeStatusUpdateRow_(raw, agreementId) {
-  var statusName = stringOrNull_(raw && raw.statusName);
+  var statusName = fiberyEnumName_(raw && raw.statusName);
   var trafficLight = statusName ? (STATUS_ENUM_TO_TRAFFIC_LIGHT_[statusName] || 'neutral') : 'neutral';
   var updatePlain = stringOr_(raw && raw.updatePlain, '').trim();
-  if (!updatePlain && raw && raw.updatePlain !== undefined && raw.updatePlain !== null) {
-    updatePlain = String(raw.updatePlain).trim();
-  }
+  var docSecret = extractDocumentSecret_(raw && raw.updateSecret);
   return {
     id: stringOr_(raw && raw.id, ''),
     agreementId: stringOr_(raw && raw.agreementId, agreementId),
     agreementStatus: statusName,
     trafficLight: trafficLight,
-    statusColor: stringOrNull_(raw && raw.statusColor),
+    statusColor: fiberyEnumColor_(raw && raw.statusColor),
     submittedBy: stringOrNull_(raw && raw.submittedBy),
     createdAt: stringOrNull_(raw && raw.createdAt),
     updatePlain: updatePlain,
+    updateSecret: docSecret,
   };
+}
+
+/**
+ * Fills updatePlain from Document Storage when the entity query omits inline plain text.
+ *
+ * @param {!Array<!Object>} rows
+ * @private
+ */
+function hydrateStatusUpdateDocuments_(rows) {
+  if (!rows || !rows.length) return;
+  var secrets = [];
+  var needIdx = [];
+  for (var i = 0; i < rows.length; i++) {
+    if (!rows[i].updatePlain && rows[i].updateSecret) {
+      secrets.push(rows[i].updateSecret);
+      needIdx.push(i);
+    }
+  }
+  if (!secrets.length) return;
+  var batch = fiberyGetDocumentContents_(secrets, 'plain-text');
+  if (!batch.ok) {
+    console.warn('hydrateStatusUpdateDocuments_ failed: ' + batch.message);
+    return;
+  }
+  var map = batch.contents || {};
+  for (var j = 0; j < needIdx.length; j++) {
+    var row = rows[needIdx[j]];
+    var text = map[row.updateSecret];
+    if (text) {
+      row.updatePlain = String(text).trim();
+    }
+  }
+}
+
+/**
+ * @param {*} v
+ * @return {?string}
+ * @private
+ */
+function fiberyEnumName_(v) {
+  if (v === null || v === undefined) return null;
+  if (typeof v === 'string') {
+    var s = v.trim();
+    return s.length ? s : null;
+  }
+  if (typeof v === 'object' && v['enum/name']) {
+    return stringOrNull_(v['enum/name']);
+  }
+  return null;
+}
+
+/**
+ * @param {*} v
+ * @return {?string}
+ * @private
+ */
+function fiberyEnumColor_(v) {
+  if (v === null || v === undefined) return null;
+  if (typeof v === 'string') {
+    var s = v.trim();
+    return s.length ? s : null;
+  }
+  if (typeof v === 'object' && v['enum/color']) {
+    return stringOrNull_(v['enum/color']);
+  }
+  return null;
+}
+
+/**
+ * @param {*} v
+ * @return {?string}
+ * @private
+ */
+function extractDocumentSecret_(v) {
+  if (v === null || v === undefined) return null;
+  if (typeof v === 'string') {
+    var s = v.trim();
+    return s.length ? s : null;
+  }
+  if (typeof v === 'object' && v['Collaboration~Documents/secret']) {
+    return stringOrNull_(v['Collaboration~Documents/secret']);
+  }
+  return null;
 }
 
 /**
@@ -376,7 +474,7 @@ function _diag_sampleStatusUpdates(agreementId) {
     message: fetch.ok ? undefined : fetch.message,
   };
   if (fetch.ok) {
-    summary.block = buildStatusUpdatesBlock_(fetch.rows);
+    summary.block = buildStatusUpdatesBlock_(fetch.rows, true);
     if (summary.block.latest) {
       summary.latestStatus = summary.block.latest.agreementStatus;
       summary.latestTrafficLight = summary.block.latest.trafficLight;
