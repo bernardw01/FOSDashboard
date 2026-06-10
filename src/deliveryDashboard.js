@@ -1,5 +1,5 @@
 /**
- * PRD version 2.11.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.12.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `delivery`, panel
  * `#panel-delivery`). Two public endpoints, both authorized via
@@ -41,7 +41,8 @@
  *     `lifetime` includes `revenue` (actual + forecast),
  *     `revenueRecognized`, and `revenueForecast` (v2.6.2).
  *     `laborRoles: !Array<string>` + per-month `laborByRole` map (v2.6.8).
- *     `cacheSchemaVersion: 4` (client key suffix `_v4`).
+ *     `statusUpdates: { latest, history, statusOptions }` (v2.12.1 / feature 018).
+ *     `cacheSchemaVersion: 5` (client key suffix `_v5`).
  *
  * Diagnostics (run from the Apps Script editor):
  *   _diag_sampleDeliveryPayload()
@@ -72,9 +73,10 @@ var DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_ = 1;
  *        `revenueItems[]` for drill-down (FR-94 / FR-95).
  *   v3 - v2.6.2: forecast revenue in projected months.
  *   v4 - v2.6.8: per-month `laborByRole` + payload `laborRoles[]`.
+ *   v5 - v2.12.1: `statusUpdates` block (feature 018).
  * @const {number}
  */
-var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 4;
+var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 5;
 
 /** @const {number} Default TTL (minutes) for the client-side cache. */
 var DELIVERY_DEFAULT_CACHE_TTL_MIN_ = 10;
@@ -246,6 +248,7 @@ function buildDeliveryProjectMonthlyPnLInternal_(agreementId) {
     discrepancyCheck: emptyDiscrepancy_(),
     partial: false,
     capCounts: { laborRowsRead: 0, laborRowCap: 0 },
+    statusUpdates: buildStatusUpdatesBlock_([]),
   };
   if (!agreementId) {
     emptyShell.message = 'Missing agreementId.';
@@ -288,6 +291,16 @@ function buildDeliveryProjectMonthlyPnLInternal_(agreementId) {
     return emptyShell;
   }
 
+  var statusWarnings = [];
+  var statusFetch = fetchStatusUpdatesForAgreement_(agreementId);
+  var statusUpdates = buildStatusUpdatesBlock_([]);
+  if (statusFetch.ok) {
+    statusUpdates = buildStatusUpdatesBlock_(statusFetch.rows);
+  } else {
+    statusWarnings.push(statusFetch.reason || 'STATUS_UPDATES_FETCH_FAILED');
+    console.warn('Status updates fetch failed for ' + agreementId + ': ' + statusFetch.message);
+  }
+
   var thresholds = getAgreementThresholds_();
   var built = buildMonthlyPnL_({
     laborRows: laborFetch.rows,
@@ -319,6 +332,8 @@ function buildDeliveryProjectMonthlyPnLInternal_(agreementId) {
       laborRowsRead: laborFetch.rows.length,
       laborRowCap: maxLaborRows,
     },
+    statusUpdates: statusUpdates,
+    warnings: statusWarnings.length ? statusWarnings : undefined,
   };
 }
 

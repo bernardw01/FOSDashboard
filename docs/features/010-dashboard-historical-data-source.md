@@ -42,7 +42,7 @@ A **Data source** control in the left sidebar lets authorized users view all das
 | Utilization | `bundle.utilization` |
 | Labor hours | Week slice from `bundle.utilization` only (no Fibery) |
 | Delivery list | `bundle.deliveryProjects` |
-| Delivery P&L | `getDashboardSnapshotPnl` per selected project |
+| Delivery P&L | `getDashboardSnapshotPnl` per selected project (includes **`statusUpdates`** when artifact schema **5**; status chip read-only; **Add status update** hidden) |
 | Expenses | `bundle.expenses` when present; else inline "not available" message |
 | Pipeline | `bundle.pipeline` when present; else inline "not available" message |
 
@@ -56,3 +56,4 @@ Route **`shell`**: `data_source_change`, `snapshot_bundle_load_start`, `snapshot
 - Utilization date range is not user-adjustable in snapshot mode.
 - Expenses snapshot reflects spreadsheet contents at job run time (not re-filtered by snapshot date).
 - Snapshot dates before **v2.8.0** lack `expenses.json` / `pipeline.json`; those panels show a legacy message until a new snapshot is taken.
+- Delivery P&L artifacts with `cacheSchemaVersion: 4` (before **v2.12.0**) lack `statusUpdates`; the status chip shows a not-in-snapshot message.

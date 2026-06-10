@@ -1,5 +1,5 @@
 /**
- * PRD version 2.11.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.12.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Sales **Pipeline** dashboard (feature 016). Reads HubSpot deals synced into
  * Fibery (`HubSpot/Deal`) through fiberyClient.js and returns a normalized,

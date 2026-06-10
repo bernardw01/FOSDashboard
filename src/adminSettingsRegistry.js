@@ -1,5 +1,5 @@
 /**
- * PRD version 2.11.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.12.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -455,6 +455,24 @@ function getAdminSettingsCatalog_() {
       'number',
       10000,
       { min: 0, max: 100000 }
+    ),
+    adminSettingEntry_(
+      'DELIVERY_STATUS_UPDATES_MAX_ROWS',
+      'delivery',
+      'Max status updates per P&L',
+      'Cap status-update rows fetched with each monthly P&L.',
+      'number',
+      20,
+      { min: 1, max: 100 }
+    ),
+    adminSettingEntry_(
+      'DELIVERY_STATUS_UPDATE_MAX_CHARS',
+      'delivery',
+      'Status update max length',
+      'Maximum characters for a new status update body.',
+      'number',
+      8000,
+      { min: 100, max: 50000 }
     ),
     adminSettingEntry_(
       'DELIVERY_COMPLETION_UNDER_PCT',

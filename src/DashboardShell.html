@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.11.2 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.12.1 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -805,6 +805,52 @@
     }
     .fos-delivery-pnl-kpi-chip.is-negative .value {
       color: var(--ag-danger);
+    }
+    .fos-delivery-status-chip {
+      min-width: 200px;
+      max-width: 280px;
+    }
+    .fos-delivery-status-chip .value {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .fos-status-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+      flex-shrink: 0;
+      background: var(--ag-text-muted);
+    }
+    .fos-status-dot--green { background: #43D6BA; }
+    .fos-status-dot--yellow { background: #f9c74f; }
+    .fos-status-dot--red { background: #fc5c65; }
+    .fos-status-dot--neutral { background: var(--ag-text-muted); }
+    .fos-delivery-status-excerpt {
+      font-size: 0.72rem;
+      color: var(--ag-text-muted);
+      margin-top: 4px;
+      line-height: 1.35;
+      max-height: 2.7em;
+      overflow: hidden;
+    }
+    .fos-delivery-status-add-btn {
+      margin-top: 6px;
+      font-size: 0.72rem;
+      padding: 2px 8px;
+    }
+    .fos-delivery-status-readonly {
+      font-size: 0.68rem;
+      color: var(--ag-text-dim);
+      margin-top: 4px;
+    }
+    #deliveryStatusUpdateModal .form-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--ag-text-muted);
     }
     .fos-delivery-monthly-wrap {
       max-height: 480px;
@@ -4292,6 +4338,53 @@
     </div>
   </div>
 
+  <!-- v2.12.1 - Agreement status update on Delivery P&L (feature 018). -->
+  <div
+    class="modal fade fos-modal"
+    id="deliveryStatusUpdateModal"
+    tabindex="-1"
+    aria-labelledby="deliveryStatusUpdateModalTitle"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+      <div class="modal-content rounded-4">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title fw-semibold" id="deliveryStatusUpdateModalTitle">Add status update</h5>
+            <div class="small text-secondary" id="deliveryStatusUpdateModalSubtitle"> - </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label" for="delivery-status-update-select">Status</label>
+            <select class="form-select form-select-sm" id="delivery-status-update-select" aria-required="true">
+              <option value="on_track">Green - Agreement On Track</option>
+              <option value="at_risk">Yellow - Agreement At Risk</option>
+              <option value="off_trajectory">Red - Agreement Off Trajectory</option>
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label" for="delivery-status-update-text">Update</label>
+            <textarea
+              class="form-control"
+              id="delivery-status-update-text"
+              rows="6"
+              maxlength="8000"
+              placeholder="Describe the current delivery status…"
+              aria-required="true"
+            ></textarea>
+          </div>
+          <p class="small mb-0 text-danger d-none" id="delivery-status-update-error" role="alert"></p>
+        </div>
+        <div class="modal-footer border-0 pt-0 d-flex justify-content-between">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-fos-primary px-4" id="delivery-status-update-submit">Submit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- v1.20.0 (Phase B, FR-95) - opens when a Revenue cell in the Delivery
        Dashboard's monthly P&L grid is clicked. Lists the revenue items that
        bucketed into that month, plus a recognized / projected split. Data
@@ -4368,8 +4461,8 @@
       // flag or `revenueItems[]` per month) is invalidated cleanly when
       // the user upgrades.
       var DELIVERY_PNL_KEY_PREFIX = 'fos_delivery_pnl_';
-      var DELIVERY_PNL_KEY_SUFFIX = '_v4';
-      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 4;
+      var DELIVERY_PNL_KEY_SUFFIX = '_v5';
+      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 5;
       /** Role hues for P&L chart labor stacks (matches Utilization palette). */
       var DELIVERY_PNL_ROLE_PALETTE = [
         '#52C9E5', '#007FA7', '#20B4C4', '#43D6BA', '#fd9644', '#fc5c65',
@@ -4727,6 +4820,12 @@
         deliveryPnlMonthModalSubtitle: document.getElementById('deliveryPnlMonthModalSubtitle'),
         deliveryPnlMonthModalBody: document.getElementById('deliveryPnlMonthModalBody'),
         deliveryPnlMonthModalFoot: document.getElementById('deliveryPnlMonthModalFoot'),
+        deliveryStatusUpdateModal: document.getElementById('deliveryStatusUpdateModal'),
+        deliveryStatusUpdateModalSubtitle: document.getElementById('deliveryStatusUpdateModalSubtitle'),
+        deliveryStatusUpdateSelect: document.getElementById('delivery-status-update-select'),
+        deliveryStatusUpdateText: document.getElementById('delivery-status-update-text'),
+        deliveryStatusUpdateError: document.getElementById('delivery-status-update-error'),
+        deliveryStatusUpdateSubmit: document.getElementById('delivery-status-update-submit'),
         deliveryRevenueMonthModal: document.getElementById('deliveryRevenueMonthModal'),
         deliveryRevenueMonthModalTitle: document.getElementById('deliveryRevenueMonthModalTitle'),
         deliveryRevenueMonthModalSubtitle: document.getElementById('deliveryRevenueMonthModalSubtitle'),
@@ -15394,6 +15493,189 @@
             '<div class="value">' + formatMarginPct(marginPct) + '</div>' +
             '<div class="sub">' + (targetPct === null ? 'No target' : 'tgt ' + formatMarginPct(targetPct)) + '</div>' +
           '</div>';
+        removeDeliveryStatusChip_();
+      }
+
+      function removeDeliveryStatusChip_() {
+        var existing = document.getElementById('delivery-pnl-status-chip');
+        if (existing && existing.parentNode) {
+          existing.parentNode.removeChild(existing);
+        }
+      }
+
+      function formatStatusUpdateDate_(iso) {
+        if (!iso) return '';
+        try {
+          var d = new Date(iso);
+          if (isNaN(d.getTime())) return String(iso).slice(0, 10);
+          return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+        } catch (e) {
+          return String(iso).slice(0, 10);
+        }
+      }
+
+      function truncateStatusExcerpt_(text, maxLen) {
+        var s = String(text || '').trim();
+        if (!s) return '';
+        if (s.length <= maxLen) return s;
+        return s.slice(0, maxLen - 1) + '…';
+      }
+
+      function statusTrafficLightClass_(light) {
+        if (light === 'green' || light === 'yellow' || light === 'red') {
+          return 'fos-status-dot--' + light;
+        }
+        return 'fos-status-dot--neutral';
+      }
+
+      function renderDeliveryStatusChip_(payload) {
+        if (!els.deliveryPnlKpiStrip) return;
+        removeDeliveryStatusChip_();
+        var snap = !isLiveDataSource_();
+        var schema = payload && payload.cacheSchemaVersion;
+        var block = payload && payload.statusUpdates;
+        var legacySnap = snap && (!schema || schema < DELIVERY_PNL_CACHE_SCHEMA_VERSION);
+
+        var chip = document.createElement('div');
+        chip.id = 'delivery-pnl-status-chip';
+        chip.className = 'fos-delivery-pnl-kpi-chip fos-delivery-status-chip';
+
+        var labelHtml = '<div class="label">Status update</div>';
+        var valueHtml = '';
+        var subHtml = '';
+        var excerptHtml = '';
+        var actionHtml = '';
+
+        if (legacySnap) {
+          valueHtml = '<div class="value">Not in snapshot</div>';
+          subHtml = '<div class="sub">Status updates require P&amp;L schema 5</div>';
+        } else if (!block || !block.latest) {
+          valueHtml = '<div class="value"><span class="fos-status-dot fos-status-dot--neutral" aria-hidden="true"></span>No status yet</div>';
+          subHtml = '<div class="sub">No updates recorded for this agreement</div>';
+        } else {
+          var latest = block.latest;
+          var tl = latest.trafficLight || 'neutral';
+          var statusLabel = latest.agreementStatus || 'Unknown status';
+          valueHtml =
+            '<div class="value d-flex align-items-center">' +
+              '<span class="fos-status-dot ' + statusTrafficLightClass_(tl) + '" aria-hidden="true"></span>' +
+              '<span>' + escapeHtml(statusLabel) + '</span>' +
+            '</div>';
+          var metaParts = [];
+          if (latest.submittedBy) metaParts.push(escapeHtml(latest.submittedBy));
+          if (latest.createdAt) metaParts.push(escapeHtml(formatStatusUpdateDate_(latest.createdAt)));
+          subHtml = '<div class="sub">' + (metaParts.length ? metaParts.join(' · ') : ' - ') + '</div>';
+          var excerpt = truncateStatusExcerpt_(latest.updatePlain, 120);
+          if (excerpt) {
+            excerptHtml = '<div class="fos-delivery-status-excerpt">' + escapeHtml(excerpt) + '</div>';
+          }
+        }
+
+        if (!legacySnap && isLiveDataSource_()) {
+          actionHtml =
+            '<button type="button" class="btn btn-sm btn-outline-light fos-delivery-status-add-btn" ' +
+              'id="delivery-status-add-btn">Add status update</button>';
+        } else if (!legacySnap && snap) {
+          actionHtml = '<div class="fos-delivery-status-readonly">Snapshot - read-only</div>';
+        }
+
+        chip.innerHTML = labelHtml + valueHtml + subHtml + excerptHtml + actionHtml;
+        els.deliveryPnlKpiStrip.appendChild(chip);
+
+        var addBtn = document.getElementById('delivery-status-add-btn');
+        if (addBtn) {
+          addBtn.addEventListener('click', function () {
+            openDeliveryStatusUpdateModal_(payload);
+          });
+        }
+      }
+
+      function openDeliveryStatusUpdateModal_(payload) {
+        if (!isLiveDataSource_() || !deliveryState.selectedId) return;
+        if (!els.deliveryStatusUpdateModal || typeof bootstrap === 'undefined' || !bootstrap.Modal) return;
+        var project = deliveryState.projectsByIndex[deliveryState.selectedId];
+        if (els.deliveryStatusUpdateModalSubtitle) {
+          els.deliveryStatusUpdateModalSubtitle.textContent = project
+            ? (project.name || deliveryState.selectedId)
+            : deliveryState.selectedId;
+        }
+        if (els.deliveryStatusUpdateSelect) {
+          els.deliveryStatusUpdateSelect.value = 'on_track';
+        }
+        if (els.deliveryStatusUpdateText) {
+          els.deliveryStatusUpdateText.value = '';
+        }
+        if (els.deliveryStatusUpdateError) {
+          els.deliveryStatusUpdateError.classList.add('d-none');
+          els.deliveryStatusUpdateError.textContent = '';
+        }
+        if (els.deliveryStatusUpdateSubmit) {
+          els.deliveryStatusUpdateSubmit.disabled = false;
+        }
+        logActivity_('delivery_status_update_modal_open', 'delivery',
+          'agreementId=' + deliveryState.selectedId);
+        var modal = bootstrap.Modal.getOrCreateInstance(els.deliveryStatusUpdateModal);
+        modal.show();
+      }
+
+      function submitDeliveryStatusUpdate_() {
+        if (!isLiveDataSource_() || !deliveryState.selectedId) return;
+        var agreementId = deliveryState.selectedId;
+        var statusKey = els.deliveryStatusUpdateSelect
+          ? els.deliveryStatusUpdateSelect.value : '';
+        var content = els.deliveryStatusUpdateText
+          ? String(els.deliveryStatusUpdateText.value || '').trim() : '';
+        if (!content) {
+          if (els.deliveryStatusUpdateError) {
+            els.deliveryStatusUpdateError.textContent = 'Enter an update before submitting.';
+            els.deliveryStatusUpdateError.classList.remove('d-none');
+          }
+          return;
+        }
+        if (els.deliveryStatusUpdateError) {
+          els.deliveryStatusUpdateError.classList.add('d-none');
+          els.deliveryStatusUpdateError.textContent = '';
+        }
+        if (els.deliveryStatusUpdateSubmit) {
+          els.deliveryStatusUpdateSubmit.disabled = true;
+        }
+        logActivity_('delivery_status_update_submit', 'delivery',
+          'agreementId=' + agreementId + ' · status=' + statusKey);
+        google.script.run
+          .withSuccessHandler(function (result) {
+            if (els.deliveryStatusUpdateSubmit) {
+              els.deliveryStatusUpdateSubmit.disabled = false;
+            }
+            if (!result || result.ok === false) {
+              var msg = (result && result.message) || 'Could not save the status update.';
+              if (els.deliveryStatusUpdateError) {
+                els.deliveryStatusUpdateError.textContent = msg;
+                els.deliveryStatusUpdateError.classList.remove('d-none');
+              }
+              return;
+            }
+            if (els.deliveryStatusUpdateModal && bootstrap && bootstrap.Modal) {
+              bootstrap.Modal.getOrCreateInstance(els.deliveryStatusUpdateModal).hide();
+            }
+            try {
+              sessionStorage.removeItem(pnlCacheKeyForAgreement_(agreementId));
+            } catch (e) { /* ignore */ }
+            var project = deliveryState.projectsByIndex[agreementId];
+            if (project) {
+              fetchDeliveryPnlFromServer_(project);
+            }
+          })
+          .withFailureHandler(function (err) {
+            if (els.deliveryStatusUpdateSubmit) {
+              els.deliveryStatusUpdateSubmit.disabled = false;
+            }
+            var msg = err && err.message ? err.message : 'Submit failed.';
+            if (els.deliveryStatusUpdateError) {
+              els.deliveryStatusUpdateError.textContent = msg;
+              els.deliveryStatusUpdateError.classList.remove('d-none');
+            }
+          })
+          .createAgreementStatusUpdate(agreementId, statusKey, content);
       }
 
       function loadDeliveryPnLForProject_(project, opts) {
@@ -15620,6 +15902,7 @@
         }
         // Make sure the header is in sync with the project that was just rendered.
         if (project) renderDeliveryPnlHeader(project);
+        renderDeliveryStatusChip_(payload);
         renderDeliveryPacing_(payload, project);
         // v1.20.0 (Phase B) - re-apply the active view + sync the toggle
         // buttons. When the grid is empty the toolbar was hidden above,
@@ -16286,6 +16569,11 @@
       if (els.deliveryPnlCsvBtn) {
         els.deliveryPnlCsvBtn.addEventListener('click', function () {
           copyDeliveryPnLAsCsv_();
+        });
+      }
+      if (els.deliveryStatusUpdateSubmit) {
+        els.deliveryStatusUpdateSubmit.addEventListener('click', function () {
+          submitDeliveryStatusUpdate_();
         });
       }
       if (els.deliverySearchInput) {

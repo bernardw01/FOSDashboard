@@ -1,6 +1,6 @@
 # Feature: Delivery Dashboard - Active Projects + Per-Project P&L
 
-> **PRD version 2.11.2** - Phase A shipped in v1.19.0; **Phase B** in v1.20.0; **Phase C (pacing strip, delivery signals, portfolio Sankey)** in v1.21.0; **forecast revenue patch** in v2.6.2; **P&L chart labor-by-role patch** in v2.6.8; **P&L chart month tooltip + click modal** in v2.6.9; **client-side customer / type / status filters** in v2.11.2.
+> **PRD version 2.12.0** - Phase A shipped in v1.19.0; **Phase B** in v1.20.0; **Phase C (pacing strip, delivery signals, portfolio Sankey)** in v1.21.0; **forecast revenue patch** in v2.6.2; **P&L chart labor-by-role patch** in v2.6.8; **P&L chart month tooltip + click modal** in v2.6.9; **client-side customer / type / status filters** in v2.11.2; **agreement status updates on P&L** in v2.12.0 ([018](018-agreement-status-updates-delivery-pnl.md)).
 > `src/Code.js` `FOS_PRD_VERSION` and every `src/*` file header MUST match the
 > version line in `docs/FOS-Dashboard-PRD.md`.
 
@@ -11,6 +11,7 @@
 | **Phase A - activation + project list + monthly P&L** | Delivery panel activation (replaces the v1.0 "coming soon" stub) · Active projects table · row-click → **monthly P&L time-series** (one row per calendar month from project start through current month) with Revenue Recognized · Labor Cost · Expenses · Total Cost · Margin $ · Margin %; per-project lazy fetch of `Labor Costs` + `Other Direct Costs`; rollup KPI strip + lifetime totals row in the same card · refresh + TTL row · `sessionStorage` cache · activity events | v1.19.0 | **Shipped** |
 | **Phase B - chart view + drill-down + projected months + CSV + search** | Table / Chart view toggle on the monthly P&L (stacked **labor by role** + Expenses bars with an overlaid Revenue line via Chart.js - v2.6.8) · per-month Revenue drill-down modal sourced from the cached `month.revenueItems[]` (zero extra Fibery fetches) · projected months tagged `projected: true` server-side (drops recognized-only filter on Revenue Items; defaults `DELIVERY_PNL_INCLUDE_PROJECTED_ODC` to `true`) and surfaced as a `Projected` pill in the table + muted bar fills in the chart · Copy CSV action on the P&L card · client-side substring search input in the Active Projects header (Project + Customer; persisted + debounced) · four new activity events (`delivery_pnl_view_toggle`, `delivery_pnl_month_drilldown`, `delivery_pnl_copy_csv`, `delivery_table_search`) · cache schema bump (`_v1` → `_v2`; **`_v4`** as of v2.6.8 for `laborByRole`) | v1.20.0 | **Shipped** |
 | **Phase C - predictive** | Client-only **pacing strip** on the P&L card (linear plan vs recognized + trailing 3-mo avg) · **Delivery signals** strip above Active Projects (rules on cached `projects[]` only) · **Portfolio margin-flow Sankey** (D3 + d3-sankey, visible-row aggregate) · Agreement Attention extensions in `agreementAlerts.js` (pacing / cost vs recognized / low recognition near duration end) | v1.21.0 | **Shipped** |
+| **Status updates on P&L** | Latest Fibery **Status Updates** chip + **Add status update** modal; `statusUpdates` on P&L payload; cache **`_v5`** | v2.12.0 | **Shipped** |
 
 ## Goal
 
