@@ -1,0 +1,75 @@
+---
+description: Teamwork-first product workflow - notebooks, release tasks, git sync, and risk mitigations
+alwaysApply: true
+---
+
+# Teamwork product workflow (FOS Dashboard)
+
+Teamwork project: **FOS Dashboard Development** (`win.godeap.io`, project id `1615262`). Operating model: `docs/teamwork-workflow.md`. Manifest: `docs/teamwork-manifest.json`.
+
+## Source of truth by phase
+
+| Phase | Authoritative spec | Git role |
+| --- | --- | --- |
+| Draft / In review | **Teamwork notebook** | Do not overwrite `docs/features/*.md` from git-first drafts |
+| Approved for implementation | **Teamwork notebook** | **Sync notebook to git** before coding |
+| In development | Teamwork notebook (frozen); git working copy | Implement from synced `docs/features/*.md` |
+| Shipped | Teamwork notebook + task | **Re-sync notebook to git** in the same commit as `FOS_PRD_VERSION` bump |
+
+## Before starting implementation
+
+1. Confirm the release task exists in Teamwork (name: `Feature NNN - ...` or legacy `vX.Y.Z - ...`) and is **Approved for implementation** or later.
+2. Confirm linked notebook URLs are in the task description (`docs/teamwork-manifest.json` may list ids).
+3. **Sync** the approved notebook content into the matching `docs/features/0NN-*.md` file. Do not code from a stale git spec if Teamwork was updated.
+4. If the customer edited the notebook after approval, reconcile via the notebook **Change requests** section before coding, or defer changes to a follow-on release.
+
+## During implementation
+
+- Do not treat git feature docs as authoritative over Teamwork until synced from Teamwork.
+- Post-approval customer edits belong in notebook **Change requests**; merge into the main spec body at ship, not ad hoc in git alone.
+- Engineering-only detail (file paths, cache schema versions, FR/AC numbers) may be added in git **Technical appendix** or `*-implementation-plan.md` without replacing customer-facing notebook sections.
+- One Teamwork task = one release. Do not combine unrelated scope in a single version bump.
+
+## Ship checklist (required with every merge-worthy release)
+
+1. Code + tests/smoke as usual; `clasp push` when deploying Apps Script.
+2. Bump PRD per `google-apps-script-core.mdc` (`FOS_PRD_VERSION`, changelog, `src/*` headers). Version is chosen **here**, not at task intake.
+3. **Rename** Teamwork release task to `vX.Y.Z - {title}` where `X.Y.Z` matches `FOS_PRD_VERSION` exactly (full task name = **release name**).
+4. Set task custom field **Release Version** to that same release name (`customFieldId` **57879** on project `1615262`; see manifest). Prefer `python3 scripts/teamwork_ship_task.py --version-from-codejs --manifest-task ... --update-manifest` (step 3+4 together).
+5. **Export/sync** linked Teamwork notebook pages into `docs/features/*.md` (and implementation plan if maintained in Teamwork).
+6. Update `docs/teamwork-manifest.json` task `shippedVersion`, rename manifest task key to final task name, and notebook `lastSyncedAt` if ids are known.
+7. Set Teamwork release task to **Shipped**.
+8. Update `docs/features/000-overview.md` shipped line when the product version changes.
+
+## New feature requests (pipeline)
+
+1. Customer creates or requests work in Teamwork (task or message); product creates a **feature notebook** from `docs/FEATURE_TEMPLATE.md`.
+2. Create release task `Feature NNN - ...` (no version prefix) in the correct **functional area task list**; link notebook(s) in description.
+3. **Inbox intake (mandatory):** when the feature originates from the **Inbox** task list, move the new release task from **Backlog** to **Spec Draft** (`workflowId` **83492**, `stageId` **389189**) and set custom fields **Feature ID** (`57880`) and **Release Type** (`57881`: `Enhancement` or `Bug Fix`). Use `scripts/teamwork_intake.py` `create_release_task()`.
+4. Customer review in Teamwork until **Spec Approved** (sync notebook to git before coding).
+5. Sync notebook to git, then create or update `*-implementation-plan.md` and phase tasks if needed.
+6. Implement, ship, sync git, tag task with final version.
+
+## Bug-fix releases
+
+- Patch tasks use the same model (`v2.12.5 - ...`).
+- Link parent feature notebook; add **Release notes** (problem, fix, benefit) in notebook or task description.
+- Sync release notes to PRD changelog; full feature notebook rewrite not required.
+
+## Risk mitigations (mandatory)
+
+| Risk | Rule |
+| --- | --- |
+| Notebook and git drift | Sync at **approval** and again at **ship**; never only at ship if coding already started |
+| Cursor implements stale spec | Run notebook-to-git sync before first line of feature code |
+| Customer rewrites AC during dev | Freeze at approval; post-approval edits only in **Change requests** until ship |
+| Task version name wrong after scope change | Use `Feature NNN - title` until ship; rename once at deploy to match `FOS_PRD_VERSION` |
+| Version guessed at intake | Do not put `vX.Y.Z` in task title until ship; optional `workingVersionEstimate` in manifest only |
+| Manual sync forgotten | Ship checklist blocks completion until git reflects Teamwork |
+| Dual maintenance burden | Customer prose in Teamwork; technical appendix in git; link both in manifest |
+
+## Do not
+
+- Create new `docs/features/0NN-*.md` specs as the first step when the user asked for Teamwork-first workflow (notebook leads unless explicitly syncing from existing git).
+- Mark Teamwork task Shipped without PRD version bump and git doc sync in the same delivery.
+- Expose `TEAMWORK_BEARER_TOKEN` or copy secrets into docs or manifest.

@@ -1,0 +1,57 @@
+<h2>Feature 017 - AI platform usage sync</h2>
+<p><strong>Feature id:</strong> 017 | <strong>Task list:</strong> Data platform | Anthropic ingest shipped <strong>v2.10.0</strong></p>
+<h3>Goal</h3>
+<p>Give finance and delivery leadership a single inventory of AI platform usage and cost, tied to people in our time-tracking roster, by syncing vendor usage data into Fibery daily.</p>
+<h3>User stories</h3>
+<ul>
+<li>As <strong>finance</strong>, I want daily AI usage and cost by person so I can see spend trends without logging into each vendor console.</li>
+<li>As <strong>delivery leadership</strong>, I want usage matched to Clockify users so we can later allocate cost to teams and work types.</li>
+<li>As an <strong>admin</strong>, I want a reliable scheduled sync with run logs so failures are visible and recoverable.</li>
+</ul>
+<h3>Acceptance criteria</h3>
+<ul>
+<li>OpenAI organization usage and cost is ingested on the same schedule as Anthropic (daily job plus on-demand).</li>
+<li>Rows upsert into Fibery AI Usage Data/Usage with a stable source record id (no duplicates on re-run).</li>
+<li>People are matched to Agreement Management/Clockify Users by email where possible; unmatched rows are flagged.</li>
+<li>Sync runs are logged (spreadsheet tab and/or Fibery Sync Runs).</li>
+<li>Script properties for OpenAI admin API are documented in admin settings catalog.</li>
+<li>No secrets are exposed to browser clients.</li>
+</ul>
+<h3>UI notes</h3>
+<p>v2.13.0 scope is <strong>backend ingest only</strong> (no FOS Dashboard panel for AI costs yet). Operator UI for manual sync remains a follow-on release.</p>
+<h3>Data model</h3>
+<ul>
+<li>Fibery app: AI Usage Data</li>
+<li>Primary entity: Usage (daily usage and cost facts)</li>
+<li>Supporting: Actor Mapping, Sync Runs</li>
+<li>Cross-app link: Clockify Users (read for matching)</li>
+</ul>
+<h3>Operations</h3>
+<ul>
+<li>Daily time-driven trigger plus on-demand date range sync</li>
+<li>Idempotent upsert by source record id</li>
+<li>Re-pull window for daily job (default 3 days)</li>
+</ul>
+<h3>Edge cases</h3>
+<ul>
+<li>Shared API keys map to Actor Mapping or an explicit shared-key status</li>
+<li>OpenAI admin key missing: job skips OpenAI with a clear run log message</li>
+<li>Vendor API rate limits: continuation/resume pattern consistent with snapshot job</li>
+</ul>
+<h3>Verification steps</h3>
+<ol>
+<li>Set OPENAI_ADMIN_API_KEY in Script Properties.</li>
+<li>Run on-demand sync for a 7-day window.</li>
+<li>Confirm new rows in Fibery AI Usage Data/Usage with source platform OpenAI.</li>
+<li>Confirm run log row shows success and row counts.</li>
+</ol>
+<h3>Implementation checklist</h3>
+<ul>
+<li>OpenAI client module and normalize path</li>
+<li>Wire into aiUsageSyncJob.js orchestration</li>
+<li>Admin settings registry entries</li>
+<li>Editor diagnostic for OpenAI sample pull</li>
+<li>PRD version bump on ship</li>
+</ul>
+<h3>Change requests</h3>
+<p>(Add customer edits here after spec approval.)</p>

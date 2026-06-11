@@ -1,0 +1,356 @@
+<h2>AI spend impact - measurement guide</h2>
+<p>&gt; <strong>Purpose:</strong> Research summary for leadership reviewing whether AI investment is delivering positive business impact.</p>
+<p>&gt; <strong>Audience:</strong> Finance, delivery leadership, and operators building AI cost visibility.</p>
+<p>&gt; <strong>Date:</strong> 2026-06-09</p>
+<p>&gt; <strong>Related:</strong> <a href="https://win.godeap.io/app/projects/1615262/notebooks/311784">Feature 017 - AI platform usage sync</a></p>
+<p>&gt; <strong>Git archive:</strong> <a href="https://github.com/bernardw01/FOSDashboard/blob/main/docs/ai-spend-impact-measurement.md">https://github.com/bernardw01/FOSDashboard/blob/main/docs/ai-spend-impact-measurement.md</a></p>
+<p>---</p>
+<h3>Executive summary</h3>
+<p>Most organizations can answer <strong>&quot;How much are we spending on AI?&quot;</strong> long before they can answer <strong>&quot;Is that spend helping the company?&quot;</strong> Industry data consistently shows a gap between adoption and measurable financial impact: many firms report broad AI usage, but far fewer can tie usage to EBIT, margin, or customer outcomes.</p>
+<p>The organizations that answer the impact question well share a common pattern:</p>
+<ol>
+<li><strong>Treat AI as a portfolio of investments</strong>, not a single line item (seats, API, infrastructure, training, and rework each behave differently).</li>
+<li><strong>Establish baselines before scaling</strong>, using metrics finance already trusts (cycle time, cost per unit, revenue per employee, defect rate).</li>
+<li><strong>Connect three layers:</strong> spend and usage signals, operational drivers, and P&amp;L-linked outcomes.</li>
+<li><strong>Report on a fixed cadence</strong> with explicit assumptions, confidence levels, and termination criteria.</li>
+<li><strong>Separate &quot;efficiency gained&quot; from &quot;value captured&quot;</strong> - especially in professional services, where faster work can reduce billable revenue unless pricing and capacity models change.</li>
+</ol>
+<p>This document summarizes those practices and recommends a phased measurement program aligned with harpin&#x27;s existing systems (Clockify labor, Fibery agreements, FOS Dashboard, and the in-flight AI Usage Data sync).</p>
+<p>---</p>
+<h3>The core question (and why it is hard)</h3>
+<p><strong>&quot;Is my AI spend positively impacting my company?&quot;</strong> is really four questions:</p>
+<table>
+<tr><td>Sub-question</td><td>What &quot;yes&quot; looks like</td><td>Common failure mode</td></tr>
+<tr><td><strong>Visibility</strong></td><td>Total AI cost is known by person, team, platform, and use case</td><td>Costs scattered across vendor consoles with no join to people or customers</td></tr>
+<tr><td><strong>Allocation</strong></td><td>Spend can be attributed to R&amp;D, internal ops, customer work, or shared platform</td><td>All usage lands in &quot;shared IT&quot; with no accountability</td></tr>
+<tr><td><strong>Productivity</strong></td><td>Teams measurably do more quality work in the same time</td><td>Activity metrics (tokens, sessions, lines accepted) mistaken for value</td></tr>
+<tr><td><strong>Business impact</strong></td><td>Efficiency shows up in margin, delivery, retention, or revenue</td><td>Productivity gains absorbed by review bottlenecks, QA, or pricing models</td></tr>
+</table>
+<p>Research and practitioner surveys repeatedly cite the same root causes when ROI proof fails:</p>
+<ul>
+<li><strong>No pre-deployment baseline</strong> (often cited in ~60% of failed ROI attempts).</li>
+<li><strong>Low sustained adoption</strong> (tools deployed but only a fraction of the target population uses them consistently).</li>
+<li><strong>Wrong measurement frame</strong> (judging platform investments on a 12-month payback instead of a multi-year NPV model, or vice versa).</li>
+<li><strong>Underinvestment in process change</strong> (AI budgets that allocate less than 10% to training, workflow redesign, and governance).</li>
+</ul>
+<p>For engineering-heavy organizations, recent DORA and telemetry analyses add a further nuance: <strong>individual throughput can rise while system-level delivery metrics stay flat or worsen</strong> if downstream steps (review, testing, release, incident response) do not adapt. AI acts as an amplifier of existing strengths and weaknesses.</p>
+<p>---</p>
+<h3>Frameworks organizations actually use</h3>
+<h4>1. Outcome-backward model (GitLab / delivery leadership)</h4>
+<p>Work backward from the business outcome you care about:</p>
+<pre>
+Business goal  →  Drivers  →  Indicators  →  Baseline  →  Review cadence
+</pre>
+<p><strong>Example (faster customer delivery):</strong></p>
+<table>
+<tr><td>Layer</td><td>Example</td></tr>
+<tr><td>Business goal</td><td>Reduce time from approved scope to production release by 25%</td></tr>
+<tr><td>Drivers</td><td>Development speed, code quality, review efficiency, release automation</td></tr>
+<tr><td>Indicators</td><td>Lead time for changes, deployment frequency, change failure rate, rework rate</td></tr>
+<tr><td>Baseline</td><td>4-8 weeks measured before expanding AI seat count</td></tr>
+<tr><td>Cadence</td><td>Monthly indicator review; quarterly executive summary</td></tr>
+</table>
+<p><strong>Key practice:</strong> Define indicators <strong>before</strong> deployment. Use imperfect proxies (rework %, time in review, escalations per sprint) rather than skipping measurement.</p>
+<p>Sources: <a href="https://about.gitlab.com/the-source/ai/connect-ai-tools-to-business-outcomes-a-3-layer-framework/">GitLab - Connect AI tools to business outcomes</a></p>
+<h4>2. Total Economic Impact (TEI) / CFO audit trail</h4>
+<p>Forrester-style TEI and similar CFO guides emphasize:</p>
+<ul>
+<li><strong>Due diligence baseline</strong> (4-8 weeks minimum) on named workflows.</li>
+<li><strong>Full cost stack:</strong> licenses, API consumption, integration, security review, training, redirected staff time, and ongoing governance.</li>
+<li><strong>Benefit categories with confidence weighting:</strong> time savings, revenue growth, cost avoidance, risk reduction, quality improvement (tag each High / Medium / Low).</li>
+<li><strong>Counterfactual honesty:</strong> if cycle time improved but headcount, overtime, contractor spend, and vendor lines did not change, label savings as *potential* rather than realized.</li>
+</ul>
+<p>Sources: <a href="https://www.exploreagentic.ai/playbooks/ai-agent-roi/">Explore Agentic - AI agent ROI playbook</a>, <a href="https://iternal.ai/ai-roi-quantification">Iternal - AI ROI quantification</a></p>
+<h4>3. Return on AI Investment (ROAI) - portfolio formula</h4>
+<p>A practical portfolio-level formula used in enterprise AI governance:</p>
+<pre>
+ROAI = (Revenue Attribution + Realized Cost Savings + Risk Mitigation Value)
+       / Total AI Investment
+</pre>
+<p>Where <strong>Total AI Investment</strong> includes:</p>
+<ul>
+<li>Subscription and seat fees (Claude Teams, Copilot, etc.)</li>
+<li>API and inference costs (Anthropic Console, OpenAI Platform)</li>
+<li>Internal platform and automation build cost (loaded labor)</li>
+<li>Training, change management, and security/compliance overhead</li>
+</ul>
+<p>Leading organizations pair ROAI with <strong>input metrics</strong> (usage vs outcome correlation, high-impact use case adoption, integration completeness) and <strong>output metrics</strong> (revenue impact, cost per FTE, net revenue per employee, retention).</p>
+<p>Sources: <a href="https://larridin.com/blog/ai-roi-measurement">Larridin - AI ROI measurement framework</a>, <a href="https://larridin.com/hubfs/Strategic%20AI%20Productivity%20Measurement%20Framework%20V1.1.pdf">Larridin - Strategic AI Productivity Measurement Framework (PDF)</a></p>
+<h4>4. Technology Business Management (TBM) for cost attribution</h4>
+<p>TBM Taxonomy 5.x gives finance a standard way to model AI as a <strong>solution type</strong> with lifecycle costs (data prep, training, inference, monitoring, retraining) rather than burying AI in generic SaaS.</p>
+<p>Practices that translate well even without full TBM tooling:</p>
+<ul>
+<li><strong>Cost pools</strong> for API inference, seat subscriptions, and AI engineering labor.</li>
+<li><strong>Chargeback vs showback:</strong> central budget for foundation (literacy, governance, shared keys); chargeback or showback for incremental use-case spend tied to a business unit or customer.</li>
+<li><strong>Multi-dimensional tags:</strong> governance tier, customer attribution, environment (prod vs internal).</li>
+</ul>
+<p>Sources: <a href="https://www.tbmcouncil.org/the-cfos-framework-for-technology-value/">TBM Council - CFO framework for technology value</a>, <a href="https://iternal.ai/ai-cost-allocation">Iternal - AI cost allocation</a>(https://www.tbmcouncil.org/the-cfos-framework-for-technology-value/)</p>
+<h4>5. DORA and engineering delivery (for Claude Code / API-heavy eng)</h4>
+<p>For AI-assisted software development, mature orgs anchor on <strong>system metrics</strong>, not individual output:</p>
+<table>
+<tr><td>Metric</td><td>Why it matters for AI ROI</td></tr>
+<tr><td>Lead time for changes</td><td>End-to-end speed from commit to production</td></tr>
+<tr><td>Deployment frequency</td><td>Whether faster coding reaches customers</td></tr>
+<tr><td>Change failure rate</td><td>Quality tax from AI-generated code</td></tr>
+<tr><td>Mean time to recovery</td><td>Operational resilience under higher change volume</td></tr>
+<tr><td>Rework / bug rate post-merge</td><td>&quot;Verification tax&quot; after AI drafts</td></tr>
+</table>
+<p>DORA&#x27;s 2026 ROI work models value flowing: <strong>AI adoption → engineering capabilities → DORA metrics → developer and user experience → financial outcomes</strong>. It also warns that token costs are not stable; agentic workflows can multiply inference cost 5-20x vs simple completion.</p>
+<p><strong>Avoid as primary ROI evidence:</strong> lines of code, raw PR count, tokens consumed, or self-reported &quot;felt productivity&quot; without downstream validation.</p>
+<p>Sources: <a href="https://dora.dev/ai/roi/report">DORA - ROI of AI-assisted software development</a>, <a href="https://www.faros.ai/blog/dora-ai-roi-calculator-telemetry-inputs">Faros - DORA ROI stress test</a></p>
+<h4>6. Professional services lens (relevant to harpin)</h4>
+<p>Professional services and consulting firms face a <strong>pricing paradox</strong>: AI compresses hours per engagement, which <strong>reduces revenue</strong> under hourly billing unless the firm captures efficiency elsewhere.</p>
+<p>Strong firms track three levers simultaneously:</p>
+<table>
+<tr><td>Lever</td><td>Description</td><td>Example signal</td></tr>
+<tr><td><strong>Time compression</strong></td><td>Fewer hours per standard deliverable</td><td>Hours per ticket, matter, or sprint task vs baseline</td></tr>
+<tr><td><strong>Capacity addition</strong></td><td>Redeploy saved time to more clients or deeper work</td><td>Matters closed or features shipped without headcount growth</td></tr>
+<tr><td><strong>Pricing power</strong></td><td>Value-based or fixed fees capture margin from efficiency</td><td>Revenue per client, gross margin per engagement type</td></tr>
+</table>
+<p>Critical metric many firms skip: <strong>billable conversion</strong> - what percentage of time reclaimed by AI becomes billable or customer-visible output vs internal absorption.</p>
+<p>Industry surveys note that professional services often scale AI faster than they scale <strong>commercial returns</strong> (efficiency and margin gains lag adoption). Formal ROI measurement remains uncommon (often cited in the high teens percentage of firms).</p>
+<p>Sources: <a href="https://www.grantthornton.com/insights/survey-reports/services/2026/services-insights-2026-ai-impact-survey">Grant Thornton - 2026 AI Impact Survey (services)</a>, <a href="https://crossing.one/archive/ai-roi-professional-services-firms-2026">Crossing - AI ROI for professional services firms</a>, <a href="https://valueaddvc.com/blog/how-enterprises-are-calculating-ai-roi-in-2026-the-frameworks-cfos-are-actually-using">Value Add VC - Enterprise AI ROI frameworks (2026)</a></p>
+<p>---</p>
+<h3>What to measure: a layered model</h3>
+<p>Think in four layers. Each layer answers a different stakeholder question.</p>
+<h4>Layer 1 - Financial inventory (CFO)</h4>
+<p><strong>Question:</strong> What is our fully loaded AI spend?</p>
+<table>
+<tr><td>Cost category</td><td>Examples</td><td>Notes</td></tr>
+<tr><td><strong>Seat / subscription</strong></td><td>Claude Teams, enterprise chat plans</td><td>Often fixed per user; easy to budget</td></tr>
+<tr><td><strong>Variable API</strong></td><td>Anthropic Console, OpenAI org costs</td><td>Spikes with automation and agentic use</td></tr>
+<tr><td><strong>Embedded product cost</strong></td><td>Customer-facing features calling models</td><td>Should tie to product P&amp;L or customer</td></tr>
+<tr><td><strong>People cost</strong></td><td>Prompt engineering, integration, governance</td><td>Often 2-3x license cost in year one</td></tr>
+<tr><td><strong>Hidden cost</strong></td><td>Security review, data handling, rework from bad outputs</td><td>Rarely in vendor invoices</td></tr>
+</table>
+<p><strong>Best practice:</strong> Single fact table with daily grain, person linkage, and platform dimension (harpin Feature 017 direction).</p>
+<h4>Layer 2 - Usage and adoption (engineering and ops)</h4>
+<p><strong>Question:</strong> Who uses AI, how intensely, and for what class of work?</p>
+<table>
+<tr><td>Signal</td><td>Use</td></tr>
+<tr><td>Active users / seats</td><td>Adoption breadth</td></tr>
+<tr><td>Cost and tokens per user</td><td>Outlier and governance detection</td></tr>
+<tr><td>Sessions, requests, model mix</td><td>Shift toward expensive reasoning models</td></tr>
+<tr><td>Vendor productivity metrics</td><td>Claude Code lines accepted, sessions (leading indicators only)</td></tr>
+<tr><td>Tool coverage</td><td>Multiple tools vs standard stack</td></tr>
+</table>
+<p><strong>Best practice:</strong> Compare usage cohorts (heavy vs light adopters) rather than org-wide averages only.</p>
+<h4>Layer 3 - Operational drivers (delivery leaders)</h4>
+<p><strong>Question:</strong> Are the levers that matter for our goals actually moving?</p>
+<p>Choose drivers based on business model:</p>
+<table>
+<tr><td>Business model</td><td>High-value drivers</td></tr>
+<tr><td><strong>Product / SaaS delivery</strong></td><td>Lead time, defect rate, deployment frequency, support ticket volume</td></tr>
+<tr><td><strong>Client services</strong></td><td>Hours per deliverable, utilization, SLA adherence, margin per agreement</td></tr>
+<tr><td><strong>Internal enablement</strong></td><td>Cycle time for finance close, hiring throughput, ticket resolution time</td></tr>
+</table>
+<p><strong>Best practice:</strong> One <strong>named workflow</strong> per pilot (e.g. &quot;L2 support triage&quot; or &quot;API integration story&quot;) with baseline and target documented upfront.</p>
+<h4>Layer 4 - P&amp;L and strategic outcomes (executive / board)</h4>
+<p><strong>Question:</strong> Did anything meaningful hit the income statement or strategic plan?</p>
+<table>
+<tr><td>Outcome type</td><td>Examples</td></tr>
+<tr><td><strong>Cost reduction</strong></td><td>Avoided hire, reduced contractor spend, lower support cost per ticket</td></tr>
+<tr><td><strong>Revenue</strong></td><td>Faster time-to-market, higher win rate, expanded capacity without headcount</td></tr>
+<tr><td><strong>Risk</strong></td><td>Fewer compliance incidents, reduced error rates in regulated workflows</td></tr>
+<tr><td><strong>Strategic</strong></td><td>Competitive parity, talent retention, innovation pipeline depth</td></tr>
+</table>
+<p><strong>Best practice:</strong> Report <strong>realized</strong> vs <strong>counterfactual</strong> savings in separate columns. Finance partners should sign off on metric definitions before scaling spend.</p>
+<p>---</p>
+<h3>Metrics that survive scrutiny vs metrics that mislead</h3>
+<h4>Prefer (outcome-linked or finance-adjacent)</h4>
+<ul>
+<li>Cost per resolved support ticket (with quality guardrails)</li>
+<li>Lead time for changes (DORA)</li>
+<li>Hours per standard deliverable type (with quality sampling)</li>
+<li>Gross margin per engagement or product line</li>
+<li>Revenue or billable output per employee</li>
+<li>Defect / rework rate after AI adoption cohort comparison</li>
+<li>Time-to-close for recurring operational cycles</li>
+<li>Customer retention or NPS on AI-touching journeys (where applicable)</li>
+</ul>
+<h4>Use with caution (leading indicators)</h4>
+<ul>
+<li>Token volume, session count, active minutes</li>
+<li>Lines of code accepted (Claude Code and similar)</li>
+<li>Tasks marked complete in isolation</li>
+<li>Self-reported productivity surveys (useful for adoption, weak alone for ROI)</li>
+</ul>
+<h4>Avoid as sole evidence</h4>
+<ul>
+<li>&quot;We deployed AI org-wide&quot;</li>
+<li>Total queries or documents processed without quality or outcome linkage</li>
+<li>Vendor case-study ROI percentages without your baselines</li>
+<li>Individual developer speed tests without system-level delivery impact</li>
+</ul>
+<p>---</p>
+<h3>Measurement operating model</h3>
+<h4>Baseline discipline</h4>
+<table>
+<tr><td>Step</td><td>Recommendation</td></tr>
+<tr><td>Duration</td><td>4-8 weeks minimum for workflow pilots; longer for seasonal businesses</td></tr>
+<tr><td>Scope</td><td>One workflow or team before enterprise-wide claims</td></tr>
+<tr><td>Control</td><td>Compare adopters vs similar non-adopter team where possible</td></tr>
+<tr><td>Storage</td><td>Persist baselines where finance can audit (Fibery, BI, or ledger-adjacent sheets - not ad hoc Slack threads)</td></tr>
+</table>
+<h4>Reporting cadence</h4>
+<table>
+<tr><td>Audience</td><td>Cadence</td><td>Content</td></tr>
+<tr><td>Operators</td><td>Weekly</td><td>Sync health, cost spikes, mapping gaps, top users by spend</td></tr>
+<tr><td>Delivery leadership</td><td>Monthly</td><td>Driver metrics vs baseline, cohort comparisons, allocation coverage</td></tr>
+<tr><td>Executive / finance</td><td>Quarterly</td><td>ROAI summary, realized vs counterfactual benefits, investment plan adjustments</td></tr>
+</table>
+<p><strong>Format that works:</strong> Two-page executive summary - page 1 financial impact (ROI, payback, confidence), page 2 cost stack and assumptions.</p>
+<h4>Confidence and governance</h4>
+<p>Tag each benefit line:</p>
+<table>
+<tr><td>Confidence</td><td>Criteria</td></tr>
+<tr><td><strong>High</strong></td><td>Linked to audited financial or operational system of record</td></tr>
+<tr><td><strong>Medium</strong></td><td>Strong operational proxy with consistent measurement</td></tr>
+<tr><td><strong>Low</strong></td><td>Modeled or survey-based; exclude from hard ROI unless sensitivity-labeled</td></tr>
+</table>
+<p>Define <strong>termination criteria</strong> upfront (e.g. &quot;If lead time has not improved 10% after two quarters at &gt;60% adoption, pause seat expansion and fix workflow bottlenecks&quot;).</p>
+<h4>Separate investment types</h4>
+<p>CFOs who split ROI types decide faster:</p>
+<table>
+<tr><td>Investment type</td><td>Appropriate frame</td></tr>
+<tr><td><strong>Copilot / assistant seats</strong></td><td>Productivity multiplier on loaded labor; short payback if adoption is high</td></tr>
+<tr><td><strong>Platform / API for product</strong></td><td>NPV over 2-3 years; tie to product revenue or cost-to-serve</td></tr>
+<tr><td><strong>Automation / agents</strong></td><td>TEI on named workflow; include rework and failure costs</td></tr>
+<tr><td><strong>Foundation (governance, literacy)</strong></td><td>Portfolio overhead; allocate across units, do not expect direct workflow ROI</td></tr>
+</table>
+<p>---</p>
+<h3>Recommendations for harpin</h3>
+<p>These recommendations build on systems already in place or planned in this repository.</p>
+<h4>Near term (0-3 months): Cost truth and accountability</h4>
+<p><strong>Goal:</strong> Answer &quot;how much, where, and who&quot; with audit-ready data.</p>
+<ol>
+<li><strong>Complete Feature 017 ingest</strong> for Anthropic and OpenAI into Fibery <code>AI Usage Data/Usage</code>, with daily grain and Clockify user linkage.</li>
+<li><strong>Populate Actor Mapping</strong> for API keys and service accounts (Phase 0 showed Console message usage is key-centric, not email-centric).</li>
+<li><strong>Establish allocation categories</strong> even if initially mostly <code>Shared / unallocated</code>:</li>
+</ol>
+<p>   - Product development (internal agreements, R&amp;D tags)</p>
+<p>   - Customer support (overlap with customer labor hours)</p>
+<p>   - Internal ops</p>
+<p>   - Shared platform</p>
+<ol>
+<li><strong>Monthly spend report</strong> (Fibery view or future FOS panel): total by platform, top 10 actors by cost, unmapped spend %, week-over-week delta.</li>
+<li><strong>Finance checklist for fully loaded cost:</strong> add seat invoices and internal labor estimates alongside API rows (vendor APIs rarely capture full TCO).</li>
+</ol>
+<h4>Medium term (3-9 months): Link spend to labor and customers</h4>
+<p><strong>Goal:</strong> Answer &quot;is spend aligned with where we create value?&quot;</p>
+<ol>
+<li><strong>Join AI usage to Clockify <code>Labor Costs</code></strong> by person and week (Feature 017 Phase D direction): compare AI cost per person to billable hours by customer/agreement.</li>
+<li><strong>Customer attribution rules:</strong> when a person&#x27;s dominant labor hours in period W are on Agreement X, tag a configurable share of AI spend (not 100% by default; document assumptions).</li>
+<li><strong>Internal vs client split KPI:</strong> <code>% of AI spend allocated to product development vs customer-attributed vs unallocated</code> - track unallocated downward over time.</li>
+<li><strong>Cohort views:</strong> heavy AI users vs light users on the same team; compare utilization, delivery milestones, or support metrics.</li>
+</ol>
+<h4>Long term (9-18 months): Prove impact on delivery and margin</h4>
+<p><strong>Goal:</strong> Answer &quot;is the company better off because of AI?&quot;</p>
+<ol>
+<li><strong>Pick 2-3 strategic workflows</strong> with executive sponsors (e.g. customer support triage, internal tooling, greenfield feature delivery).</li>
+<li><strong>Baseline DORA or equivalent</strong> for engineering workflows; baseline hours-per-deliverable for services work.</li>
+<li><strong>Quarterly ROAI review</strong> using the portfolio formula; include sensitivity on API cost (+50%, +200% scenarios for agentic shift).</li>
+<li><strong>Pricing and capacity review</strong> for client work: if AI reduces hours per deliverable, decide explicitly whether to capture benefit as margin, volume, or speed - do not assume hourly revenue stays constant.</li>
+<li><strong>Optional FOS Dashboard panel</strong> once cache shape is stable: AI spend vs labor cost ratio by agreement type, with historical snapshots per Feature 009 patterns.</li>
+</ol>
+<h4>Anti-patterns to avoid internally</h4>
+<ul>
+<li>Declaring ROI from Claude Code <code>lines accepted</code> or token totals alone.</li>
+<li>Allocating API key spend to a customer without labor or project corroboration.</li>
+<li>Scaling seats before review, QA, or release process can absorb higher code volume.</li>
+<li>Treating subscription and API surfaces as one budget line (they behave differently and need different owners).</li>
+</ul>
+<p>---</p>
+<h3>Starter scorecard (copy-ready)</h3>
+<p>Use this as a quarterly leadership review template.</p>
+<h4>A. Spend health</h4>
+<table>
+<tr><td>Metric</td><td>This quarter</td><td>Prior quarter</td><td>Target / note</td></tr>
+<tr><td>Total AI spend (USD)</td><td></td><td></td><td></td></tr>
+<tr><td>Anthropic Console API</td><td></td><td></td><td></td></tr>
+<tr><td>Claude.ai subscription</td><td></td><td></td><td></td></tr>
+<tr><td>OpenAI Platform</td><td></td><td></td><td></td></tr>
+<tr><td>Seat / other subscriptions</td><td></td><td></td><td></td></tr>
+<tr><td>Unmapped spend (% of total)</td><td></td><td></td><td>&lt; 10%</td></tr>
+<tr><td>Spend per active user (median)</td><td></td><td></td><td></td></tr>
+</table>
+<h4>B. Adoption</h4>
+<table>
+<tr><td>Metric</td><td>This quarter</td><td>Prior quarter</td><td>Target / note</td></tr>
+<tr><td>Active users (any AI surface)</td><td></td><td></td><td></td></tr>
+<tr><td>Heavy users (&gt;P75 cost)</td><td></td><td></td><td></td></tr>
+<tr><td>Teams with &gt;50% seat utilization</td><td></td><td></td><td></td></tr>
+</table>
+<h4>C. Allocation (harpin-specific)</h4>
+<table>
+<tr><td>Metric</td><td>This quarter</td><td>Prior quarter</td><td>Target / note</td></tr>
+<tr><td>Product development</td><td></td><td></td><td></td></tr>
+<tr><td>Customer-attributed</td><td></td><td></td><td></td></tr>
+<tr><td>Internal ops</td><td></td><td></td><td></td></tr>
+<tr><td>Shared / unallocated</td><td></td><td></td><td>Decreasing</td></tr>
+</table>
+<h4>D. Outcome pilots (fill per workflow)</h4>
+<table>
+<tr><td>Workflow</td><td>Baseline</td><td>Current</td><td>Realized $ impact</td><td>Confidence</td></tr>
+<tr><td>Example: L2 support triage</td><td></td><td></td><td></td><td>H / M / L</td></tr>
+<tr><td>Example: Feature delivery (eng)</td><td></td><td></td><td></td><td>H / M / L</td></tr>
+</table>
+<h4>E. Decision log</h4>
+<table>
+<tr><td>Decision</td><td>Rationale</td><td>Review date</td></tr>
+<tr><td>Continue / expand / pause seat program</td><td></td><td></td></tr>
+<tr><td>API budget cap adjustment</td><td></td><td></td></tr>
+<tr><td>Process investment (review automation, QA)</td><td></td><td></td></tr>
+</table>
+<p>---</p>
+<h3>Industry benchmarks (use as sanity checks, not targets)</h3>
+<p>Benchmarks vary widely by sector, maturity, and measurement honesty. Use ranges to stress-test assumptions, not as guaranteed outcomes.</p>
+<table>
+<tr><td>Benchmark</td><td>Typical range cited</td><td>Caveat</td></tr>
+<tr><td>Individual dev task speed (controlled tasks)</td><td>30-55% faster</td><td>Does not automatically translate to lead time</td></tr>
+<tr><td>Org-wide EBIT impact from AI</td><td>Minority report &gt;5% contribution</td><td>McKinsey-style surveys; self-reported</td></tr>
+<tr><td>Time to cash-flow positive (enterprise AI programs)</td><td>Often 18-24+ months</td><td>Depends on investment type</td></tr>
+<tr><td>Professional services time compression</td><td>20-35% on targeted workflows</td><td>Revenue impact depends on pricing model</td></tr>
+<tr><td>Formal ROI measurement adoption</td><td>Often &lt;25% of firms</td><td>Most track spend before impact</td></tr>
+</table>
+<p>---</p>
+<h3>References</h3>
+<h4>Frameworks and guides</h4>
+<ul>
+<li><a href="https://about.gitlab.com/the-source/ai/connect-ai-tools-to-business-outcomes-a-3-layer-framework/">GitLab - 3-layer framework: AI to business outcomes</a></li>
+<li><a href="https://larridin.com/blog/ai-roi-measurement">Larridin - AI ROI measurement framework</a></li>
+<li><a href="https://larridin.com/hubfs/Strategic%20AI%20Productivity%20Measurement%20Framework%20V1.1.pdf">Larridin - Strategic AI Productivity Measurement Framework (PDF)</a></li>
+<li><a href="https://iternal.ai/ai-roi-quantification">Iternal - Enterprise AI ROI quantification (CFO guide)</a></li>
+<li><a href="https://iternal.ai/ai-cost-allocation">Iternal - AI cost allocation: chargeback and showback</a></li>
+<li><a href="https://www.exploreagentic.ai/playbooks/ai-agent-roi/">Explore Agentic - Measure AI agent ROI</a></li>
+<li><a href="https://www.tbmcouncil.org/the-cfos-framework-for-technology-value/">TBM Council - CFO framework for technology value</a></li>
+<li><a href="https://valueaddvc.com/blog/how-enterprises-are-calculating-ai-roi-in-2026-the-frameworks-cfos-are-actually-using">Value Add VC - Enterprise AI ROI frameworks (2026)</a></li>
+</ul>
+<h4>Engineering and developer AI</h4>
+<ul>
+<li><a href="https://dora.dev/ai/roi/report">DORA - ROI of AI-assisted software development</a></li>
+<li><a href="https://www.faros.ai/blog/dora-ai-roi-calculator-telemetry-inputs">Faros - Stress-test DORA AI ROI assumptions</a></li>
+<li><a href="https://www.index.dev/blog/ai-coding-assistants-roi-productivity">Index.dev - AI coding assistant ROI and productivity data</a></li>
+</ul>
+<h4>Professional services</h4>
+<ul>
+<li><a href="https://www.grantthornton.com/insights/survey-reports/services/2026/services-insights-2026-ai-impact-survey">Grant Thornton - Services insights: 2026 AI impact survey</a></li>
+<li><a href="https://crossing.one/archive/ai-roi-professional-services-firms-2026">Crossing - AI ROI for professional services firms</a></li>
+</ul>
+<h4>harpin internal</h4>
+<ul>
+<li><a href="https://win.godeap.io/app/projects/1615262/notebooks/311784">017 - AI platform usage Fibery sync</a></li>
+<li><a href="https://github.com/bernardw01/FOSDashboard/blob/main/docs/features/017-phase0-gap-memo.md">017 - Phase 0 gap memo</a></li>
+<li><a href="https://github.com/bernardw01/FOSDashboard/blob/main/docs/features/005-utilization-management-dashboard.md">005 - Utilization Management Dashboard</a> (labor cost system of record)</li>
+</ul>
+<p>---</p>
+<h3>Suggested next steps for review meeting</h3>
+<ol>
+<li><strong>Agree on the primary business model question</strong> for the next 12 months: margin on client delivery, product velocity, or both (different metrics dominate).</li>
+<li><strong>Approve Layer 1 completion</strong> (Feature 017 + Actor Mapping + monthly spend report) as prerequisite for any org-wide ROI claim.</li>
+<li><strong>Select two pilot workflows</strong> with named owners and baseline start dates.</li>
+<li><strong>Assign finance partner</strong> to co-own metric definitions and quarterly ROAI template.</li>
+<li><strong>Set explicit unallocated spend target</strong> (e.g. reduce from 100% to &lt;25% within two quarters via mapping and allocation rules).</li>
+</ol>
+<p>---</p>
+<p>*This document is research and recommendation only. It does not change product requirements or PRD version.*</p>

@@ -1,5 +1,5 @@
 /**
- * PRD version 2.12.3 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.12.7 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `delivery`, panel
  * `#panel-delivery`). Two public endpoints, both authorized via
@@ -41,8 +41,10 @@
  *     `lifetime` includes `revenue` (actual + forecast),
  *     `revenueRecognized`, and `revenueForecast` (v2.6.2).
  *     `laborRoles: !Array<string>` + per-month `laborByRole` map (v2.6.8).
- *     `statusUpdates: { latest, history, statusOptions }` (v2.12.3 / feature 018).
- *     `cacheSchemaVersion: 5` (client key suffix `_v5`).
+ *     `statusUpdates: { latest, history, statusOptions }` (v2.12.5 / feature 018).
+ *     `resourceAllocations: { hasAllocations, rowCount, months?, lifetimeAllocatedCost?,
+ *       emptyMessage? }` (v2.12.6 / feature 019).
+ *     `cacheSchemaVersion: 6` (client key suffix `_v6`).
  *
  * Diagnostics (run from the Apps Script editor):
  *   _diag_sampleDeliveryPayload()
@@ -73,10 +75,11 @@ var DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_ = 1;
  *        `revenueItems[]` for drill-down (FR-94 / FR-95).
  *   v3 - v2.6.2: forecast revenue in projected months.
  *   v4 - v2.6.8: per-month `laborByRole` + payload `laborRoles[]`.
- *   v5 - v2.12.3: `statusUpdates` block (feature 018).
+ *   v5 - v2.12.5: `statusUpdates` block (feature 018).
+ *   v6 - v2.12.6: `resourceAllocations` block (feature 019).
  * @const {number}
  */
-var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 5;
+var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 6;
 
 /** @const {number} Default TTL (minutes) for the client-side cache. */
 var DELIVERY_DEFAULT_CACHE_TTL_MIN_ = 10;
@@ -249,6 +252,7 @@ function buildDeliveryProjectMonthlyPnLInternal_(agreementId) {
     partial: false,
     capCounts: { laborRowsRead: 0, laborRowCap: 0 },
     statusUpdates: buildStatusUpdatesBlock_([], true),
+    resourceAllocations: emptyResourceAllocationsBlock_(),
   };
   if (!agreementId) {
     emptyShell.message = 'Missing agreementId.';
@@ -316,6 +320,22 @@ function buildDeliveryProjectMonthlyPnLInternal_(agreementId) {
     thresholds: thresholds,
   });
 
+  var allocWarnings = [];
+  var resourceAllocations = emptyResourceAllocationsBlock_();
+  var allocFetch = fetchResourceAllocationsForAgreement_(agreementId);
+  if (allocFetch.ok) {
+    resourceAllocations = buildResourceAllocationsBlock_(
+      allocFetch.rows,
+      built.months,
+      allocWarnings
+    );
+  } else {
+    allocWarnings.push(allocFetch.reason || 'RESOURCE_ALLOCATIONS_FETCH_FAILED');
+    console.warn('Resource allocations fetch failed for ' + agreementId + ': ' + allocFetch.message);
+  }
+
+  var allWarnings = statusWarnings.concat(allocWarnings);
+
   return {
     ok: true,
     source: 'fibery',
@@ -334,7 +354,8 @@ function buildDeliveryProjectMonthlyPnLInternal_(agreementId) {
       laborRowCap: maxLaborRows,
     },
     statusUpdates: statusUpdates,
-    warnings: statusWarnings.length ? statusWarnings : undefined,
+    resourceAllocations: resourceAllocations,
+    warnings: allWarnings.length ? allWarnings : undefined,
   };
 }
 
@@ -385,6 +406,7 @@ function _diag_sampleMonthlyPnL(agreementId) {
     discrepancyCheck: p.discrepancyCheck,
     partial: p.partial,
     capCounts: p.capCounts,
+    resourceAllocations: p.resourceAllocations || null,
     message: p.message || null,
   };
   console.log('_diag_sampleMonthlyPnL  -> ', JSON.stringify(summary).slice(0, 4000));
@@ -1006,6 +1028,167 @@ function fetchRevenueItemsForAgreement_(agreementId) {
   return { ok: true, rows: rows };
 }
 
+/**
+ * Fetches Resource Allocation rows for one agreement (full lifetime).
+ *
+ * @param {string} agreementId
+ * @return {!{ ok: true, rows: !Array<!Object> }|
+ *          !{ ok: false, reason: string, message: string }}
+ * @private
+ */
+function fetchResourceAllocationsForAgreement_(agreementId) {
+  var q = {
+    query: {
+      'q/from': 'Agreement Management/Resource Allocations',
+      'q/select': {
+        id: 'fibery/id',
+        allocatedCost: 'Agreement Management/Allocated Cost',
+        allocatedHours: 'Agreement Management/Allocated Hours',
+        duration: 'Agreement Management/Duration',
+        allocationName: 'Agreement Management/Allocation Name',
+      },
+      'q/where': ['=', ['Agreement Management/Agreement', 'fibery/id'], '$agreementId'],
+      'q/limit': DELIVERY_QUERY_LIMIT_,
+    },
+    params: { $agreementId: agreementId },
+  };
+  var r = fiberyQuery_(q);
+  if (!r.ok) return r;
+  var page = r.rows || [];
+  var rows = [];
+  for (var i = 0; i < page.length; i++) {
+    var dur = page[i].duration && typeof page[i].duration === 'object'
+      ? page[i].duration : null;
+    rows.push({
+      id: stringOr_(page[i].id, ''),
+      allocatedCost: numberOr_(page[i].allocatedCost, 0),
+      allocatedHours: numberOr_(page[i].allocatedHours, 0),
+      allocationName: stringOrNull_(page[i].allocationName),
+      durStart: dur ? stringOrNull_(dur.start) : null,
+      durEnd: dur ? stringOrNull_(dur.end) : null,
+    });
+  }
+  return { ok: true, rows: rows };
+}
+
+/**
+ * @return {!{ hasAllocations: boolean, rowCount: number }}
+ * @private
+ */
+function emptyResourceAllocationsBlock_() {
+  return { hasAllocations: false, rowCount: 0 };
+}
+
+/**
+ * Prorates Fibery Resource Allocation rows across the P&L chart month axis.
+ * Calendar-day proration within each allocation Duration (feature 019 v1).
+ *
+ * @param {!Array<!Object>} rows
+ * @param {!Array<!Object>} chartMonths  `buildMonthlyPnL_().months`
+ * @param {!Array<string>} warningsOut
+ * @return {!Object}
+ * @private
+ */
+function buildResourceAllocationsBlock_(rows, chartMonths, warningsOut) {
+  var empty = emptyResourceAllocationsBlock_();
+  if (!rows || !rows.length) return empty;
+
+  var validRows = [];
+  for (var i = 0; i < rows.length; i++) {
+    var cost = Number(rows[i].allocatedCost || 0);
+    if (!isFinite(cost) || cost <= 0) continue;
+    validRows.push(rows[i]);
+  }
+  if (!validRows.length) return empty;
+
+  var monthKeys = [];
+  var monthKeySet = {};
+  for (var m = 0; m < (chartMonths || []).length; m++) {
+    var mk = chartMonths[m] && chartMonths[m].key;
+    if (mk && !monthKeySet[mk]) {
+      monthKeySet[mk] = true;
+      monthKeys.push(mk);
+    }
+  }
+
+  var allocatedByMonth = {};
+  var lifetimeTotal = 0;
+  var hasAnyOverlap = false;
+
+  for (var r = 0; r < validRows.length; r++) {
+    var row = validRows[r];
+    var rowCost = Number(row.allocatedCost || 0);
+    var durStartIso = row.durStart || null;
+    var durEndIso = row.durEnd || null;
+
+    if (!durStartIso && !durEndIso) {
+      warningsOut.push('RESOURCE_ALLOCATION_MISSING_DURATION');
+      var fallbackKey = monthKeyFromIso_(durStartIso) || (monthKeys.length ? monthKeys[0] : null);
+      if (fallbackKey) {
+        allocatedByMonth[fallbackKey] = (allocatedByMonth[fallbackKey] || 0) + rowCost;
+        hasAnyOverlap = true;
+      }
+      lifetimeTotal += rowCost;
+      continue;
+    }
+
+    var allocStart = parseIsoDateOnlyUtc_(durStartIso || durEndIso);
+    var allocEnd = parseIsoDateOnlyUtc_(durEndIso || durStartIso);
+    if (!allocStart || !allocEnd) continue;
+    if (allocEnd.getTime() < allocStart.getTime()) {
+      var swap = allocStart;
+      allocStart = allocEnd;
+      allocEnd = swap;
+    }
+    var totalDays = calendarDaysInclusiveUtc_(allocStart, allocEnd);
+    if (totalDays <= 0) continue;
+    lifetimeTotal += rowCost;
+
+    for (var mi = 0; mi < monthKeys.length; mi++) {
+      var monthKey = monthKeys[mi];
+      var bounds = monthBoundsUtc_(monthKey);
+      var intersection = intersectDateRangesInclusiveUtc_(
+        allocStart, allocEnd, bounds.start, bounds.end
+      );
+      if (!intersection) continue;
+      var daysInMonth = calendarDaysInclusiveUtc_(intersection.start, intersection.end);
+      if (daysInMonth <= 0) continue;
+      var prorated = rowCost * (daysInMonth / totalDays);
+      allocatedByMonth[monthKey] = (allocatedByMonth[monthKey] || 0) + prorated;
+      hasAnyOverlap = true;
+    }
+  }
+
+  if (!hasAnyOverlap) {
+    return {
+      hasAllocations: true,
+      rowCount: validRows.length,
+      lifetimeAllocatedCost: Math.round(lifetimeTotal),
+      emptyMessage: 'Allocations exist but none overlap project dates.',
+    };
+  }
+
+  var monthsOut = [];
+  var cumulative = 0;
+  for (var mj = 0; mj < monthKeys.length; mj++) {
+    var key = monthKeys[mj];
+    var amt = Math.round(allocatedByMonth[key] || 0);
+    cumulative += amt;
+    monthsOut.push({
+      key: key,
+      allocatedCost: amt,
+      cumulativeAllocatedCost: cumulative,
+    });
+  }
+
+  return {
+    hasAllocations: true,
+    rowCount: validRows.length,
+    months: monthsOut,
+    lifetimeAllocatedCost: Math.round(lifetimeTotal),
+  };
+}
+
 /* ------------------------------------------------------------------------- */
 /* Script Property resolvers.                                                  */
 /* ------------------------------------------------------------------------- */
@@ -1072,6 +1255,64 @@ function monthKeyFromIso_(iso) {
   // Defensive: bail on values that don't look like a date.
   if (!/^\d{4}-\d{2}/.test(s)) return null;
   return s.slice(0, 7);
+}
+
+/**
+ * @param {?string} iso  yyyy-mm-dd or ISO datetime
+ * @return {?Date} UTC midnight on that calendar day
+ * @private
+ */
+function parseIsoDateOnlyUtc_(iso) {
+  if (!iso) return null;
+  var s = String(iso).slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  var parts = s.split('-');
+  var y = parseInt(parts[0], 10);
+  var mo = parseInt(parts[1], 10);
+  var d = parseInt(parts[2], 10);
+  if (!isFinite(y) || !isFinite(mo) || !isFinite(d)) return null;
+  var dt = new Date(Date.UTC(y, mo - 1, d));
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
+/**
+ * @param {!Date} start
+ * @param {!Date} end
+ * @return {number}
+ * @private
+ */
+function calendarDaysInclusiveUtc_(start, end) {
+  var ms = end.getTime() - start.getTime();
+  if (ms < 0) return 0;
+  return Math.floor(ms / 86400000) + 1;
+}
+
+/**
+ * @param {string} monthKey  yyyy-mm
+ * @return {!{ start: !Date, end: !Date }}
+ * @private
+ */
+function monthBoundsUtc_(monthKey) {
+  var y = parseInt(monthKey.slice(0, 4), 10);
+  var m = parseInt(monthKey.slice(5, 7), 10);
+  var start = new Date(Date.UTC(y, m - 1, 1));
+  var end = new Date(Date.UTC(y, m, 0));
+  return { start: start, end: end };
+}
+
+/**
+ * @param {!Date} aStart
+ * @param {!Date} aEnd
+ * @param {!Date} bStart
+ * @param {!Date} bEnd
+ * @return {?{ start: !Date, end: !Date }}
+ * @private
+ */
+function intersectDateRangesInclusiveUtc_(aStart, aEnd, bStart, bEnd) {
+  var startMs = Math.max(aStart.getTime(), bStart.getTime());
+  var endMs = Math.min(aEnd.getTime(), bEnd.getTime());
+  if (startMs > endMs) return null;
+  return { start: new Date(startMs), end: new Date(endMs) };
 }
 
 /**

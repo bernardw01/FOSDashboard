@@ -1,5 +1,7 @@
 # Feature: <short name>
 
+> **Teamwork:** Create this spec first as a notebook in [FOS Dashboard Development](https://win.godeap.io/app/projects/1615262) using these sections. Sync to `docs/features/0NN-<slug>.md` at approval and again at ship. See `docs/teamwork-workflow.md`.
+
 ## Goal
 What outcome does this feature provide?
 

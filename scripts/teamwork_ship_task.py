@@ -1,0 +1,225 @@
+#!/usr/bin/env python3
+"""Rename a Teamwork release task and set the Release Version custom field at ship."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from datetime import date
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+
+from teamwork_bootstrap import BASE, PROJECT_ID, api  # noqa: E402
+
+MANIFEST_PATH = ROOT / "docs" / "teamwork-manifest.json"
+CODE_JS_PATH = ROOT / "src" / "Code.js"
+
+
+def normalize_version(version: str) -> str:
+    version = version.strip()
+    if version.lower().startswith("v"):
+        version = version[1:]
+    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+        raise SystemExit(f"Invalid version (expected X.Y.Z): {version!r}")
+    return version
+
+
+def release_name(version: str, title: str) -> str:
+    v = normalize_version(version)
+    title = title.strip()
+    if not title:
+        raise SystemExit("Release title is required.")
+    return f"v{v} - {title}"
+
+
+def read_fos_prd_version() -> str:
+    if not CODE_JS_PATH.exists():
+        raise SystemExit(f"Missing {CODE_JS_PATH}")
+    match = re.search(r"FOS_PRD_VERSION\s*=\s*['\"]([^'\"]+)['\"]", CODE_JS_PATH.read_text(encoding="utf-8"))
+    if not match:
+        raise SystemExit("FOS_PRD_VERSION not found in src/Code.js")
+    return normalize_version(match.group(1))
+
+
+def load_manifest() -> dict:
+    if not MANIFEST_PATH.exists():
+        raise SystemExit(f"Missing {MANIFEST_PATH}")
+    return json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+
+
+def release_version_field_id(manifest: dict) -> int:
+    field = manifest.get("taskCustomFields", {}).get("releaseVersion", {})
+    field_id = field.get("id")
+    if not field_id:
+        raise SystemExit("taskCustomFields.releaseVersion.id missing in teamwork-manifest.json")
+    return int(field_id)
+
+
+def resolve_manifest_task(manifest: dict, manifest_task: str) -> tuple[int, str]:
+    tasks = manifest.get("tasks", {})
+    if manifest_task not in tasks:
+        keys = "\n  ".join(sorted(tasks))
+        raise SystemExit(f"Manifest task key not found: {manifest_task!r}\nKnown keys:\n  {keys}")
+    entry = tasks[manifest_task]
+    task_id = int(entry["id"])
+    title = entry.get("releaseTitle") or manifest_task.split(" - ", 1)[-1]
+    return task_id, title
+
+
+def get_task_name(task_id: int) -> str:
+    res = api("GET", f"/tasks/{task_id}.json")
+    return str(res.get("todo-item", {}).get("content", ""))
+
+
+def ship_task_release(
+    task_id: int,
+    release_name_value: str,
+    custom_field_id: int,
+    *,
+    dry_run: bool = False,
+) -> None:
+    body = {
+        "todo-item": {
+            "content": release_name_value,
+            "customFields": [
+                {"customFieldId": custom_field_id, "value": release_name_value},
+            ],
+        }
+    }
+    if dry_run:
+        print("DRY RUN - would PUT /tasks/{id}.json:")
+        print(json.dumps(body, indent=2))
+        return
+    api("PUT", f"/tasks/{task_id}.json", body)
+
+
+def update_manifest_after_ship(
+    manifest: dict,
+    old_key: str | None,
+    task_id: int,
+    release_name_value: str,
+    version: str,
+) -> None:
+    tasks = manifest.setdefault("tasks", {})
+    entry: dict
+    if old_key and old_key in tasks:
+        entry = tasks.pop(old_key)
+    else:
+        entry = next((t for t in tasks.values() if int(t.get("id", 0)) == task_id), {})
+        if old_key and old_key in tasks:
+            tasks.pop(old_key, None)
+
+    entry.update(
+        {
+            "id": task_id,
+            "shippedVersion": f"v{version}",
+            "provisionalTaskName": False,
+            "releaseTitle": release_name_value.split(" - ", 1)[-1],
+            "url": f"{BASE}/app/tasks/{task_id}",
+            "shippedAt": date.today().isoformat(),
+        }
+    )
+    tasks[release_name_value] = entry
+    MANIFEST_PATH.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    print(f"Updated manifest task key -> {release_name_value!r}")
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Ship ritual automation: rename Teamwork release task and set "
+            "Release Version custom field to the same release name."
+        )
+    )
+    parser.add_argument(
+        "--task-id",
+        type=int,
+        help="Teamwork task id (e.g. 40139491).",
+    )
+    parser.add_argument(
+        "--manifest-task",
+        help="Current manifest tasks{} key (resolves task id and default title).",
+    )
+    parser.add_argument(
+        "--version",
+        help="Release version X.Y.Z (optional if --version-from-codejs).",
+    )
+    parser.add_argument(
+        "--version-from-codejs",
+        action="store_true",
+        help="Read version from FOS_PRD_VERSION in src/Code.js.",
+    )
+    parser.add_argument(
+        "--title",
+        help="Release title suffix after version (e.g. 'AI usage OpenAI ingest').",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print payload without calling Teamwork API.",
+    )
+    parser.add_argument(
+        "--update-manifest",
+        action="store_true",
+        help="Rename manifest task key and set shippedVersion after API update.",
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    manifest = load_manifest()
+    custom_field_id = release_version_field_id(manifest)
+
+    manifest_key: str | None = args.manifest_task
+    task_id = args.task_id
+    title = args.title
+
+    if manifest_key:
+        resolved_id, manifest_title = resolve_manifest_task(manifest, manifest_key)
+        task_id = task_id or resolved_id
+        title = title or manifest_title
+    if not task_id:
+        raise SystemExit("Provide --task-id or --manifest-task.")
+
+    if args.version_from_codejs:
+        version = read_fos_prd_version()
+    elif args.version:
+        version = normalize_version(args.version)
+    else:
+        raise SystemExit("Provide --version or --version-from-codejs.")
+
+    if not title:
+        raise SystemExit("Provide --title or --manifest-task with releaseTitle in manifest.")
+
+    name = release_name(version, title)
+    previous = get_task_name(task_id) if not args.dry_run else "(dry-run)"
+    field_name = manifest["taskCustomFields"]["releaseVersion"]["name"]
+
+    print(f"Task id:        {task_id}")
+    print(f"Previous name:  {previous}")
+    print(f"Release name:   {name}")
+    print(f"Custom field:   {field_name} (id {custom_field_id})")
+
+    ship_task_release(task_id, name, custom_field_id, dry_run=args.dry_run)
+
+    if args.dry_run:
+        print("Dry run complete.")
+        return
+
+    print("Teamwork task updated.")
+    verified = get_task_name(task_id)
+    if verified != name:
+        raise SystemExit(f"Task name verify failed: expected {name!r}, got {verified!r}")
+    print(f"Verified name:  {verified}")
+
+    if args.update_manifest:
+        update_manifest_after_ship(manifest, manifest_key, task_id, name, version)
+
+
+if __name__ == "__main__":
+    main()

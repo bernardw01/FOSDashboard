@@ -1,0 +1,178 @@
+{
+  "projectId": 1615262,
+  "host": "win.godeap.io",
+  "baseUrl": "https://win.godeap.io",
+  "projectUrl": "https://win.godeap.io/app/projects/1615262",
+  "workflow": {
+    "id": 83492,
+    "name": "AI Dev Workflow",
+    "stages": {
+      "backlog": {
+        "id": 0,
+        "name": "Backlog"
+      },
+      "specDraft": {
+        "id": 389189,
+        "name": "Spec Draft"
+      },
+      "specApproved": {
+        "id": 389190,
+        "name": "Spec Approved"
+      },
+      "planned": {
+        "id": 389191,
+        "name": "Planned"
+      },
+      "inProgress": {
+        "id": 389192,
+        "name": "In-progress"
+      },
+      "shipped": {
+        "id": 389193,
+        "name": "Shipped"
+      },
+      "archived": {
+        "id": 389194,
+        "name": "Archived"
+      }
+    },
+    "intakeTargetStage": "specDraft"
+  },
+  "taskCustomFields": {
+    "releaseVersion": {
+      "id": 57879,
+      "name": "Release Version",
+      "type": "text-short",
+      "entity": "task",
+      "projectId": 1615262,
+      "shipValue": "Same as final task name after rename, e.g. v2.13.0 - AI usage OpenAI ingest"
+    },
+    "featureId": {
+      "id": 57880,
+      "name": "Feature ID",
+      "type": "text-short",
+      "entity": "task",
+      "projectId": 1615262,
+      "intakeValue": "Three-digit feature number, e.g. 019"
+    },
+    "releaseType": {
+      "id": 57881,
+      "name": "Release Type",
+      "type": "dropdown",
+      "entity": "task",
+      "projectId": 1615262,
+      "choices": [
+        "Enhancement",
+        "Bug Fix"
+      ],
+      "intakeDefault": "Enhancement"
+    }
+  },
+  "tasklists": {
+    "Platform and shell": {
+      "id": 4174280
+    },
+    "Agreement": {
+      "id": 4174281
+    },
+    "Operations": {
+      "id": 4174282
+    },
+    "Delivery": {
+      "id": 4174283
+    },
+    "Finance": {
+      "id": 4174284
+    },
+    "Sales": {
+      "id": 4174285
+    },
+    "Admin and settings": {
+      "id": 4174286
+    },
+    "Data platform": {
+      "id": 4174287
+    },
+    "Scenario planning": {
+      "id": 4174288
+    },
+    "Inbox": {
+      "id": 4175395
+    }
+  },
+  "notebooks": {
+    "how_we_work": {
+      "id": 311783,
+      "title": "How we work - FOS Dashboard workflow",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/311783"
+    },
+    "feature_017": {
+      "id": 311784,
+      "title": "Feature 017 - AI platform usage sync",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/311784",
+      "featureId": "017"
+    },
+    "feature_014": {
+      "id": 311785,
+      "title": "Feature 014 - Scenario planning (R1 foundation)",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/311785",
+      "featureId": "014"
+    },
+    "ai_spend_impact": {
+      "id": 311786,
+      "title": "AI spend impact - measurement guide",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/311786",
+      "relatedFeatureId": "017",
+      "publishedAt": "2026-06-10",
+      "gitMirror": "docs/ai-spend-impact-measurement.md"
+    },
+    "feature_019": {
+      "id": 311795,
+      "title": "Feature 019 - Resource allocation cost on P&L chart",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/311795",
+      "featureId": "019",
+      "intakeTaskId": 40146804,
+      "publishedAt": "2026-06-11"
+    }
+  },
+  "tasks": {
+    "v2.13.0 - AI usage OpenAI ingest": {
+      "id": 40139491,
+      "tasklist": "Data platform",
+      "featureId": "017",
+      "releaseTitle": "AI usage OpenAI ingest",
+      "provisionalTaskName": true,
+      "workingVersionEstimate": "2.13.0",
+      "shippedVersion": null,
+      "notebookKey": "feature_017",
+      "url": "https://win.godeap.io/app/tasks/40139491",
+      "renameAtShip": "v{FOS_PRD_VERSION} - AI usage OpenAI ingest"
+    },
+    "v2.14.0 - Scenario planning foundation (R1)": {
+      "id": 40139492,
+      "tasklist": "Scenario planning",
+      "featureId": "014",
+      "releaseTitle": "Scenario planning foundation (R1)",
+      "provisionalTaskName": true,
+      "workingVersionEstimate": "2.14.0",
+      "shippedVersion": null,
+      "notebookKey": "feature_014",
+      "url": "https://win.godeap.io/app/tasks/40139492",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Scenario planning foundation (R1)"
+    },
+    "v2.12.7 - Resource allocation cost on P&L chart": {
+      "id": 40146936,
+      "tasklist": "Delivery",
+      "featureId": "019",
+      "releaseTitle": "Resource allocation cost on P&L chart",
+      "provisionalTaskName": false,
+      "shippedVersion": "v2.12.7",
+      "notebookKey": "feature_019",
+      "intakeTaskId": 40146804,
+      "url": "https://win.godeap.io/app/tasks/40146936",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Resource allocation cost on P&L chart",
+      "shippedAt": "2026-06-11"
+    }
+  },
+  "lastBootstrappedAt": "2026-06-10"
+}

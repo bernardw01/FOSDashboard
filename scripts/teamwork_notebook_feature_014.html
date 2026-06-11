@@ -1,0 +1,51 @@
+<h2>Feature 014 - Scenario planning (release R1 foundation)</h2>
+<p><strong>Feature id:</strong> 014 | <strong>Task list:</strong> Scenario planning | <strong>Target release:</strong> v2.14.0</p>
+<h3>Goal</h3>
+<p>Give executive users a new Scenario planning area in the FOS Dashboard to create, duplicate, and archive scenarios stored as JSON in Google Drive, without write-back to Fibery or spreadsheets.</p>
+<h3>User stories</h3>
+<ul>
+<li>As an <strong>executive</strong>, I want a dedicated Scenario planning navigation entry so forecasting work lives inside the same dashboard as actuals.</li>
+<li>As an <strong>executive</strong>, I want to create and duplicate scenarios so I can branch plans without spreadsheet version chaos.</li>
+<li>As <strong>security/ops</strong>, I want only Exec role users to access this route.</li>
+</ul>
+<h3>Acceptance criteria (R1 only)</h3>
+<ul>
+<li>New top-level nav route scenario-planning visible only when Role = EXEC.</li>
+<li>Panel renders in the dashboard shell (shell UI acceptable in R1).</li>
+<li>Drive folder configured via SCENARIO_PLANNING_DRIVE_FOLDER_ID with index.json manifest.</li>
+<li>Users can create, duplicate, and archive scenarios; scenarioKind is baseline, working, or archived.</li>
+<li>Unauthorized users do not see the nav item; API returns FORBIDDEN.</li>
+<li>Activity events for create/duplicate/archive are logged.</li>
+</ul>
+<h3>UI notes</h3>
+<p>R1 is foundation only: list of scenarios and CRUD; no driver engine or compare dashboards yet. Reuse dark dashboard chrome consistent with other panels.</p>
+<h3>Data model</h3>
+<ul>
+<li>Drive JSON: index.json, scenarios/&lt;id&gt;/manifest.json</li>
+<li>No Fibery write-back in any phase</li>
+</ul>
+<h3>Operations</h3>
+<p>Read-only actuals seeding is out of scope for R1 (Phase B / R2).</p>
+<h3>Edge cases</h3>
+<ul>
+<li>Missing Drive folder id: clear admin-facing error</li>
+<li>Concurrent edits: LockService on manifest updates</li>
+</ul>
+<h3>Verification steps</h3>
+<ol>
+<li>Sign in as Exec test user: nav item appears.</li>
+<li>Sign in as non-Exec: nav item hidden; API forbidden.</li>
+<li>Create scenario: folder and manifest updated in Drive.</li>
+<li>Duplicate and archive flows update index.</li>
+</ol>
+<h3>Implementation checklist</h3>
+<ul>
+<li>Auth gate canAccessScenarioPlanning_()</li>
+<li>scenarioPlanningStore.js Drive I/O</li>
+<li>Navigation model update in Code.js</li>
+<li>Shell panel stub in DashboardShell.html</li>
+<li>Admin settings for Drive folder id</li>
+<li>PRD FR/AC reserved on ship</li>
+</ul>
+<h3>Change requests</h3>
+<p>(Add customer edits here after spec approval.)</p>

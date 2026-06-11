@@ -42,7 +42,7 @@ A **Data source** control in the left sidebar lets authorized users view all das
 | Utilization | `bundle.utilization` |
 | Labor hours | Week slice from `bundle.utilization` only (no Fibery) |
 | Delivery list | `bundle.deliveryProjects` |
-| Delivery P&L | `getDashboardSnapshotPnl` per selected project (includes **`statusUpdates`** when artifact schema **5**; status chip read-only; **Add status update** hidden) |
+| Delivery P&L | `getDashboardSnapshotPnl` per selected project (includes **`statusUpdates`** when artifact schema **5+**; **`resourceAllocations`** when schema **6**; status chip read-only; **Add status update** hidden) |
 | Expenses | `bundle.expenses` when present; else inline "not available" message |
 | Pipeline | `bundle.pipeline` when present; else inline "not available" message |
 

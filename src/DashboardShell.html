@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.12.3 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.12.7 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -835,10 +835,65 @@
       max-height: 2.7em;
       overflow: hidden;
     }
-    .fos-delivery-status-add-btn {
+    .fos-delivery-status-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
       margin-top: 6px;
+    }
+    .fos-delivery-status-add-btn,
+    .fos-delivery-status-view-btn {
       font-size: 0.72rem;
       padding: 2px 8px;
+    }
+    .fos-delivery-status-history-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .fos-delivery-status-history-item {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .fos-delivery-status-history-item:last-child {
+      border-bottom: none;
+    }
+    .fos-delivery-status-history-head {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .fos-status-dot-lg {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+    .fos-delivery-status-history-title {
+      font-weight: 600;
+      font-size: 0.88rem;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .fos-delivery-status-history-meta {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .fos-delivery-status-history-body {
+      font-size: 0.82rem;
+      color: var(--text);
+      margin-top: 8px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .fos-delivery-status-history-pending {
+      font-size: 0.7rem;
+      color: var(--accent);
+      margin-top: 4px;
     }
     .fos-delivery-status-readonly {
       font-size: 0.68rem;
@@ -3584,10 +3639,11 @@
                      (Labor by role + Expenses) with a Revenue overlay line.
                      Same month time-series as the table view. -->
                 <div class="d-none fos-delivery-pnl-chart-wrap" id="delivery-pnl-chart-wrap">
-                  <canvas id="delivery-pnl-chart" role="img" aria-label="Monthly Revenue, Labor by role, and Expenses chart"></canvas>
+                  <canvas id="delivery-pnl-chart" role="img" aria-label="Monthly Revenue, planned allocation cost, labor by role, and Expenses chart"></canvas>
                   <p class="small mb-0 mt-2 fos-delivery-chart-hint" id="delivery-pnl-chart-hint">
-                    Bars stack labor by role + expenses per month; the line overlays revenue. Lighter bars indicate projected months. Hover for details; click a month to open its P&amp;L.
+                    Bars stack labor by role + expenses per month; lines overlay revenue and planned allocation cost. Lighter bars indicate projected months. Hover for details; click a month to open its P&amp;L.
                   </p>
+                  <p class="small mb-0 mt-2 d-none" id="delivery-pnl-allocation-note" style="color: var(--ag-text-muted)"></p>
                 </div>
                 <p class="small mb-0 mt-2 d-none" id="delivery-pnl-empty" style="color: var(--ag-text-muted)">
                   No monthly activity for this project yet.
@@ -4343,7 +4399,7 @@
     </div>
   </div>
 
-  <!-- v2.12.3 - Agreement status update on Delivery P&L (feature 018). -->
+  <!-- v2.12.7 - Agreement status update on Delivery P&L (feature 018). -->
   <div
     class="modal fade fos-modal"
     id="deliveryStatusUpdateModal"
@@ -4389,6 +4445,27 @@
       </div>
     </div>
   </div>
+
+  <!-- v2.12.7 - status update history slide-out (feature 018). -->
+  <div class="fos-util-drawer-backdrop d-none" id="delivery-status-drawer-backdrop" aria-hidden="true"></div>
+  <aside
+    id="delivery-status-drawer"
+    class="fos-util-drawer d-none"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="delivery-status-drawer-title"
+    aria-hidden="true"
+    tabindex="-1"
+  >
+    <div class="fos-util-drawer-header">
+      <div>
+        <h2 id="delivery-status-drawer-title" class="h6 mb-0 fw-bold">Status updates</h2>
+        <div class="small text-secondary" id="delivery-status-drawer-subtitle"> - </div>
+      </div>
+      <button type="button" class="fos-util-drawer-close" id="delivery-status-drawer-close" aria-label="Close drawer">×</button>
+    </div>
+    <div class="fos-util-drawer-body" id="delivery-status-drawer-body"></div>
+  </aside>
 
   <!-- v1.20.0 (Phase B, FR-95) - opens when a Revenue cell in the Delivery
        Dashboard's monthly P&L grid is clicked. Lists the revenue items that
@@ -4466,8 +4543,8 @@
       // flag or `revenueItems[]` per month) is invalidated cleanly when
       // the user upgrades.
       var DELIVERY_PNL_KEY_PREFIX = 'fos_delivery_pnl_';
-      var DELIVERY_PNL_KEY_SUFFIX = '_v5';
-      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 5;
+      var DELIVERY_PNL_KEY_SUFFIX = '_v6';
+      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 6;
       var DELIVERY_STATUS_CLIENT_META_ = {
         on_track: { enumName: 'Agreement On Track', trafficLight: 'green' },
         at_risk: { enumName: 'Agreement At Risk', trafficLight: 'yellow' },
@@ -4830,6 +4907,7 @@
         deliveryPnlCsvStatus: document.getElementById('delivery-pnl-csv-status'),
         deliveryPnlChartWrap: document.getElementById('delivery-pnl-chart-wrap'),
         deliveryPnlChartCanvas: document.getElementById('delivery-pnl-chart'),
+        deliveryPnlAllocationNote: document.getElementById('delivery-pnl-allocation-note'),
         deliveryPnlMonthModal: document.getElementById('deliveryPnlMonthModal'),
         deliveryPnlMonthModalTitle: document.getElementById('deliveryPnlMonthModalTitle'),
         deliveryPnlMonthModalSubtitle: document.getElementById('deliveryPnlMonthModalSubtitle'),
@@ -4841,6 +4919,12 @@
         deliveryStatusUpdateText: document.getElementById('delivery-status-update-text'),
         deliveryStatusUpdateError: document.getElementById('delivery-status-update-error'),
         deliveryStatusUpdateSubmit: document.getElementById('delivery-status-update-submit'),
+        deliveryStatusDrawer: document.getElementById('delivery-status-drawer'),
+        deliveryStatusDrawerBackdrop: document.getElementById('delivery-status-drawer-backdrop'),
+        deliveryStatusDrawerClose: document.getElementById('delivery-status-drawer-close'),
+        deliveryStatusDrawerTitle: document.getElementById('delivery-status-drawer-title'),
+        deliveryStatusDrawerSubtitle: document.getElementById('delivery-status-drawer-subtitle'),
+        deliveryStatusDrawerBody: document.getElementById('delivery-status-drawer-body'),
         deliveryRevenueMonthModal: document.getElementById('deliveryRevenueMonthModal'),
         deliveryRevenueMonthModalTitle: document.getElementById('deliveryRevenueMonthModalTitle'),
         deliveryRevenueMonthModalSubtitle: document.getElementById('deliveryRevenueMonthModalSubtitle'),
@@ -9875,6 +9959,9 @@
         if (ev.key === 'Escape' && utilState.detailDrawer.open) {
           closeDetailDrawer();
         }
+        if (ev.key === 'Escape' && deliveryState.statusHistoryDrawerOpen) {
+          closeDeliveryStatusHistoryDrawer_();
+        }
       });
       // FR-83 - Log a `util_drawer_fibery_click` event whenever the user
       // opens the Fibery deep-link from the drawer. We do not block the
@@ -11138,6 +11225,7 @@
         pnlChart: null,
         csvStatusTimer: null,
         statusUpdateRollback: null,
+        statusHistoryDrawerOpen: false,
       };
       var deliveryRenderState = { lastRenderedFetchedAt: null };
 
@@ -15460,7 +15548,140 @@
         deliveryState.monthsByKey = {};
         setDeliveryPnLLoading(false);
         deliveryState.pendingPnlAgreementId = null;
+        closeDeliveryStatusHistoryDrawer_();
       }
+
+      function statusIndicatorColor_(row) {
+        if (row && row.statusColor) {
+          return String(row.statusColor);
+        }
+        var tl = row && row.trafficLight;
+        if (tl === 'green') return '#43D6BA';
+        if (tl === 'yellow') return '#f9c74f';
+        if (tl === 'red') return '#fc5c65';
+        return '#A0AEC0';
+      }
+
+      function sortStatusHistoryDesc_(history) {
+        return (history || []).slice().sort(function (a, b) {
+          var ta = a && a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          var tb = b && b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          if (tb !== ta) return tb - ta;
+          return String(b && b.id || '').localeCompare(String(a && a.id || ''));
+        });
+      }
+
+      function formatStatusUpdateDateTime_(iso) {
+        if (!iso) return '';
+        try {
+          var d = new Date(iso);
+          if (isNaN(d.getTime())) return String(iso);
+          return d.toLocaleString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+          });
+        } catch (e) {
+          return String(iso);
+        }
+      }
+
+      function renderDeliveryStatusHistoryListHtml_(history) {
+        var rows = sortStatusHistoryDesc_(history);
+        if (!rows.length) {
+          return '<p class="small mb-0" style="color: var(--text-muted)">No status updates recorded for this agreement yet.</p>';
+        }
+        var parts = ['<ul class="fos-delivery-status-history-list">'];
+        for (var i = 0; i < rows.length; i++) {
+          var row = rows[i];
+          var dotColor = statusIndicatorColor_(row);
+          var statusLabel = row.agreementStatus || 'Unknown status';
+          var metaParts = [];
+          if (row.submittedBy) metaParts.push(escapeHtml(row.submittedBy));
+          if (row.createdAt) metaParts.push(escapeHtml(formatStatusUpdateDateTime_(row.createdAt)));
+          var body = escapeHtml(String(row.updatePlain || '').trim());
+          parts.push(
+            '<li class="fos-delivery-status-history-item">' +
+              '<div class="fos-delivery-status-history-head">' +
+                '<span class="fos-status-dot-lg" style="background-color:' + escapeHtml(dotColor) + ';" aria-hidden="true"></span>' +
+                '<div class="flex-grow-1">' +
+                  '<div class="fos-delivery-status-history-title">' + escapeHtml(statusLabel) + '</div>' +
+                  '<div class="fos-delivery-status-history-meta">' +
+                    (metaParts.length ? metaParts.join(' · ') : ' - ') +
+                  '</div>' +
+                '</div>' +
+              '</div>' +
+              (body
+                ? '<div class="fos-delivery-status-history-body">' + body + '</div>'
+                : '') +
+              (row.pending
+                ? '<div class="fos-delivery-status-history-pending">Saving to Fibery…</div>'
+                : '') +
+            '</li>'
+          );
+        }
+        parts.push('</ul>');
+        return parts.join('');
+      }
+
+      function statusUpdatesHistoryFromBlock_(block) {
+        if (!block) return [];
+        var history = block.history;
+        if (Array.isArray(history) && history.length) return history;
+        if (block.latest) return [block.latest];
+        return [];
+      }
+
+      function refreshDeliveryStatusHistoryDrawer_(payloadOpt) {
+        if (!els.deliveryStatusDrawerBody) return;
+        if (!deliveryState.statusHistoryDrawerOpen && !payloadOpt) return;
+        var payload = payloadOpt || deliveryState.lastPnlPayload;
+        var history = statusUpdatesHistoryFromBlock_(payload && payload.statusUpdates);
+        els.deliveryStatusDrawerBody.innerHTML = renderDeliveryStatusHistoryListHtml_(history);
+      }
+
+      function openDeliveryStatusHistoryDrawer_(payload) {
+        if (!els.deliveryStatusDrawer || !deliveryState.selectedId) return;
+        var project = deliveryState.projectsByIndex[deliveryState.selectedId];
+        var resolvedPayload = payload || deliveryState.lastPnlPayload;
+        if (els.deliveryStatusDrawerSubtitle) {
+          els.deliveryStatusDrawerSubtitle.textContent = project
+            ? (project.name || deliveryState.selectedId)
+            : deliveryState.selectedId;
+        }
+        deliveryState.statusHistoryDrawerOpen = true;
+        refreshDeliveryStatusHistoryDrawer_(resolvedPayload);
+        els.deliveryStatusDrawer.classList.remove('d-none');
+        els.deliveryStatusDrawer.setAttribute('aria-hidden', 'false');
+        if (els.deliveryStatusDrawerBackdrop) {
+          els.deliveryStatusDrawerBackdrop.classList.remove('d-none');
+        }
+        requestAnimationFrame(function () {
+          els.deliveryStatusDrawer.classList.add('open');
+        });
+        try { els.deliveryStatusDrawer.focus(); } catch (e) { /* ignore */ }
+        logActivity_('delivery_status_update_history_open', 'delivery',
+          'agreementId=' + deliveryState.selectedId + ' · count=' +
+          statusUpdatesHistoryFromBlock_(resolvedPayload && resolvedPayload.statusUpdates).length);
+      }
+
+      function closeDeliveryStatusHistoryDrawer_() {
+        if (!els.deliveryStatusDrawer) return;
+        deliveryState.statusHistoryDrawerOpen = false;
+        els.deliveryStatusDrawer.classList.remove('open');
+        els.deliveryStatusDrawer.setAttribute('aria-hidden', 'true');
+        window.setTimeout(function () {
+          if (!deliveryState.statusHistoryDrawerOpen && els.deliveryStatusDrawer) {
+            els.deliveryStatusDrawer.classList.add('d-none');
+          }
+        }, 220);
+        if (els.deliveryStatusDrawerBackdrop) {
+          els.deliveryStatusDrawerBackdrop.classList.add('d-none');
+        }
+      }
+
       function renderDeliveryPnlHeader(project) {
         if (!project) return;
         // Subtitle line: "<customer> · <type> · <state> · <duration>"
@@ -15590,12 +15811,21 @@
           }
         }
 
-        if (!legacySnap && isLiveDataSource_()) {
-          actionHtml =
-            '<button type="button" class="btn btn-sm btn-outline-light fos-delivery-status-add-btn" ' +
-              'id="delivery-status-add-btn">Add status update</button>';
-        } else if (!legacySnap && snap) {
-          actionHtml = '<div class="fos-delivery-status-readonly">Snapshot - read-only</div>';
+        if (!legacySnap) {
+          var btnParts = [];
+          if (isLiveDataSource_()) {
+            btnParts.push(
+              '<button type="button" class="btn btn-sm btn-outline-light fos-delivery-status-add-btn" ' +
+                'id="delivery-status-add-btn">Add status update</button>'
+            );
+          } else {
+            btnParts.push('<span class="fos-delivery-status-readonly">Snapshot - read-only</span>');
+          }
+          btnParts.push(
+            '<button type="button" class="btn btn-sm btn-outline-light fos-delivery-status-view-btn" ' +
+              'id="delivery-status-view-btn">View updates</button>'
+          );
+          actionHtml = '<div class="fos-delivery-status-actions">' + btnParts.join('') + '</div>';
         }
 
         chip.innerHTML = labelHtml + valueHtml + subHtml + excerptHtml + actionHtml;
@@ -15606,6 +15836,15 @@
           addBtn.addEventListener('click', function () {
             openDeliveryStatusUpdateModal_(payload);
           });
+        }
+        var viewBtn = document.getElementById('delivery-status-view-btn');
+        if (viewBtn) {
+          viewBtn.addEventListener('click', function () {
+            openDeliveryStatusHistoryDrawer_(payload);
+          });
+        }
+        if (deliveryState.statusHistoryDrawerOpen) {
+          refreshDeliveryStatusHistoryDrawer_();
         }
       }
 
@@ -15759,6 +15998,7 @@
         deliveryState.lastPnlPayload = optimisticPayload;
         writeDeliveryPnlCache(agreementId, optimisticPayload);
         renderDeliveryStatusChip_(optimisticPayload);
+        refreshDeliveryStatusHistoryDrawer_();
 
         if (els.deliveryStatusUpdateText) {
           els.deliveryStatusUpdateText.value = '';
@@ -15785,6 +16025,7 @@
             deliveryState.lastPnlPayload = merged;
             writeDeliveryPnlCache(agreementId, merged);
             renderDeliveryStatusChip_(merged);
+            refreshDeliveryStatusHistoryDrawer_();
           })
           .withFailureHandler(function (err) {
             var msg = err && err.message ? err.message : 'Submit failed.';
@@ -16030,11 +16271,38 @@
         // Make sure the header is in sync with the project that was just rendered.
         if (project) renderDeliveryPnlHeader(project);
         renderDeliveryStatusChip_(payload);
+        refreshDeliveryStatusHistoryDrawer_();
         renderDeliveryPacing_(payload, project);
         // v1.20.0 (Phase B) - re-apply the active view + sync the toggle
         // buttons. When the grid is empty the toolbar was hidden above,
         // so this is a no-op in that case.
+        updateDeliveryPnLAllocationNote_(payload);
         applyDeliveryPnLView_();
+      }
+
+      function updateDeliveryPnLAllocationNote_(payload) {
+        var noteEl = els.deliveryPnlAllocationNote;
+        if (!noteEl) return;
+        var view = deliveryState.pnlView === 'chart' ? 'chart' : 'table';
+        var alloc = payload && payload.resourceAllocations;
+        if (view !== 'chart' || !alloc) {
+          noteEl.classList.add('d-none');
+          noteEl.textContent = '';
+          return;
+        }
+        var msg = '';
+        if (alloc.emptyMessage) {
+          msg = alloc.emptyMessage;
+        } else if (!alloc.hasAllocations) {
+          msg = 'No resource allocations currently associated with this agreement.';
+        }
+        if (msg) {
+          noteEl.textContent = msg;
+          noteEl.classList.remove('d-none');
+        } else {
+          noteEl.textContent = '';
+          noteEl.classList.add('d-none');
+        }
       }
 
       /* ---------------------------------------------------------------
@@ -16058,10 +16326,12 @@
         if (view === 'chart') {
           if (els.deliveryPnlGridWrap) els.deliveryPnlGridWrap.classList.add('d-none');
           if (els.deliveryPnlChartWrap) els.deliveryPnlChartWrap.classList.remove('d-none');
+          updateDeliveryPnLAllocationNote_(deliveryState.lastPnlPayload);
           ensureDeliveryPnLChart_();
         } else {
           if (els.deliveryPnlGridWrap) els.deliveryPnlGridWrap.classList.remove('d-none');
           if (els.deliveryPnlChartWrap) els.deliveryPnlChartWrap.classList.add('d-none');
+          if (els.deliveryPnlAllocationNote) els.deliveryPnlAllocationNote.classList.add('d-none');
         }
       }
       function syncDeliveryViewButtons_(view) {
@@ -16085,7 +16355,10 @@
         deliveryState.pnlView = next;
         writeDeliveryFiltersStored();
         if (!opts.silent) {
-          logActivity_('delivery_pnl_view_toggle', 'delivery', 'view=' + next);
+          var alloc = deliveryState.lastPnlPayload && deliveryState.lastPnlPayload.resourceAllocations;
+          var allocFlag = alloc && alloc.hasAllocations && alloc.months && alloc.months.length
+            ? 'allocationOverlay=true' : 'allocationOverlay=false';
+          logActivity_('delivery_pnl_view_toggle', 'delivery', 'view=' + next + ' · ' + allocFlag);
         }
         applyDeliveryPnLView_();
       }
@@ -16130,10 +16403,13 @@
         return Object.keys(roleSet).sort();
       }
 
-      function buildDeliveryPnlMonthTooltipLines_(m, laborRoles) {
+      function buildDeliveryPnlMonthTooltipLines_(m, laborRoles, allocatedCost) {
         if (!m) return [];
         var lines = [''];
         lines.push('Revenue: ' + formatMoneyCompact(m.revenue));
+        if (allocatedCost != null && Number(allocatedCost) > 0) {
+          lines.push('Allocated cost (plan): ' + formatExpense_(allocatedCost));
+        }
         var roleLines = 0;
         for (var ri = 0; ri < laborRoles.length; ri++) {
           var roleName = laborRoles[ri];
@@ -16267,8 +16543,18 @@
           return;
         }
         var laborRoles = resolveDeliveryPnlLaborRoles_(payload, months);
+        var allocBlock = payload.resourceAllocations || {};
+        var allocByKey = {};
+        var allocMonths = allocBlock.months || [];
+        for (var ai = 0; ai < allocMonths.length; ai++) {
+          if (allocMonths[ai] && allocMonths[ai].key) {
+            allocByKey[allocMonths[ai].key] = Number(allocMonths[ai].allocatedCost || 0);
+          }
+        }
+        var showAllocLine = !!(allocBlock.hasAllocations && allocMonths.length && !allocBlock.emptyMessage);
         var labels = [];
         var revenueData = [];
+        var allocatedData = [];
         var expensesData = [];
         var expensesColors = [];
         var revenuePointColors = [];
@@ -16276,10 +16562,12 @@
         var expProjected = 'rgba(249, 199, 79, 0.38)';
         var revActual = '#43D6BA';
         var revProjected = 'rgba(67, 214, 186, 0.55)';
+        var allocColor = '#9B8CFF';
         for (var i = 0; i < months.length; i++) {
           var m = months[i];
           labels.push(m.label || m.key || '');
           revenueData.push(Number(m.revenue || 0));
+          allocatedData.push(allocByKey[m.key] || 0);
           expensesData.push(Number(m.expenses || 0));
           expensesColors.push(m.projected ? expProjected : expActual);
           revenuePointColors.push(m.projected ? revProjected : revActual);
@@ -16318,6 +16606,8 @@
           stack: 'cost',
           order: 2,
         });
+        // Each line needs its own stack id so Chart.js does not sum line values
+        // on the stacked y-axis (otherwise allocated cost stacks on revenue).
         costDatasets.push({
           type: 'line',
           label: 'Revenue',
@@ -16331,8 +16621,28 @@
           borderWidth: 2,
           pointRadius: 3.5,
           pointHoverRadius: 5,
+          stack: 'pnl-line-revenue',
           order: 1,
         });
+        if (showAllocLine) {
+          costDatasets.push({
+            type: 'line',
+            label: 'Allocated cost (plan)',
+            data: allocatedData,
+            borderColor: allocColor,
+            backgroundColor: 'rgba(155, 140, 255, 0.12)',
+            pointBackgroundColor: allocColor,
+            pointBorderColor: allocColor,
+            borderDash: [6, 4],
+            fill: false,
+            tension: 0.25,
+            borderWidth: 2,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            stack: 'pnl-line-allocated',
+            order: 1,
+          });
+        }
         destroyDeliveryPnLChart_();
         var ctx = els.deliveryPnlChartCanvas.getContext('2d');
         deliveryState.pnlChart = new Chart(ctx, {
@@ -16374,7 +16684,8 @@
                   afterBody: function (items) {
                     if (!items || !items.length) return [];
                     var m = months[items[0].dataIndex];
-                    return buildDeliveryPnlMonthTooltipLines_(m, laborRoles);
+                    var allocAmt = m && m.key ? (allocByKey[m.key] || 0) : 0;
+                    return buildDeliveryPnlMonthTooltipLines_(m, laborRoles, allocAmt);
                   },
                 },
               },
@@ -16702,6 +17013,12 @@
         els.deliveryStatusUpdateSubmit.addEventListener('click', function () {
           submitDeliveryStatusUpdate_();
         });
+      }
+      if (els.deliveryStatusDrawerClose) {
+        els.deliveryStatusDrawerClose.addEventListener('click', closeDeliveryStatusHistoryDrawer_);
+      }
+      if (els.deliveryStatusDrawerBackdrop) {
+        els.deliveryStatusDrawerBackdrop.addEventListener('click', closeDeliveryStatusHistoryDrawer_);
       }
       if (els.deliverySearchInput) {
         // Stage the initial value from persisted prefs (applyDeliveryStoredFilters_

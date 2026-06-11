@@ -1,0 +1,41 @@
+<h2>How we work - FOS Dashboard workflow</h2>
+<h3>Goal</h3>
+<p>Use Teamwork as the single place customers see release status and feature documentation. Git receives a copy of notebook content when we approve work for implementation and again when we ship.</p>
+<h3>One task = one release</h3>
+<p>Each release task is named with the feature id until ship, for example <code>Feature 017 - AI usage OpenAI ingest</code>. Add the version prefix only at deploy.</p>
+<h3>Inbox intake</h3>
+<p>When creating a feature from the <strong>Inbox</strong> list: move the new release task from <strong>Backlog</strong> to <strong>Spec Draft</strong> on the AI Dev Workflow board, and set custom fields <strong>Feature ID</strong> and <strong>Release Type</strong> (<code>Enhancement</code> or <code>Bug Fix</code>).</p>
+<h3>Feature notebooks</h3>
+<p>Feature specs follow the repository template <code>docs/FEATURE_TEMPLATE.md</code>:</p>
+<ul>
+<li>Goal</li>
+<li>User stories</li>
+<li>Acceptance criteria</li>
+<li>UI notes</li>
+<li>Data model</li>
+<li>Operations</li>
+<li>Edge cases</li>
+<li>Verification steps</li>
+<li>Implementation checklist</li>
+</ul>
+<h3>Status workflow</h3>
+<p>Move the release task through the project workflow stages:</p>
+<ol>
+<li>Draft spec</li>
+<li>In review</li>
+<li>Approved for implementation (sync notebook to git; then code)</li>
+<li>In development</li>
+<li>Ready to ship</li>
+<li>Shipped (version in task name matches product version)</li>
+</ol>
+<h3>Change requests</h3>
+<p>After approval, customer edits go in a <strong>Change requests</strong> section at the bottom of the feature notebook until the release ships.</p>
+<h3>Ship ritual</h3>
+<ol>
+<li>Deploy and bump the product version in the PRD</li>
+<li>Rename the release task to <code>vX.Y.Z - title</code> and set custom field <strong>Release Version</strong> to the same release name</li>
+<li>Sync the final notebook content back to the git repository</li>
+<li>Mark the Teamwork task as Shipped</li>
+</ol>
+<h3>Functional task lists</h3>
+<p>Releases are filed under the task list for the primary area they affect (Delivery, Data platform, Scenario planning, etc.).</p>
