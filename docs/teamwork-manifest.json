@@ -66,6 +66,14 @@
         "Bug Fix"
       ],
       "intakeDefault": "Enhancement"
+    },
+    "estimatedDevHours": {
+      "id": 57883,
+      "name": "Estimated Dev Hours",
+      "type": "number-integer",
+      "entity": "task",
+      "projectId": 1615262,
+      "shipValue": "Lead-developer hours for the release diff; auto-estimated by teamwork_ship_task.py unless --est-dev-hours is passed"
     }
   },
   "tasklists": {
@@ -132,7 +140,17 @@
       "url": "https://win.godeap.io/app/projects/1615262/notebooks/311795",
       "featureId": "019",
       "intakeTaskId": 40146804,
-      "publishedAt": "2026-06-11"
+      "publishedAt": "2026-06-11",
+      "lastSyncedAt": "2026-06-11"
+    },
+    "feature_020": {
+      "id": 311801,
+      "title": "Feature 020 - P&L month modal allocation and variance",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/311801",
+      "featureId": "020",
+      "intakeTaskId": 40149979,
+      "publishedAt": "2026-06-11",
+      "lastSyncedAt": "2026-06-11"
     }
   },
   "tasks": {
@@ -164,6 +182,7 @@
       "id": 40146936,
       "tasklist": "Delivery",
       "featureId": "019",
+      "releaseType": "Enhancement",
       "releaseTitle": "Resource allocation cost on P&L chart",
       "provisionalTaskName": false,
       "shippedVersion": "v2.12.7",
@@ -171,7 +190,47 @@
       "intakeTaskId": 40146804,
       "url": "https://win.godeap.io/app/tasks/40146936",
       "renameAtShip": "v{FOS_PRD_VERSION} - Resource allocation cost on P&L chart",
-      "shippedAt": "2026-06-11"
+      "shippedAt": "2026-06-11",
+      "estDevHours": 12,
+      "estDevHoursRationale": [
+        "Git range: 4e207085..HEAD (55 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +333 lines): +3.4h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +247 lines): +4.1h",
+        "Feature spec / docs (+105 lines): +1.3h",
+        "Teamwork / automation scripts (+1738 lines): +2.0h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 11.5h"
+      ],
+      "estDevHoursGitBase": "4e20708577ed94aa157e63766bbddd28140715c0"
+    },
+    "v2.12.8 - P&L month modal allocation variance": {
+      "id": 40150201,
+      "tasklist": "Delivery",
+      "featureId": "020",
+      "releaseType": "Enhancement",
+      "releaseTitle": "P&L month modal allocation variance",
+      "provisionalTaskName": false,
+      "shippedVersion": "v2.12.8",
+      "notebookKey": "feature_020",
+      "intakeTaskId": 40149979,
+      "url": "https://win.godeap.io/app/tasks/40150201",
+      "renameAtShip": "v{FOS_PRD_VERSION} - P&L month modal allocation variance",
+      "shippedAt": "2026-06-11",
+      "estDevHours": 12,
+      "estDevHoursRationale": [
+        "Git range: 4e207085..HEAD (55 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +333 lines): +3.4h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +247 lines): +4.1h",
+        "Feature spec / docs (+105 lines): +1.3h",
+        "Teamwork / automation scripts (+1738 lines): +2.0h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 11.5h"
+      ],
+      "estDevHoursGitBase": "4e20708577ed94aa157e63766bbddd28140715c0"
     }
   },
   "lastBootstrappedAt": "2026-06-10"

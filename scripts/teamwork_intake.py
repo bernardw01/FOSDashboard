@@ -35,11 +35,43 @@ def load_manifest() -> dict[str, Any]:
 def task_custom_field_ids(manifest: dict[str, Any] | None = None) -> dict[str, int]:
     manifest = manifest or load_manifest()
     fields = manifest.get("taskCustomFields", {})
-    return {
+    out = {
         "releaseVersion": int(fields["releaseVersion"]["id"]),
         "featureId": int(fields["featureId"]["id"]),
         "releaseType": int(fields["releaseType"]["id"]),
     }
+    est = fields.get("estimatedDevHours") or fields.get("estDevHours")
+    if est and est.get("id"):
+        out["estDevHours"] = int(est["id"])
+    return out
+
+
+def build_ship_custom_fields(
+    manifest: dict[str, Any],
+    *,
+    release_name_value: str,
+    feature_id: str,
+    release_type: str,
+    est_dev_hours: float | int,
+) -> list[dict[str, Any]]:
+    """All task custom fields set during the ship ritual."""
+    ids = task_custom_field_ids(manifest)
+    if "estDevHours" not in ids:
+        raise SystemExit(
+            "taskCustomFields.estimatedDevHours.id missing in teamwork-manifest.json"
+        )
+    hours_int = int(round(float(est_dev_hours)))
+    if hours_int < 1:
+        raise SystemExit(f"est_dev_hours must be >= 1, got {est_dev_hours!r}")
+    return [
+        {"customFieldId": ids["releaseVersion"], "value": release_name_value},
+        {"customFieldId": ids["featureId"], "value": normalize_feature_id(feature_id)},
+        {
+            "customFieldId": ids["releaseType"],
+            "value": normalize_release_type(release_type),
+        },
+        {"customFieldId": ids["estDevHours"], "value": str(hours_int)},
+    ]
 
 
 def normalize_feature_id(feature_id: str) -> str:
@@ -93,6 +125,7 @@ def set_task_custom_fields(
     feature_id: str | None = None,
     release_type: str | None = None,
     release_version: str | None = None,
+    est_dev_hours: float | int | None = None,
     manifest: dict[str, Any] | None = None,
 ) -> None:
     ids = task_custom_field_ids(manifest)
@@ -111,6 +144,17 @@ def set_task_custom_fields(
     if release_version is not None:
         custom_fields.append(
             {"customFieldId": ids["releaseVersion"], "value": release_version}
+        )
+    if est_dev_hours is not None:
+        if "estDevHours" not in ids:
+            raise SystemExit(
+                "taskCustomFields.estimatedDevHours.id missing in teamwork-manifest.json"
+            )
+        custom_fields.append(
+            {
+                "customFieldId": ids["estDevHours"],
+                "value": str(int(round(float(est_dev_hours)))),
+            }
         )
     if not custom_fields:
         return

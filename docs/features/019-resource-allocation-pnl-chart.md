@@ -3,9 +3,10 @@
 > **PRD version 2.12.7** - sync with `docs/FOS-Dashboard-PRD.md`  
 > **Feature id:** 019 | **Task list:** Delivery  
 > **Teamwork notebook:** [Feature 019](https://win.godeap.io/app/projects/1615262/notebooks/311795)  
+> **Release task:** [v2.12.7](https://win.godeap.io/app/tasks/40146936)  
 > **Intake:** [Inbox task 40146804](https://win.godeap.io/app/tasks/40146804)  
 > **Extends:** [Feature 006 - Delivery project P&L](006-delivery-project-pnl.md) (Phase D)  
-> **Status:** In progress (spec approved 2026-06-11)
+> **Status:** Shipped in **v2.12.7**
 
 ## Goal
 
@@ -95,7 +96,8 @@ For each allocation row with `Duration.start` / `Duration.end`:
 - [x] Snapshot job alignment (shared builder)
 - [x] Feature doc sync to git at approval
 - [x] PRD FR/AC + version bump (**2.12.6**)
-- [ ] Teamwork release task rename at ship (`teamwork_ship_task.py`)
+- [x] Teamwork release task rename at ship (`teamwork_ship_task.py`)
+- [x] Teamwork notebook synced from git at ship
 
 ## Change log
 
@@ -103,3 +105,4 @@ For each allocation row with `Duration.start` / `Duration.end`:
 | --- | --- |
 | 2026-06-11 | Spec approved; implementation started (server + client + cache v6). |
 | 2026-06-11 | Chart fix: separate Chart.js stack ids for revenue vs allocation lines (v2.12.7). |
+| 2026-06-11 | Shipped v2.12.7; notebook synced to Teamwork. |

@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Publish Feature 019 notebook to Teamwork from draft markdown."""
+"""Publish or sync Feature 019 notebook to Teamwork from docs/features/019-*.md."""
 
 from __future__ import annotations
 
 import json
-import re
 import sys
 from datetime import date
 from pathlib import Path
@@ -12,12 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from teamwork_bootstrap import (  # noqa: E402
-    BASE,
-    api,
-    md_to_html,
-    notebook_url,
-)
+from teamwork_bootstrap import PROJECT_ID, api, notebook_url  # noqa: E402
 from teamwork_intake import (  # noqa: E402
     RELEASE_TYPE_ENHANCEMENT,
     create_release_task,
@@ -25,25 +19,29 @@ from teamwork_intake import (  # noqa: E402
     set_task_custom_fields,
     task_url,
 )
+from teamwork_sync_notebook import (  # noqa: E402
+    markdown_to_notebook_html,
+    sync_notebook,
+)
 
 NOTEBOOK_KEY = "feature_019"
 NOTEBOOK_TITLE = "Feature 019 - Resource allocation cost on P&L chart"
 NOTEBOOK_DESC = (
     "Delivery P&L chart: planned labor cost from Fibery Resource Allocations vs actuals. "
-    "Intake from Inbox task 40146804."
+    "Shipped v2.12.7. Intake from Inbox task 40146804."
 )
-DRAFT_MD = ROOT / "scripts" / "teamwork_feature_019_draft.md"
+FEATURE_MD = ROOT / "docs/features/019-resource-allocation-pnl-chart.md"
 MANIFEST = ROOT / "docs" / "teamwork-manifest.json"
 INBOX_TASK_ID = 40146804
 TASKLIST_NAME = "Delivery"
-RELEASE_TASK_NAME = "Feature 019 - Resource allocation cost on P&L chart"
+RELEASE_TASK_NAME = "v2.12.7 - Resource allocation cost on P&L chart"
 MOCKUP_RAW_URL = (
     "https://raw.githubusercontent.com/bernardw01/FOSDashboard/main/"
     "docs/implementation-notes/019-resource-allocation-pnl-mockup.png"
 )
 
 CHART_MOCKUP_SVG = """
-<h3>Visualization mockup (chart layout)</h3>
+<h4>Visualization mockup (chart layout)</h4>
 <p>Target Chart view on the Delivery P&L card. <strong>Allocated cost (plan)</strong> is a dashed line;
 actual labor remains stacked bars; revenue stays the solid teal line.</p>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 340" width="100%" style="max-width:920px;background:#1a1f2e;border-radius:12px;border:1px solid #2d3748">
@@ -73,28 +71,10 @@ actual labor remains stacked bars; revenue stays the solid teal line.</p>
 """
 
 
-def absolutize_internal_links(md: str) -> str:
-    def repl(match: re.Match[str]) -> str:
-        label, path = match.group(1), match.group(2)
-        if path.startswith("http"):
-            return match.group(0)
-        if path.startswith("../features/"):
-            return f"[{label}](https://github.com/bernardw01/FOSDashboard/blob/main/docs/features/{path.split('/')[-1]})"
-        return match.group(0)
-
-    return re.sub(r"\[([^\]]+)\]\(([^)]+)\)", repl, md)
-
-
 def build_notebook_html() -> str:
-    md = absolutize_internal_links(DRAFT_MD.read_text(encoding="utf-8"))
-    body = md_to_html(md)
+    md = FEATURE_MD.read_text(encoding="utf-8")
     mockup = CHART_MOCKUP_SVG.format(mockup_url=MOCKUP_RAW_URL)
-    # Insert mockup after UI notes heading content - append before Change requests
-    if "<h3>Change requests</h3>" in body:
-        body = body.replace("<h3>Change requests</h3>", mockup + "\n<h3>Change requests</h3>", 1)
-    else:
-        body += "\n" + mockup
-    return body
+    return markdown_to_notebook_html(md, inject_html=mockup, inject_before="Implementation checklist")
 
 
 def create_notebook_html_direct(title: str, desc: str, html: str) -> int:
@@ -114,11 +94,19 @@ def create_notebook_html_direct(title: str, desc: str, html: str) -> int:
 
 
 def main() -> None:
+    if not FEATURE_MD.exists():
+        raise SystemExit(f"Missing {FEATURE_MD}")
+
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8")) if MANIFEST.exists() else {}
 
     if NOTEBOOK_KEY in manifest.get("notebooks", {}):
-        url = manifest["notebooks"][NOTEBOOK_KEY]["url"]
-        print(f"Notebook already exists: {url}")
+        sync_notebook(
+            NOTEBOOK_KEY,
+            FEATURE_MD,
+            description=NOTEBOOK_DESC,
+            inject_html=CHART_MOCKUP_SVG.format(mockup_url=MOCKUP_RAW_URL),
+            inject_before="Implementation checklist",
+        )
         return
 
     html = build_notebook_html()
@@ -159,14 +147,15 @@ def main() -> None:
             "id": task_id,
             "tasklist": TASKLIST_NAME,
             "featureId": "019",
+            "releaseType": "Enhancement",
             "releaseTitle": "Resource allocation cost on P&L chart",
-            "provisionalTaskName": True,
-            "shippedVersion": None,
+            "provisionalTaskName": False,
+            "shippedVersion": "v2.12.7",
             "notebookKey": NOTEBOOK_KEY,
             "intakeTaskId": INBOX_TASK_ID,
             "url": release_task_url,
             "renameAtShip": "v{FOS_PRD_VERSION} - Resource allocation cost on P&L chart",
-            "workflowStage": "Spec Draft",
+            "shippedAt": "2026-06-11",
         }
         print(f"Created release task: {release_task_url}")
         link_inbox_task(INBOX_TASK_ID, nb_url, release_task_url)

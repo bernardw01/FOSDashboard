@@ -100,17 +100,29 @@ Single atomic release ritual:
 1. Complete code and `clasp push` (if applicable).
 2. Bump `FOS_PRD_VERSION` and PRD changelog (see `.cursor/rules/google-apps-script-core.mdc`). This number is the **authoritative** release version.
 3. **Rename** the Teamwork release task to `vX.Y.Z - Short release title` using the bumped version (full string is the **release name**).
-4. Set the task custom field **Release Version** to that same release name (`vX.Y.Z - Short release title`). Field id `57879` on this project (see `docs/teamwork-manifest.json`).
+4. Set task custom fields (same `PUT` as step 3):
+   - **Release Version** (`57879`): same release name as the task title
+   - **Feature ID** (`57880`): three-digit id from intake (re-applied at ship)
+   - **Release Type** (`57881`): `Enhancement` or `Bug Fix` (manifest `releaseType`, or `--release-type`, or inferred from the PRD changelog row for this version)
+   - **Estimated Dev Hours** (`57883`): lead-developer hours for the release diff (auto-estimated unless `--est-dev-hours` is passed)
 5. **Export final notebook content to git** (captures customer edits).
 6. Mark Teamwork task **Shipped**; confirm task name and **Release Version** match `FOS_PRD_VERSION`.
-7. Update `docs/teamwork-manifest.json` (`shippedVersion`, task key, `lastSyncedAt`).
+7. Update `docs/teamwork-manifest.json` (`shippedVersion`, task key, `estDevHours`, `releaseType`, `lastSyncedAt`).
 8. Update `docs/features/000-overview.md` shipped line when appropriate.
 
-**Automate rename + Release Version:** after bumping `FOS_PRD_VERSION` in `src/Code.js`:
+**Copy-paste ship command:** after bumping `FOS_PRD_VERSION` in `src/Code.js`, commit, and `clasp push`:
+
+```bash
+python3 scripts/teamwork_ship_command.py --feature-id 019
+```
+
+Prints the exact `teamwork_ship_task.py` invocation for that release (manifest task key, `--release-type` when set at intake, `--update-manifest`). Use `--manifest-task "..."` if you do not have a feature id.
+
+**Run ship automation:**
 
 ```bash
 python3 scripts/teamwork_ship_task.py \
-  --manifest-task "v2.13.0 - AI usage OpenAI ingest" \
+  --manifest-task "Feature 019 - Resource allocation cost on P&L chart" \
   --version-from-codejs \
   --update-manifest
 ```
@@ -122,12 +134,16 @@ python3 scripts/teamwork_ship_task.py \
   --task-id 40139491 \
   --version 2.13.0 \
   --title "AI usage OpenAI ingest" \
+  --feature-id 017 \
+  --release-type Enhancement \
   --update-manifest
 ```
 
-Add `--dry-run` to preview the API payload without writing.
+Add `--dry-run` to preview the API payload without writing. Override hours with `--est-dev-hours 8`. Pass `--release-type Bug Fix` when the PRD changelog row for this version is a patch fix.
 
-**Release Version (API):** the script uses V1 `PUT /tasks/{taskId}.json` with `todo-item.content` and `todo-item.customFields` (`customFieldId` **57879**).
+**Estimated Dev Hours (auto):** `scripts/teamwork_estimate.py` diffs git from the prior `Ship PRD` commit through `HEAD` and applies a documented rubric (server/client modules, feature docs, scripts, ship overhead). Rationale is printed and stored on the manifest task as `estDevHoursRationale`.
+
+**API:** V1 `PUT /tasks/{taskId}.json` with `todo-item.content` and `todo-item.customFields` (all four field ids in `docs/teamwork-manifest.json`).
 
 ### 5. Bug-fix releases
 
@@ -144,6 +160,7 @@ Add `--dry-run` to preview the API payload without writing.
 | `Feature 014 - Scenario planning` | Feature spec notebook |
 | `AI spend impact - measurement guide` | Research notebook (AI ROI measurement; links Feature 017) |
 | `Feature 019 - Resource allocation cost on P&L chart` | Delivery P&L chart - planned vs actual labor (Inbox intake) |
+| `Feature 020 - P&L month modal allocation variance` | Chart month modal - allocated cost by role + variance vs actual (Inbox intake) |
 
 ## Git sync mapping
 

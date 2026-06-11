@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.12.7 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.12.8 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -4369,7 +4369,7 @@
     aria-labelledby="deliveryPnlMonthModalTitle"
     aria-hidden="true"
   >
-    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
       <div class="modal-content rounded-4">
         <div class="modal-header">
           <div>
@@ -4381,16 +4381,19 @@
         <div class="modal-body">
           <div class="fos-financial-scroll">
             <table class="fos-financial-table" aria-describedby="deliveryPnlMonthModalTitle">
-              <thead>
+              <thead id="deliveryPnlMonthModalHead">
                 <tr>
                   <th scope="col">Line item</th>
-                  <th scope="col" class="num">Amount</th>
+                  <th scope="col" class="num">Actual</th>
+                  <th scope="col" class="num">Allocated (plan)</th>
+                  <th scope="col" class="num">Variance</th>
                 </tr>
               </thead>
               <tbody id="deliveryPnlMonthModalBody"></tbody>
               <tfoot id="deliveryPnlMonthModalFoot"></tfoot>
             </table>
           </div>
+          <p class="small mb-0 mt-2 d-none" id="delivery-pnl-month-modal-note" style="color: var(--ag-text-muted)"></p>
         </div>
         <div class="modal-footer border-0 pt-0">
           <button type="button" class="btn btn-fos-primary px-4" data-bs-dismiss="modal">Close</button>
@@ -4399,7 +4402,7 @@
     </div>
   </div>
 
-  <!-- v2.12.7 - Agreement status update on Delivery P&L (feature 018). -->
+  <!-- v2.12.8 - Agreement status update on Delivery P&L (feature 018). -->
   <div
     class="modal fade fos-modal"
     id="deliveryStatusUpdateModal"
@@ -4446,7 +4449,7 @@
     </div>
   </div>
 
-  <!-- v2.12.7 - status update history slide-out (feature 018). -->
+  <!-- v2.12.8 - status update history slide-out (feature 018). -->
   <div class="fos-util-drawer-backdrop d-none" id="delivery-status-drawer-backdrop" aria-hidden="true"></div>
   <aside
     id="delivery-status-drawer"
@@ -4543,8 +4546,8 @@
       // flag or `revenueItems[]` per month) is invalidated cleanly when
       // the user upgrades.
       var DELIVERY_PNL_KEY_PREFIX = 'fos_delivery_pnl_';
-      var DELIVERY_PNL_KEY_SUFFIX = '_v6';
-      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 6;
+      var DELIVERY_PNL_KEY_SUFFIX = '_v7';
+      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 7;
       var DELIVERY_STATUS_CLIENT_META_ = {
         on_track: { enumName: 'Agreement On Track', trafficLight: 'green' },
         at_risk: { enumName: 'Agreement At Risk', trafficLight: 'yellow' },
@@ -4913,6 +4916,7 @@
         deliveryPnlMonthModalSubtitle: document.getElementById('deliveryPnlMonthModalSubtitle'),
         deliveryPnlMonthModalBody: document.getElementById('deliveryPnlMonthModalBody'),
         deliveryPnlMonthModalFoot: document.getElementById('deliveryPnlMonthModalFoot'),
+        deliveryPnlMonthModalNote: document.getElementById('delivery-pnl-month-modal-note'),
         deliveryStatusUpdateModal: document.getElementById('deliveryStatusUpdateModal'),
         deliveryStatusUpdateModalSubtitle: document.getElementById('deliveryStatusUpdateModalSubtitle'),
         deliveryStatusUpdateSelect: document.getElementById('delivery-status-update-select'),
@@ -16431,12 +16435,66 @@
         return lines;
       }
 
-      function appendDeliveryPnlMonthModalRow_(tbody, label, amountHtml, rowClass) {
+      function resolveAllocatedByRoleForMonth_(payload, monthKey) {
+        var alloc = payload && payload.resourceAllocations;
+        if (!alloc || !alloc.hasAllocations || !alloc.months) return null;
+        for (var i = 0; i < alloc.months.length; i++) {
+          var row = alloc.months[i];
+          if (row && row.key === monthKey) {
+            return row.allocatedByRole || {};
+          }
+        }
+        return {};
+      }
+
+      function deliveryPnlModalHasAllocationDetail_(payload) {
+        var alloc = payload && payload.resourceAllocations;
+        return !!(alloc && alloc.hasAllocations && !alloc.emptyMessage);
+      }
+
+      function formatDeliveryPnlPlanCell_(amount, hasDetail) {
+        if (!hasDetail) return ' - ';
+        var n = Number(amount || 0);
+        if (!n) return ' - ';
+        return formatExpense_(n);
+      }
+
+      function formatDeliveryPnlVarianceCell_(actual, planned, hasDetail) {
+        if (!hasDetail) return ' - ';
+        var a = Number(actual || 0);
+        var p = Number(planned || 0);
+        if (!a && !p) return '$0';
+        var variance = a - p;
+        var cls = variance > 0 ? ' is-negative' : '';
+        return '<span class="num' + cls + '">' + formatExpense_(variance) + '</span>';
+      }
+
+      function mergeDeliveryPnlModalRoleNames_(laborRoles, allocatedByRole, monthRow) {
+        var seen = {};
+        var out = [];
+        var push = function (name) {
+          if (!name || seen[name]) return;
+          seen[name] = true;
+          out.push(name);
+        };
+        for (var i = 0; i < laborRoles.length; i++) push(laborRoles[i]);
+        var allocKeys = allocatedByRole ? Object.keys(allocatedByRole) : [];
+        for (var j = 0; j < allocKeys.length; j++) push(allocKeys[j]);
+        if (!out.length && monthRow) {
+          var laborTotal = Number(monthRow.labor || 0);
+          if (laborTotal) out.push('Labor');
+        }
+        return out;
+      }
+
+      function appendDeliveryPnlMonthModalRow_(tbody, label, actualHtml, planHtml, varianceHtml, rowClass) {
         var tr = document.createElement('tr');
         if (rowClass) tr.className = rowClass;
         tr.innerHTML =
           '<td>' + label + '</td>' +
-          '<td class="num">' + amountHtml + '</td>';
+          '<td class="num">' + actualHtml + '</td>' +
+          '<td class="num">' + planHtml + '</td>' +
+          '<td class="num">' + varianceHtml + '</td>';
         tbody.appendChild(tr);
         return tr;
       }
@@ -16446,8 +16504,12 @@
         if (!m) return;
         var payload = deliveryState.lastPnlPayload || {};
         var laborRoles = resolveDeliveryPnlLaborRoles_(payload, payload.months || []);
+        var allocatedByRole = resolveAllocatedByRoleForMonth_(payload, monthKey) || {};
+        var hasAllocDetail = deliveryPnlModalHasAllocationDetail_(payload);
         logActivity_('delivery_pnl_chart_month_click', 'delivery',
-          'monthKey=' + monthKey + ' · projected=' + (m.projected ? 'yes' : 'no'));
+          'monthKey=' + monthKey +
+          ' · projected=' + (m.projected ? 'yes' : 'no') +
+          ' · hasAllocationDetail=' + (hasAllocDetail ? 'true' : 'false'));
         var modalEl = els.deliveryPnlMonthModal;
         if (!modalEl) return;
         var project = deliveryState.selectedId && deliveryState.projectsByIndex
@@ -16462,42 +16524,85 @@
           if (projectName) subParts.push(projectName);
           if (m.projected) subParts.push('Projected month');
           if (m.outOfRange) subParts.push('Out of range');
+          var allocBlock = payload.resourceAllocations;
+          if (allocBlock && allocBlock.emptyMessage) subParts.push(allocBlock.emptyMessage);
           els.deliveryPnlMonthModalSubtitle.textContent = subParts.length
             ? subParts.join(' · ') : ' - ';
         }
+        if (els.deliveryPnlMonthModalNote) {
+          var noteEl = els.deliveryPnlMonthModalNote;
+          if (!hasAllocDetail) {
+            noteEl.textContent = 'No resource allocations for this agreement.';
+            noteEl.classList.remove('d-none');
+          } else {
+            noteEl.textContent = '';
+            noteEl.classList.add('d-none');
+          }
+        }
+        var totalAllocatedLabor = 0;
         if (els.deliveryPnlMonthModalBody) {
           var body = els.deliveryPnlMonthModalBody;
           body.innerHTML = '';
+          var revActual = Number(m.revenue || 0) === 0 ? '$0' : formatMoneyCompact(m.revenue);
           appendDeliveryPnlMonthModalRow_(
             body,
             'Revenue',
-            Number(m.revenue || 0) === 0 ? '$0' : formatMoneyCompact(m.revenue)
+            revActual,
+            ' - ',
+            ' - '
           );
+          var modalRoles = mergeDeliveryPnlModalRoleNames_(laborRoles, allocatedByRole, m);
           var roleCount = 0;
-          for (var ri = 0; ri < laborRoles.length; ri++) {
-            var roleName = laborRoles[ri];
-            var roleAmt = (m.laborByRole && m.laborByRole[roleName])
-              ? Number(m.laborByRole[roleName]) : 0;
-            if (!roleAmt) continue;
+          for (var ri = 0; ri < modalRoles.length; ri++) {
+            var roleName = modalRoles[ri];
+            var roleActual = 0;
+            if (roleName === 'Labor') {
+              roleActual = Number(m.labor || 0);
+            } else if (m.laborByRole && m.laborByRole[roleName]) {
+              roleActual = Number(m.laborByRole[roleName]);
+            }
+            var rolePlan = allocatedByRole[roleName]
+              ? Number(allocatedByRole[roleName]) : 0;
+            if (!roleActual && !rolePlan) continue;
             roleCount++;
+            totalAllocatedLabor += rolePlan;
             appendDeliveryPnlMonthModalRow_(
               body,
               escapeHtml(roleName),
-              formatExpense_(roleAmt),
+              roleActual === 0 ? '$0' : formatExpense_(roleActual),
+              formatDeliveryPnlPlanCell_(rolePlan, hasAllocDetail),
+              formatDeliveryPnlVarianceCell_(roleActual, rolePlan, hasAllocDetail),
               'fos-delivery-pnl-month-role'
             );
           }
           if (!roleCount) {
+            var laborActual = Number(m.labor || 0);
+            var laborPlan = 0;
+            if (hasAllocDetail) {
+              var allocMonths = (payload.resourceAllocations && payload.resourceAllocations.months) || [];
+              for (var am = 0; am < allocMonths.length; am++) {
+                if (allocMonths[am].key === monthKey) {
+                  laborPlan = Number(allocMonths[am].allocatedCost || 0);
+                  break;
+                }
+              }
+            }
+            totalAllocatedLabor = laborPlan;
             appendDeliveryPnlMonthModalRow_(
               body,
               'Labor',
-              Number(m.labor || 0) === 0 ? '$0' : formatExpense_(m.labor)
+              laborActual === 0 ? '$0' : formatExpense_(laborActual),
+              formatDeliveryPnlPlanCell_(laborPlan, hasAllocDetail),
+              formatDeliveryPnlVarianceCell_(laborActual, laborPlan, hasAllocDetail)
             );
           }
+          var expActual = Number(m.expenses || 0);
           appendDeliveryPnlMonthModalRow_(
             body,
             'Expenses',
-            Number(m.expenses || 0) === 0 ? '$0' : formatExpense_(m.expenses)
+            expActual === 0 ? '$0' : formatExpense_(expActual),
+            ' - ',
+            ' - '
           );
         }
         if (els.deliveryPnlMonthModalFoot) {
@@ -16505,11 +16610,19 @@
           foot.innerHTML = '';
           var grossNegClass = Number(m.grossProfit || 0) < 0 ? ' is-negative' : '';
           var bucket = m.marginBucket || 'neutral';
+          var totalActual = Number(m.totalCost || 0);
+          var totalPlan = hasAllocDetail ? Number(totalAllocatedLabor || 0) : 0;
           foot.innerHTML =
             '<tr class="is-total">' +
               '<td><strong>Total cost</strong></td>' +
               '<td class="num is-negative"><strong>' +
-                (Number(m.totalCost || 0) === 0 ? '$0' : formatExpense_(m.totalCost)) +
+                (totalActual === 0 ? '$0' : formatExpense_(totalActual)) +
+              '</strong></td>' +
+              '<td class="num"><strong>' +
+                formatDeliveryPnlPlanCell_(totalPlan, hasAllocDetail) +
+              '</strong></td>' +
+              '<td class="num"><strong>' +
+                formatDeliveryPnlVarianceCell_(totalActual, totalPlan, hasAllocDetail) +
               '</strong></td>' +
             '</tr>' +
             '<tr class="is-total">' +
@@ -16517,12 +16630,14 @@
               '<td class="num' + grossNegClass + '"><strong>' +
                 formatMoneyParenIfNegative_(m.grossProfit) +
               '</strong></td>' +
+              '<td colspan="2"></td>' +
             '</tr>' +
             '<tr class="is-total">' +
               '<td><strong>Margin</strong></td>' +
               '<td class="num margin-cell bucket-' + bucket + '"><strong>' +
                 formatMarginPct(m.marginPct) +
               '</strong></td>' +
+              '<td colspan="2"></td>' +
             '</tr>';
         }
         try {

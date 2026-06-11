@@ -1,11 +1,11 @@
 /**
- * PRD version 2.12.7 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.12.8 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.12.7';
+var FOS_PRD_VERSION = '2.12.8';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '2.12.7';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'Fix Delivery P&L chart so planned allocation cost plots at monthly value, not stacked on revenue.';
+  'Delivery P&L month modal shows allocated cost by role and variance vs actual labor.';
 
 /**
  * @return {string}

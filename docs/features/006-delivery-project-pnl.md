@@ -13,6 +13,7 @@
 | **Phase C - predictive** | Client-only **pacing strip** on the P&L card (linear plan vs recognized + trailing 3-mo avg) · **Delivery signals** strip above Active Projects (rules on cached `projects[]` only) · **Portfolio margin-flow Sankey** (D3 + d3-sankey, visible-row aggregate) · Agreement Attention extensions in `agreementAlerts.js` (pacing / cost vs recognized / low recognition near duration end) | v1.21.0 | **Shipped** |
 | **Status updates on P&L** | Latest Fibery **Status Updates** chip + **Add status update** modal; `statusUpdates` on P&L payload; cache **`_v5`** | v2.12.0 | **Shipped** |
 | **Resource allocation cost on chart** | Planned labor from Fibery **Resource Allocations** as dashed line on P&L chart; `resourceAllocations` on payload; cache **`_v6`** | v2.12.6 | **Shipped** |
+| **P&L month modal allocation + variance** | Chart click modal: **Actual / Allocated / Variance** by role; `allocatedByRole`; cache **`_v7`** | v2.12.8 | **Shipped** |
 
 ## Goal
 

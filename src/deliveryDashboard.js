@@ -1,5 +1,5 @@
 /**
- * PRD version 2.12.7 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.12.8 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `delivery`, panel
  * `#panel-delivery`). Two public endpoints, both authorized via
@@ -43,8 +43,8 @@
  *     `laborRoles: !Array<string>` + per-month `laborByRole` map (v2.6.8).
  *     `statusUpdates: { latest, history, statusOptions }` (v2.12.5 / feature 018).
  *     `resourceAllocations: { hasAllocations, rowCount, months?, lifetimeAllocatedCost?,
- *       emptyMessage? }` (v2.12.6 / feature 019).
- *     `cacheSchemaVersion: 6` (client key suffix `_v6`).
+ *       emptyMessage? }` (v2.12.6 / feature 019); per-month `allocatedByRole` (v2.12.8 / 020).
+ *     `cacheSchemaVersion: 7` (client key suffix `_v7`).
  *
  * Diagnostics (run from the Apps Script editor):
  *   _diag_sampleDeliveryPayload()
@@ -77,9 +77,10 @@ var DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_ = 1;
  *   v4 - v2.6.8: per-month `laborByRole` + payload `laborRoles[]`.
  *   v5 - v2.12.5: `statusUpdates` block (feature 018).
  *   v6 - v2.12.6: `resourceAllocations` block (feature 019).
+ *   v7 - v2.12.8: `resourceAllocations.months[].allocatedByRole` (feature 020).
  * @const {number}
  */
-var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 6;
+var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 7;
 
 /** @const {number} Default TTL (minutes) for the client-side cache. */
 var DELIVERY_DEFAULT_CACHE_TTL_MIN_ = 10;
@@ -1046,6 +1047,10 @@ function fetchResourceAllocationsForAgreement_(agreementId) {
         allocatedHours: 'Agreement Management/Allocated Hours',
         duration: 'Agreement Management/Duration',
         allocationName: 'Agreement Management/Allocation Name',
+        roleName: [
+          'Agreement Management/Clockify User Team Member Role',
+          'Agreement Management/Name',
+        ],
       },
       'q/where': ['=', ['Agreement Management/Agreement', 'fibery/id'], '$agreementId'],
       'q/limit': DELIVERY_QUERY_LIMIT_,
@@ -1064,6 +1069,7 @@ function fetchResourceAllocationsForAgreement_(agreementId) {
       allocatedCost: numberOr_(page[i].allocatedCost, 0),
       allocatedHours: numberOr_(page[i].allocatedHours, 0),
       allocationName: stringOrNull_(page[i].allocationName),
+      roleName: stringOrNull_(page[i].roleName) || '(No role)',
       durStart: dur ? stringOrNull_(dur.start) : null,
       durEnd: dur ? stringOrNull_(dur.end) : null,
     });
@@ -1080,8 +1086,105 @@ function emptyResourceAllocationsBlock_() {
 }
 
 /**
+ * Adds a prorated allocation amount to month + role buckets.
+ *
+ * @param {!Object} allocatedByMonth
+ * @param {!Object} allocatedByMonthByRole
+ * @param {string} monthKey
+ * @param {string} roleName
+ * @param {number} amount
+ * @private
+ */
+function addAllocatedCostToMonthRole_(
+  allocatedByMonth, allocatedByMonthByRole, monthKey, roleName, amount
+) {
+  if (!monthKey || !isFinite(amount) || amount <= 0) return;
+  allocatedByMonth[monthKey] = (allocatedByMonth[monthKey] || 0) + amount;
+  if (!allocatedByMonthByRole[monthKey]) allocatedByMonthByRole[monthKey] = {};
+  var role = roleName || '(No role)';
+  allocatedByMonthByRole[monthKey][role] =
+    (allocatedByMonthByRole[monthKey][role] || 0) + amount;
+}
+
+/**
+ * @param {!Object} row
+ * @param {!Array<string>} monthKeys
+ * @param {!Object} allocatedByMonth
+ * @param {!Object} allocatedByMonthByRole
+ * @param {!Array<string>} warningsOut
+ * @return {number} lifetime row cost counted
+ * @private
+ */
+function prorateAllocationRowToMonths_(
+  row, monthKeys, allocatedByMonth, allocatedByMonthByRole, warningsOut
+) {
+  var rowCost = Number(row.allocatedCost || 0);
+  var roleName = row.roleName || '(No role)';
+  var durStartIso = row.durStart || null;
+  var durEndIso = row.durEnd || null;
+  var touched = false;
+
+  if (!durStartIso && !durEndIso) {
+    warningsOut.push('RESOURCE_ALLOCATION_MISSING_DURATION');
+    var fallbackKey = monthKeyFromIso_(durStartIso) || (monthKeys.length ? monthKeys[0] : null);
+    if (fallbackKey) {
+      addAllocatedCostToMonthRole_(
+        allocatedByMonth, allocatedByMonthByRole, fallbackKey, roleName, rowCost
+      );
+      touched = true;
+    }
+    return touched ? rowCost : 0;
+  }
+
+  var allocStart = parseIsoDateOnlyUtc_(durStartIso || durEndIso);
+  var allocEnd = parseIsoDateOnlyUtc_(durEndIso || durStartIso);
+  if (!allocStart || !allocEnd) return 0;
+  if (allocEnd.getTime() < allocStart.getTime()) {
+    var swap = allocStart;
+    allocStart = allocEnd;
+    allocEnd = swap;
+  }
+  var totalDays = calendarDaysInclusiveUtc_(allocStart, allocEnd);
+  if (totalDays <= 0) return 0;
+
+  for (var mi = 0; mi < monthKeys.length; mi++) {
+    var monthKey = monthKeys[mi];
+    var bounds = monthBoundsUtc_(monthKey);
+    var intersection = intersectDateRangesInclusiveUtc_(
+      allocStart, allocEnd, bounds.start, bounds.end
+    );
+    if (!intersection) continue;
+    var daysInMonth = calendarDaysInclusiveUtc_(intersection.start, intersection.end);
+    if (daysInMonth <= 0) continue;
+    var prorated = rowCost * (daysInMonth / totalDays);
+    addAllocatedCostToMonthRole_(
+      allocatedByMonth, allocatedByMonthByRole, monthKey, roleName, prorated
+    );
+    touched = true;
+  }
+  return touched ? rowCost : 0;
+}
+
+/**
+ * @param {?Object} roleMap
+ * @return {!Object}
+ * @private
+ */
+function roundAllocatedByRole_(roleMap) {
+  var out = {};
+  if (!roleMap || typeof roleMap !== 'object') return out;
+  var keys = Object.keys(roleMap);
+  for (var i = 0; i < keys.length; i++) {
+    var k = keys[i];
+    var v = Math.round(Number(roleMap[k] || 0));
+    if (v !== 0) out[k] = v;
+  }
+  return out;
+}
+
+/**
  * Prorates Fibery Resource Allocation rows across the P&L chart month axis.
- * Calendar-day proration within each allocation Duration (feature 019 v1).
+ * Calendar-day proration within each allocation Duration (feature 019 / 020).
  *
  * @param {!Array<!Object>} rows
  * @param {!Array<!Object>} chartMonths  `buildMonthlyPnL_().months`
@@ -1112,49 +1215,20 @@ function buildResourceAllocationsBlock_(rows, chartMonths, warningsOut) {
   }
 
   var allocatedByMonth = {};
+  var allocatedByMonthByRole = {};
   var lifetimeTotal = 0;
   var hasAnyOverlap = false;
 
   for (var r = 0; r < validRows.length; r++) {
-    var row = validRows[r];
-    var rowCost = Number(row.allocatedCost || 0);
-    var durStartIso = row.durStart || null;
-    var durEndIso = row.durEnd || null;
-
-    if (!durStartIso && !durEndIso) {
-      warningsOut.push('RESOURCE_ALLOCATION_MISSING_DURATION');
-      var fallbackKey = monthKeyFromIso_(durStartIso) || (monthKeys.length ? monthKeys[0] : null);
-      if (fallbackKey) {
-        allocatedByMonth[fallbackKey] = (allocatedByMonth[fallbackKey] || 0) + rowCost;
-        hasAnyOverlap = true;
-      }
-      lifetimeTotal += rowCost;
-      continue;
-    }
-
-    var allocStart = parseIsoDateOnlyUtc_(durStartIso || durEndIso);
-    var allocEnd = parseIsoDateOnlyUtc_(durEndIso || durStartIso);
-    if (!allocStart || !allocEnd) continue;
-    if (allocEnd.getTime() < allocStart.getTime()) {
-      var swap = allocStart;
-      allocStart = allocEnd;
-      allocEnd = swap;
-    }
-    var totalDays = calendarDaysInclusiveUtc_(allocStart, allocEnd);
-    if (totalDays <= 0) continue;
-    lifetimeTotal += rowCost;
-
-    for (var mi = 0; mi < monthKeys.length; mi++) {
-      var monthKey = monthKeys[mi];
-      var bounds = monthBoundsUtc_(monthKey);
-      var intersection = intersectDateRangesInclusiveUtc_(
-        allocStart, allocEnd, bounds.start, bounds.end
-      );
-      if (!intersection) continue;
-      var daysInMonth = calendarDaysInclusiveUtc_(intersection.start, intersection.end);
-      if (daysInMonth <= 0) continue;
-      var prorated = rowCost * (daysInMonth / totalDays);
-      allocatedByMonth[monthKey] = (allocatedByMonth[monthKey] || 0) + prorated;
+    var counted = prorateAllocationRowToMonths_(
+      validRows[r],
+      monthKeys,
+      allocatedByMonth,
+      allocatedByMonthByRole,
+      warningsOut
+    );
+    if (counted > 0) {
+      lifetimeTotal += counted;
       hasAnyOverlap = true;
     }
   }
@@ -1174,11 +1248,14 @@ function buildResourceAllocationsBlock_(rows, chartMonths, warningsOut) {
     var key = monthKeys[mj];
     var amt = Math.round(allocatedByMonth[key] || 0);
     cumulative += amt;
-    monthsOut.push({
+    var monthEntry = {
       key: key,
       allocatedCost: amt,
       cumulativeAllocatedCost: cumulative,
-    });
+    };
+    var byRole = roundAllocatedByRole_(allocatedByMonthByRole[key]);
+    if (Object.keys(byRole).length) monthEntry.allocatedByRole = byRole;
+    monthsOut.push(monthEntry);
   }
 
   return {

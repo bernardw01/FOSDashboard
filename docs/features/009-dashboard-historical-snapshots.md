@@ -45,7 +45,7 @@ Root folder: Script Property **`FOS_SNAPSHOT_DRIVE_FOLDER_ID`** (create via **`e
 | `delivery-projects.json` | `buildDeliveryDashboardPayloadFromAgreement_` | No extra Fibery fetch |
 | `expenses.json` | `buildExpensesDashboardPayload_()` | Spreadsheet tab at job run time; `cacheSchemaVersion: 2` (v2.11.2); skip when **`SNAPSHOT_INCLUDE_EXPENSES`** is false |
 | `pipeline.json` | `buildPipelineDashboardPayload_()` | Fibery `HubSpot/Deal`; `cacheSchemaVersion: 2` (v2.11.1); skip when **`SNAPSHOT_INCLUDE_PIPELINE`** is false |
-| `delivery-pnl/*.json` | `buildDeliveryProjectMonthlyPnLInternal_` | Batched; continuation trigger if needed; `cacheSchemaVersion: 6` (v2.12.6: `resourceAllocations`; was **5** through v2.12.5 for `statusUpdates`) |
+| `delivery-pnl/*.json` | `buildDeliveryProjectMonthlyPnLInternal_` | Batched; continuation trigger if needed; `cacheSchemaVersion: 7` (v2.12.8: `allocatedByRole`; was **6** through v2.12.7 for chart `resourceAllocations`) |
 
 ### Failure policy
 
