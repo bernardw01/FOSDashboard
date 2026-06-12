@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.12.8 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.12.9 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -4402,7 +4402,7 @@
     </div>
   </div>
 
-  <!-- v2.12.8 - Agreement status update on Delivery P&L (feature 018). -->
+  <!-- v2.12.9 - Agreement status update on Delivery P&L (feature 018). -->
   <div
     class="modal fade fos-modal"
     id="deliveryStatusUpdateModal"
@@ -4449,7 +4449,7 @@
     </div>
   </div>
 
-  <!-- v2.12.8 - status update history slide-out (feature 018). -->
+  <!-- v2.12.9 - status update history slide-out (feature 018). -->
   <div class="fos-util-drawer-backdrop d-none" id="delivery-status-drawer-backdrop" aria-hidden="true"></div>
   <aside
     id="delivery-status-drawer"
@@ -16677,7 +16677,7 @@
         var expProjected = 'rgba(249, 199, 79, 0.38)';
         var revActual = '#43D6BA';
         var revProjected = 'rgba(67, 214, 186, 0.55)';
-        var allocColor = '#9B8CFF';
+        var allocColor = '#FF8800';
         for (var i = 0; i < months.length; i++) {
           var m = months[i];
           labels.push(m.label || m.key || '');
@@ -16745,7 +16745,7 @@
             label: 'Allocated cost (plan)',
             data: allocatedData,
             borderColor: allocColor,
-            backgroundColor: 'rgba(155, 140, 255, 0.12)',
+            backgroundColor: 'rgba(255, 136, 0, 0.12)',
             pointBackgroundColor: allocColor,
             pointBorderColor: allocColor,
             borderDash: [6, 4],

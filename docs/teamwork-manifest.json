@@ -151,6 +151,15 @@
       "intakeTaskId": 40149979,
       "publishedAt": "2026-06-11",
       "lastSyncedAt": "2026-06-11"
+    },
+    "feature_021": {
+      "id": 311808,
+      "title": "Feature 021 - P&L allocated cost line color",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/311808",
+      "featureId": "021",
+      "intakeTaskId": 40151912,
+      "publishedAt": "2026-06-11",
+      "lastSyncedAt": "2026-06-11"
     }
   },
   "tasks": {
@@ -203,7 +212,8 @@
         "Snapshot schema alignment: +0.25h",
         "Total (rounded to nearest 0.5h): 11.5h"
       ],
-      "estDevHoursGitBase": "4e20708577ed94aa157e63766bbddd28140715c0"
+      "estDevHoursGitBase": "4e20708577ed94aa157e63766bbddd28140715c0",
+      "workflowStage": "Shipped"
     },
     "v2.12.8 - P&L month modal allocation variance": {
       "id": 40150201,
@@ -218,19 +228,34 @@
       "url": "https://win.godeap.io/app/tasks/40150201",
       "renameAtShip": "v{FOS_PRD_VERSION} - P&L month modal allocation variance",
       "shippedAt": "2026-06-11",
-      "estDevHours": 12,
+      "estDevHours": 10,
       "estDevHoursRationale": [
-        "Git range: 4e207085..HEAD (55 files)",
+        "Git range: 2205fda4..HEAD (48 files)",
         "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
-        "Client chart/UI (`src/DashboardShell.html`, +333 lines): +3.4h",
-        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +247 lines): +4.1h",
-        "Feature spec / docs (+105 lines): +1.3h",
-        "Teamwork / automation scripts (+1738 lines): +2.0h",
+        "Client chart/UI (`src/DashboardShell.html`, +136 lines): +2.3h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +123 lines): +3.0h",
+        "Feature spec / docs (+99 lines): +1.2h",
+        "Teamwork / automation scripts (+861 lines): +2.0h",
         "PRD FR/AC + changelog row: +0.25h",
         "Snapshot schema alignment: +0.25h",
-        "Total (rounded to nearest 0.5h): 11.5h"
+        "Total (rounded to nearest 0.5h): 9.5h"
       ],
-      "estDevHoursGitBase": "4e20708577ed94aa157e63766bbddd28140715c0"
+      "estDevHoursGitBase": "2205fda4c4c7760776177454f11f004755c939a4",
+      "workflowStage": "Shipped"
+    },
+    "Feature 021 - P&L allocated cost line color": {
+      "id": 40151944,
+      "tasklist": "Delivery",
+      "featureId": "021",
+      "releaseType": "Enhancement",
+      "releaseTitle": "P&L allocated cost line color",
+      "provisionalTaskName": true,
+      "shippedVersion": null,
+      "notebookKey": "feature_021",
+      "intakeTaskId": 40151912,
+      "url": "https://win.godeap.io/app/tasks/40151944",
+      "renameAtShip": "v{FOS_PRD_VERSION} - P&L allocated cost line color",
+      "workflowStage": "In-progress"
     }
   },
   "lastBootstrappedAt": "2026-06-10"

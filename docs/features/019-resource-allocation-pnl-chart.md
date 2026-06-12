@@ -34,7 +34,7 @@ When the agreement has **no** `Agreement Management/Resource Allocations` rows, 
 
 - **Route:** `delivery` / `#panel-delivery` (unchanged).
 - **Surface:** P&L card **Chart** view only (`#delivery-pnl-chart`); table view unchanged in v1.
-- **New series:** `Allocated cost (plan)` as a **dashed violet line** (`#9B8CFF`) distinct from Revenue (solid teal).
+- **New series:** `Allocated cost (plan)` as a **dashed line** distinct from Revenue (solid teal). **v2.12.6-v2.12.8:** violet `#9B8CFF`. **v2.12.9+:** bright orange `#FF8800` (feature **021**).
 - **Legend:** Revenue | Allocated cost (plan) | Labor roles (stack) | Expenses.
 - **Tooltip:** Includes allocated cost for the hovered month when present.
 - **Empty state:** `#delivery-pnl-allocation-note` below chart hint; hidden when allocations exist.

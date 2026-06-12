@@ -18,8 +18,11 @@ from teamwork_estimate import estimate_from_git  # noqa: E402
 from teamwork_intake import (  # noqa: E402
     RELEASE_TYPE_BUG_FIX,
     RELEASE_TYPE_ENHANCEMENT,
+    STAGE_SHIPPED_ID,
     build_ship_custom_fields,
+    get_task_workflow_stage,
     load_manifest,
+    move_task_to_shipped,
     normalize_feature_id,
     normalize_release_type,
 )
@@ -200,6 +203,7 @@ def update_manifest_after_ship(
             "estDevHours": int(round(est_dev_hours)),
             "estDevHoursRationale": est_rationale,
             "estDevHoursGitBase": estimate_git_base,
+            "workflowStage": "Shipped",
         }
     )
     tasks[release_name_value] = entry
@@ -210,8 +214,9 @@ def update_manifest_after_ship(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Ship ritual automation: rename Teamwork release task and set custom fields "
-            "(Release Version, Feature ID, Release Type, Estimated Dev Hours)."
+            "Ship ritual automation: rename release task, set custom fields "
+            "(Release Version, Feature ID, Release Type, Estimated Dev Hours), "
+            "and move the task to workflow stage Shipped."
         )
     )
     parser.add_argument(
@@ -345,6 +350,7 @@ def main() -> None:
     ship_task_release(task_id, name, custom_fields, dry_run=args.dry_run)
 
     if args.dry_run:
+        print(f"DRY RUN - would move task {task_id} to workflow stage Shipped ({STAGE_SHIPPED_ID})")
         print("Dry run complete.")
         return
 
@@ -353,6 +359,17 @@ def main() -> None:
     if verified != name:
         raise SystemExit(f"Task name verify failed: expected {name!r}, got {verified!r}")
     print(f"Verified name:    {verified}")
+
+    moved = move_task_to_shipped(task_id)
+    stage = get_task_workflow_stage(task_id)
+    if stage != STAGE_SHIPPED_ID:
+        raise SystemExit(
+            f"Workflow move failed: expected stage {STAGE_SHIPPED_ID} (Shipped), got {stage!r}"
+        )
+    if moved:
+        print(f"Workflow stage:   Shipped ({STAGE_SHIPPED_ID})")
+    else:
+        print(f"Workflow stage:   Shipped ({STAGE_SHIPPED_ID}, already set)")
 
     if args.update_manifest:
         update_manifest_after_ship(

@@ -1,5 +1,5 @@
 /**
- * PRD version 2.12.8 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.12.9 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `delivery`, panel
  * `#panel-delivery`). Two public endpoints, both authorized via
@@ -43,7 +43,7 @@
  *     `laborRoles: !Array<string>` + per-month `laborByRole` map (v2.6.8).
  *     `statusUpdates: { latest, history, statusOptions }` (v2.12.5 / feature 018).
  *     `resourceAllocations: { hasAllocations, rowCount, months?, lifetimeAllocatedCost?,
- *       emptyMessage? }` (v2.12.6 / feature 019); per-month `allocatedByRole` (v2.12.8 / 020).
+ *       emptyMessage? }` (v2.12.6 / feature 019); per-month `allocatedByRole` (v2.12.9 / 020).
  *     `cacheSchemaVersion: 7` (client key suffix `_v7`).
  *
  * Diagnostics (run from the Apps Script editor):
@@ -77,7 +77,7 @@ var DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_ = 1;
  *   v4 - v2.6.8: per-month `laborByRole` + payload `laborRoles[]`.
  *   v5 - v2.12.5: `statusUpdates` block (feature 018).
  *   v6 - v2.12.6: `resourceAllocations` block (feature 019).
- *   v7 - v2.12.8: `resourceAllocations.months[].allocatedByRole` (feature 020).
+ *   v7 - v2.12.9: `resourceAllocations.months[].allocatedByRole` (feature 020).
  * @const {number}
  */
 var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 7;

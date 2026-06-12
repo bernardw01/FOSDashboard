@@ -119,6 +119,24 @@ def move_task_to_spec_draft(task_id: int) -> None:
     move_task_to_workflow_stage(task_id, STAGE_SPEC_DRAFT_ID)
 
 
+def move_task_to_in_progress(task_id: int) -> bool:
+    """Move release task to In-progress. Returns True if moved."""
+    current = get_task_workflow_stage(task_id)
+    if current == STAGE_IN_PROGRESS_ID:
+        return False
+    move_task_to_workflow_stage(task_id, STAGE_IN_PROGRESS_ID)
+    return True
+
+
+def move_task_to_shipped(task_id: int) -> bool:
+    """Move release task to the Shipped workflow column. Returns True if moved."""
+    current = get_task_workflow_stage(task_id)
+    if current == STAGE_SHIPPED_ID:
+        return False
+    move_task_to_workflow_stage(task_id, STAGE_SHIPPED_ID)
+    return True
+
+
 def set_task_custom_fields(
     task_id: int,
     *,

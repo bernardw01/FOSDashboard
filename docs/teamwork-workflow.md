@@ -106,8 +106,8 @@ Single atomic release ritual:
    - **Release Type** (`57881`): `Enhancement` or `Bug Fix` (manifest `releaseType`, or `--release-type`, or inferred from the PRD changelog row for this version)
    - **Estimated Dev Hours** (`57883`): lead-developer hours for the release diff (auto-estimated unless `--est-dev-hours` is passed)
 5. **Export final notebook content to git** (captures customer edits).
-6. Mark Teamwork task **Shipped**; confirm task name and **Release Version** match `FOS_PRD_VERSION`.
-7. Update `docs/teamwork-manifest.json` (`shippedVersion`, task key, `estDevHours`, `releaseType`, `lastSyncedAt`).
+6. Confirm task name, **Release Version**, and workflow stage **Shipped** match `FOS_PRD_VERSION` (`teamwork_ship_task.py` sets custom fields and moves the task to **Shipped**).
+7. Update `docs/teamwork-manifest.json` (`shippedVersion`, task key, `estDevHours`, `releaseType`, `workflowStage`, `lastSyncedAt`).
 8. Update `docs/features/000-overview.md` shipped line when appropriate.
 
 **Copy-paste ship command:** after bumping `FOS_PRD_VERSION` in `src/Code.js`, commit, and `clasp push`:
@@ -161,6 +161,7 @@ Add `--dry-run` to preview the API payload without writing. Override hours with 
 | `AI spend impact - measurement guide` | Research notebook (AI ROI measurement; links Feature 017) |
 | `Feature 019 - Resource allocation cost on P&L chart` | Delivery P&L chart - planned vs actual labor (Inbox intake) |
 | `Feature 020 - P&L month modal allocation variance` | Chart month modal - allocated cost by role + variance vs actual (Inbox intake) |
+| `Feature 021 - P&L allocated cost line color` | Chart allocated cost line violet → bright orange (Inbox intake) |
 
 ## Git sync mapping
 
