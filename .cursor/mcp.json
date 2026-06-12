@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "anthropic-admin": {
+      "command": "uv",
+      "args": [
+        "tool",
+        "run",
+        "anthropic-admin-mcp",
+        "--read-only"
+      ],
+      "envFile": "${workspaceFolder}/.env"
+    },
+    "openai-usage": {
+      "command": "uv",
+      "args": [
+        "tool",
+        "run",
+        "openai-usage-mcp"
+      ],
+      "envFile": "${workspaceFolder}/.env"
+    }
+  }
+}

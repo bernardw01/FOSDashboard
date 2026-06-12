@@ -1,3 +1,5 @@
 .DS_Store
 docs/clockify_cli/
 .env
+__pycache__/
+*.pyc
