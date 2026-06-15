@@ -1,11 +1,11 @@
 /**
- * PRD version 2.13.4 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.15.6 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.13.4';
+var FOS_PRD_VERSION = '2.15.6';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '2.13.4';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'Portfolio P&L agreement-type filters: Subscription and Services checkboxes.';
+  'AI usage cost fix: Anthropic cost_report cents to USD; no API Claude Code double count.';
 
 /**
  * @return {string}
@@ -185,6 +185,7 @@ function buildNavigationModel_(auth) {
       children: [
         { id: 'portfolio-pnl', label: 'Portfolio P&L', active: false },
         { id: 'expenses', label: 'Expenses', active: false },
+        { id: 'ai-usage', label: 'AI Usage', active: false },
       ],
     },
   ];

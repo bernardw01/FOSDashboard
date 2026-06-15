@@ -34,10 +34,31 @@ def api(method: str, path: str, body: dict | None = None) -> dict:
     token = load_token()
     url = f"{BASE}{path}"
     cmd = ["curl", "-s", "-w", "\n%{http_code}", "-X", method, "-H", f"Authorization: Bearer {token}"]
+    data_file: str | None = None
     if body is not None:
-        cmd.extend(["-H", "Content-Type: application/json", "-d", json.dumps(body)])
+        cmd.extend(["-H", "Content-Type: application/json"])
+        payload = json.dumps(body)
+        # Windows CreateProcess fails when -d JSON exceeds ~32k chars; use @file instead.
+        if len(payload) > 8000:
+            import tempfile
+
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".json", delete=False, encoding="utf-8"
+            ) as tmp:
+                tmp.write(payload)
+                data_file = tmp.name
+            cmd.extend(["--data-binary", f"@{data_file}"])
+        else:
+            cmd.extend(["-d", payload])
     cmd.append(url)
-    proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    finally:
+        if data_file:
+            try:
+                Path(data_file).unlink(missing_ok=True)
+            except OSError:
+                pass
     if proc.returncode != 0:
         raise SystemExit(f"curl failed {method} {path}: {proc.stderr}")
     lines = proc.stdout.rsplit("\n", 1)

@@ -118,7 +118,8 @@
       "id": 311784,
       "title": "Feature 017 - AI platform usage sync",
       "url": "https://win.godeap.io/app/projects/1615262/notebooks/311784",
-      "featureId": "017"
+      "featureId": "017",
+      "lastSyncedAt": "2026-06-15"
     },
     "feature_014": {
       "id": 311785,
@@ -169,21 +170,18 @@
       "intakeTaskId": 40160887,
       "publishedAt": "2026-06-12",
       "lastSyncedAt": "2026-06-12"
+    },
+    "feature_023": {
+      "id": 311879,
+      "title": "Feature 023 - AI Usage dashboard",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/311879",
+      "featureId": "023",
+      "intakeTaskId": 40180160,
+      "publishedAt": "2026-06-15",
+      "lastSyncedAt": "2026-06-15"
     }
   },
   "tasks": {
-    "v2.13.0 - AI usage OpenAI ingest": {
-      "id": 40139491,
-      "tasklist": "Data platform",
-      "featureId": "017",
-      "releaseTitle": "AI usage OpenAI ingest",
-      "provisionalTaskName": true,
-      "workingVersionEstimate": "2.13.0",
-      "shippedVersion": null,
-      "notebookKey": "feature_017",
-      "url": "https://win.godeap.io/app/tasks/40139491",
-      "renameAtShip": "v{FOS_PRD_VERSION} - AI usage OpenAI ingest"
-    },
     "v2.14.0 - Scenario planning foundation (R1)": {
       "id": 40139492,
       "tasklist": "Scenario planning",
@@ -305,6 +303,60 @@
         "Total (rounded to nearest 0.5h): 5.5h"
       ],
       "estDevHoursGitBase": "cb283faccd0c7992f801c5d9ece9dc71d5a18681"
+    },
+    "v2.13.6 - Labor hours zero roster active filter": {
+      "id": 40177716,
+      "featureId": "007",
+      "releaseType": "Bug Fix",
+      "shippedVersion": "v2.13.6",
+      "provisionalTaskName": false,
+      "releaseTitle": "Labor hours zero roster active filter",
+      "url": "https://win.godeap.io/app/tasks/40177716",
+      "shippedAt": "2026-06-15",
+      "estDevHours": 13,
+      "estDevHoursRationale": [
+        "Git range: 04e788a1..HEAD (42 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +1364 lines): +4.5h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +18 lines): +2.1h",
+        "Apps Script module `src/portfolioPnlDashboard.js`: +1.8h",
+        "Feature spec / docs (+290 lines): +1.7h",
+        "Teamwork / automation scripts (+1156 lines): +2.0h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 13.0h"
+      ],
+      "estDevHoursGitBase": "04e788a13e8e57a07412fde3f9a12368d3df5dc8",
+      "workflowStage": "Shipped"
+    },
+    "Feature 017 - AI usage sync operator UI": {
+      "id": 40139491,
+      "tasklist": "Data platform",
+      "featureId": "017",
+      "releaseTitle": "AI usage sync operator UI",
+      "provisionalTaskName": true,
+      "workingVersionEstimate": "2.14.0",
+      "shippedVersion": null,
+      "notebookKey": "feature_017",
+      "url": "https://win.godeap.io/app/tasks/40139491",
+      "renameAtShip": "v{FOS_PRD_VERSION} - AI usage sync operator UI",
+      "releaseType": "Enhancement",
+      "intakeTaskId": 40159053,
+      "workflowStage": "Spec Draft"
+    },
+    "Feature 023 - AI Usage dashboard": {
+      "id": 40180335,
+      "tasklist": "Finance",
+      "featureId": "023",
+      "releaseType": "Enhancement",
+      "releaseTitle": "AI Usage dashboard",
+      "provisionalTaskName": true,
+      "shippedVersion": null,
+      "notebookKey": "feature_023",
+      "intakeTaskId": 40180160,
+      "url": "https://win.godeap.io/app/tasks/40180335",
+      "renameAtShip": "v{FOS_PRD_VERSION} - AI Usage dashboard",
+      "workflowStage": "Spec Draft"
     }
   },
   "lastBootstrappedAt": "2026-06-10"

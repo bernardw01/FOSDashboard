@@ -1,6 +1,6 @@
 # Feature: AI platform usage sync to Fibery
 
-> **PRD version 2.11.0** - see `docs/FOS-Dashboard-PRD.md` (**FR-111**, **AC-68**).
+> **PRD version 2.14.0** - see `docs/FOS-Dashboard-PRD.md` (**FR-111**, **AC-68**; **FR-117**, **AC-75** Phase G shipped **v2.14.0**).
 >
 > **Related:** [Clockify to Fibery sync](../PRD.md) (labor time system of record), [005 - Utilization Management Dashboard](005-utilization-management-dashboard.md) (reads `Labor Costs`), [009 - Dashboard historical snapshots](009-dashboard-historical-snapshots.md) (scheduled job pattern), [011 - Admin settings](011-admin-settings-environment-panel.md) (Script Property management).
 >
@@ -25,7 +25,7 @@ This feature defines a **daily (scheduled) and on-demand** integration that:
 3. Preserves **idempotent upserts**, **run logging**, and **operator controls** consistent with the existing Clockify sync and FOS snapshot jobs.
 4. Creates the foundation for later **cost allocation** rules (internal R&D, shared platform, customer-attributed support) and optional **FOS Dashboard** reporting.
 
-**Status:** **In progress** - **Phase B (Anthropic ingest) shipped in v2.10.0** (`src/aiUsageSyncJob.js` et al.). OpenAI ingest, operator UI, and allocation rules remain planned.
+**Status:** **In progress** - **Phase B (Anthropic ingest) shipped in v2.10.0** (`src/aiUsageSyncJob.js` et al.). **Phase G (ADMIN Settings operator UI + incremental manual sync) shipped in v2.14.0**. OpenAI ingest and allocation rules remain planned.
 
 **Architecture decision:** The sync pipeline lives as **modules inside the FOS Dashboard Apps Script project** (`src/`), alongside existing Fibery clients and scheduled jobs (`dashboardSnapshotJob.js`). It is **not** a separate clasp project.
 
@@ -165,7 +165,7 @@ These structures map into the single fact entity **`AI Usage Data/Usage`**. See 
 
 | Vendor field | Type | Maps to `Usage` field |
 | --- | --- | --- |
-| `amount` | decimal string (cents) | Cost USD |
+| `amount` | decimal string (cents) | Cost USD (**divide by 100** in normalize) |
 | `currency` | string | Currency |
 | `workspace_id` | string \| null | Workspace or Project |
 | `model`, `cost_type`, `token_type`, `description` | strings | Model, Cost Type, Token Type, Description |
@@ -190,7 +190,7 @@ Flatten **`model_breakdown[]`** to **one `Usage` row per actor per day per model
 | `organization_id` | string | Org External Id |
 | `model_breakdown[].model` | string | Model |
 | `model_breakdown[].tokens.*` | numbers | Input Tokens, Output Tokens, cache columns |
-| `model_breakdown[].estimated_cost.amount` | number (minor units) | Cost USD |
+| `model_breakdown[].estimated_cost.amount` | number (minor units) | Cost USD (**divide by 100**; omit for `customer_type=api` to avoid double count with cost_report) |
 | `core_metrics.*` | numbers | Raw Metrics JSON |
 | `tool_actions` | map | Raw Metrics JSON |
 | `terminal_type` | string | Terminal Type |
@@ -512,10 +512,12 @@ New code lives under **`src/`** in the FOS Dashboard clasp project:
 | `src/aiUsageUserMatch.js` | Read **`Agreement Management/Clockify Users`**; write relations on **`AI Usage Data/Usage`** |
 | `src/adminSettingsRegistry.js` | Script Property entries (extend existing registry) |
 
-Public entry points (editor + future Settings UI):
+Public entry points (editor + Settings UI):
 
 - `runAiUsageSyncDaily_()` - scheduled
-- `runAiUsageSyncOnDemand(startDate, endDate)` - manual
+- `runAiUsageSyncOnDemand(startDate, endDate)` - manual (explicit range; editor)
+- `runAiUsageSyncIncremental()` - manual (ADMIN Settings; computed range)
+- `getAiUsageSyncStatus()` - ADMIN Settings status card
 - `_diag_sampleAiUsageAnthropic_(date)` / `_diag_sampleAiUsageOpenAi_(date)` - Phase 0 / ops
 
 Pattern mirrors proven jobs in this repo:
@@ -531,7 +533,8 @@ Pattern mirrors proven jobs in this repo:
 | Mode | Trigger | Behavior |
 | --- | --- | --- |
 | **Daily incremental** | `installDailyAiUsageSyncTrigger()` (default 02:00 org timezone) | Pull recent days (`AI_USAGE_DAILY_LOOKBACK_DAYS`); upsert Fibery; log run |
-| **On-demand** | `runAiUsageSyncOnDemand(start, end)` from editor or future ADMIN Settings | Same pipeline; respects `AI_USAGE_MAX_BACKFILL_DAYS` |
+| **On-demand** | `runAiUsageSyncOnDemand(start, end)` from editor | Same pipeline; respects `AI_USAGE_MAX_BACKFILL_DAYS` |
+| **On-demand (Settings)** | `runAiUsageSyncIncremental()` from ADMIN Settings (**Phase G**) | Resolves `[start, end]` from log + Fibery max **`Usage Date`** + overlap; then same pipeline |
 | **Backfill** | On-demand with wide range | Paginate + continuation trigger on timeout |
 
 ### Idempotency
@@ -583,7 +586,7 @@ Pattern mirrors proven jobs in this repo:
 | **Phase D - OpenAI sync** | Platform 3: organization costs (+ usage if needed) | Same job pipeline |
 | **Phase E - User matching** | Email → **`Clockify User Email`** + Actor Mapping | Match rate report in sync run |
 | **Phase F - Allocation rules v1** | Default categories; no silent customer assignment | Fibery views by category |
-| **Phase G - Operator UI** | ADMIN Settings: Run sync, last run status, link to Fibery | On-demand without editor |
+| **Phase G - Operator UI** | ADMIN Settings: incremental **Run sync**, last-run status, Script Property group unchanged | On-demand without Apps Script editor | **Delivered v2.14.0** |
 
 ## Acceptance criteria (draft)
 
@@ -594,6 +597,80 @@ Pattern mirrors proven jobs in this repo:
 - **AC-05:** Given a platform API failure, other platforms still sync and the run status is `partial` with actionable error text (no secrets).
 - **AC-06:** Given missing required Script Properties, the job aborts before any Fibery write and logs a single clear configuration error.
 - **AC-07:** On-demand sync accepts `startDate` and `endDate` within configured max backfill and processes platforms sequentially within Apps Script time limits (continuation if needed).
+- **AC-08 (Phase G, v2.14.0):** [x] Given an ADMIN user on **Settings**, the **AI usage sync** group MUST show **last sync** status (timestamp, outcome, date range processed, row counters) sourced from the **`AI Usage Sync Runs`** log tab (or a safe empty state when no runs exist).
+- **AC-09 (Phase G, v2.14.0):** [x] **Run sync now** MUST invoke an incremental sync: the server MUST derive `[startYmd, endYmd]` from existing **`Usage`** data and/or the last successful log row so vendor API calls cover only **new** calendar days (plus configured overlap), not a fixed "last 7 days" window on every click.
+- **AC-10 (Phase G, v2.14.0):** [x] While a sync is running or `AI_USAGE_SYNC_ENABLED` is false, **Run sync now** MUST be disabled and MUST surface a clear inline message; concurrent runs MUST be rejected server-side (`LockService`).
+- **AC-11 (Phase G, v2.14.0):** [x] Successful and failed manual runs MUST append to **`AI Usage Sync Runs`** with `Trigger = manual` and MUST emit whitelisted activity events (`ai_usage_sync_start`, `ai_usage_sync_done`, `ai_usage_sync_error`) with Route `settings`.
+
+## Admin Settings - AI usage sync operator panel (Phase G)
+
+The existing **`ai-usage-sync`** group in `src/adminSettingsRegistry.js` catalogs Script Properties (`ANTHROPIC_ADMIN_API_KEY`, `AI_USAGE_*`, etc.). **Phase G** adds an **operator subsection** at the top of that group (or in a dedicated `#settings-ai-usage-sync-host` card immediately above the property rows) so admins can run and monitor the job without the Apps Script editor.
+
+### Placement and access
+
+| Rule | Detail |
+| --- | --- |
+| **Panel** | `#panel-settings` ([feature 011](011-admin-settings-environment-panel.md)) |
+| **Group** | `ai-usage-sync` - title **AI usage sync (Fibery)** |
+| **Role** | **ADMIN** only (same gate as Settings and `saveAdminSettings`) |
+| **Order** | Operator card **above** Script Property rows inside the collapsible group (collapsed by default like other groups per [012](012-admin-settings-usage-analytics-collapsible.md)) |
+
+### Operator UI (read + action)
+
+| Control | Behavior |
+| --- | --- |
+| **Last sync** | Read-only summary from the most recent row in **`AI Usage Sync Runs`** (Sheet tab; name from `AI_USAGE_LOG_SHEET_NAME`). Show: **Completed at** (UTC ISO), **Status** badge (`complete` / `partial` / `failed` / `running` if detectable), **Date range** (`Date Start` - `Date End`), **Rows upserted**, **Matched / Unmatched**, truncated **Notes** when present. When the tab is missing or empty: "No sync runs recorded yet." |
+| **Run sync now** | Primary button. Calls server **`runAiUsageSyncIncremental()`** (wrapper around incremental range resolution + `runAiUsageSyncForRange_`). Shows spinner while `google.script.run` is in flight; on success or failure, refresh last-sync summary and show a one-line result (no secrets, no stack traces). |
+| **Sync disabled hint** | When `AI_USAGE_SYNC_ENABLED` resolves false, show muted copy: "AI usage sync is disabled. Enable it in the settings below or set the property in the Apps Script editor." Button disabled. |
+| **Config missing hint** | When `ANTHROPIC_ADMIN_API_KEY` is unset, button disabled with hint to configure the key in the group below. |
+
+### Incremental sync range (manual + future daily alignment)
+
+Manual **Run sync now** MUST NOT always pull a fixed window (e.g. last 7 days). The server MUST compute the fetch window from **what is already in the dataset**:
+
+1. **Last successful run (primary):** Read the newest log row where **Status** is `complete` or `partial`. Let `lastEnd = Date End` from that row.
+2. **Fibery high-water mark (secondary / cold-start):** Query **`AI Usage Data/Usage`** for the maximum **`Usage Date`** (org timezone per `AI_USAGE_SYNC_TIMEZONE`). Use when no log row exists or log predates first Fibery row.
+3. **Cold start:** When neither source yields a date, start at `today - AI_USAGE_INITIAL_LOOKBACK_DAYS` (new property, default **7**, capped by `AI_USAGE_MAX_BACKFILL_DAYS`).
+
+**Start date:**
+
+```text
+overlapDays = AI_USAGE_DAILY_LOOKBACK_DAYS   // default 3; re-pull recent days for late vendor data
+candidateStart = max(lastEnd, maxUsageDate) - (overlapDays - 1)   // calendar days, inclusive overlap
+startYmd = max(candidateStart, today - AI_USAGE_MAX_BACKFILL_DAYS)
+endYmd   = today (org timezone)
+```
+
+If `startYmd > endYmd`, return success with message "Already up to date" and skip vendor calls.
+
+**Vendor queries:** For each day in `[startYmd, endYmd]`, call the same Anthropic Admin API paths as the daily job (`messages`, `cost_report`, `claude_code`). Upsert remains idempotent by **`Source Record Id`** so overlap days are safe.
+
+**Daily scheduled job (optional alignment):** `runDailyAiUsageSync_()` MAY call the same incremental resolver instead of a fixed lookback-only window so scheduled and manual paths stay consistent (implementation choice; document in code).
+
+### Server API (ADMIN-only)
+
+| Function | Purpose |
+| --- | --- |
+| `getAiUsageSyncStatus()` | Returns `{ ok, lastRun?: { completedAt, status, startYmd, endYmd, rowsUpserted, matched, unmatched, notes, trigger }, syncEnabled, anthropicKeyConfigured, message? }`. Reads Sheet log; never returns API keys. |
+| `runAiUsageSyncIncremental()` | Resolves incremental range; calls `runAiUsageSyncForRange_(start, end, 'manual')`. Returns same shape as `runAiUsageSyncOnDemand`. |
+
+Both MUST call `requireAuthForApi_()` then `requireAdminRole_(auth)`.
+
+### Client wiring
+
+| Area | Detail |
+| --- | --- |
+| **Load** | When Settings opens, if `navState.isAdmin`, fetch `getAiUsageSyncStatus()` once (or when the `ai-usage-sync` group expands). |
+| **Run** | `google.script.run.runAiUsageSyncIncremental()` with success/failure handlers; disable button for duration. |
+| **Activity** | `ai_usage_sync_start` on click; `ai_usage_sync_done` or `ai_usage_sync_error` on completion (label: `status=… · rows=…`). Whitelist in `src/userActivityLog.js`. |
+
+### New / clarified Script Properties (Phase G)
+
+| Property | Default | Purpose |
+| --- | --- | --- |
+| `AI_USAGE_INITIAL_LOOKBACK_DAYS` | `7` | First manual sync when no log row and no Fibery usage dates exist |
+
+Register in `adminSettingsRegistry.js` under `ai-usage-sync` when Phase G ships.
 
 ## Risks and open decisions
 
@@ -617,10 +694,17 @@ Pattern mirrors proven jobs in this repo:
 
 ## Next step
 
-Follow **[017-ai-platform-usage-fibery-sync-implementation-plan.md](017-ai-platform-usage-fibery-sync-implementation-plan.md)** (reviewed 2026-06-08):
+Follow **[017-ai-platform-usage-fibery-sync-implementation-plan.md](017-ai-platform-usage-fibery-sync-implementation-plan.md)** (reviewed 2026-06-15):
 
-1. **Phase 0** - Anthropic samples + [gap memo](017-phase0-gap-memo.md) done; add OpenAI sample + product sign-off.
-2. **Phase A.2** - [Fibery schema setup](017-fibery-schema-setup.md) (operator); MCP smoke test on **`Usage`**.
-3. **Phase B** - `src/` sync modules after A.2 + Script Properties.
+1. **OpenAI sample** - Add `OPENAI_ADMIN_KEY` when available; Phase D ingest.
+2. **Allocation rules** - Phase F after operator UI stabilizes.
 
-**Do not write production sync code or schedule triggers until Phase 0 is signed off and Phase A.2 smoke test passes.**
+Anthropic ingest (Phase B) and operator UI (Phase G) are shipped.
+
+## Changelog
+
+| Date | Version | Notes |
+| --- | --- | --- |
+| 2026-06-15 | 2.14.0 | **Phase G delivered:** ADMIN Settings operator panel (**Run sync now**, last-run status), incremental range from log + Fibery **`Usage Date`**, `getAiUsageSyncStatus` / `runAiUsageSyncIncremental`, **`AI_USAGE_INITIAL_LOOKBACK_DAYS`**, daily job uses incremental resolver. **FR-117**, **AC-75**, **AC-08** - **AC-11**. |
+| 2026-06-15 | 2.14.0 (spec) | **Phase G spec:** ADMIN Settings operator panel (**Run sync now**, last-run status), incremental range from log + Fibery **`Usage Date`**, server APIs, **AC-08** - **AC-11**, **FR-117** / **AC-75** PRD lift at ship. |
+| 2026-06-08 | 2.10.0 | Phase B Anthropic ingest shipped (**FR-111**, **AC-68**). |

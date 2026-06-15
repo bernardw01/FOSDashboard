@@ -1,5 +1,5 @@
 /**
- * PRD version 2.13.4 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.15.6 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Upsert normalized rows into AI Usage Data/Usage (feature 017).
  */
@@ -7,9 +7,10 @@
 /**
  * @param {!Array<!Object>} rows
  * @param {string} syncRunId
- * @return {!{ ok: boolean, created: number, updated: number, failed: number, message?: string }}
+ * @param {number=} deadlineMs optional epoch ms; stop upsert before this time
+ * @return {!{ ok: boolean, created: number, updated: number, failed: number, stoppedEarly?: boolean, message?: string }}
  */
-function aiUsageUpsertRows_(rows, syncRunId) {
+function aiUsageUpsertRows_(rows, syncRunId, deadlineMs) {
   if (!rows || !rows.length) {
     return { ok: true, created: 0, updated: 0, failed: 0 };
   }
@@ -22,10 +23,21 @@ function aiUsageUpsertRows_(rows, syncRunId) {
   var created = 0;
   var updated = 0;
   var failed = 0;
+  var firstError = '';
+  var stoppedEarly = false;
   var ingestedAt = new Date().toISOString();
   var usageDb = aiUsageUsageDatabase_();
 
   for (var i = 0; i < rows.length; i += AI_USAGE_FIBERY_UPSERT_BATCH_) {
+    if (deadlineMs && Date.now() > deadlineMs) {
+      stoppedEarly = true;
+      var remaining = rows.length - i;
+      failed += remaining;
+      if (!firstError) {
+        firstError = 'Upsert stopped early (Apps Script time budget). Run sync again to continue.';
+      }
+      break;
+    }
     var slice = rows.slice(i, i + AI_USAGE_FIBERY_UPSERT_BATCH_);
     var commands = [];
     slice.forEach(function (row) {
@@ -48,6 +60,9 @@ function aiUsageUpsertRows_(rows, syncRunId) {
     var batch = fiberyBatchCommands_(commands);
     if (!batch.ok) {
       failed += slice.length;
+      if (!firstError && batch.message) {
+        firstError = batch.message;
+      }
       console.warn('aiUsageUpsertRows_ batch failed: ' + batch.message);
       continue;
     }
@@ -61,12 +76,47 @@ function aiUsageUpsertRows_(rows, syncRunId) {
   }
 
   return {
-    ok: failed === 0,
+    ok: failed === 0 && !stoppedEarly,
     created: created,
     updated: updated,
     failed: failed,
-    message: failed ? failed + ' row(s) failed to upsert' : undefined,
+    stoppedEarly: stoppedEarly,
+    message: firstError || (failed ? failed + ' row(s) failed to upsert' : undefined),
   };
+}
+
+/**
+ * Preloads enum fibery/id values used on Usage upserts (reduces per-batch query churn).
+ */
+function aiUsageWarmUsageEnums_() {
+  var usageDb = aiUsageUsageDatabase_();
+  var syncDb = aiUsageSyncRunsDatabase_();
+  var specs = [
+    [usageDb, 'Source Platform', ['Anthropic Console', 'Claude.ai']],
+    [
+      usageDb,
+      'Source Dataset',
+      ['Anthropic Messages', 'Anthropic Cost', 'Anthropic Claude Code'],
+    ],
+    [usageDb, 'Actor Type', ['User', 'Unknown', 'API key', 'Service account']],
+    [usageDb, 'Customer Type', ['N/A', 'Team', 'Enterprise']],
+    [usageDb, 'Subscription Tier', ['N/A', 'Team', 'Enterprise']],
+    [usageDb, 'Mapping Status', ['Matched', 'Unmatched', 'Service account', 'Shared key']],
+    [
+      usageDb,
+      'Allocation Category',
+      ['Product development', 'Customer support', 'Internal ops', 'Shared / unallocated'],
+    ],
+    [syncDb, 'Status', ['running', 'complete', 'partial', 'failed']],
+    [syncDb, 'Trigger', ['scheduled', 'manual', 'backfill']],
+  ];
+  specs.forEach(function (spec) {
+    var db = spec[0];
+    var field = spec[1];
+    spec[2].forEach(function (name) {
+      aiUsageEnumId_(db, field, name);
+    });
+  });
 }
 
 /**
@@ -99,7 +149,7 @@ function aiUsageLookupExistingBySourceIds_(rows) {
           'q/where': ['q/in', [sourceIdField], '$ids'],
           'q/limit': chunk.length,
         },
-        params: { ids: chunk },
+        params: { $ids: chunk },
       },
     ]);
     if (!batch.ok) {
@@ -132,12 +182,13 @@ function aiUsageRowToFiberyEntity_(row, syncRunId, ingestedAt) {
   if (row.periodEnd) {
     entity[aiUsageField_('Period End')] = row.periodEnd;
   }
-  entity[aiUsageField_('Source Platform')] = row.sourcePlatform;
-  entity[aiUsageField_('Source Dataset')] = row.sourceDataset;
+  var usageDb = aiUsageUsageDatabase_();
+  aiUsageSetEnumField_(entity, usageDb, 'Source Platform', row.sourcePlatform);
+  aiUsageSetEnumField_(entity, usageDb, 'Source Dataset', row.sourceDataset);
   if (row.orgExternalId) {
     entity[aiUsageField_('Org External Id')] = row.orgExternalId;
   }
-  entity[aiUsageField_('Actor Type')] = row.actorType;
+  aiUsageSetEnumField_(entity, usageDb, 'Actor Type', row.actorType || 'Unknown');
   if (row.actorEmail) {
     entity[aiUsageField_('Actor Email')] = row.actorEmail;
   }
@@ -147,8 +198,8 @@ function aiUsageRowToFiberyEntity_(row, syncRunId, ingestedAt) {
   if (row.actorLabel) {
     entity[aiUsageField_('Actor Label')] = row.actorLabel;
   }
-  entity[aiUsageField_('Customer Type')] = row.customerType || 'N/A';
-  entity[aiUsageField_('Subscription Tier')] = row.subscriptionTier || 'N/A';
+  aiUsageSetEnumField_(entity, usageDb, 'Customer Type', row.customerType || 'N/A');
+  aiUsageSetEnumField_(entity, usageDb, 'Subscription Tier', row.subscriptionTier || 'N/A');
   if (row.model) {
     entity[aiUsageField_('Model')] = row.model;
   }
@@ -196,21 +247,78 @@ function aiUsageRowToFiberyEntity_(row, syncRunId, ingestedAt) {
   }
   entity[aiUsageField_('Currency')] = row.currency || 'USD';
   if (row.clockifyUserFiberyId) {
-    entity[aiUsageField_('Clockify User')] = { 'fibery/id': row.clockifyUserFiberyId };
+    entity[aiUsageUsageClockifyUserField_()] = { 'fibery/id': row.clockifyUserFiberyId };
   }
-  if (row.clockifyUserEmail) {
-    entity[aiUsageField_('Clockify User Email')] = row.clockifyUserEmail;
-  }
-  if (row.clockifyUserId) {
-    entity[aiUsageField_('Clockify User ID')] = row.clockifyUserId;
-  }
-  entity[aiUsageField_('Mapping Status')] = row.mappingStatus || 'Unmatched';
-  entity[aiUsageField_('Allocation Category')] = row.allocationCategory || 'Shared / unallocated';
+  aiUsageSetEnumField_(entity, usageDb, 'Mapping Status', row.mappingStatus || 'Unmatched');
+  aiUsageSetEnumField_(
+    entity,
+    usageDb,
+    'Allocation Category',
+    row.allocationCategory || 'Shared / unallocated'
+  );
   entity[aiUsageField_('Sync Run Id')] = syncRunId;
   entity[aiUsageField_('Ingested At')] = ingestedAt;
-  entity[aiUsageField_('Raw Metrics JSON')] = aiUsageFiberyDocument_(row.rawMetrics);
-  entity[aiUsageField_('Vendor Payload JSON')] = aiUsageFiberyDocument_(row.vendorPayload);
   return entity;
+}
+
+/**
+ * Sets a Fibery enum field on an entity payload using fibery/id (required on create).
+ *
+ * @param {!Object} entity
+ * @param {string} database
+ * @param {string} fieldSuffix
+ * @param {string} enumName
+ */
+function aiUsageSetEnumField_(entity, database, fieldSuffix, enumName) {
+  var id = aiUsageEnumId_(database, fieldSuffix, enumName);
+  if (id) {
+    entity[aiUsageField_(fieldSuffix)] = { 'fibery/id': id };
+  }
+}
+
+/**
+ * Resolves fibery/id for an app enum type ({Field}_{Database}).
+ *
+ * @param {string} database e.g. AI Usage Data/Usage
+ * @param {string} fieldSuffix e.g. Source Platform
+ * @param {string} enumName enum/name value
+ * @return {?string}
+ */
+function aiUsageEnumId_(database, fieldSuffix, enumName) {
+  enumName = String(enumName || '').trim();
+  if (!enumName) {
+    return null;
+  }
+  var prefix = aiUsageFiberyAppPrefix_();
+  var enumDb = prefix + '/' + fieldSuffix + '_' + database;
+  var cacheKey = 'ai_usage_enum:' + enumDb + ':' + enumName;
+  var cache = CacheService.getScriptCache();
+  var cached = cache ? cache.get(cacheKey) : null;
+  if (cached) {
+    return cached;
+  }
+  var r = fiberyQuery_({
+    query: {
+      'q/from': enumDb,
+      'q/select': { id: 'fibery/id', name: 'enum/name' },
+      'q/where': ['=', ['enum/name'], '$n'],
+      'q/limit': 1,
+    },
+    params: { $n: enumName },
+  });
+  if (!r.ok || !r.rows || !r.rows.length || !r.rows[0].id) {
+    console.warn('aiUsageEnumId_: could not resolve ' + enumDb + ' name=' + enumName);
+    return null;
+  }
+  var id = String(r.rows[0].id);
+  if (cache) {
+    try {
+      cache.put(cacheKey, id, 21600);
+    } catch (_) {
+      /* ignore */
+    }
+  }
+  return id;
 }
 
 /**
@@ -240,13 +348,20 @@ function aiUsageFiberyDocument_(value) {
  * @return {!{ ok: boolean, message?: string }}
  */
 function aiUsageWriteFiberySyncRun_(summary, status, durationMs, startedAtIso) {
-  var trigger = aiUsageMapSyncTrigger_(summary.trigger, summary.startYmd, summary.endYmd);
+  var triggerName = aiUsageMapSyncTrigger_(summary.trigger, summary.startYmd, summary.endYmd);
+  var statusName = String(status || 'failed').toLowerCase();
   var entity = {};
   entity[aiUsageField_('Name')] = String(summary.syncRunId || 'ai-usage-run');
   entity[aiUsageField_('Started At')] = startedAtIso;
   entity[aiUsageField_('Completed At')] = new Date().toISOString();
-  entity[aiUsageField_('Trigger')] = trigger;
-  entity[aiUsageField_('Status')] = status;
+  var triggerId = aiUsageSyncRunEnumId_('trigger', triggerName);
+  var statusId = aiUsageSyncRunEnumId_('status', statusName);
+  if (triggerId) {
+    entity[aiUsageField_('Trigger')] = { 'fibery/id': triggerId };
+  }
+  if (statusId) {
+    entity[aiUsageField_('Status')] = { 'fibery/id': statusId };
+  }
   if (summary.startYmd) {
     entity[aiUsageField_('Range Start')] = summary.startYmd;
   }
@@ -256,10 +371,6 @@ function aiUsageWriteFiberySyncRun_(summary, status, durationMs, startedAtIso) {
   entity[aiUsageField_('Rows Fetched')] = summary.rowsFetched || 0;
   entity[aiUsageField_('Rows Upserted')] = summary.rowsUpserted || 0;
   entity[aiUsageField_('Rows Failed')] = summary.rowsFailed || 0;
-  var warnings = (summary.warnings || []).slice(0, 10).join('\n');
-  if (warnings) {
-    entity[aiUsageField_('Warnings')] = aiUsageFiberyDocument_(warnings);
-  }
   if (status === 'failed' && summary.message) {
     entity[aiUsageField_('Error')] = String(summary.message).slice(0, 2000);
   }
@@ -291,4 +402,60 @@ function aiUsageMapSyncTrigger_(triggerKind, startYmd, endYmd) {
     return 'backfill';
   }
   return 'manual';
+}
+
+/**
+ * Returns the latest Usage Date stored in Fibery, or null when empty / unreachable.
+ *
+ * @return {?string} YYYY-MM-DD
+ */
+function aiUsageQueryMaxUsageDateYmd_() {
+  var usageDateField = aiUsageField_('Usage Date');
+  var q = {
+    query: {
+      'q/from': aiUsageUsageDatabase_(),
+      'q/select': {
+        usageDate: usageDateField,
+      },
+      'q/order-by': [[usageDateField, 'q/desc']],
+      'q/limit': 1,
+    },
+  };
+  var r = fiberyQuery_(q);
+  if (!r.ok || !r.rows || !r.rows.length) {
+    return null;
+  }
+  return aiUsageNormalizeUsageDateYmd_(r.rows[0].usageDate);
+}
+
+/**
+ * Resolves fibery/id for Sync Runs enum fields (Status, Trigger).
+ *
+ * @param {'status'|'trigger'} kind
+ * @param {string} enumName
+ * @return {?string}
+ */
+function aiUsageSyncRunEnumId_(kind, enumName) {
+  var field = kind === 'trigger' ? 'Trigger' : 'Status';
+  return aiUsageEnumId_(aiUsageSyncRunsDatabase_(), field, enumName);
+}
+
+/**
+ * @param {*} raw
+ * @return {?string}
+ * @private
+ */
+function aiUsageNormalizeUsageDateYmd_(raw) {
+  if (raw === null || raw === undefined || raw === '') {
+    return null;
+  }
+  var s = String(raw).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    return s;
+  }
+  var t = Date.parse(s);
+  if (!isFinite(t)) {
+    return null;
+  }
+  return new Date(t).toISOString().slice(0, 10);
 }

@@ -1,6 +1,6 @@
 # Admin settings - environment configuration panel
 
-> **PRD version 2.2.0** - see `docs/FOS-Dashboard-PRD.md` (**FR-106**, **AC-62**).
+> **PRD version 2.14.0** - see `docs/FOS-Dashboard-PRD.md` (**FR-106**, **AC-62**; operator UI extension **FR-117** / **AC-75** in v2.14.0).
 
 ## Goal
 
@@ -75,6 +75,7 @@ Groups align with README / feature specs so admins think in product terms:
 | `labor-hours` | **Labor hours** | [007](007-labor-hours-dashboard.md) |
 | `delivery` | **Delivery - Projects & P&L** | [006](006-delivery-project-pnl.md) |
 | `snapshots` | **Historical snapshots** | [009](009-dashboard-historical-snapshots.md), [010](010-dashboard-historical-data-source.md) |
+| `ai-usage-sync` | **AI usage sync (Fibery)** | [017](017-ai-platform-usage-fibery-sync.md) - Script Properties **plus** operator subsection (Phase G, **v2.14.0**): last sync status, **Run sync now** |
 
 Optional **v1.1** group `snapshots-ops`: read-only status (last run, folder id) + links to editor functions - out of scope for v1 unless explicitly approved.
 
@@ -267,12 +268,23 @@ All keys below exist today unless marked **v1 read-only**. Tooltips in the imple
 - [ ] **Given** `FIBERY_API_TOKEN` already set, **when** the panel loads, **then** the token value is **not** returned to the client.
 - [ ] **Given** a successful save, **when** User Activity is checked, **then** an `admin_settings_save` row exists without secret values.
 
+## Extension - AI usage sync operator (feature 017 Phase G, v2.14.0)
+
+The **`ai-usage-sync`** registry group gains an **operator card** (not a Script Property row) above the existing keys:
+
+- **Last sync** - read-only status from **`AI Usage Sync Runs`** (see [017](017-ai-platform-usage-fibery-sync.md#admin-settings---ai-usage-sync-operator-panel-phase-g)).
+- **Run sync now** - calls `runAiUsageSyncIncremental()`; server computes date range from log + Fibery max **`Usage Date`** (incremental, with overlap).
+- Does **not** replace editor entry points (`runAiUsageSyncOnDemand`, daily trigger).
+
+Server: `getAiUsageSyncStatus()` + `runAiUsageSyncIncremental()` in `adminSettingsApi.js` or `aiUsageSyncJob.js` with **`requireAdminRole_`**. Client: render inside the `ai-usage-sync` collapsible group in `#settings-groups`.
+
 ## Non-goals (v1)
 
 - Editing the **Users** sheet roster from Settings (remain spreadsheet-only).
 - Per-user or per-team overrides (all settings remain deployment-wide).
 - Version history / rollback UI for Script Properties.
 - Running snapshot jobs or installing triggers from Settings (editor/diagnostic functions only).
+- Running **AI usage sync** with a custom date range from Settings (incremental **Run sync now** only; explicit ranges remain editor `runAiUsageSyncOnDemand`).
 - Migrating settings to a dedicated “config” sheet (remain Script Properties).
 
 ## Dependencies

@@ -1,5 +1,5 @@
 /**
- * PRD version 2.13.4 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.15.6 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Anthropic Admin API client for AI usage sync (messages, cost_report, claude_code).
  */
@@ -100,6 +100,16 @@ function aiUsageFetchAnthropicCostForDay_(dateYmd) {
   var key = aiUsageRequireAnthropicKey_();
   var startIso = dateYmd + 'T00:00:00Z';
   var endIso = aiUsageAnthropicDayEndExclusiveIso_(dateYmd);
+  var nowIso = new Date().toISOString();
+  if (endIso > nowIso) {
+    endIso = nowIso;
+  }
+  if (startIso >= endIso) {
+    console.warn(
+      'aiUsageFetchAnthropicCostForDay_: skip ' + dateYmd + ' (cost window not ready yet)'
+    );
+    return [];
+  }
   var rows = [];
   var page = null;
   var guard = 0;
@@ -107,13 +117,25 @@ function aiUsageFetchAnthropicCostForDay_(dateYmd) {
     var query = {
       starting_at: startIso,
       ending_at: endIso,
+      bucket_width: '1d',
       group_by: ['workspace_id', 'description'],
       limit: AI_USAGE_ANTHROPIC_PAGE_LIMIT_,
     };
     if (page) {
       query.page = page;
     }
-    var payload = _aiUsageAnthropicGetJson_('/v1/organizations/cost_report', key, query);
+    var payload;
+    try {
+      payload = _aiUsageAnthropicGetJson_('/v1/organizations/cost_report', key, query);
+    } catch (e) {
+      console.warn(
+        'aiUsageFetchAnthropicCostForDay_: ' +
+          dateYmd +
+          ' failed: ' +
+          (e && e.message ? e.message : e)
+      );
+      return rows;
+    }
     (payload.data || []).forEach(function (bucket) {
       (bucket.results || []).forEach(function (result) {
         rows.push({

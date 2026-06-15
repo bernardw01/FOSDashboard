@@ -41,7 +41,7 @@ Root folder: Script Property **`FOS_SNAPSHOT_DRIVE_FOLDER_ID`** (create via **`e
 | Artifact | Source | Notes |
 |----------|--------|--------|
 | `agreement.json` | `buildAgreementDashboardPayload_(snapshotDate)` | Future revenue filtered as of snapshot date |
-| `utilization.json` | `buildUtilizationDashboardPayload_(start, end)` | Default 90-day window ending snapshot date |
+| `utilization.json` | `buildUtilizationDashboardPayload_(start, end)` | Default 90-day window ending snapshot date; `cacheSchemaVersion: 4` (v2.13.6: `clockifyUserWorkStatus`; was **3** through v2.13.5) |
 | `delivery-projects.json` | `buildDeliveryDashboardPayloadFromAgreement_` | No extra Fibery fetch |
 | `expenses.json` | `buildExpensesDashboardPayload_()` | Spreadsheet tab at job run time; `cacheSchemaVersion: 2` (v2.11.2); skip when **`SNAPSHOT_INCLUDE_EXPENSES`** is false |
 | `pipeline.json` | `buildPipelineDashboardPayload_()` | Fibery `HubSpot/Deal`; `cacheSchemaVersion: 2` (v2.11.1); skip when **`SNAPSHOT_INCLUDE_PIPELINE`** is false |

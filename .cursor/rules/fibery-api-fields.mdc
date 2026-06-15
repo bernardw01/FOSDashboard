@@ -1,0 +1,80 @@
+---
+description: Fibery REST field types - documents, enums, query params (FOS Dashboard)
+globs: src/fibery*.js, src/*Fibery*.js, src/aiUsage*.js, src/agreementStatusUpdates.js
+alwaysApply: false
+---
+
+# Fibery API field handling (FOS Dashboard)
+
+Use `src/fiberyClient.js` for all Fibery HTTP. Before writing entities, confirm field types with Fibery MCP `describe_database` or `docs/features/017-fibery-schema-api.md`.
+
+## Document fields (`fibery/document`)
+
+**Never** set document fields inline on `fibery.entity/create` or `fibery.entity/update`.
+
+These fail at runtime with errors like `Cannot parse ".../Warnings" field` or similar:
+
+```javascript
+// WRONG - do not use on create/update payloads
+entity[fieldPath] = { 'fibery/document-content': jsonString };
+entity[fieldPath] = aiUsageFiberyDocument_(payload);
+```
+
+**Correct pattern (two steps)** - canonical example: `createAgreementStatusUpdate()` in `src/agreementStatusUpdates.js`:
+
+1. **Create/update** the entity **without** the document field (scalar fields + relations + enums only).
+2. **Write body** via Document Storage:
+   - `fiberyDocumentSecretForField_(entityType, fiberyId, fieldPath)`
+   - `fiberySetDocumentContent_(secret, content, 'plain-text' | 'md' | 'html')`
+
+To **read** document bodies: `fiberyGetDocumentContents_(secrets, format)` (batch).
+
+**When document content is optional** (e.g. Sync Runs warnings, debug JSON blobs): omit the Fibery document field entirely and rely on a **text** field, spreadsheet log, or a follow-on job. Do not block the primary write on document storage.
+
+**Dashboard reads:** Document fields are expensive. Prefer not fetching them in list/dashboard queries (`pipelineDashboard.js` documents this for Deal Description). Fetch only when a drill-down needs the body.
+
+## Enum fields (app-specific enums)
+
+Fields typed `App/FieldName_EntityType` (e.g. `AI Usage Data/Status_AI Usage Data/Sync Runs`) require **`{ 'fibery/id': '<uuid>' }`** on create/update, **not** the display string.
+
+```javascript
+// WRONG
+entity['AI Usage Data/Status'] = 'complete';
+
+// RIGHT - resolve enum/name -> fibery/id once (cache per workspace)
+entity['AI Usage Data/Status'] = { 'fibery/id': statusEnumId };
+```
+
+Use `aiUsageEnumId_(database, fieldSuffix, enumName)` in `src/aiUsageFiberyWriter.js` or the same query pattern:
+
+- Enum database path: `{App}/{FieldName}_{EntityDatabase}`
+- Query: `q/from` that path, `q/where` `['=', ['enum/name'], '$n']`, **`params: { $n: enumName }`**
+
+Verify enum **names match exactly** (case and spacing) against `docs/features/017-fibery-schema-api.md` or MCP.
+
+## Query params (`fibery.entity/query`)
+
+Placeholders in `q/where` use a **`$` prefix**. The `params` object keys **must include `$`**:
+
+```javascript
+// WRONG
+'q/where': ['q/in', [field], '$ids'],
+params: { ids: chunk }
+
+// RIGHT
+params: { $ids: chunk }
+```
+
+Same rule for `$id`, `$n`, `$agreementId`, etc. See `fiberyDocumentSecretForField_` and `deliveryDashboard.js` for working examples.
+
+## Relations
+
+Cross-app / entity relations: `{ 'fibery/id': '<uuid>' }` only. Never paste display names.
+
+## Pre-ship checklist (Fibery writers)
+
+- [ ] No `fibery/document` keys in create/update entity payloads unless using a proven two-step helper
+- [ ] All app enums resolved to `fibery/id`
+- [ ] All query `params` keys match `$placeholder` names exactly
+- [ ] Field paths match `017-fibery-schema-api.md` (Usage Clockify link is **`Actor Mapping Clockify User`**, not `Clockify User`)
+- [ ] Smoke test: one create + (if needed) one document write via editor diagnostic or MCP

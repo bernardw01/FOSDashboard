@@ -1,6 +1,6 @@
 # Feature: Labor Hours Dashboard (under Operations)
 
-> **PRD version 2.5.4** - see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js`).
+> **PRD version 2.13.6** - see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js`).
 
 > **PRD baseline (imported):** `docs/implementation-notes/labor-hours-dashboard-PRD (1).html` (v2.4, static Python report spec). 
 > **Reference UI (imported example):** `docs/implementation-notes/labor-hours-week-of-2026-05-04.html` (week-of report with KPIs, tables, zero-hours chips, expandable project breakdown). 
@@ -160,6 +160,7 @@ This plan assumes **nested nav** unless product prefers inner tabs (document in 
 
 | Date | Version | Notes |
 | --- | --- | --- |
+| 2026-06-15 | **2.13.6** | **Zero hours** roster lists only Clockify Users with **Work Status = Active** (`clockifyUserWorkStatus` on labor rows / `dimensions.persons`). Utilization cache schema **4**. |
 | 2026-05-27 | **2.5.4** | **Company** checkbox multi-select replaces shared Internal-labor toggle; all companies checked by default. Roster fetch uses **60-day** window on cache miss; zero-hours merges `dimensions.persons` + inferred persons from rows. **`labor_hours_filter_change`** activity event. |
 
 ## References

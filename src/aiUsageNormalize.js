@@ -1,8 +1,44 @@
 /**
- * PRD version 2.13.4 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.15.6 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Vendor payloads → normalized AI Usage rows (feature 017).
  */
+
+/**
+ * Anthropic cost_report and claude_code estimated_cost use USD minor units (cents).
+ *
+ * @param {*} raw
+ * @return {?number}
+ */
+function aiUsageMinorUnitsToUsd_(raw) {
+  if (raw === null || raw === undefined || raw === '') {
+    return null;
+  }
+  var n = Number(raw);
+  if (!isFinite(n)) {
+    return null;
+  }
+  return n / 100;
+}
+
+/**
+ * Whether a normalized row should contribute to dashboard spend totals.
+ * Messages = tokens only; API Claude Code dollars come from cost_report.
+ *
+ * @param {string} sourceDataset
+ * @param {string|null|undefined} customerType
+ * @return {boolean}
+ */
+function aiUsageRowIsBillableCost_(sourceDataset, customerType) {
+  var ds = String(sourceDataset || '');
+  if (ds === 'Anthropic Messages') {
+    return false;
+  }
+  if (ds === 'Anthropic Claude Code' && String(customerType || '').toLowerCase() === 'api') {
+    return false;
+  }
+  return true;
+}
 
 /**
  * @param {string} dateYmd
@@ -104,7 +140,7 @@ function aiUsageNormalizeAnthropicCostRow_(entry, orgId) {
   var bucket = entry.bucket || {};
   var result = entry.result || {};
   var startingAt = bucket.starting_at || '';
-  var amount = result.amount != null ? Number(result.amount) : null;
+  var amount = aiUsageMinorUnitsToUsd_(result.amount);
   var sourceRecordId =
     'anthropic:cost:' +
     aiUsageSafeKeyPart_(startingAt) +
@@ -179,8 +215,8 @@ function aiUsageNormalizeAnthropicClaudeCodeRow_(row, orgId) {
     var tokens = modelRow.tokens || {};
     var estimated = modelRow.estimated_cost || {};
     var costUsd = null;
-    if (estimated.amount != null) {
-      costUsd = Number(estimated.amount) / 100;
+    if (row.customer_type !== 'api' && estimated.amount != null) {
+      costUsd = aiUsageMinorUnitsToUsd_(estimated.amount);
     }
     var sourceRecordId =
       'anthropic:claude_code:' +

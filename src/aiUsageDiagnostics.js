@@ -1,5 +1,5 @@
 /**
- * PRD version 2.13.4 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.15.6 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Phase 0 diagnostics for AI usage Admin APIs (feature 017).
  * Editor-only helpers; logs redacted summaries (no secrets, no full payloads).
@@ -131,6 +131,79 @@ function _diag_sampleAiUsageAnthropic(dateYmd) {
     ccStats.apiActors,
     ccStats.subscriptionRows
   );
+
+  _diag_aiUsageCostReconcileForDay_(dateYmd);
+}
+
+/**
+ * Compares vendor-reported billable USD for one day vs normalized row totals (editor diagnostic).
+ *
+ * @param {string} dateYmd
+ */
+function _diag_aiUsageCostReconcileForDay_(dateYmd) {
+  dateYmd = String(dateYmd || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateYmd)) {
+    throw new Error('_diag_aiUsageCostReconcileForDay_: dateYmd must be YYYY-MM-DD');
+  }
+  var org = aiUsageFetchAnthropicOrg_();
+  var apiKeyIndex = aiUsageFetchAnthropicApiKeyIndex_();
+  var normalized = aiUsageNormalizeAnthropicDay_(dateYmd, org.id, apiKeyIndex);
+
+  var vendorCostReportUsd = 0;
+  var vendorClaudeCodeSubUsd = 0;
+  aiUsageFetchAnthropicCostForDay_(dateYmd).forEach(function (entry) {
+    var result = entry.result || {};
+    var usd = aiUsageMinorUnitsToUsd_(result.amount);
+    if (usd != null) {
+      vendorCostReportUsd += usd;
+    }
+  });
+  aiUsageFetchAnthropicClaudeCodeForDay_(dateYmd).forEach(function (row) {
+    if (row.customer_type === 'api') {
+      return;
+    }
+    (row.model_breakdown || []).forEach(function (modelRow) {
+      var est = modelRow.estimated_cost || {};
+      var usd = aiUsageMinorUnitsToUsd_(est.amount);
+      if (usd != null) {
+        vendorClaudeCodeSubUsd += usd;
+      }
+    });
+  });
+
+  var storedBillableUsd = 0;
+  var byDataset = {};
+  normalized.forEach(function (row) {
+    if (!aiUsageRowIsBillableCost_(row.sourceDataset, row.customerType)) {
+      return;
+    }
+    var c = Number(row.costUsd) || 0;
+    storedBillableUsd += c;
+    var ds = row.sourceDataset || 'unknown';
+    byDataset[ds] = (byDataset[ds] || 0) + c;
+  });
+
+  var vendorTotal = vendorCostReportUsd + vendorClaudeCodeSubUsd;
+  Logger.log(
+    'Cost reconcile %s: vendor cost_report=$%s claude_code(sub)=$%s vendor_total=$%s normalized_billable=$%s rows=%s',
+    dateYmd,
+    vendorCostReportUsd.toFixed(2),
+    vendorClaudeCodeSubUsd.toFixed(2),
+    vendorTotal.toFixed(2),
+    storedBillableUsd.toFixed(2),
+    normalized.length
+  );
+  Object.keys(byDataset)
+    .sort()
+    .forEach(function (ds) {
+      Logger.log('  normalized %s: $%s', ds, byDataset[ds].toFixed(2));
+    });
+  if (Math.abs(vendorTotal - storedBillableUsd) > 0.02) {
+    Logger.log(
+      'WARNING: normalized billable total differs from vendor by $%s',
+      (storedBillableUsd - vendorTotal).toFixed(2)
+    );
+  }
 }
 
 /**

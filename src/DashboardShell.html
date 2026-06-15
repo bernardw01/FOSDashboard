@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.13.4 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.15.6 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -113,6 +113,7 @@
     #panel-delivery.fos-agreement-root,
     #panel-revenue-review.fos-agreement-root,
     #panel-expenses.fos-agreement-root,
+    #panel-ai-usage.fos-agreement-root,
     #panel-portfolio-pnl.fos-agreement-root,
     #panel-labor-hours.fos-agreement-root {
       background: var(--ag-bg);
@@ -397,6 +398,27 @@
     #panel-expenses .exp-chart-canvas-wrap--cycle {
       min-height: 360px;
       max-height: 520px;
+    }
+    #panel-ai-usage .aiu-bar-chart-scroll {
+      position: relative;
+      max-height: 520px;
+      overflow-x: hidden;
+      overflow-y: auto;
+      border-radius: 8px;
+    }
+    #panel-ai-usage .aiu-bar-chart-inner {
+      position: relative;
+      width: 100%;
+      min-height: 240px;
+    }
+    #panel-ai-usage .exp-chart-canvas-wrap {
+      position: relative;
+      min-height: 280px;
+      max-height: 420px;
+    }
+    #panel-ai-usage .exp-chart-canvas-wrap--cycle {
+      min-height: 320px;
+      max-height: 480px;
     }
     #panel-expenses .exp-risk-month-control .form-range {
       accent-color: var(--ag-accent);
@@ -2287,6 +2309,41 @@
       margin-top: 0.75rem;
     }
 
+    .fos-settings-root .fos-ai-usage-sync-operator {
+      padding: 0.75rem 1rem 1rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0.25rem;
+    }
+
+    .fos-settings-root .fos-ai-usage-sync-operator .fos-ai-usage-status-badge {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+    }
+
+    .fos-settings-root .fos-ai-usage-sync-operator .fos-ai-usage-status-badge.is-complete {
+      background: rgba(61, 214, 140, 0.15);
+      color: #3dd68c;
+    }
+
+    .fos-settings-root .fos-ai-usage-sync-operator .fos-ai-usage-status-badge.is-partial {
+      background: rgba(245, 166, 35, 0.15);
+      color: #f5a623;
+    }
+
+    .fos-settings-root .fos-ai-usage-sync-operator .fos-ai-usage-status-badge.is-failed {
+      background: rgba(252, 92, 101, 0.15);
+      color: #fc5c65;
+    }
+
+    .fos-settings-root .fos-ai-usage-sync-operator .fos-ai-usage-status-badge.is-muted {
+      background: rgba(138, 160, 182, 0.15);
+      color: var(--text-muted);
+    }
+
     .fos-app-version-banner {
       background: rgba(82, 201, 229, 0.12);
       border-color: rgba(82, 201, 229, 0.35) !important;
@@ -3543,7 +3600,7 @@
                 <section class="fos-section-card" id="lh-section-zero" aria-labelledby="lh-zero-heading">
                   <h2 id="lh-zero-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text-muted)">Zero hours this week</h2>
                   <p class="small mb-2" style="color: var(--ag-text-muted)">
-                    People in the utilization roster (last ~60 days of labor data) with no qualifying entries in the selected week, after the <strong>Company</strong> filter.
+                    Active Clockify Users in the utilization roster (last ~60 days of labor data) with no qualifying entries in the selected week, after the <strong>Company</strong> filter.
                   </p>
                   <div id="lh-zero-chips" class="fos-lh-zero-chips" aria-live="polite"></div>
                 </section>
@@ -4412,6 +4469,184 @@
 
           </div>
         </div>
+
+        <!-- AI Usage - Fibery Usage rows (feature 023). -->
+        <div id="panel-ai-usage" class="d-none fos-agreement-root">
+          <div id="aiu-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
+          <div class="fos-agreement-inner shadow-lg">
+            <div class="fos-loading-overlay d-none" id="aiu-loading" role="status" aria-live="polite" aria-hidden="true">
+              <div class="fos-loading-spinner" aria-hidden="true"></div>
+              <span class="fos-loading-label">Loading AI usage…</span>
+            </div>
+
+            <div class="alert alert-info py-2 px-3 small mb-3 d-none" id="aiu-live-only" role="status">
+              AI Usage is available under <strong>Live data</strong> only. Switch the sidebar data source to load current usage.
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <div class="flex-grow-1 min-w-0">
+                <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">AI Usage</h1>
+                <p class="small mb-0" id="aiu-subtitle" style="color: var(--ag-text-muted)"> - </p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 mb-3 pb-3 border-bottom" style="border-color: var(--ag-border) !important">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="aiu-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
+                Refresh
+              </button>
+              <span class="small" id="aiu-last-refresh" style="color: var(--ag-text-muted)">Last refreshed:  - </span>
+              <span class="d-none small" id="aiu-stale-badge" style="color: var(--ag-warn); font-weight: 600">Stale</span>
+              <label class="small d-flex align-items-center gap-1" for="aiu-ttl-select" style="color: var(--ag-text-muted)">
+                Auto-refresh
+                <select id="aiu-ttl-select" class="fos-ttl-select" aria-label="Auto-refresh interval">
+                  <option value="5">5 min</option>
+                  <option value="10" selected>10 min</option>
+                  <option value="30">30 min</option>
+                  <option value="0">Off</option>
+                </select>
+              </label>
+              <span class="small d-none text-danger" id="aiu-fetch-error" role="alert"></span>
+            </div>
+
+            <section class="fos-util-filter-bar mb-3" aria-label="AI usage filters">
+              <div class="d-flex flex-wrap align-items-end gap-3">
+                <div>
+                  <label class="field-label" for="aiu-range-preset">Date range</label>
+                  <select id="aiu-range-preset" aria-label="Date range preset">
+                    <option value="30">Last 30 days</option>
+                    <option value="60">Last 60 days</option>
+                    <option value="90" selected>Last 90 days</option>
+                    <option value="180">Last 6 months</option>
+                    <option value="ytd">Year to date</option>
+                    <option value="custom">Custom…</option>
+                  </select>
+                </div>
+                <div id="aiu-custom-range" class="d-none d-flex gap-2 align-items-end">
+                  <div>
+                    <label class="field-label" for="aiu-range-start">Start</label>
+                    <input type="date" id="aiu-range-start" />
+                  </div>
+                  <div>
+                    <label class="field-label" for="aiu-range-end">End</label>
+                    <input type="date" id="aiu-range-end" />
+                  </div>
+                  <button type="button" class="btn btn-sm" id="aiu-range-apply" style="background: var(--ag-accent); color: #061b30; border: none; align-self: end">
+                    Apply
+                  </button>
+                </div>
+                <div class="fos-util-multi">
+                  <label class="field-label">Persons</label>
+                  <button type="button" class="multi-trigger" id="aiu-person-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    All persons
+                  </button>
+                  <ul class="dropdown-menu" id="aiu-person-menu" aria-label="Person filter"></ul>
+                </div>
+                <div class="fos-util-multi">
+                  <label class="field-label">Roles</label>
+                  <button type="button" class="multi-trigger" id="aiu-role-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    All roles
+                  </button>
+                  <ul class="dropdown-menu" id="aiu-role-menu" aria-label="Role filter"></ul>
+                </div>
+                <button type="button" class="fos-util-clear-btn ms-auto" id="aiu-clear-btn">Clear filters</button>
+              </div>
+              <div class="fos-util-chip-row mt-2" id="aiu-chip-row" aria-live="polite"></div>
+            </section>
+
+            <p class="small mb-3 d-none" id="aiu-empty" style="color: var(--ag-text-muted)">
+              No AI usage rows in this date range. Run sync under <strong>Settings → AI usage sync (Fibery)</strong>.
+            </p>
+
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 mb-3" id="aiu-kpi-row">
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-blue h-100">
+                  <div class="label">Total spend</div>
+                  <div class="value" id="aiu-kpi-total">$0</div>
+                  <div class="sub" id="aiu-kpi-total-sub">0 rows</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-teal h-100">
+                  <div class="label">Developers</div>
+                  <div class="value" id="aiu-kpi-developer">$0</div>
+                  <div class="sub" id="aiu-kpi-developer-sub">People (non-product)</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-green h-100">
+                  <div class="label">Products / programs</div>
+                  <div class="value" id="aiu-kpi-product">$0</div>
+                  <div class="sub" id="aiu-kpi-product-sub">AI Usage Tracker keys</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-yellow h-100">
+                  <div class="label">Unmatched</div>
+                  <div class="value" id="aiu-kpi-unmatched">$0</div>
+                  <div class="sub" id="aiu-kpi-unmatched-sub">No Clockify User</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-lg-6">
+                <section class="fos-section-card h-100" aria-labelledby="aiu-dev-chart-heading">
+                  <h2 id="aiu-dev-chart-heading" class="h6 fw-bold mb-2" style="color: var(--ag-text)">Developer spend by person</h2>
+                  <div class="aiu-bar-chart-scroll" id="aiu-dev-chart-scroll">
+                    <div class="aiu-bar-chart-inner" id="aiu-dev-chart-inner">
+                      <canvas id="aiu-dev-chart" role="img" aria-label="Developer spend by Clockify user"></canvas>
+                    </div>
+                  </div>
+                </section>
+              </div>
+              <div class="col-lg-6">
+                <section class="fos-section-card h-100" aria-labelledby="aiu-prod-chart-heading">
+                  <h2 id="aiu-prod-chart-heading" class="h6 fw-bold mb-2" style="color: var(--ag-text)">Product / program spend</h2>
+                  <div class="aiu-bar-chart-scroll" id="aiu-prod-chart-scroll">
+                    <div class="aiu-bar-chart-inner" id="aiu-prod-chart-inner">
+                      <canvas id="aiu-prod-chart" role="img" aria-label="Product spend by Clockify user"></canvas>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </div>
+
+            <section class="fos-section-card mb-3" aria-labelledby="aiu-trend-heading">
+              <h2 id="aiu-trend-heading" class="h6 fw-bold mb-2" style="color: var(--ag-text)">Monthly spend trend</h2>
+              <div class="exp-chart-canvas-wrap exp-chart-canvas-wrap--cycle">
+                <canvas id="aiu-trend-chart" role="img" aria-label="Monthly AI spend trend"></canvas>
+              </div>
+            </section>
+
+            <section class="fos-section-card mb-0" aria-labelledby="aiu-table-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="aiu-table-heading" class="h6 fw-bold mb-0" style="color: var(--ag-text)">Detail</h2>
+                <button type="button" class="btn btn-outline-secondary btn-sm ms-auto" id="aiu-export-btn">Export CSV</button>
+              </div>
+              <div class="fos-financial-scroll">
+                <table class="fos-util-detail-table fos-financial-table mb-0" aria-describedby="aiu-table-heading">
+                  <thead>
+                    <tr>
+                      <th scope="col" data-aiu-sort="usageDate">Date</th>
+                      <th scope="col" data-aiu-sort="personName">Person</th>
+                      <th scope="col" data-aiu-sort="roleName">Role</th>
+                      <th scope="col" data-aiu-sort="bucket">Type</th>
+                      <th scope="col" data-aiu-sort="sourcePlatform">Platform</th>
+                      <th scope="col" data-aiu-sort="costUsd" class="num">Cost USD</th>
+                    </tr>
+                  </thead>
+                  <tbody id="aiu-table-body"></tbody>
+                </table>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="aiu-table-empty" style="color: var(--ag-text-muted)">No rows match the current filters.</p>
+              <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="aiu-page-prev" disabled>Previous</button>
+                <span class="small" id="aiu-page-label" style="color: var(--ag-text-muted)">Page 1</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="aiu-page-next" disabled>Next</button>
+              </div>
+            </section>
+          </div>
+        </div>
       </main>
       </div>
     </div>
@@ -4797,9 +5032,14 @@
       var AGREEMENT_CACHE_SCHEMA_VERSION = 3;
       var AGREEMENT_TTL_PREF_KEY = 'fos_agreement_dashboard_ttl_minutes_v1';
       var UTIL_CACHE_KEY = 'fos_utilization_dashboard_v1';
+      var AI_USAGE_CACHE_KEY = 'fos_ai_usage_dashboard_v1';
+      var AI_USAGE_CACHE_SCHEMA_VERSION = 2;
+      var AI_USAGE_FILTERS_PREF_KEY = 'fos_ai_usage_filters_v1';
+      var AI_USAGE_TTL_PREF_KEY = 'fos_ai_usage_dashboard_ttl_minutes_v1';
+      var AI_USAGE_DETAIL_PAGE_SIZE = 100;
       // v3 (PRD 2.11.0) drops labor approval / pending-approvals fields.
       // v2 (PRD 1.14.0) added aggregates.byPersonWeek + alerts[].
-      var UTIL_CACHE_SCHEMA_VERSION = 3;
+      var UTIL_CACHE_SCHEMA_VERSION = 4;
       var UTIL_TTL_PREF_KEY = 'fos_utilization_dashboard_ttl_minutes_v1';
       var UTIL_FILTERS_PREF_KEY = 'fos_utilization_filters_v1';
       var UTIL_FILTERS_SCHEMA_VERSION = 1;
@@ -4858,6 +5098,9 @@
         expensesSoftware: null,
         expensesRisk: null,
         expensesSubmissionCycle: null,
+        aiUsageDeveloper: null,
+        aiUsageProduct: null,
+        aiUsageTrend: null,
       };
       var currentTablePayload = null;
       var currentTab = 'allActive';
@@ -4997,6 +5240,7 @@
         'delivery': 'bi-truck',
         'revenue-review': 'bi-cash-stack',
         'expenses': 'bi-receipt-cutoff',
+        'ai-usage': 'bi-cpu',
         'portfolio-pnl': 'bi-table',
       };
 
@@ -5227,6 +5471,7 @@
         pipelineFunnel: document.getElementById('pipeline-funnel'),
         pipelineEmpty: document.getElementById('pipeline-empty'),
         panelExpenses: document.getElementById('panel-expenses'),
+        panelAiUsage: document.getElementById('panel-ai-usage'),
         panelPortfolioPnl: document.getElementById('panel-portfolio-pnl'),
         ppnlWarn: document.getElementById('ppnl-warn'),
         ppnlLoading: document.getElementById('ppnl-loading'),
@@ -5295,6 +5540,41 @@
         expRiskCatLabel: document.getElementById('exp-risk-cat-label'),
         expCustTbody: document.getElementById('exp-cust-tbody'),
         expCustEmpty: document.getElementById('exp-cust-empty'),
+        aiuWarn: document.getElementById('aiu-warn'),
+        aiuLoading: document.getElementById('aiu-loading'),
+        aiuLiveOnly: document.getElementById('aiu-live-only'),
+        aiuSubtitle: document.getElementById('aiu-subtitle'),
+        aiuRefreshBtn: document.getElementById('aiu-refresh-btn'),
+        aiuLastRefresh: document.getElementById('aiu-last-refresh'),
+        aiuStaleBadge: document.getElementById('aiu-stale-badge'),
+        aiuTtlSelect: document.getElementById('aiu-ttl-select'),
+        aiuFetchError: document.getElementById('aiu-fetch-error'),
+        aiuRangePreset: document.getElementById('aiu-range-preset'),
+        aiuCustomRange: document.getElementById('aiu-custom-range'),
+        aiuRangeStart: document.getElementById('aiu-range-start'),
+        aiuRangeEnd: document.getElementById('aiu-range-end'),
+        aiuRangeApply: document.getElementById('aiu-range-apply'),
+        aiuPersonTrigger: document.getElementById('aiu-person-trigger'),
+        aiuPersonMenu: document.getElementById('aiu-person-menu'),
+        aiuRoleTrigger: document.getElementById('aiu-role-trigger'),
+        aiuRoleMenu: document.getElementById('aiu-role-menu'),
+        aiuClearBtn: document.getElementById('aiu-clear-btn'),
+        aiuChipRow: document.getElementById('aiu-chip-row'),
+        aiuEmpty: document.getElementById('aiu-empty'),
+        aiuKpiTotal: document.getElementById('aiu-kpi-total'),
+        aiuKpiTotalSub: document.getElementById('aiu-kpi-total-sub'),
+        aiuKpiDeveloper: document.getElementById('aiu-kpi-developer'),
+        aiuKpiDeveloperSub: document.getElementById('aiu-kpi-developer-sub'),
+        aiuKpiProduct: document.getElementById('aiu-kpi-product'),
+        aiuKpiProductSub: document.getElementById('aiu-kpi-product-sub'),
+        aiuKpiUnmatched: document.getElementById('aiu-kpi-unmatched'),
+        aiuKpiUnmatchedSub: document.getElementById('aiu-kpi-unmatched-sub'),
+        aiuTableBody: document.getElementById('aiu-table-body'),
+        aiuTableEmpty: document.getElementById('aiu-table-empty'),
+        aiuPagePrev: document.getElementById('aiu-page-prev'),
+        aiuPageNext: document.getElementById('aiu-page-next'),
+        aiuPageLabel: document.getElementById('aiu-page-label'),
+        aiuExportBtn: document.getElementById('aiu-export-btn'),
         fosLoadingModal: document.getElementById('fosLoadingModal'),
         fosLoadingBody: document.getElementById('fosLoadingBody'),
         expensesDetailModal: document.getElementById('expensesDetailModal'),
@@ -5548,6 +5828,8 @@
           showExpenses();
         } else if (id === 'portfolio-pnl') {
           showPortfolioPnl();
+        } else if (id === 'ai-usage') {
+          showAiUsage();
         } else if (id === 'pipeline') {
           showPipeline();
         } else if (id === 'delivery') {
@@ -5757,6 +6039,11 @@
         loading: false,
         usage: null,
         usageError: null,
+        aiUsageSync: null,
+        aiUsageSyncError: null,
+        aiUsageSyncRunning: false,
+        aiUsageSyncPollTimer: null,
+        aiUsageSyncWatchdogTimer: null,
       };
       var settingsUsageChart_ = null;
       var settingsUsageChartRendered_ = false;
@@ -6286,6 +6573,9 @@
         for (var g = 0; g < groups.length; g++) {
           (function (grp) {
             var card = createSettingsCollapseGroup_(grp.id, grp.title || grp.id, function (body) {
+              if (grp.id === 'ai-usage-sync') {
+                renderAdminAiUsageSyncOperator_(body);
+              }
               var settings = grp.settings || [];
               for (var s = 0; s < settings.length; s++) {
                 body.appendChild(buildAdminSettingsRow_(settings[s]));
@@ -6295,6 +6585,264 @@
           })(groups[g]);
         }
         initAdminSettingsTooltips_(els.settingsGroups);
+      }
+
+      function aiUsageSyncStatusBadgeClass_(status) {
+        var s = String(status || '').toLowerCase();
+        if (s === 'complete') return 'is-complete';
+        if (s === 'partial') return 'is-partial';
+        if (s === 'failed') return 'is-failed';
+        if (s === 'running') return 'is-partial';
+        return 'is-muted';
+      }
+
+      function renderAdminAiUsageSyncOperator_(body) {
+        var wrap = document.createElement('div');
+        wrap.className = 'fos-ai-usage-sync-operator';
+        wrap.id = 'settings-ai-usage-sync-operator';
+
+        var title = document.createElement('div');
+        title.className = 'small fw-semibold text-white mb-2';
+        title.textContent = 'Sync operator';
+        wrap.appendChild(title);
+
+        var hint = document.createElement('p');
+        hint.className = 'small text-secondary mb-2';
+        hint.textContent =
+          'Pull new Anthropic usage into Fibery. The next run uses the last sync log and existing Usage rows to choose the date window (with overlap for late vendor data).';
+        wrap.appendChild(hint);
+
+        var status = adminSettingsState_.aiUsageSync;
+        var statusErr = adminSettingsState_.aiUsageSyncError;
+
+        if (statusErr) {
+          var errEl = document.createElement('p');
+          errEl.className = 'small text-danger mb-2';
+          errEl.textContent = statusErr;
+          wrap.appendChild(errEl);
+        } else if (!status || status.ok === false) {
+          var loadErr = document.createElement('p');
+          loadErr.className = 'small text-secondary mb-2';
+          loadErr.textContent = (status && status.message) || 'Could not load sync status.';
+          wrap.appendChild(loadErr);
+        } else {
+          var last = status.lastRun;
+          var range = status.incrementalRange || {};
+          var meta = document.createElement('dl');
+          meta.className = 'small mb-2';
+          meta.style.color = 'var(--text-muted)';
+
+          function row_(dt, dd) {
+            var dtr = document.createElement('div');
+            dtr.className = 'd-flex flex-wrap gap-2 mb-1';
+            var ddt = document.createElement('dt');
+            ddt.className = 'mb-0 text-secondary';
+            ddt.textContent = dt;
+            var ddd = document.createElement('dd');
+            ddd.className = 'mb-0 text-white';
+            ddd.textContent = dd;
+            dtr.appendChild(ddt);
+            dtr.appendChild(ddd);
+            meta.appendChild(dtr);
+          }
+
+            if (last && last.completedAt) {
+            var badge = document.createElement('span');
+            badge.className =
+              'fos-ai-usage-status-badge ' + aiUsageSyncStatusBadgeClass_(last.status);
+            badge.textContent = String(last.status || 'unknown');
+            if (last.staleRunning) {
+              badge.title = 'This run did not finish; the server likely timed out.';
+            }
+            row_('Last sync', last.completedAt + ' · ' + (last.trigger || ''));
+            var badgeRow = document.createElement('div');
+            badgeRow.className = 'mb-2';
+            badgeRow.appendChild(badge);
+            wrap.appendChild(badgeRow);
+            row_('Last range', (last.startYmd || ' - ') + ' → ' + (last.endYmd || ' - '));
+            row_(
+              'Last result',
+              'upserted ' +
+                String(last.rowsUpserted || 0) +
+                ' · matched ' +
+                String(last.matched || 0) +
+                ' · unmatched ' +
+                String(last.unmatched || 0)
+            );
+            if (last.notes) {
+              row_('Notes', last.notes.length > 120 ? last.notes.slice(0, 117) + '...' : last.notes);
+            }
+          } else {
+            row_('Last sync', 'No sync runs recorded yet.');
+          }
+
+          if (range.startYmd && range.endYmd) {
+            row_(
+              'Next incremental window',
+              range.startYmd +
+                ' → ' +
+                range.endYmd +
+                (range.alreadyUpToDate ? ' (up to date)' : '')
+            );
+          }
+
+          wrap.appendChild(meta);
+
+          if (!status.syncEnabled) {
+            var off = document.createElement('p');
+            off.className = 'small text-warning mb-2';
+            off.textContent =
+              'AI usage sync is disabled. Enable AI_USAGE_SYNC_ENABLED below to run.';
+            wrap.appendChild(off);
+          }
+          if (!status.anthropicKeyConfigured) {
+            var key = document.createElement('p');
+            key.className = 'small text-warning mb-2';
+            key.textContent = 'Set Anthropic Admin API key below before running sync.';
+            wrap.appendChild(key);
+          }
+        }
+
+        var actions = document.createElement('div');
+        actions.className = 'd-flex flex-wrap align-items-center gap-2 mt-2';
+        var runBtn = document.createElement('button');
+        runBtn.type = 'button';
+        runBtn.className = 'btn btn-sm btn-fos-primary';
+        runBtn.id = 'settings-ai-usage-sync-run-btn';
+        runBtn.textContent = adminSettingsState_.aiUsageSyncRunning ? 'Running…' : 'Run sync now';
+        var canRun =
+          status &&
+          status.ok !== false &&
+          status.syncEnabled &&
+          status.anthropicKeyConfigured &&
+          !adminSettingsState_.aiUsageSyncRunning &&
+          !adminSettingsState_.loading;
+        runBtn.disabled = !canRun;
+        runBtn.addEventListener('click', function () {
+          runAdminAiUsageSync_();
+        });
+        actions.appendChild(runBtn);
+
+        var resultEl = document.createElement('span');
+        resultEl.className = 'small';
+        resultEl.id = 'settings-ai-usage-sync-result';
+        resultEl.style.color = 'var(--text-muted)';
+        actions.appendChild(resultEl);
+        wrap.appendChild(actions);
+
+        body.appendChild(wrap);
+      }
+
+      function refreshAdminAiUsageSyncStatus_(callback) {
+        google.script.run
+          .withSuccessHandler(function (data) {
+            adminSettingsState_.aiUsageSync = data;
+            adminSettingsState_.aiUsageSyncError = null;
+            if (typeof callback === 'function') callback(data);
+          })
+          .withFailureHandler(function (err) {
+            var msg = err && err.message ? err.message : 'Could not load AI usage sync status.';
+            if (msg === 'NOT_AUTHORIZED' || msg === 'FORBIDDEN') {
+              msg = 'Administrator access required.';
+            }
+            adminSettingsState_.aiUsageSync = null;
+            adminSettingsState_.aiUsageSyncError = msg;
+            if (typeof callback === 'function') callback(null);
+          })
+          .getAiUsageSyncStatus();
+      }
+
+      function clearAdminAiUsageSyncTimers_() {
+        if (adminSettingsState_.aiUsageSyncPollTimer) {
+          clearInterval(adminSettingsState_.aiUsageSyncPollTimer);
+          adminSettingsState_.aiUsageSyncPollTimer = null;
+        }
+        if (adminSettingsState_.aiUsageSyncWatchdogTimer) {
+          clearTimeout(adminSettingsState_.aiUsageSyncWatchdogTimer);
+          adminSettingsState_.aiUsageSyncWatchdogTimer = null;
+        }
+      }
+
+      function finishAdminAiUsageSyncUi_(resultEl, errMsg) {
+        clearAdminAiUsageSyncTimers_();
+        adminSettingsState_.aiUsageSyncRunning = false;
+        if (resultEl && errMsg) {
+          resultEl.style.color = '#fc5c65';
+          resultEl.textContent = errMsg;
+        }
+        refreshAdminAiUsageSyncStatus_(function () {
+          renderAdminSettingsGroups_();
+        });
+      }
+
+      function runAdminAiUsageSync_() {
+        if (adminSettingsState_.aiUsageSyncRunning) return;
+        adminSettingsState_.aiUsageSyncRunning = true;
+        renderAdminSettingsGroups_();
+        logActivity_('ai_usage_sync_start', 'settings', '');
+        var resultEl = document.getElementById('settings-ai-usage-sync-result');
+        if (resultEl) resultEl.textContent = '';
+
+        clearAdminAiUsageSyncTimers_();
+        adminSettingsState_.aiUsageSyncPollTimer = setInterval(function () {
+          refreshAdminAiUsageSyncStatus_(function () {
+            renderAdminSettingsGroups_();
+          });
+        }, 20000);
+        adminSettingsState_.aiUsageSyncWatchdogTimer = setTimeout(function () {
+          if (!adminSettingsState_.aiUsageSyncRunning) return;
+          logActivity_(
+            'ai_usage_sync_error',
+            'settings',
+            'UI watchdog: no response after 7 minutes'
+          );
+          finishAdminAiUsageSyncUi_(
+            resultEl,
+            'No response after 7 minutes (likely Apps Script timeout). Refresh the log below, then run sync again.'
+          );
+        }, 420000);
+
+        google.script.run
+          .withSuccessHandler(function (res) {
+            clearAdminAiUsageSyncTimers_();
+            adminSettingsState_.aiUsageSyncRunning = false;
+            if (!res || res.ok === false) {
+              var errMsg = (res && res.message) || 'Sync failed.';
+              if (resultEl) {
+                resultEl.style.color = '#fc5c65';
+                resultEl.textContent = errMsg;
+              }
+              logActivity_('ai_usage_sync_error', 'settings', errMsg.slice(0, 80));
+              refreshAdminAiUsageSyncStatus_(function () {
+                renderAdminSettingsGroups_();
+              });
+              return;
+            }
+            if (resultEl) {
+              resultEl.style.color = 'var(--accent4)';
+              resultEl.textContent = res.message || 'Sync finished.';
+            }
+            var label = res.message || '';
+            if (res.summary) {
+              label =
+                'status=ok · rows=' +
+                String(res.summary.rowsUpserted || 0) +
+                ' · ' +
+                String(res.summary.startYmd || '') +
+                '..' +
+                String(res.summary.endYmd || '');
+            }
+            logActivity_('ai_usage_sync_done', 'settings', label.slice(0, 120));
+            refreshAdminAiUsageSyncStatus_(function () {
+              renderAdminSettingsGroups_();
+            });
+          })
+          .withFailureHandler(function (err) {
+            var msg = err && err.message ? err.message : 'Sync failed.';
+            logActivity_('ai_usage_sync_error', 'settings', msg.slice(0, 80));
+            finishAdminAiUsageSyncUi_(resultEl, msg);
+          })
+          .runAiUsageSyncIncremental();
       }
 
       function buildAdminSettingsRow_(row) {
@@ -6435,6 +6983,9 @@
         adminSettingsState_.loading = true;
         adminSettingsState_.usage = null;
         adminSettingsState_.usageError = null;
+        adminSettingsState_.aiUsageSync = null;
+        adminSettingsState_.aiUsageSyncError = null;
+        adminSettingsState_.aiUsageSyncRunning = false;
         if (els.settingsVersionsHost) els.settingsVersionsHost.innerHTML = '';
         if (els.settingsUsageHost) els.settingsUsageHost.innerHTML = '';
         if (els.settingsLoading) els.settingsLoading.classList.remove('d-none');
@@ -6442,7 +6993,7 @@
         if (els.settingsSaveStatus) els.settingsSaveStatus.classList.add('d-none');
         markAdminSettingsDirty_();
 
-        var pending = 2;
+        var pending = 3;
         var settingsOk = false;
 
         function tick() {
@@ -6507,6 +7058,29 @@
             tick();
           })
           .getAdminUsageStats();
+
+        google.script.run
+          .withSuccessHandler(function (syncStatus) {
+            if (!syncStatus || syncStatus.ok === false) {
+              adminSettingsState_.aiUsageSync = syncStatus || null;
+              adminSettingsState_.aiUsageSyncError =
+                (syncStatus && syncStatus.message) || null;
+            } else {
+              adminSettingsState_.aiUsageSync = syncStatus;
+              adminSettingsState_.aiUsageSyncError = null;
+            }
+            tick();
+          })
+          .withFailureHandler(function (err) {
+            var smsg = err && err.message ? err.message : 'Could not load AI usage sync status.';
+            if (smsg === 'NOT_AUTHORIZED' || smsg === 'FORBIDDEN') {
+              smsg = 'Administrator access required.';
+            }
+            adminSettingsState_.aiUsageSync = null;
+            adminSettingsState_.aiUsageSyncError = smsg;
+            tick();
+          })
+          .getAiUsageSyncStatus();
       }
 
       function showSettingsPanel() {
@@ -6517,6 +7091,7 @@
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         if (els.panelSettings) els.panelSettings.classList.remove('d-none');
@@ -8005,6 +8580,7 @@
         }
         if (els.panelExpenses) {
           els.panelExpenses.classList.add('d-none');
+          if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
           if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         }
         if (els.panelPipeline) {
@@ -8030,6 +8606,7 @@
         }
         if (els.panelExpenses) {
           els.panelExpenses.classList.add('d-none');
+          if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
           if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         }
         if (els.panelPipeline) {
@@ -10350,6 +10927,7 @@
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         if (els.panelOperations) els.panelOperations.classList.remove('d-none');
@@ -10527,7 +11105,11 @@
           var pk = personKeyForRow_(r);
           if (seen[pk]) continue;
           seen[pk] = true;
-          out.push({ id: pk, name: r.userName || '(Unknown user)' });
+          out.push({
+            id: pk,
+            name: r.userName || '(Unknown user)',
+            clockifyUserWorkStatus: r.clockifyUserWorkStatus || null,
+          });
         }
         return out;
       }
@@ -10625,6 +11207,23 @@
           }
         }
         return ' - ';
+      }
+
+      function laborLookupWorkStatusForPersonKey_(rows, personKey) {
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          if (!r) continue;
+          if (personKeyForRow_(r) !== personKey) continue;
+          var ws = r.clockifyUserWorkStatus;
+          if (ws != null && String(ws).trim() !== '') {
+            return String(ws).trim();
+          }
+        }
+        return '';
+      }
+
+      function laborClockifyUserIsActive_(workStatus) {
+        return String(workStatus || '').trim().toLowerCase() === 'active';
       }
 
       function laborTargetHoursForCompany_(cfg, company) {
@@ -10802,6 +11401,10 @@
           var name = dp.name || '(Unknown user)';
           if (laborPersonExcluded_(cfg, name)) continue;
           var pk = dp.id || dp.name || '(Unknown user)';
+          var workStatus =
+            (dp && dp.clockifyUserWorkStatus) ||
+            laborLookupWorkStatusForPersonKey_(fullRows || [], pk);
+          if (!laborClockifyUserIsActive_(workStatus)) continue;
           var agg = personMap[pk];
           var th = agg ? agg.totalHours : 0;
           if (th >= eps) continue;
@@ -11488,6 +12091,7 @@
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         if (els.panelLaborHours) els.panelLaborHours.classList.remove('d-none');
@@ -12109,6 +12713,7 @@
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.remove('d-none');
@@ -13151,6 +13756,7 @@
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         els.panelRevenueReview.classList.remove('d-none');
@@ -15381,6 +15987,7 @@
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         els.panelPipeline.classList.remove('d-none');
         hidePanelSettings_();
@@ -16492,6 +17099,7 @@
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
         els.panelPortfolioPnl.classList.remove('d-none');
         hidePanelSettings_();
         els.topbarTitle.textContent = 'Portfolio P&L';
@@ -16499,6 +17107,627 @@
         wirePortfolioPnlOnce_();
         logActivity_('portfolio_pnl_panel_open', 'portfolio-pnl', '');
         showPortfolioPnlLiveOrSnapshot_();
+      }
+
+      /* =====================================================================
+         AI Usage dashboard (Finance panel) - feature 023.
+         ================================================================== */
+
+      var aiUsageState = {
+        payload: null,
+        filters: { persons: {}, roles: {} },
+        detail: { sortKey: 'usageDate', sortDir: 'desc', page: 0, pageSize: AI_USAGE_DETAIL_PAGE_SIZE },
+      };
+      var aiUsageControlsWired_ = false;
+
+      function readAiUsageCache() {
+        try {
+          var raw = sessionStorage.getItem(AI_USAGE_CACHE_KEY);
+          if (!raw) return null;
+          var o = JSON.parse(raw);
+          if (!o || o.cacheSchemaVersion !== AI_USAGE_CACHE_SCHEMA_VERSION) return null;
+          return o;
+        } catch (e) {
+          return null;
+        }
+      }
+      function writeAiUsageCache(data) {
+        try {
+          sessionStorage.setItem(AI_USAGE_CACHE_KEY, JSON.stringify(data));
+        } catch (e) { /* ignore */ }
+      }
+      function readAiUsageTtlMinutes() {
+        try {
+          var raw = localStorage.getItem(AI_USAGE_TTL_PREF_KEY);
+          if (raw === null || raw === undefined) return DEFAULT_TTL_MINUTES;
+          var n = parseInt(raw, 10);
+          if (!isFinite(n) || n < 0) return DEFAULT_TTL_MINUTES;
+          return n;
+        } catch (e) {
+          return DEFAULT_TTL_MINUTES;
+        }
+      }
+      function writeAiUsageTtlMinutes(n) {
+        try {
+          localStorage.setItem(AI_USAGE_TTL_PREF_KEY, String(n));
+        } catch (e) { /* ignore */ }
+      }
+      function setAiUsageLoading(on) {
+        if (!els.aiuLoading) return;
+        if (on) {
+          els.aiuLoading.classList.remove('d-none');
+          els.aiuLoading.setAttribute('aria-hidden', 'false');
+        } else {
+          els.aiuLoading.classList.add('d-none');
+          els.aiuLoading.setAttribute('aria-hidden', 'true');
+        }
+      }
+      function destroyAiUsageChart(key) {
+        var inst = chartInstances[key];
+        if (inst) {
+          inst.destroy();
+          chartInstances[key] = null;
+        }
+      }
+      function aiUsagePersonKey_(r) {
+        return r.personKey || r.personName || 'Unmatched';
+      }
+      function aiUsageRoleKey_(r) {
+        return r.roleName || '(No role)';
+      }
+      function applyAiUsageFilters(rows) {
+        var f = aiUsageState.filters;
+        var hasPerson = setFromKeys(f.persons).length > 0;
+        var hasRole = setFromKeys(f.roles).length > 0;
+        if (!hasPerson && !hasRole) return rows.slice();
+        var out = [];
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          if (hasPerson && !f.persons[aiUsagePersonKey_(r)]) continue;
+          if (hasRole) {
+            if (r.bucket === 'unmatched') {
+              if (!f.persons['Unmatched']) continue;
+            } else if (!f.roles[aiUsageRoleKey_(r)]) continue;
+          }
+          out.push(r);
+        }
+        return out;
+      }
+      function aggregateAiUsageClient_(rows, topN) {
+        var kpis = {
+          totalCostUsd: 0,
+          developerCostUsd: 0,
+          productCostUsd: 0,
+          unmatchedCostUsd: 0,
+          rowCount: rows.length,
+          latestUsageDate: null,
+        };
+        var devMap = {};
+        var prodMap = {};
+        var monthMap = {};
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          var cost = Number(r.costUsd) || 0;
+          kpis.totalCostUsd += cost;
+          if (r.bucket === 'developer') {
+            kpis.developerCostUsd += cost;
+            devMap[r.personName] = (devMap[r.personName] || 0) + cost;
+          } else if (r.bucket === 'product') {
+            kpis.productCostUsd += cost;
+            prodMap[r.personName] = (prodMap[r.personName] || 0) + cost;
+          } else {
+            kpis.unmatchedCostUsd += cost;
+          }
+          if (r.usageDate && (!kpis.latestUsageDate || r.usageDate > kpis.latestUsageDate)) {
+            kpis.latestUsageDate = r.usageDate;
+          }
+          var month = r.usageDate ? r.usageDate.slice(0, 7) : '';
+          if (month) {
+            if (!monthMap[month]) {
+              monthMap[month] = { month: month, costUsd: 0, developerUsd: 0, productUsd: 0, unmatchedUsd: 0 };
+            }
+            monthMap[month].costUsd += cost;
+            if (r.bucket === 'developer') monthMap[month].developerUsd += cost;
+            else if (r.bucket === 'product') monthMap[month].productUsd += cost;
+            else monthMap[month].unmatchedUsd += cost;
+          }
+        }
+        function topBar(map) {
+          var arr = [];
+          Object.keys(map).forEach(function (name) {
+            arr.push({ name: name, costUsd: map[name] });
+          });
+          arr.sort(function (a, b) { return b.costUsd - a.costUsd; });
+          if (arr.length <= topN) return arr;
+          var head = arr.slice(0, topN);
+          var other = 0;
+          for (var j = topN; j < arr.length; j++) other += arr[j].costUsd;
+          if (other > 0) head.push({ name: 'Other', costUsd: other });
+          return head;
+        }
+        var months = [];
+        Object.keys(monthMap).forEach(function (k) { months.push(monthMap[k]); });
+        months.sort(function (a, b) { return a.month < b.month ? -1 : a.month > b.month ? 1 : 0; });
+        return {
+          kpis: kpis,
+          byDeveloper: topBar(devMap),
+          byProduct: topBar(prodMap),
+          byMonth: months,
+        };
+      }
+      function populateAiUsageFilterMenus_(filterOptions) {
+        var persons = (filterOptions && filterOptions.persons) || [];
+        var roles = (filterOptions && filterOptions.roles) || [];
+        function fillMenu(menu, names, selectedMap) {
+          if (!menu) return;
+          menu.innerHTML = '';
+          if (!names.length) {
+            var li = document.createElement('li');
+            li.className = 'empty';
+            li.textContent = 'No data in range.';
+            menu.appendChild(li);
+            return;
+          }
+          for (var i = 0; i < names.length; i++) {
+            var key = names[i];
+            var li2 = document.createElement('li');
+            var checkId = 'aiu-multi-' + Math.random().toString(36).slice(2, 8);
+            var checked = selectedMap[key] ? ' checked' : '';
+            li2.innerHTML =
+              '<div class="form-check">' +
+                '<input class="form-check-input" type="checkbox" id="' + checkId + '"' + checked + ' />' +
+                '<label class="form-check-label" for="' + checkId + '">' + escapeHtml(key) + '</label>' +
+              '</div>';
+            (function (input, k, sm) {
+              input.addEventListener('change', function () {
+                if (input.checked) sm[k] = true;
+                else delete sm[k];
+                aiUsageState.detail.page = 0;
+                saveAiUsageFiltersToStorage_();
+                updateMultiTriggerLabel(els.aiuPersonTrigger, 'All persons', 'person', aiUsageState.filters.persons);
+                updateMultiTriggerLabel(els.aiuRoleTrigger, 'All roles', 'role', aiUsageState.filters.roles);
+                renderAiUsageDashboard_();
+                logActivity_('ai_usage_filter_change', 'ai-usage', menu === els.aiuPersonMenu ? 'person' : 'role');
+              });
+            })(li2.querySelector('input'), key, selectedMap);
+            menu.appendChild(li2);
+          }
+        }
+        fillMenu(els.aiuPersonMenu, persons, aiUsageState.filters.persons);
+        fillMenu(els.aiuRoleMenu, roles, aiUsageState.filters.roles);
+        updateMultiTriggerLabel(els.aiuPersonTrigger, 'All persons', 'person', aiUsageState.filters.persons);
+        updateMultiTriggerLabel(els.aiuRoleTrigger, 'All roles', 'role', aiUsageState.filters.roles);
+      }
+      function renderAiUsageChips_() {
+        if (!els.aiuChipRow) return;
+        els.aiuChipRow.innerHTML = '';
+        var f = aiUsageState.filters;
+        Object.keys(f.persons).forEach(function (k) {
+          if (!f.persons[k]) return;
+          var chip = document.createElement('span');
+          chip.className = 'fos-util-chip';
+          chip.textContent = 'Person: ' + k;
+          els.aiuChipRow.appendChild(chip);
+        });
+        Object.keys(f.roles).forEach(function (k) {
+          if (!f.roles[k]) return;
+          var chip2 = document.createElement('span');
+          chip2.className = 'fos-util-chip';
+          chip2.textContent = 'Role: ' + k;
+          els.aiuChipRow.appendChild(chip2);
+        });
+      }
+      function sizeAiUsageBarChartWrap_(canvasId, barCount) {
+        var canvas = document.getElementById(canvasId);
+        if (!canvas || !canvas.parentElement) return;
+        var perBar = 30;
+        var pad = 52;
+        var h = Math.max(240, barCount * perBar + pad);
+        canvas.parentElement.style.height = h + 'px';
+      }
+      function renderAiUsageBarChart_(canvasId, chartKey, series, color) {
+        var Chart = window.Chart;
+        if (!Chart) return;
+        destroyAiUsageChart(chartKey);
+        var ctx = document.getElementById(canvasId);
+        if (!ctx || !series || !series.length) return;
+        sizeAiUsageBarChartWrap_(canvasId, series.length);
+        var labels = series.map(function (s) { return s.name; });
+        var values = series.map(function (s) { return s.costUsd; });
+        var opts = chartCommonOptions();
+        opts.indexAxis = 'y';
+        opts.layout = { padding: { left: 4, right: 12, top: 4, bottom: 4 } };
+        opts.plugins.legend.display = false;
+        opts.scales = {
+          x: {
+            ticks: { color: '#a0aec0', callback: function (v) { return formatMoneyCompact(v); } },
+            grid: { color: 'rgba(255,255,255,0.04)' },
+          },
+          y: {
+            ticks: {
+              color: '#a0aec0',
+              autoSkip: false,
+              font: { size: 11 },
+              padding: 8,
+            },
+            grid: { display: false },
+          },
+        };
+        opts.plugins.tooltip.callbacks = {
+          title: function (items) {
+            if (!items || !items.length) return '';
+            var idx = items[0].dataIndex;
+            return labels[idx] || '';
+          },
+          label: function (c) {
+            return formatMoneyCompact(c.raw || 0);
+          },
+        };
+        chartInstances[chartKey] = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: values,
+              backgroundColor: color,
+              borderWidth: 0,
+              barThickness: 20,
+              maxBarThickness: 22,
+            }],
+          },
+          options: opts,
+        });
+      }
+      function renderAiUsageTrendChart_(series) {
+        var Chart = window.Chart;
+        if (!Chart) return;
+        destroyAiUsageChart('aiUsageTrend');
+        var ctx = document.getElementById('aiu-trend-chart');
+        if (!ctx || !series || !series.length) return;
+        var labels = series.map(function (s) { return s.month; });
+        var opts = chartCommonOptions();
+        opts.scales = {
+          x: { ticks: { color: '#a0aec0' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          y: { ticks: { color: '#a0aec0', callback: function (v) { return formatMoneyCompact(v); } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        };
+        chartInstances.aiUsageTrend = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Developers',
+                data: series.map(function (s) { return s.developerUsd; }),
+                borderColor: '#52C9E5',
+                backgroundColor: 'rgba(82, 201, 229, 0.15)',
+                fill: true,
+                tension: 0.2,
+              },
+              {
+                label: 'Products',
+                data: series.map(function (s) { return s.productUsd; }),
+                borderColor: '#A78BFA',
+                backgroundColor: 'rgba(167, 139, 250, 0.12)',
+                fill: true,
+                tension: 0.2,
+              },
+              {
+                label: 'Unmatched',
+                data: series.map(function (s) { return s.unmatchedUsd; }),
+                borderColor: '#F6AD55',
+                backgroundColor: 'rgba(246, 173, 85, 0.12)',
+                fill: true,
+                tension: 0.2,
+              },
+            ],
+          },
+          options: opts,
+        });
+      }
+      function renderAiUsageTable_(rows) {
+        if (!els.aiuTableBody) return;
+        var sorted = rows.slice();
+        var sk = aiUsageState.detail.sortKey;
+        var sd = aiUsageState.detail.sortDir;
+        sorted.sort(function (a, b) {
+          var av = a[sk];
+          var bv = b[sk];
+          if (sk === 'costUsd') {
+            av = Number(av) || 0;
+            bv = Number(bv) || 0;
+          } else {
+            av = String(av || '');
+            bv = String(bv || '');
+          }
+          if (av === bv) return 0;
+          var cmp = av < bv ? -1 : 1;
+          return sd === 'asc' ? cmp : -cmp;
+        });
+        var page = aiUsageState.detail.page;
+        var pageSize = aiUsageState.detail.pageSize;
+        var start = page * pageSize;
+        var slice = sorted.slice(start, start + pageSize);
+        els.aiuTableBody.innerHTML = '';
+        for (var i = 0; i < slice.length; i++) {
+          var r = slice[i];
+          var tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td>' + escapeHtml(r.usageDate || ' - ') + '</td>' +
+            '<td>' + escapeHtml(r.personName || ' - ') + '</td>' +
+            '<td>' + escapeHtml(r.roleName || ' - ') + '</td>' +
+            '<td>' + escapeHtml(r.bucket || ' - ') + '</td>' +
+            '<td>' + escapeHtml(r.sourcePlatform || ' - ') + '</td>' +
+            '<td class="num">' + escapeHtml(formatMoneyCompact(r.costUsd || 0)) + '</td>';
+          els.aiuTableBody.appendChild(tr);
+        }
+        if (els.aiuTableEmpty) {
+          els.aiuTableEmpty.classList.toggle('d-none', sorted.length > 0);
+        }
+        var totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+        if (page >= totalPages) aiUsageState.detail.page = totalPages - 1;
+        if (els.aiuPageLabel) {
+          els.aiuPageLabel.textContent = 'Page ' + (aiUsageState.detail.page + 1) + ' of ' + totalPages +
+            ' (' + sorted.length + ' rows)';
+        }
+        if (els.aiuPagePrev) els.aiuPagePrev.disabled = aiUsageState.detail.page <= 0;
+        if (els.aiuPageNext) els.aiuPageNext.disabled = aiUsageState.detail.page >= totalPages - 1;
+      }
+      function renderAiUsageDashboard_() {
+        var payload = aiUsageState.payload;
+        if (!payload || !payload.rows) return;
+        var topN = payload.topN || 20;
+        var filtered = applyAiUsageFilters(payload.rows);
+        var agg = aggregateAiUsageClient_(filtered, topN);
+        if (els.aiuKpiTotal) els.aiuKpiTotal.textContent = formatMoneyCompact(agg.kpis.totalCostUsd);
+        if (els.aiuKpiTotalSub) els.aiuKpiTotalSub.textContent = agg.kpis.rowCount + ' rows';
+        if (els.aiuKpiDeveloper) els.aiuKpiDeveloper.textContent = formatMoneyCompact(agg.kpis.developerCostUsd);
+        if (els.aiuKpiProduct) els.aiuKpiProduct.textContent = formatMoneyCompact(agg.kpis.productCostUsd);
+        if (els.aiuKpiUnmatched) els.aiuKpiUnmatched.textContent = formatMoneyCompact(agg.kpis.unmatchedCostUsd);
+        if (els.aiuEmpty) {
+          els.aiuEmpty.classList.toggle('d-none', payload.rows.length > 0);
+        }
+        loadChartJs().then(function () {
+          renderAiUsageBarChart_('aiu-dev-chart', 'aiUsageDeveloper', agg.byDeveloper, '#52C9E5');
+          renderAiUsageBarChart_('aiu-prod-chart', 'aiUsageProduct', agg.byProduct, '#A78BFA');
+          renderAiUsageTrendChart_(agg.byMonth);
+        }).catch(noop);
+        renderAiUsageTable_(filtered);
+        renderAiUsageChips_();
+        if (els.aiuSubtitle && payload.range) {
+          var rs = payload.range.startYmd || (payload.range.start || '').slice(0, 10);
+          var re = payload.range.endYmd || (payload.range.end || '').slice(0, 10);
+          els.aiuSubtitle.textContent = rs + ' through ' + re;
+        }
+      }
+      function applyAiUsagePayload_(data) {
+        aiUsageState.payload = data;
+        populateAiUsageFilterMenus_(data && data.filterOptions);
+        if (els.aiuLastRefresh) {
+          els.aiuLastRefresh.textContent = 'Last refreshed: ' + formatLastRefresh(data && data.fetchedAt);
+        }
+        if (els.aiuWarn) {
+          if (data && data.warnings && data.warnings.length) {
+            els.aiuWarn.textContent = data.warnings.join(' ');
+            els.aiuWarn.classList.remove('d-none');
+          } else {
+            els.aiuWarn.classList.add('d-none');
+          }
+        }
+        if (els.aiuStaleBadge) {
+          var ttl = readAiUsageTtlMinutes();
+          if (ttl > 0 && isCacheStale(data, ttl)) els.aiuStaleBadge.classList.remove('d-none');
+          else els.aiuStaleBadge.classList.add('d-none');
+        }
+        renderAiUsageDashboard_();
+      }
+      function resolveAiUsageRangeFromPreset_() {
+        var preset = els.aiuRangePreset ? els.aiuRangePreset.value : '90';
+        var now = new Date();
+        var end = new Date(now);
+        var start;
+        if (preset === 'ytd') {
+          start = new Date(now.getFullYear(), 0, 1);
+        } else if (preset === 'custom') {
+          var s = els.aiuRangeStart && els.aiuRangeStart.value ? els.aiuRangeStart.value : null;
+          var e = els.aiuRangeEnd && els.aiuRangeEnd.value ? els.aiuRangeEnd.value : null;
+          return { startIso: s, endIso: e };
+        } else {
+          var days = parseInt(preset, 10);
+          if (!isFinite(days) || days <= 0) days = 90;
+          start = new Date(now.getTime() - days * 86400000);
+        }
+        return {
+          startIso: start.toISOString().slice(0, 10),
+          endIso: end.toISOString().slice(0, 10),
+        };
+      }
+      function fetchAiUsageFromServer_(forceRefresh) {
+        if (!isLiveDataSource_()) return;
+        var range = resolveAiUsageRangeFromPreset_();
+        if (els.aiuRefreshBtn) els.aiuRefreshBtn.disabled = true;
+        if (els.aiuFetchError) els.aiuFetchError.classList.add('d-none');
+        setAiUsageLoading(true);
+        google.script.run
+          .withSuccessHandler(function (data) {
+            setAiUsageLoading(false);
+            if (els.aiuRefreshBtn) els.aiuRefreshBtn.disabled = false;
+            if (!data || data.ok === false) {
+              if (els.aiuFetchError) {
+                els.aiuFetchError.textContent = (data && data.message) || 'Could not load AI usage data.';
+                els.aiuFetchError.classList.remove('d-none');
+              }
+              return;
+            }
+            writeAiUsageCache(data);
+            applyAiUsagePayload_(data);
+            if (forceRefresh) logActivity_('ai_usage_refresh', 'ai-usage', range.startIso + '..' + range.endIso);
+          })
+          .withFailureHandler(function (err) {
+            setAiUsageLoading(false);
+            if (els.aiuRefreshBtn) els.aiuRefreshBtn.disabled = false;
+            var msg = err && err.message ? err.message : 'Refresh failed.';
+            if (msg === 'NOT_AUTHORIZED') msg = 'Your session is not authorized. Reload the page.';
+            if (els.aiuFetchError) {
+              els.aiuFetchError.textContent = msg;
+              els.aiuFetchError.classList.remove('d-none');
+            }
+          })
+          .getAiUsageDashboardData(range.startIso, range.endIso);
+      }
+      function loadAiUsageFiltersFromStorage_() {
+        try {
+          var raw = localStorage.getItem(AI_USAGE_FILTERS_PREF_KEY);
+          if (!raw) return;
+          var o = JSON.parse(raw);
+          if (o && o.persons) aiUsageState.filters.persons = o.persons;
+          if (o && o.roles) aiUsageState.filters.roles = o.roles;
+        } catch (e) { /* ignore */ }
+      }
+      function saveAiUsageFiltersToStorage_() {
+        try {
+          localStorage.setItem(AI_USAGE_FILTERS_PREF_KEY, JSON.stringify({
+            persons: aiUsageState.filters.persons,
+            roles: aiUsageState.filters.roles,
+          }));
+        } catch (e) { /* ignore */ }
+      }
+      function showAiUsageLiveOrSnapshot_() {
+        if (!isLiveDataSource_()) {
+          if (els.aiuLiveOnly) els.aiuLiveOnly.classList.remove('d-none');
+          return;
+        }
+        if (els.aiuLiveOnly) els.aiuLiveOnly.classList.add('d-none');
+        var cached = readAiUsageCache();
+        var ttl = readAiUsageTtlMinutes();
+        if (cached) {
+          applyAiUsagePayload_(cached);
+          if (ttl > 0 && isCacheStale(cached, ttl)) {
+            fetchAiUsageFromServer_(false);
+          }
+        } else {
+          fetchAiUsageFromServer_(false);
+        }
+      }
+      function wireAiUsagePanelOnce_() {
+        if (aiUsageControlsWired_) return;
+        aiUsageControlsWired_ = true;
+        loadAiUsageFiltersFromStorage_();
+        if (els.aiuTtlSelect) {
+          var ttlVal = String(readAiUsageTtlMinutes());
+          els.aiuTtlSelect.value = ttlVal;
+          els.aiuTtlSelect.addEventListener('change', function () {
+            var n = parseInt(els.aiuTtlSelect.value, 10);
+            if (!isFinite(n) || n < 0) n = DEFAULT_TTL_MINUTES;
+            writeAiUsageTtlMinutes(n);
+          });
+        }
+        if (els.aiuRefreshBtn) {
+          els.aiuRefreshBtn.addEventListener('click', function () {
+            if (!isLiveDataSource_()) return;
+            fetchAiUsageFromServer_(true);
+          });
+        }
+        if (els.aiuRangePreset) {
+          els.aiuRangePreset.addEventListener('change', function () {
+            var isCustom = els.aiuRangePreset.value === 'custom';
+            if (els.aiuCustomRange) els.aiuCustomRange.classList.toggle('d-none', !isCustom);
+            if (!isCustom) fetchAiUsageFromServer_(false);
+          });
+        }
+        if (els.aiuRangeApply) {
+          els.aiuRangeApply.addEventListener('click', function () {
+            fetchAiUsageFromServer_(false);
+          });
+        }
+        if (els.aiuClearBtn) {
+          els.aiuClearBtn.addEventListener('click', function () {
+            aiUsageState.filters.persons = {};
+            aiUsageState.filters.roles = {};
+            aiUsageState.detail.page = 0;
+            saveAiUsageFiltersToStorage_();
+            populateAiUsageFilterMenus_(aiUsageState.payload && aiUsageState.payload.filterOptions);
+            renderAiUsageDashboard_();
+            logActivity_('ai_usage_filter_change', 'ai-usage', 'clear');
+          });
+        }
+        if (els.aiuPagePrev) {
+          els.aiuPagePrev.addEventListener('click', function () {
+            if (aiUsageState.detail.page > 0) {
+              aiUsageState.detail.page--;
+              renderAiUsageDashboard_();
+            }
+          });
+        }
+        if (els.aiuPageNext) {
+          els.aiuPageNext.addEventListener('click', function () {
+            aiUsageState.detail.page++;
+            renderAiUsageDashboard_();
+          });
+        }
+        if (els.aiuExportBtn) {
+          els.aiuExportBtn.addEventListener('click', function () {
+            var payload = aiUsageState.payload;
+            if (!payload || !payload.rows) return;
+            var filtered = applyAiUsageFilters(payload.rows);
+            var lines = ['Date,Person,Role,Type,Platform,Dataset,Model,Cost USD'];
+            for (var i = 0; i < filtered.length; i++) {
+              var r = filtered[i];
+              lines.push([
+                r.usageDate,
+                r.personName,
+                r.roleName,
+                r.bucket,
+                r.sourcePlatform,
+                r.sourceDataset || '',
+                r.model || '',
+                r.costUsd,
+              ].map(function (c) { return '"' + String(c == null ? '' : c).replace(/"/g, '""') + '"'; }).join(','));
+            }
+            var txt = lines.join('\n');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(txt);
+            }
+            logActivity_('ai_usage_export', 'ai-usage', filtered.length + ' rows');
+          });
+        }
+        var table = document.querySelector('#panel-ai-usage table');
+        if (table) {
+          table.addEventListener('click', function (ev) {
+            var th = ev.target.closest('th[data-aiu-sort]');
+            if (!th) return;
+            var key = th.getAttribute('data-aiu-sort');
+            if (!key) return;
+            if (aiUsageState.detail.sortKey === key) {
+              aiUsageState.detail.sortDir = aiUsageState.detail.sortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+              aiUsageState.detail.sortKey = key;
+              aiUsageState.detail.sortDir = key === 'costUsd' ? 'desc' : 'asc';
+            }
+            renderAiUsageDashboard_();
+          });
+        }
+      }
+      function showAiUsage() {
+        if (!els.panelAiUsage) return;
+        if (navState.expensesAccess === false) {
+          showComingSoon('AI Usage is available to the Finance team, Execs, and Admins.');
+          return;
+        }
+        els.panelHome.classList.add('d-none');
+        if (els.panelAgreementDashboard) els.panelAgreementDashboard.classList.add('d-none');
+        if (els.panelOperations) els.panelOperations.classList.add('d-none');
+        if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
+        if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
+        if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
+        if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
+        if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        els.panelAiUsage.classList.remove('d-none');
+        hidePanelSettings_();
+        els.topbarTitle.textContent = 'AI Usage';
+        if (els.aiuFetchError) els.aiuFetchError.classList.add('d-none');
+        wireAiUsagePanelOnce_();
+        showAiUsageLiveOrSnapshot_();
       }
 
       function showExpenses() {
@@ -16514,6 +17743,8 @@
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
+        if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
+        if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
         els.panelExpenses.classList.remove('d-none');
         hidePanelSettings_();
         els.topbarTitle.textContent = 'Expenses';
@@ -18605,6 +19836,11 @@
           if (item.id === 'portfolio-pnl') {
             setActiveNav('portfolio-pnl');
             showPortfolioPnl();
+            return;
+          }
+          if (item.id === 'ai-usage') {
+            setActiveNav('ai-usage');
+            showAiUsage();
             return;
           }
           if (item.id === 'operations') {

@@ -1,5 +1,5 @@
 /**
- * PRD version 2.13.4 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.15.6 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard orchestrator (route id `operations`, panel
  * `#panel-operations`). Reads `Agreement Management/Labor Costs` from Fibery
@@ -277,6 +277,11 @@ function buildLaborCostsQuery_(startIso, endIso, limit, offset) {
         userId: 'Agreement Management/User ID',
         clockifyUserCompany: ['Agreement Management/Clockify User Company', 'enum/name'],
         clockifyUserRole: ['Agreement Management/Clockify User Role', 'enum/name'],
+        clockifyUserWorkStatus: [
+          'Agreement Management/Clockify User',
+          'Agreement Management/Work Status',
+          'enum/name',
+        ],
         userRole: ['Agreement Management/User Role', 'Agreement Management/Name'],
         userRoleBillRate: 'Agreement Management/User Role Bill Rate',
         userRoleCostRate: 'Agreement Management/User Role Cost Rate',
@@ -390,6 +395,7 @@ function normalizeLaborRows_(rawRows, thresholds) {
       userId: stringOrNull_(r.userId),
       clockifyUserCompany: stringOrNull_(r.clockifyUserCompany),
       clockifyUserRole: stringOrNull_(r.clockifyUserRole),
+      clockifyUserWorkStatus: stringOrNull_(r.clockifyUserWorkStatus),
       userRole: stringOrNull_(r.userRole),
       userRoleBillRate: billRate,
       userRoleCostRate: costRate,
@@ -523,7 +529,10 @@ function buildUtilizationDimensions_(rows, thresholds) {
         id: r.userId || null,
         hours: 0,
         billableHours: 0,
+        clockifyUserWorkStatus: stringOrNull_(r.clockifyUserWorkStatus),
       };
+    } else if (!personMap[personKey].clockifyUserWorkStatus && r.clockifyUserWorkStatus) {
+      personMap[personKey].clockifyUserWorkStatus = stringOrNull_(r.clockifyUserWorkStatus);
     }
     personMap[personKey].hours += r.hours;
     if (r.billable) {

@@ -2,9 +2,9 @@
 
 > Companion to [017-ai-platform-usage-fibery-sync.md](017-ai-platform-usage-fibery-sync.md).
 >
-> **Status:** **In progress** - Phase B Anthropic ingest shipped in PRD **2.11.0**; OpenAI + operator UI remain.
+> **Status:** **In progress** - Phase B Anthropic ingest shipped in PRD **2.10.0**; **Phase G operator UI shipped in 2.14.0**; OpenAI ingest remains after G.
 >
-> **Last plan review:** 2026-06-08
+> **Last plan review:** 2026-06-15
 
 ## Current progress
 
@@ -122,6 +122,7 @@ Production sync does **not** use MCP. MCP is for Phase 0 sampling and schema smo
 | `AI_USAGE_MAX_BACKFILL_DAYS` | `90` | On-demand guard |
 | `AI_USAGE_LOG_SHEET_NAME` | `AI Usage Sync Runs` | Auth spreadsheet tab |
 | `AI_USAGE_SYNC_ENABLED` | `true` | Kill switch |
+| `AI_USAGE_INITIAL_LOOKBACK_DAYS` | `7` | Cold-start window when no log row and no Fibery usage dates (Phase G) |
 | `AI_USAGE_CONTINUATION_*` | (mirror snapshot job) | Resume after timeout |
 
 No separate `CLAUDE_AI_*` properties: claude.ai rows use the same Anthropic Admin key and endpoints.
@@ -137,8 +138,8 @@ No separate `CLAUDE_AI_*` properties: claude.ai rows use the same Anthropic Admi
 | **R2 - Anthropic ingest** | B + C + basic E | `messages`, `cost_report`, `claude_code` (API + subscription); email match on ingest; daily job | **2.11.0** MINOR |
 | **R3 - OpenAI ingest** | D | `/organization/costs` (+ usage complements); same **`Usage`** upsert path | **2.11.0** MINOR |
 | **R4 - Matching hardening** | E (remainder) | Actor Mapping UI workflow; match stats; shared-key handling | **2.11.1** PATCH |
-| **R5 - Allocation v1** | F | Default categories on rows | **2.12.0** MINOR |
-| **R6 - Operator UI** | G | ADMIN Settings: Run sync, last status | **2.12.1** PATCH |
+| **R5 - Allocation v1** | F | Default categories on rows | **2.15.0** MINOR |
+| **R6 - Operator UI** | G | ADMIN Settings: incremental **Run sync**, last-run status | **2.14.0** MINOR |
 
 **Rationale for merging B + C + basic E:** All three use `aiUsageAnthropicClient.js`, write the same **`Usage`** entity, and share idempotency keys. claude.ai is a **`Source Platform`** discriminator on `claude_code` rows, not a separate integration. Email matching on ingest should ship with first ingest so rows are usable immediately.
 
@@ -150,14 +151,16 @@ Adjust version numbers at kickoff; one PRD bump per merge-worthy release.
 
 ```text
 src/aiUsageDiagnostics.js          Phase 0 editor probes (_diag_sampleAiUsage*)
-src/aiUsageSyncJob.js           Triggers, orchestration, LockService, Sheet log, optional Fibery Sync Runs
+src/aiUsageSyncJob.js           Triggers, orchestration, LockService, Sheet log, incremental range, getAiUsageSyncStatus, runAiUsageSyncIncremental
 src/aiUsageAnthropicClient.js     Admin API: messages, cost_report, claude_code
 src/aiUsageOpenAiClient.js        Admin API: organization/costs (+ usage complements)
 src/aiUsageNormalize.js           Vendor row → normalized Usage fact + Source Record Id
 src/aiUsageUserMatch.js           Clockify Users query + Actor Mapping; sets relation + Mapping Status
 src/aiUsageFiberyWriter.js        Upsert AI Usage Data/Usage only (by Source Record Id)
 src/fiberyClient.js               Extend if needed: upsert helper
-src/adminSettingsRegistry.js      AI_USAGE_* + FIBERY_AI_USAGE_APP
+src/adminSettingsRegistry.js      AI_USAGE_* + FIBERY_AI_USAGE_APP + AI_USAGE_INITIAL_LOOKBACK_DAYS (Phase G)
+src/adminSettingsApi.js         getAiUsageSyncStatus / runAiUsageSyncIncremental client surface (or re-export from aiUsageSyncJob)
+src/DashboardShell.html         Settings ai-usage-sync operator card
 src/Code.js                       installDailyAiUsageSyncTrigger(), editor exports
 src/userActivityLog.js            ai_usage_sync_* whitelist (Phase G)
 ```
@@ -300,13 +303,41 @@ src/userActivityLog.js            ai_usage_sync_* whitelist (Phase G)
 
 ---
 
-## Phase G - Operator UI (R6)
+## Phase G - Operator UI (R6, v2.14.0)
 
-| Step | Task |
+**Prerequisite:** Phase B stable in production; `AI Usage Sync Runs` tab receiving daily rows.
+
+**Product spec:** [Admin Settings - AI usage sync operator panel](017-ai-platform-usage-fibery-sync.md#admin-settings---ai-usage-sync-operator-panel-phase-g)
+
+| Step | Task | Notes |
+| --- | --- | --- |
+| G.1 | `aiUsageSyncJob.js`: `resolveAiUsageIncrementalRange_()` | Log high-water + Fibery max **`Usage Date`** + `AI_USAGE_DAILY_LOOKBACK_DAYS` overlap; cold start via **`AI_USAGE_INITIAL_LOOKBACK_DAYS`** |
+| G.2 | `aiUsageSyncJob.js`: `getAiUsageSyncStatus()` | ADMIN-only; read last Sheet log row; expose `syncEnabled`, `anthropicKeyConfigured` |
+| G.3 | `aiUsageSyncJob.js`: `runAiUsageSyncIncremental()` | ADMIN-only; `requireAdminRole_`; calls resolver then `runAiUsageSyncForRange_(…, 'manual')` |
+| G.4 | `aiUsageFiberyWriter.js` or small helper: `aiUsageQueryMaxUsageDate_()` | Single Fibery query: max **`Usage Date`** on **`AI Usage Data/Usage`** (fallback for cold start) |
+| G.5 | `adminSettingsApi.js`: expose G.2/G.3 to client with admin gate | Mirror `getAdminSettings` / `saveAdminSettings` auth |
+| G.6 | `DashboardShell.html`: operator card in `ai-usage-sync` group | Last sync summary + **Run sync now** + inline result; load on Settings open or group expand |
+| G.7 | `adminSettingsRegistry.js`: register **`AI_USAGE_INITIAL_LOOKBACK_DAYS`** | Default 7; tooltip documents cold-start behavior |
+| G.8 | `userActivityLog.js`: whitelist `ai_usage_sync_start`, `ai_usage_sync_done`, `ai_usage_sync_error` | Route `settings` |
+| G.9 | Optional: point `runDailyAiUsageSync_()` at incremental resolver | Keeps scheduled + manual windows aligned |
+
+### Phase G test plan
+
+| # | Expected |
 | --- | --- |
-| G.1 | ADMIN Settings **AI usage sync**: last run from Sheet; **Run sync (last 7 days)** |
-| G.2 | `runAiUsageSyncOnDemand` via `google.script.run` + ADMIN auth |
-| G.3 | Activity types: `ai_usage_sync_start`, `ai_usage_sync_done`, `ai_usage_sync_error` |
+| T-G1 | ADMIN sees last sync row after a successful `runAiUsageSyncForRange_` |
+| T-G2 | Second **Run sync now** within same day with no new vendor data returns "Already up to date" or only overlap days |
+| T-G3 | Non-admin cannot call `runAiUsageSyncIncremental` (FORBIDDEN) |
+| T-G4 | Missing Anthropic key: button disabled in UI; server fails fast if invoked |
+| T-G5 | Concurrent run: second caller gets lock message |
+| T-G6 | Activity log receives `ai_usage_sync_*` events on manual run |
+
+### Docs / PRD (Phase G merge)
+
+- Add **FR-117**, **AC-75** to `docs/FOS-Dashboard-PRD.md`
+- Bump **`FOS_PRD_VERSION`** to **2.14.0** (MINOR)
+- Update [000-overview.md](000-overview.md) shipped line
+- Extend [011-admin-settings-environment-panel.md](011-admin-settings-environment-panel.md) operator subsection cross-ref
 
 ---
 
@@ -351,9 +382,8 @@ Investigate during B.3 whether Fibery supports unique-field upsert in this works
 
 ## Immediate next actions (ordered)
 
-1. **Phase A.2 (remaining)** - Create **`Actor Mapping`** and **`Sync Runs`** when ready (optional before Phase B; Sheet log can substitute for Sync Runs initially).
-2. **Script Properties** - Set `ANTHROPIC_ADMIN_API_KEY`; run `_diag_sampleAiUsageAnthropic_('2026-06-01')` after `clasp push`.
-3. **OpenAI sample** - Add `OPENAI_ADMIN_KEY` when available.
-4. **Phase B** - Begin `src/` sync modules (Usage schema unblocks Anthropic ingest).
+1. **Phase G (v2.14.0)** - Implement operator panel + incremental sync per table above (inbox: Anthropic usage ingestion completion).
+2. **OpenAI sample** - Add `OPENAI_ADMIN_KEY` when available; Phase D after G ships.
+3. **Phase F** - Allocation defaults after operator UI is stable.
 
-**Do not deploy scheduled sync until Phase A.2 smoke test and production Script Properties are set.**
+**Do not deploy OpenAI ingest in the same release as Phase G unless explicitly scoped; ship G as its own MINOR.**

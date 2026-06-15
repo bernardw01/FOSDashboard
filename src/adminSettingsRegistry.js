@@ -1,5 +1,5 @@
 /**
- * PRD version 2.13.4 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.15.6 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -19,6 +19,7 @@ var ADMIN_SETTINGS_GROUPS_ = [
   { id: 'expenses-dashboard', title: 'Expenses dashboard' },
   { id: 'pipeline-dashboard', title: 'Pipeline dashboard (Sales)' },
   { id: 'ai-usage-sync', title: 'AI usage sync (Fibery)' },
+  { id: 'ai-usage-dashboard', title: 'AI usage dashboard' },
 ];
 
 /**
@@ -625,7 +626,25 @@ function getAdminSettingsCatalog_() {
       'AI_USAGE_DAILY_LOOKBACK_DAYS',
       'ai-usage-sync',
       'Daily lookback (days)',
-      'How many recent calendar days the daily job re-pulls.',
+      'How many recent calendar days overlap on incremental sync (late vendor data).',
+      'number',
+      3,
+      { min: 1, max: 14 }
+    ),
+    adminSettingEntry_(
+      'AI_USAGE_INITIAL_LOOKBACK_DAYS',
+      'ai-usage-sync',
+      'Initial lookback (days)',
+      'When no sync log or Fibery usage rows exist, how many days the first manual sync pulls.',
+      'number',
+      7,
+      { min: 1, max: 90 }
+    ),
+    adminSettingEntry_(
+      'AI_USAGE_MAX_DAYS_PER_RUN',
+      'ai-usage-sync',
+      'Max days per sync run',
+      'Caps each incremental sync to this many calendar days so Settings runs finish within the Apps Script time limit. Click Run sync again to advance through backfill.',
       'number',
       3,
       { min: 1, max: 14 }
@@ -663,6 +682,42 @@ function getAdminSettingsCatalog_() {
       'number',
       3,
       { min: 0, max: 23 }
+    ),
+    adminSettingEntry_(
+      'AI_USAGE_DASHBOARD_DEFAULT_RANGE_DAYS',
+      'ai-usage-dashboard',
+      'Default date range (days)',
+      'When the client does not pass a range, server default window for AI Usage panel.',
+      'number',
+      90,
+      { min: 7, max: 365 }
+    ),
+    adminSettingEntry_(
+      'AI_USAGE_DASHBOARD_CACHE_TTL_MINUTES',
+      'ai-usage-dashboard',
+      'Client cache TTL (minutes)',
+      'Documented default for AI Usage panel auto-refresh stale badge.',
+      'number',
+      10,
+      { min: 1, max: 1440 }
+    ),
+    adminSettingEntry_(
+      'AI_USAGE_DASHBOARD_TOP_N',
+      'ai-usage-dashboard',
+      'Bar chart top N',
+      'Maximum persons/products per bar chart before Other bucket.',
+      'number',
+      20,
+      { min: 5, max: 100 }
+    ),
+    adminSettingEntry_(
+      'AI_USAGE_DASHBOARD_MAX_ROWS',
+      'ai-usage-dashboard',
+      'Max usage rows per fetch',
+      'Fibery Usage rows loaded per date-range request.',
+      'number',
+      5000,
+      { min: 100, max: 20000 }
     ),
   ];
 }

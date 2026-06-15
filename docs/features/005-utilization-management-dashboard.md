@@ -131,7 +131,7 @@ Fields read (paths verified via Fibery `describe_database` + a sample query on `
  customer, // (Unassigned) when null
  projectName, projectId, task,
  userId, userName, clockifyUserCompany,
- clockifyUserRole, userRole,
+ clockifyUserRole, clockifyUserWorkStatus, userRole,
  userRoleBillRate, userRoleCostRate, // null when unknown
  isInternal: boolean, // §U.11 (Clockify User Company in UTILIZATION_INTERNAL_COMPANY_NAMES OR agreementType === 'Internal')
  revenueFromLabor: number | null // hours × userRoleBillRate when known
@@ -150,7 +150,7 @@ Fields read (paths verified via Fibery `describe_database` + a sample query on `
  dimensions: {
  customers: [{ name, hours, billableHours, color }],
  projects: [{ name, id, customer, hours, billableHours, color }],
- persons: [{ name, id, hours, billableHours, utilizationPct, color }],
+ persons: [{ name, id, hours, billableHours, utilizationPct, color, clockifyUserWorkStatus }],
  roles: [{ name, hours, billableHours, color }]
  },
 
@@ -162,7 +162,7 @@ Fields read (paths verified via Fibery `describe_database` + a sample query on `
  byWeek: [{ week, hours, billableHours, nonBillableHours }],
  billableVsNonBillable: [{ week, billable, nonBillable }]
  }
- // v2.11.0: removed pendingApprovals block; cacheSchemaVersion 3
+ // v2.11.0: removed pendingApprovals block; cacheSchemaVersion 4 (v2.13.6: clockifyUserWorkStatus; was 3 through v2.13.5)
 ```
 
 **Aggregations are server-precomputed** for the **unfiltered** view so the first paint is fast. When the client applies filters, it **re-aggregates from `rows` in-memory** - no server roundtrip required unless the date range changes.

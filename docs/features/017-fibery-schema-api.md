@@ -3,8 +3,7 @@
 > Captured via Fibery MCP `describe_database` after operator setup. Use these **exact** field paths in `aiUsageFiberyWriter.js`.
 
 **Database:** `AI Usage Data/Usage`  
-**Validated:** 2026-06-08  
-**Smoke test row:** [Usage/2](https://harpin-ai.fibery.io/AI_Usage_Data/Usage/2) (`test:smoke:001`) - delete manually when done.
+**Validated:** 2026-06-15 (Fibery MCP `describe_database`; supersedes 2026-06-08 smoke test)
 
 ## Field paths (writer contract)
 
@@ -40,15 +39,16 @@
 | Quantity | `AI Usage Data/Quantity` | int |
 | Cost USD | `AI Usage Data/Cost USD` | decimal |
 | Currency | `AI Usage Data/Currency` | text |
-| Clockify User | `AI Usage Data/Clockify User` | relation → `Agreement Management/Clockify Users` |
-| Clockify User Email | `AI Usage Data/Clockify User Email` | text |
-| Clockify User ID | `AI Usage Data/Clockify User ID` | text |
+| Actor Mapping | `AI Usage Data/Actor Mapping` | relation → `AI Usage Data/Actor Mapping` |
+| Actor Mapping Clockify User | `AI Usage Data/Actor Mapping Clockify User` | relation → `Agreement Management/Clockify Users` |
 | Mapping Status | `AI Usage Data/Mapping Status` | enum |
 | Allocation Category | `AI Usage Data/Allocation Category` | enum |
 | Sync Run Id | `AI Usage Data/Sync Run Id` | text |
 | Ingested At | `AI Usage Data/Ingested At` | date-time |
 | Raw Metrics JSON | `AI Usage Data/Raw Metrics JSON` | document |
 | Vendor Payload JSON | `AI Usage Data/Vendor Payload JSON` | document |
+
+**Retired on Usage (do not query or write):** `AI Usage Data/Clockify User`, `AI Usage Data/Clockify User Email`, `AI Usage Data/Clockify User ID`. The live workspace links Clockify Users via **`Actor Mapping Clockify User`** only.
 
 **Note:** Fibery also has `AI Usage Data/Description` as a **document** field (default). Use **`Context Description`** for short Anthropic cost line text, or store long text in Vendor Payload JSON.
 
@@ -77,8 +77,22 @@
 
 ## Cross-app relation
 
-- **Usage → Clockify User:** `AI Usage Data/Clockify User` (set `{ "fibery/id": "<uuid>" }`)
-- **Inverse on Clockify Users:** `Agreement Management/Usage Records` (auto-maintained)
+- **Usage → Clockify User (live):** `AI Usage Data/Actor Mapping Clockify User` (set `{ "fibery/id": "<uuid>" }` on upsert; helper `aiUsageUsageClockifyUserField_()` in `aiUsageConstants.js`)
+- **Usage → Actor Mapping:** `AI Usage Data/Actor Mapping` (optional; populated when mapping entity is linked)
+- **Actor Mapping → Clockify User:** `AI Usage Data/Clockify User` (on **`AI Usage Data/Actor Mapping`** database only)
+
+### Clockify Users (dashboard classification)
+
+Feature **023** reads nested fields on **`AI Usage Data/Actor Mapping Clockify User`**:
+
+| Field | API path (from Usage query) | Use |
+| --- | --- | --- |
+| Name | `['AI Usage Data/Actor Mapping Clockify User', 'Agreement Management/Name']` | Chart labels |
+| AI Usage Tracker | `['AI Usage Data/Actor Mapping Clockify User', 'Agreement Management/AI Usage Tracker']` | **`true`** = product/program chart |
+| Team Member Role | `['AI Usage Data/Actor Mapping Clockify User', 'Agreement Management/Team Member Role', 'Agreement Management/Name']` | Roles filter |
+| Clockify User Email | `['AI Usage Data/Actor Mapping Clockify User', 'Agreement Management/Clockify User Email']` | Person filter fallback |
+
+Blank **`Actor Mapping Clockify User`** on a Usage row → **Unmatched** bucket.
 
 ## Gaps vs plan
 
