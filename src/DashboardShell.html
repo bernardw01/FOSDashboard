@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.12.9 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.13.4 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -113,6 +113,7 @@
     #panel-delivery.fos-agreement-root,
     #panel-revenue-review.fos-agreement-root,
     #panel-expenses.fos-agreement-root,
+    #panel-portfolio-pnl.fos-agreement-root,
     #panel-labor-hours.fos-agreement-root {
       background: var(--ag-bg);
       border-radius: 12px;
@@ -135,6 +136,169 @@
       outline: 2px solid var(--ag-accent);
       outline-offset: 2px;
     }
+
+    #panel-portfolio-pnl .fos-portfolio-grid-wrap {
+      overflow: auto;
+      max-height: min(72vh, 780px);
+      border: 1px solid var(--ag-border);
+      border-radius: 8px;
+      margin-top: 0.5rem;
+      background: var(--ag-surface);
+    }
+    #panel-portfolio-pnl .fos-portfolio-grid {
+      width: max-content;
+      min-width: 100%;
+      font-size: 0.8125rem;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: var(--ag-surface);
+    }
+    #panel-portfolio-pnl .fos-portfolio-grid th,
+    #panel-portfolio-pnl .fos-portfolio-grid td {
+      padding: 0.35rem 0.5rem;
+      border-bottom: 1px solid var(--ag-border);
+      border-right: 1px solid var(--ag-border);
+      vertical-align: top;
+    }
+    #panel-portfolio-pnl .fos-portfolio-grid th:last-child,
+    #panel-portfolio-pnl .fos-portfolio-grid td:last-child {
+      border-right: none;
+    }
+    #panel-portfolio-pnl .fos-portfolio-grid .fos-portfolio-num {
+      white-space: normal;
+      word-break: break-word;
+      min-width: 4.5rem;
+    }
+    #panel-portfolio-pnl .fos-portfolio-grid th {
+      position: sticky;
+      top: 0;
+      background-color: var(--ag-surface2);
+      z-index: 2;
+      white-space: nowrap;
+    }
+    #panel-portfolio-pnl .fos-portfolio-grid th.fos-portfolio-label {
+      left: 0;
+      z-index: 4;
+      background-color: var(--ag-surface2);
+      border-right: 2px solid var(--ag-border);
+      box-shadow: 4px 0 8px rgba(6, 27, 48, 0.45);
+    }
+    #panel-portfolio-pnl .fos-portfolio-grid th.fos-portfolio-quarter-col {
+      background-color: #0e3554;
+    }
+    #panel-portfolio-pnl .fos-portfolio-grid th.fos-portfolio-fy-col {
+      background-color: #104060;
+      font-weight: 700;
+    }
+    #panel-portfolio-pnl .fos-portfolio-grid .fos-portfolio-label {
+      position: sticky;
+      left: 0;
+      background-color: var(--ag-surface);
+      z-index: 3;
+      min-width: 240px;
+      max-width: 320px;
+      white-space: normal;
+      word-break: break-word;
+      border-right: 2px solid var(--ag-border);
+      box-shadow: 4px 0 8px rgba(6, 27, 48, 0.45);
+    }
+    #panel-portfolio-pnl .fos-portfolio-grid tr.fos-portfolio-portfolio td.fos-portfolio-label {
+      font-weight: 700;
+      background-color: var(--ag-surface2);
+    }
+    #panel-portfolio-pnl .fos-portfolio-grid tr.fos-portfolio-customer td.fos-portfolio-label {
+      font-weight: 700;
+      font-size: 0.9375rem;
+      color: #7dd3fc;
+      background-color: #0c3352;
+    }
+    #panel-portfolio-pnl .fos-portfolio-grid tr.fos-portfolio-project td.fos-portfolio-label,
+    #panel-portfolio-pnl .fos-portfolio-grid tr.fos-portfolio-project--collapsed td.fos-portfolio-label,
+    #panel-portfolio-pnl .fos-portfolio-grid tr.fos-portfolio-project--expanded td.fos-portfolio-label {
+      background-color: #0a2d48;
+    }
+    #panel-portfolio-pnl .fos-portfolio-grid tr.fos-portfolio-group td.fos-portfolio-label {
+      font-weight: 600;
+      color: var(--ag-text-muted);
+      background-color: #082840;
+    }
+    #panel-portfolio-pnl .fos-portfolio-grid tr.fos-portfolio-detail td.fos-portfolio-label {
+      background-color: var(--ag-surface);
+    }
+    #panel-portfolio-pnl .fos-portfolio-grid tr.fos-portfolio-sub td.fos-portfolio-label {
+      background-color: #081f38;
+    }
+    #panel-portfolio-pnl .fos-portfolio-grid tr.fos-portfolio-project--collapsed td.fos-portfolio-label .fos-portfolio-label-text {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 280px;
+    }
+    #panel-portfolio-pnl .fos-portfolio-grid tr.fos-portfolio-project--expanded td.fos-portfolio-label .fos-portfolio-label-text {
+      white-space: normal;
+      word-break: break-word;
+    }
+      background-color: #3d2a14;
+      color: #ffb366;
+    }
+    #panel-portfolio-pnl .fos-portfolio-grid td.fos-portfolio-quarter-col {
+      background-color: rgba(255, 255, 255, 0.04);
+    }
+    #panel-portfolio-pnl .fos-portfolio-grid td.fos-portfolio-fy-col {
+      background-color: rgba(255, 255, 255, 0.06);
+      font-weight: 600;
+    }
+    #panel-portfolio-pnl .fos-portfolio-grid tr.fos-portfolio-customer td.fos-portfolio-projected-cell {
+      background-color: #4a3318;
+    }
+    #panel-portfolio-pnl .fos-portfolio-toggle {
+      border: none;
+      background: transparent;
+      color: var(--ag-accent);
+      padding: 0 0.25rem 0 0;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    #panel-portfolio-pnl .fos-portfolio-label-inner {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.15rem;
+    }
+    #panel-portfolio-pnl .fos-portfolio-progress {
+      min-width: 200px;
+    }
+    #panel-portfolio-pnl .ppnl-kpi-inline {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.25rem 1.5rem;
+      font-size: 0.875rem;
+      line-height: 1.45;
+    }
+    #panel-portfolio-pnl .ppnl-kpi-metric {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0.3rem;
+    }
+    #panel-portfolio-pnl .ppnl-kpi-label {
+      color: var(--ag-text-muted);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    #panel-portfolio-pnl .ppnl-kpi-value {
+      color: var(--ag-text);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      cursor: help;
+      border-bottom: 1px dotted var(--ag-text-dim);
+    }
+    #panel-portfolio-pnl .ppnl-kpi-value:hover,
+    #panel-portfolio-pnl .ppnl-kpi-value:focus-visible {
+      color: var(--ag-accent);
+      border-bottom-color: var(--ag-accent);
+    }
+
     .fos-lh-zero-chips {
       display: flex;
       flex-wrap: wrap;
@@ -3929,6 +4093,111 @@
           </div>
         </div>
 
+        <!-- Portfolio P&L - Finance (feature 022). -->
+        <div id="panel-portfolio-pnl" class="d-none fos-agreement-root">
+          <div id="ppnl-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
+          <div class="fos-agreement-inner shadow-lg">
+            <div class="fos-loading-overlay d-none" id="ppnl-loading" role="status" aria-live="polite" aria-hidden="true">
+              <div class="fos-loading-spinner" aria-hidden="true"></div>
+              <span class="fos-loading-label" id="ppnl-loading-label">Loading portfolio P&L…</span>
+              <div class="progress fos-portfolio-progress mt-3 d-none" id="ppnl-progress-wrap" style="height: 6px; width: min(320px, 90vw);">
+                <div class="progress-bar" id="ppnl-progress-bar" role="progressbar" style="width: 0%; background: var(--ag-accent);"></div>
+              </div>
+              <p class="small mb-0 mt-2" id="ppnl-loading-sub" style="color: var(--ag-text-muted)">Fetching P&amp;L for all projects…</p>
+            </div>
+
+            <div class="alert alert-info py-2 px-3 small mb-3 d-none" id="ppnl-live-only" role="status">
+              Live Fibery data is required for portfolio P&amp;L. Switch to <strong>Live data</strong> or pick a snapshot that includes delivery P&amp;L files.
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <div class="flex-grow-1 min-w-0">
+                <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Portfolio P&amp;L</h1>
+                <p class="small mb-0" id="ppnl-subtitle" style="color: var(--ag-text-muted)"> - </p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 mb-3 pb-3 border-bottom" style="border-color: var(--ag-border) !important">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="ppnl-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
+                Refresh
+              </button>
+              <div class="d-flex flex-wrap align-items-center gap-2 ms-1" id="ppnl-type-filters" aria-label="Agreement type filters">
+                <span class="small mb-0" style="color: var(--ag-text-muted)">Include</span>
+                <div class="form-check form-check-inline mb-0">
+                  <input class="form-check-input" type="checkbox" id="ppnl-type-subscription" checked />
+                  <label class="form-check-label small" for="ppnl-type-subscription" style="color: var(--ag-text-muted)">Subscription</label>
+                </div>
+                <div class="form-check form-check-inline mb-0">
+                  <input class="form-check-input" type="checkbox" id="ppnl-type-services" checked />
+                  <label class="form-check-label small" for="ppnl-type-services" style="color: var(--ag-text-muted)">Services</label>
+                </div>
+              </div>
+              <div class="form-check form-switch mb-0 ms-1">
+                <input class="form-check-input" type="checkbox" role="switch" id="ppnl-collapse-quarters" />
+                <label class="form-check-label small" for="ppnl-collapse-quarters" style="color: var(--ag-text-muted)">Group by quarter</label>
+              </div>
+              <div class="form-check form-switch mb-0 ms-1">
+                <input class="form-check-input" type="checkbox" role="switch" id="ppnl-include-projected" />
+                <label class="form-check-label small" for="ppnl-include-projected" style="color: var(--ag-text-muted)">Include projected months</label>
+              </div>
+              <span class="small" id="ppnl-last-refresh" style="color: var(--ag-text-muted)">Last refreshed:  - </span>
+              <span class="small d-none text-danger" id="ppnl-fetch-error" role="alert"></span>
+            </div>
+
+            <p class="small d-none mb-3" id="ppnl-partial-note" style="color: var(--ag-warn)" role="status"></p>
+
+            <section class="fos-section-card mb-3" id="ppnl-kpi-section" aria-labelledby="ppnl-kpi-heading">
+              <h2 id="ppnl-kpi-heading">Portfolio summary</h2>
+              <div class="ppnl-kpi-inline" id="ppnl-kpi-strip">
+                <span class="ppnl-kpi-metric">
+                  <span class="ppnl-kpi-label">FY revenue</span>
+                  <span
+                    class="ppnl-kpi-value"
+                    id="ppnl-kpi-revenue"
+                    tabindex="0"
+                    title="Sum of recognized revenue from every in-scope Subscription and Services project for the calendar year. When Include projected months is on, also includes milestone target revenue in future months."
+                  >$0</span>
+                </span>
+                <span class="ppnl-kpi-metric">
+                  <span class="ppnl-kpi-label">FY total cost</span>
+                  <span
+                    class="ppnl-kpi-value"
+                    id="ppnl-kpi-cost"
+                    tabindex="0"
+                    title="Sum of employee labor, contractor labor, and other direct costs (ODC) across all in-scope projects for the year. On projected months with Include projected months on, labor uses planned allocation cost from resource assignments instead of actual time entries."
+                  >$0</span>
+                </span>
+                <span class="ppnl-kpi-metric">
+                  <span class="ppnl-kpi-label">FY margin</span>
+                  <span
+                    class="ppnl-kpi-value"
+                    id="ppnl-kpi-margin"
+                    tabindex="0"
+                    title="Gross margin percent for the portfolio: (FY revenue minus FY total cost) divided by FY revenue. Shows a dash when FY revenue is zero."
+                  > - </span>
+                </span>
+                <span class="ppnl-kpi-metric">
+                  <span class="ppnl-kpi-label">Projects in scope</span>
+                  <span
+                    class="ppnl-kpi-value"
+                    id="ppnl-kpi-projects"
+                    tabindex="0"
+                    title="Count of active agreements included in this view after the Subscription / Services checkboxes are applied. Internal and other agreement types are always excluded."
+                  >0</span>
+                </span>
+              </div>
+            </section>
+
+            <div class="fos-portfolio-grid-wrap">
+              <table class="fos-portfolio-grid fos-financial-table mb-0" id="ppnl-grid-table" aria-label="Portfolio P and L grid">
+                <thead id="ppnl-grid-head"></thead>
+                <tbody id="ppnl-grid-body"></tbody>
+              </table>
+            </div>
+            <p class="small mb-0 mt-2 d-none" id="ppnl-empty" style="color: var(--ag-text-muted)">No Subscription or Services projects in scope.</p>
+          </div>
+        </div>
+
         <!-- Expenses - spreadsheet tab (feature 015, PRD FR-109). -->
         <div id="panel-expenses" class="d-none fos-agreement-root">
           <div id="exp-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
@@ -4546,8 +4815,8 @@
       // flag or `revenueItems[]` per month) is invalidated cleanly when
       // the user upgrades.
       var DELIVERY_PNL_KEY_PREFIX = 'fos_delivery_pnl_';
-      var DELIVERY_PNL_KEY_SUFFIX = '_v7';
-      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 7;
+      var DELIVERY_PNL_KEY_SUFFIX = '_v8';
+      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 8;
       var DELIVERY_STATUS_CLIENT_META_ = {
         on_track: { enumName: 'Agreement On Track', trafficLight: 'green' },
         at_risk: { enumName: 'Agreement At Risk', trafficLight: 'yellow' },
@@ -4728,6 +4997,7 @@
         'delivery': 'bi-truck',
         'revenue-review': 'bi-cash-stack',
         'expenses': 'bi-receipt-cutoff',
+        'portfolio-pnl': 'bi-table',
       };
 
       function escapeHtml(text) {
@@ -4957,6 +5227,30 @@
         pipelineFunnel: document.getElementById('pipeline-funnel'),
         pipelineEmpty: document.getElementById('pipeline-empty'),
         panelExpenses: document.getElementById('panel-expenses'),
+        panelPortfolioPnl: document.getElementById('panel-portfolio-pnl'),
+        ppnlWarn: document.getElementById('ppnl-warn'),
+        ppnlLoading: document.getElementById('ppnl-loading'),
+        ppnlLoadingLabel: document.getElementById('ppnl-loading-label'),
+        ppnlLoadingSub: document.getElementById('ppnl-loading-sub'),
+        ppnlProgressWrap: document.getElementById('ppnl-progress-wrap'),
+        ppnlProgressBar: document.getElementById('ppnl-progress-bar'),
+        ppnlLiveOnly: document.getElementById('ppnl-live-only'),
+        ppnlSubtitle: document.getElementById('ppnl-subtitle'),
+        ppnlRefreshBtn: document.getElementById('ppnl-refresh-btn'),
+        ppnlTypeSubscription: document.getElementById('ppnl-type-subscription'),
+        ppnlTypeServices: document.getElementById('ppnl-type-services'),
+        ppnlCollapseQuarters: document.getElementById('ppnl-collapse-quarters'),
+        ppnlIncludeProjected: document.getElementById('ppnl-include-projected'),
+        ppnlLastRefresh: document.getElementById('ppnl-last-refresh'),
+        ppnlFetchError: document.getElementById('ppnl-fetch-error'),
+        ppnlPartialNote: document.getElementById('ppnl-partial-note'),
+        ppnlKpiRevenue: document.getElementById('ppnl-kpi-revenue'),
+        ppnlKpiCost: document.getElementById('ppnl-kpi-cost'),
+        ppnlKpiMargin: document.getElementById('ppnl-kpi-margin'),
+        ppnlKpiProjects: document.getElementById('ppnl-kpi-projects'),
+        ppnlGridHead: document.getElementById('ppnl-grid-head'),
+        ppnlGridBody: document.getElementById('ppnl-grid-body'),
+        ppnlEmpty: document.getElementById('ppnl-empty'),
         expWarn: document.getElementById('exp-warn'),
         expLoading: document.getElementById('exp-loading'),
         expLiveOnly: document.getElementById('exp-live-only'),
@@ -5252,6 +5546,8 @@
           showRevenueReview();
         } else if (id === 'expenses') {
           showExpenses();
+        } else if (id === 'portfolio-pnl') {
+          showPortfolioPnl();
         } else if (id === 'pipeline') {
           showPipeline();
         } else if (id === 'delivery') {
@@ -6221,6 +6517,7 @@
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         if (els.panelSettings) els.panelSettings.classList.remove('d-none');
         els.topbarTitle.textContent = 'Settings';
@@ -7708,6 +8005,7 @@
         }
         if (els.panelExpenses) {
           els.panelExpenses.classList.add('d-none');
+          if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         }
         if (els.panelPipeline) {
           els.panelPipeline.classList.add('d-none');
@@ -7732,6 +8030,7 @@
         }
         if (els.panelExpenses) {
           els.panelExpenses.classList.add('d-none');
+          if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         }
         if (els.panelPipeline) {
           els.panelPipeline.classList.add('d-none');
@@ -10051,6 +10350,7 @@
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         if (els.panelOperations) els.panelOperations.classList.remove('d-none');
         hidePanelSettings_();
@@ -11188,6 +11488,7 @@
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         if (els.panelLaborHours) els.panelLaborHours.classList.remove('d-none');
         hidePanelSettings_();
@@ -11808,6 +12109,7 @@
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.remove('d-none');
         hidePanelSettings_();
@@ -12849,6 +13151,7 @@
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         els.panelRevenueReview.classList.remove('d-none');
         hidePanelSettings_();
@@ -15078,6 +15381,7 @@
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         els.panelPipeline.classList.remove('d-none');
         hidePanelSettings_();
         els.topbarTitle.textContent = 'Pipeline Dashboard';
@@ -15143,6 +15447,1058 @@
 
         if (els.expLiveOnly) els.expLiveOnly.classList.add('d-none');
         showExpensesMaybeLoad_();
+      }
+
+      var PORTFOLIO_PNL_CACHE_KEY = 'fos_portfolio_pnl_v2';
+      var PORTFOLIO_PNL_CACHE_SCHEMA = 2;
+      var PORTFOLIO_PNL_TYPES = { Subscription: true, Services: true };
+      var portfolioPnlControlsWired_ = false;
+      var portfolioPnlLoadToken_ = 0;
+      var portfolioPnlState = {
+        calendarYear: new Date().getFullYear(),
+        projects: [],
+        pnlById: {},
+        failedIds: [],
+        failedDetails: [],
+        includeProjected: false,
+        collapseMonthsByQuarter: false,
+        includeSubscription: true,
+        includeServices: true,
+        expandedCustomers: {},
+        expandedProjects: {},
+        expandedRevenue: {},
+        expandedCosts: {},
+        fetchedAt: null,
+        loading: false,
+      };
+
+      function portfolioPnlFilterProjects_(projects) {
+        var out = [];
+        var list = projects || [];
+        for (var i = 0; i < list.length; i++) {
+          var p = list[i];
+          if (!p || !p.id) continue;
+          var type = String(p.type || '').trim();
+          if (!PORTFOLIO_PNL_TYPES[type]) continue;
+          out.push(p);
+        }
+        out.sort(function (a, b) {
+          var ca = String(a.customer || '').toLowerCase();
+          var cb = String(b.customer || '').toLowerCase();
+          if (ca !== cb) return ca < cb ? -1 : 1;
+          return String(a.name || '').toLowerCase() < String(b.name || '').toLowerCase() ? -1 : 1;
+        });
+        return out;
+      }
+
+      function portfolioPnlTypeFilterLabel_() {
+        var sub = portfolioPnlState.includeSubscription !== false;
+        var svc = portfolioPnlState.includeServices !== false;
+        if (sub && svc) return 'Subscription + Services';
+        if (sub) return 'Subscription';
+        if (svc) return 'Services';
+        return 'No agreement type selected';
+      }
+
+      function portfolioPnlActiveProjects_(projects) {
+        var list = projects || [];
+        var sub = portfolioPnlState.includeSubscription !== false;
+        var svc = portfolioPnlState.includeServices !== false;
+        var out = [];
+        for (var i = 0; i < list.length; i++) {
+          var p = list[i];
+          if (!p || !p.id) continue;
+          var type = String(p.type || '').trim();
+          if (type === 'Subscription' && sub) out.push(p);
+          else if (type === 'Services' && svc) out.push(p);
+        }
+        return out;
+      }
+
+      function portfolioPnlSyncControls_() {
+        if (els.ppnlTypeSubscription) {
+          els.ppnlTypeSubscription.checked = portfolioPnlState.includeSubscription !== false;
+        }
+        if (els.ppnlTypeServices) {
+          els.ppnlTypeServices.checked = portfolioPnlState.includeServices !== false;
+        }
+        if (els.ppnlCollapseQuarters) {
+          els.ppnlCollapseQuarters.checked = !!portfolioPnlState.collapseMonthsByQuarter;
+        }
+        if (els.ppnlIncludeProjected) {
+          els.ppnlIncludeProjected.checked = !!portfolioPnlState.includeProjected;
+        }
+      }
+
+      function portfolioPnlOnTypeFilterChange_(changedEl) {
+        var sub = els.ppnlTypeSubscription && els.ppnlTypeSubscription.checked;
+        var svc = els.ppnlTypeServices && els.ppnlTypeServices.checked;
+        if (!sub && !svc) {
+          if (changedEl) changedEl.checked = true;
+          sub = els.ppnlTypeSubscription && els.ppnlTypeSubscription.checked;
+          svc = els.ppnlTypeServices && els.ppnlTypeServices.checked;
+        }
+        portfolioPnlState.includeSubscription = !!sub;
+        portfolioPnlState.includeServices = !!svc;
+        var cached = portfolioPnlReadCache_();
+        if (cached && cached.pnlById) {
+          cached.includeSubscription = portfolioPnlState.includeSubscription;
+          cached.includeServices = portfolioPnlState.includeServices;
+          portfolioPnlWriteCache_(cached);
+        }
+        renderPortfolioPnlGrid_();
+        logActivity_(
+          'portfolio_pnl_type_filter',
+          'portfolio-pnl',
+          (sub ? 'Subscription' : '') + (sub && svc ? '+' : '') + (svc ? 'Services' : '')
+        );
+      }
+
+      function portfolioPnlPeriodColumns_(year) {
+        var monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        var cols = [];
+        var qLabels = ['Q1', 'Q2', 'Q3', 'Q4'];
+        for (var q = 0; q < 4; q++) {
+          var qMonthKeys = [];
+          for (var m = 0; m < 3; m++) {
+            var mi = q * 3 + m + 1;
+            var mk = year + '-' + (mi < 10 ? '0' + mi : String(mi));
+            qMonthKeys.push(mk);
+            cols.push({ id: mk, label: monthLabels[mi - 1], kind: 'month' });
+          }
+          cols.push({ id: qLabels[q], label: qLabels[q], kind: 'quarter', monthKeys: qMonthKeys });
+        }
+        cols.push({ id: 'FY', label: 'FY', kind: 'year' });
+        return cols;
+      }
+
+      function portfolioPnlDisplayColumns_(allCols, collapseMonthsByQuarter) {
+        if (!collapseMonthsByQuarter) return allCols;
+        var out = [];
+        for (var i = 0; i < allCols.length; i++) {
+          if (allCols[i].kind !== 'month') out.push(allCols[i]);
+        }
+        return out;
+      }
+
+      function portfolioPnlAllocatedForMonth_(pnlPayload, monthKey) {
+        var ra = pnlPayload && pnlPayload.resourceAllocations;
+        var months = ra && ra.months;
+        if (!months) return 0;
+        for (var i = 0; i < months.length; i++) {
+          if (months[i].key === monthKey) {
+            return Number(months[i].allocatedCost || 0);
+          }
+        }
+        return 0;
+      }
+
+      function portfolioPnlEmptyMetrics_() {
+        return {
+          revenue: 0,
+          revenueSub: 0,
+          revenueSvc: 0,
+          laborEmp: 0,
+          laborCon: 0,
+          laborAllocated: 0,
+          odc: 0,
+          totalCost: 0,
+          marginDollar: 0,
+          marginPct: null,
+          isProjected: false,
+        };
+      }
+
+      function portfolioPnlAddMetrics_(a, b) {
+        var rev = a.revenue + b.revenue;
+        var md = a.marginDollar + b.marginDollar;
+        return {
+          revenue: rev,
+          revenueSub: a.revenueSub + b.revenueSub,
+          revenueSvc: a.revenueSvc + b.revenueSvc,
+          laborEmp: a.laborEmp + b.laborEmp,
+          laborCon: a.laborCon + b.laborCon,
+          laborAllocated: a.laborAllocated + b.laborAllocated,
+          odc: a.odc + b.odc,
+          totalCost: a.totalCost + b.totalCost,
+          marginDollar: md,
+          marginPct: rev > 0 ? (md / rev) * 100 : null,
+          isProjected: !!(a.isProjected || b.isProjected),
+        };
+      }
+
+      function portfolioPnlMonthMetrics_(pnlPayload, projectType, monthKey, includeProjected) {
+        var months = (pnlPayload && pnlPayload.months) || [];
+        for (var i = 0; i < months.length; i++) {
+          var mo = months[i];
+          if (mo.key !== monthKey) continue;
+          if (!includeProjected && mo.projected) return portfolioPnlEmptyMetrics_();
+          var isProjected = !!mo.projected;
+          var rev = Number(mo.revenue || 0);
+          var odc = Number(mo.expenses || 0);
+          var labEmp = 0;
+          var labCon = 0;
+          var labAlloc = 0;
+          if (isProjected && includeProjected) {
+            labAlloc = portfolioPnlAllocatedForMonth_(pnlPayload, monthKey);
+          } else {
+            labEmp = mo.laborEmployee != null ? Number(mo.laborEmployee) : 0;
+            labCon = mo.laborContractor != null ? Number(mo.laborContractor) : Number(mo.labor || 0);
+            if (mo.laborEmployee == null && mo.laborContractor == null) {
+              labCon = Number(mo.labor || 0);
+            }
+          }
+          var totalCost =
+            isProjected && includeProjected ? labAlloc + odc : labEmp + labCon + odc;
+          var gp = rev - totalCost;
+          var isSub = projectType === 'Subscription';
+          return {
+            revenue: rev,
+            revenueSub: isSub ? rev : 0,
+            revenueSvc: isSub ? 0 : rev,
+            laborEmp: labEmp,
+            laborCon: labCon,
+            laborAllocated: labAlloc,
+            odc: odc,
+            totalCost: totalCost,
+            marginDollar: gp,
+            marginPct: rev > 0 ? (gp / rev) * 100 : null,
+            isProjected: isProjected,
+          };
+        }
+        return portfolioPnlEmptyMetrics_();
+      }
+
+      function portfolioPnlProjectColumnMetrics_(pnlPayload, projectType, col, year, includeProjected) {
+        if (col.kind === 'month') {
+          return portfolioPnlMonthMetrics_(pnlPayload, projectType, col.id, includeProjected);
+        }
+        if (col.kind === 'quarter') {
+          var qm = portfolioPnlEmptyMetrics_();
+          var keys = col.monthKeys || [];
+          for (var qi = 0; qi < keys.length; qi++) {
+            qm = portfolioPnlAddMetrics_(qm, portfolioPnlMonthMetrics_(pnlPayload, projectType, keys[qi], includeProjected));
+          }
+          return qm;
+        }
+        var fy = portfolioPnlEmptyMetrics_();
+        var cols = portfolioPnlPeriodColumns_(year);
+        for (var ci = 0; ci < cols.length; ci++) {
+          if (cols[ci].kind !== 'month') continue;
+          fy = portfolioPnlAddMetrics_(fy, portfolioPnlMonthMetrics_(pnlPayload, projectType, cols[ci].id, includeProjected));
+        }
+        return fy;
+      }
+
+      function portfolioPnlRowValue_(metrics, rowKind) {
+        if (!metrics) return ' - ';
+        if (rowKind === 'margin_pct') {
+          return metrics.marginPct == null ? ' - ' : formatPct(metrics.marginPct) + '%';
+        }
+        var n = 0;
+        if (rowKind === 'revenue' || rowKind === 'portfolio' || rowKind === 'customer' || rowKind === 'project') {
+          n = metrics.revenue;
+        } else if (rowKind === 'subscription') n = metrics.revenueSub;
+        else if (rowKind === 'services') n = metrics.revenueSvc;
+        else if (rowKind === 'costs') n = metrics.totalCost;
+        else if (rowKind === 'employee') {
+          n =
+            metrics.isProjected && metrics.laborAllocated > 0
+              ? metrics.laborAllocated
+              : metrics.laborEmp;
+        } else if (rowKind === 'contractor') {
+          if (metrics.isProjected && metrics.laborAllocated > 0) return ' - ';
+          n = metrics.laborCon;
+        } else if (rowKind === 'odc') n = metrics.odc;
+        else if (rowKind === 'margin_d') n = metrics.marginDollar;
+        if (rowKind === 'costs' || rowKind === 'employee' || rowKind === 'contractor' || rowKind === 'odc') {
+          return n ? '(' + formatMoneyCompact(Math.abs(n)) + ')' : ' - ';
+        }
+        return n ? formatMoneyCompact(n) : ' - ';
+      }
+
+      function portfolioPnlColHeaderClass_(col) {
+        if (col.kind === 'quarter') return 'text-end fos-portfolio-quarter-col';
+        if (col.id === 'FY') return 'text-end fos-portfolio-fy-col';
+        return 'text-end';
+      }
+
+      function portfolioPnlCellClass_(col, metrics, includeProjected) {
+        var cls = 'fos-portfolio-num text-end';
+        if (col.kind === 'quarter') cls += ' fos-portfolio-quarter-col';
+        if (col.id === 'FY') cls += ' fos-portfolio-fy-col';
+        if (includeProjected && metrics && metrics.isProjected && col.kind === 'month') {
+          cls += ' fos-portfolio-projected-cell';
+        }
+        return cls;
+      }
+
+      function portfolioPnlProjectNameById_(id) {
+        var projects = portfolioPnlState.projects || [];
+        for (var i = 0; i < projects.length; i++) {
+          if (projects[i].id === id) return projects[i].name || id;
+        }
+        return id;
+      }
+
+      function portfolioPnlRecordFailure_(agreementId, message) {
+        if (portfolioPnlState.failedIds.indexOf(agreementId) >= 0) return;
+        portfolioPnlState.failedIds.push(agreementId);
+        portfolioPnlState.failedDetails.push({
+          id: agreementId,
+          name: portfolioPnlProjectNameById_(agreementId),
+          message: message || 'Load failed',
+        });
+      }
+
+      function portfolioPnlApplyPayload_(agreementId, data, snapshotDate) {
+        portfolioPnlState.pnlById[agreementId] = data;
+        if (snapshotDate) {
+          if (!dataSourceState.pnlByAgreementId) dataSourceState.pnlByAgreementId = {};
+          dataSourceState.pnlByAgreementId[agreementId] = data;
+        } else {
+          writeDeliveryPnlCache(agreementId, data);
+        }
+      }
+
+      function portfolioPnlSetLoading_(on, loaded, total) {
+        if (!els.ppnlLoading) return;
+        if (on) {
+          els.ppnlLoading.classList.remove('d-none');
+          els.ppnlLoading.setAttribute('aria-hidden', 'false');
+        } else {
+          els.ppnlLoading.classList.add('d-none');
+          els.ppnlLoading.setAttribute('aria-hidden', 'true');
+        }
+        if (els.ppnlLoadingLabel) {
+          els.ppnlLoadingLabel.textContent = on ? 'Loading portfolio P&L…' : 'Loading portfolio P&L…';
+        }
+        if (els.ppnlLoadingSub) {
+          if (on && total > 0) {
+            els.ppnlLoadingSub.textContent =
+              'Fetching P&L for all projects… (' + String(loaded) + ' / ' + String(total) + ' projects)';
+          } else if (on) {
+            els.ppnlLoadingSub.textContent = 'Fetching P&L for all projects…';
+          }
+        }
+        if (els.ppnlProgressWrap && els.ppnlProgressBar) {
+          if (on && total > 0) {
+            els.ppnlProgressWrap.classList.remove('d-none');
+            var pct = Math.min(100, Math.round((loaded / total) * 100));
+            els.ppnlProgressBar.style.width = pct + '%';
+            els.ppnlProgressBar.setAttribute('aria-valuenow', String(pct));
+          } else {
+            els.ppnlProgressWrap.classList.add('d-none');
+            els.ppnlProgressBar.style.width = '0%';
+          }
+        }
+      }
+
+      function portfolioPnlReadCache_() {
+        try {
+          var raw = sessionStorage.getItem(PORTFOLIO_PNL_CACHE_KEY);
+          if (!raw) return null;
+          var o = JSON.parse(raw);
+          if (!o || o.cacheSchemaVersion !== PORTFOLIO_PNL_CACHE_SCHEMA) return null;
+          return o;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function portfolioPnlWriteCache_(payload) {
+        try {
+          sessionStorage.setItem(PORTFOLIO_PNL_CACHE_KEY, JSON.stringify(payload));
+        } catch (e) {
+          /* ignore quota */
+        }
+      }
+
+      function portfolioPnlResolveProjects_(callback) {
+        if (!isLiveDataSource_()) {
+          var snapProjects = (dataSourceState.deliveryProjects && dataSourceState.deliveryProjects.projects) || [];
+          callback({
+            ok: true,
+            projects: portfolioPnlFilterProjects_(snapProjects),
+            source: 'snapshot',
+            fetchedAt: dataSourceState.snapshotDate || null,
+          });
+          return;
+        }
+        if (navState.fiberyAccess === false) {
+          callback({ ok: false, reason: 'NO_FIBERY' });
+          return;
+        }
+        var cached = readDeliveryCache();
+        if (cached && cached.projects && cached.projects.length) {
+          callback({
+            ok: true,
+            projects: portfolioPnlFilterProjects_(cached.projects),
+            source: 'fibery',
+            fetchedAt: cached.fetchedAt || null,
+          });
+          return;
+        }
+        google.script.run
+          .withSuccessHandler(function (data) {
+            if (data && data.ok && data.projects) {
+              callback({
+                ok: true,
+                projects: portfolioPnlFilterProjects_(data.projects),
+                source: data.source || 'fibery',
+                fetchedAt: data.fetchedAt || null,
+              });
+              return;
+            }
+            google.script.run
+              .withSuccessHandler(function (idx) {
+                callback({
+                  ok: !!(idx && idx.ok),
+                  projects: (idx && idx.projects) || [],
+                  source: (idx && idx.source) || 'fibery',
+                  fetchedAt: (idx && idx.fetchedAt) || null,
+                  message: idx && idx.message,
+                });
+              })
+              .withFailureHandler(function (err) {
+                callback({ ok: false, message: String(err) });
+              })
+              .getPortfolioProjectIndex();
+          })
+          .withFailureHandler(function () {
+            google.script.run
+              .withSuccessHandler(function (idx) {
+                callback({
+                  ok: !!(idx && idx.ok),
+                  projects: (idx && idx.projects) || [],
+                  source: (idx && idx.source) || 'fibery',
+                  fetchedAt: (idx && idx.fetchedAt) || null,
+                  message: idx && idx.message,
+                });
+              })
+              .withFailureHandler(function (err) {
+                callback({ ok: false, message: String(err) });
+              })
+              .getPortfolioProjectIndex();
+          })
+          .getDeliveryDashboardData();
+      }
+
+      function loadPortfolioPnlAll_(forceRefresh) {
+        var token = ++portfolioPnlLoadToken_;
+        portfolioPnlState.loading = true;
+        portfolioPnlState.failedIds = [];
+        portfolioPnlState.failedDetails = [];
+        if (els.ppnlFetchError) els.ppnlFetchError.classList.add('d-none');
+        if (els.ppnlPartialNote) els.ppnlPartialNote.classList.add('d-none');
+        portfolioPnlSetLoading_(true, 0, 0);
+
+        if (!forceRefresh) {
+          var cached = portfolioPnlReadCache_();
+          if (cached && cached.pnlById && cached.projects && cached.projects.length) {
+            portfolioPnlState.projects = cached.projects;
+            portfolioPnlState.pnlById = cached.pnlById;
+            portfolioPnlState.failedIds = cached.failedIds || [];
+            portfolioPnlState.failedDetails = cached.failedDetails || [];
+            portfolioPnlState.fetchedAt = cached.fetchedAt;
+            portfolioPnlState.calendarYear = cached.calendarYear || new Date().getFullYear();
+            portfolioPnlState.includeSubscription = cached.includeSubscription !== false;
+            portfolioPnlState.includeServices = cached.includeServices !== false;
+            portfolioPnlState.includeProjected = !!cached.includeProjected;
+            portfolioPnlState.collapseMonthsByQuarter = !!cached.collapseMonthsByQuarter;
+            portfolioPnlState.loading = false;
+            portfolioPnlSyncControls_();
+            portfolioPnlSetLoading_(false, 0, 0);
+            renderPortfolioPnlGrid_();
+            return;
+          }
+        }
+
+        portfolioPnlResolveProjects_(function (resolved) {
+          if (token !== portfolioPnlLoadToken_) return;
+          if (!resolved.ok) {
+            portfolioPnlState.loading = false;
+            portfolioPnlSetLoading_(false, 0, 0);
+            if (resolved.reason === 'NO_FIBERY') {
+              if (els.ppnlLiveOnly) els.ppnlLiveOnly.classList.remove('d-none');
+            } else if (els.ppnlFetchError) {
+              els.ppnlFetchError.textContent = resolved.message || 'Could not load projects.';
+              els.ppnlFetchError.classList.remove('d-none');
+            }
+            renderPortfolioPnlGrid_();
+            return;
+          }
+          if (els.ppnlLiveOnly) els.ppnlLiveOnly.classList.add('d-none');
+          var projects = resolved.projects || [];
+          portfolioPnlState.projects = projects;
+          portfolioPnlState.pnlById = {};
+          portfolioPnlState.fetchedAt = resolved.fetchedAt;
+          var snapshotDate = isLiveDataSource_() ? null : dataSourceState.snapshotDate;
+          var total = projects.length;
+          var loaded = 0;
+          portfolioPnlSetLoading_(true, loaded, total);
+
+          if (!total) {
+            portfolioPnlState.loading = false;
+            portfolioPnlSetLoading_(false, 0, 0);
+            renderPortfolioPnlGrid_();
+            return;
+          }
+
+          var idsToFetch = [];
+          for (var pi = 0; pi < projects.length; pi++) {
+            var pid = projects[pi].id;
+            var cachedPnl = snapshotDate
+              ? dataSourceState.pnlByAgreementId && dataSourceState.pnlByAgreementId[pid]
+              : readDeliveryPnlCache(pid);
+            if (cachedPnl && cachedPnl.ok !== false) {
+              portfolioPnlState.pnlById[pid] = cachedPnl;
+              loaded++;
+            } else {
+              idsToFetch.push(pid);
+            }
+          }
+          portfolioPnlSetLoading_(true, loaded, total);
+
+          if (!idsToFetch.length) {
+            portfolioPnlState.loading = false;
+            portfolioPnlSetLoading_(false, loaded, total);
+            portfolioPnlWriteCache_({
+              cacheSchemaVersion: PORTFOLIO_PNL_CACHE_SCHEMA,
+              calendarYear: portfolioPnlState.calendarYear,
+              projects: portfolioPnlState.projects,
+              pnlById: portfolioPnlState.pnlById,
+              failedIds: portfolioPnlState.failedIds,
+              failedDetails: portfolioPnlState.failedDetails,
+              fetchedAt: new Date().toISOString(),
+              includeProjected: portfolioPnlState.includeProjected,
+              includeSubscription: portfolioPnlState.includeSubscription !== false,
+              includeServices: portfolioPnlState.includeServices !== false,
+              collapseMonthsByQuarter: portfolioPnlState.collapseMonthsByQuarter,
+            });
+            renderPortfolioPnlGrid_();
+            return;
+          }
+
+          function fetchSnapshotOne_(agreementId, done) {
+            google.script.run
+              .withSuccessHandler(function (data) {
+                if (token !== portfolioPnlLoadToken_) return;
+                if (data && data.ok !== false) {
+                  portfolioPnlApplyPayload_(agreementId, data, snapshotDate);
+                } else {
+                  portfolioPnlRecordFailure_(
+                    agreementId,
+                    (data && data.message) || 'Snapshot P&L missing or invalid.'
+                  );
+                }
+                loaded++;
+                portfolioPnlSetLoading_(true, loaded, total);
+                done();
+              })
+              .withFailureHandler(function (err) {
+                if (token !== portfolioPnlLoadToken_) return;
+                portfolioPnlRecordFailure_(agreementId, String(err));
+                loaded++;
+                portfolioPnlSetLoading_(true, loaded, total);
+                done();
+              })
+              .getDashboardSnapshotPnl(snapshotDate, agreementId);
+          }
+
+          function fetchSnapshotSequential_(index) {
+            if (token !== portfolioPnlLoadToken_) return;
+            if (index >= idsToFetch.length) {
+              portfolioPnlFinishLoad_(token, loaded, total);
+              return;
+            }
+            fetchSnapshotOne_(idsToFetch[index], function () {
+              fetchSnapshotSequential_(index + 1);
+            });
+          }
+
+          function fetchLiveBatch_(startIndex) {
+            if (token !== portfolioPnlLoadToken_) return;
+            google.script.run
+              .withSuccessHandler(function (batch) {
+                if (token !== portfolioPnlLoadToken_) return;
+                if (batch && batch.results) {
+                  for (var ri = 0; ri < batch.results.length; ri++) {
+                    var row = batch.results[ri];
+                    portfolioPnlApplyPayload_(row.agreementId, row.payload, null);
+                  }
+                }
+                if (batch && batch.failures) {
+                  for (var fi = 0; fi < batch.failures.length; fi++) {
+                    var fail = batch.failures[fi];
+                    portfolioPnlRecordFailure_(fail.agreementId, fail.message);
+                  }
+                }
+                loaded += batch && batch.processed ? batch.processed : 0;
+                portfolioPnlSetLoading_(true, loaded, total);
+                if (batch && batch.done) {
+                  portfolioPnlFinishLoad_(token, loaded, total);
+                } else {
+                  fetchLiveBatch_(batch ? batch.nextIndex : startIndex + 2);
+                }
+              })
+              .withFailureHandler(function (err) {
+                if (token !== portfolioPnlLoadToken_) return;
+                var sliceSize = Math.min(2, idsToFetch.length - startIndex);
+                for (var bi = 0; bi < sliceSize; bi++) {
+                  portfolioPnlRecordFailure_(idsToFetch[startIndex + bi], String(err));
+                }
+                loaded += sliceSize;
+                portfolioPnlSetLoading_(true, loaded, total);
+                if (startIndex + sliceSize >= idsToFetch.length) {
+                  portfolioPnlFinishLoad_(token, loaded, total);
+                } else {
+                  fetchLiveBatch_(startIndex + sliceSize);
+                }
+              })
+              .getPortfolioProjectPnLBatch(idsToFetch, startIndex, 2);
+          }
+
+          if (snapshotDate) {
+            fetchSnapshotSequential_(0);
+          } else {
+            fetchLiveBatch_(0);
+          }
+        });
+      }
+
+      function portfolioPnlFinishLoad_(token, loaded, total) {
+        if (token !== portfolioPnlLoadToken_) return;
+        portfolioPnlState.loading = false;
+        portfolioPnlSetLoading_(false, loaded, total);
+        portfolioPnlWriteCache_({
+          cacheSchemaVersion: PORTFOLIO_PNL_CACHE_SCHEMA,
+          calendarYear: portfolioPnlState.calendarYear,
+          projects: portfolioPnlState.projects,
+          pnlById: portfolioPnlState.pnlById,
+          failedIds: portfolioPnlState.failedIds,
+          failedDetails: portfolioPnlState.failedDetails,
+          fetchedAt: new Date().toISOString(),
+          includeProjected: portfolioPnlState.includeProjected,
+          includeSubscription: portfolioPnlState.includeSubscription !== false,
+          includeServices: portfolioPnlState.includeServices !== false,
+          collapseMonthsByQuarter: portfolioPnlState.collapseMonthsByQuarter,
+        });
+        renderPortfolioPnlGrid_();
+        logActivity_(
+          'portfolio_pnl_fetch_done',
+          'portfolio-pnl',
+          'loaded=' + String(total - portfolioPnlState.failedIds.length)
+        );
+      }
+
+      function renderPortfolioPnlGrid_() {
+        var year = portfolioPnlState.calendarYear || new Date().getFullYear();
+        var allCols = portfolioPnlPeriodColumns_(year);
+        var collapseMonths = !!portfolioPnlState.collapseMonthsByQuarter;
+        var cols = portfolioPnlDisplayColumns_(allCols, collapseMonths);
+        var allProjects = portfolioPnlState.projects || [];
+        var projects = portfolioPnlActiveProjects_(allProjects);
+        var includeProjected = !!portfolioPnlState.includeProjected;
+
+        if (els.ppnlSubtitle) {
+          els.ppnlSubtitle.textContent =
+            year +
+            ' calendar year · ' +
+            portfolioPnlTypeFilterLabel_() +
+            ' · ' +
+            String(projects.length) +
+            ' project' +
+            (projects.length === 1 ? '' : 's');
+        }
+        if (els.ppnlLastRefresh && portfolioPnlState.fetchedAt) {
+          els.ppnlLastRefresh.textContent = formatLastRefresh(portfolioPnlState.fetchedAt);
+        }
+
+        if (els.ppnlPartialNote) {
+          if (portfolioPnlState.failedIds && portfolioPnlState.failedIds.length) {
+            var failParts = [];
+            var details = portfolioPnlState.failedDetails || [];
+            for (var fdi = 0; fdi < details.length && fdi < 5; fdi++) {
+              failParts.push(details[fdi].name + ': ' + details[fdi].message);
+            }
+            var failMsg =
+              'Partial data: ' +
+              String(portfolioPnlState.failedIds.length) +
+              ' project(s) failed to load.';
+            if (failParts.length) {
+              failMsg += ' ' + failParts.join('; ');
+            }
+            if (details.length > 5) {
+              failMsg += ' (+' + String(details.length - 5) + ' more)';
+            }
+            els.ppnlPartialNote.textContent = failMsg;
+            els.ppnlPartialNote.title = details
+              .map(function (d) { return d.name + ': ' + d.message; })
+              .join('\n');
+            els.ppnlPartialNote.classList.remove('d-none');
+          } else {
+            els.ppnlPartialNote.classList.add('d-none');
+            els.ppnlPartialNote.removeAttribute('title');
+          }
+        }
+
+        if (!projects.length) {
+          if (els.ppnlGridHead) els.ppnlGridHead.innerHTML = '';
+          if (els.ppnlGridBody) els.ppnlGridBody.innerHTML = '';
+          if (els.ppnlEmpty) {
+            els.ppnlEmpty.classList.remove('d-none');
+            if (!portfolioPnlState.includeSubscription && !portfolioPnlState.includeServices) {
+              els.ppnlEmpty.textContent = 'Select at least one agreement type to view projects.';
+            } else if (!allProjects.length) {
+              els.ppnlEmpty.textContent = 'No Subscription or Services projects in scope.';
+            } else {
+              els.ppnlEmpty.textContent = 'No projects match the selected agreement types.';
+            }
+          }
+          if (els.ppnlKpiRevenue) els.ppnlKpiRevenue.textContent = '$0';
+          if (els.ppnlKpiCost) els.ppnlKpiCost.textContent = '$0';
+          if (els.ppnlKpiMargin) els.ppnlKpiMargin.textContent = ' - ';
+          if (els.ppnlKpiProjects) els.ppnlKpiProjects.textContent = '0';
+          return;
+        }
+        if (els.ppnlEmpty) els.ppnlEmpty.classList.add('d-none');
+
+        var customers = [];
+        var custMap = {};
+        for (var pi = 0; pi < projects.length; pi++) {
+          var cust = String(projects[pi].customer || '(No customer)').trim() || '(No customer)';
+          if (!custMap[cust]) {
+            custMap[cust] = { name: cust, projects: [] };
+            customers.push(custMap[cust]);
+          }
+          custMap[cust].projects.push(projects[pi]);
+        }
+
+        function colMetricsForProject_(project) {
+          var pnl = portfolioPnlState.pnlById[project.id];
+          var out = {};
+          for (var ci = 0; ci < allCols.length; ci++) {
+            out[allCols[ci].id] = portfolioPnlProjectColumnMetrics_(
+              pnl,
+              project.type,
+              allCols[ci],
+              year,
+              includeProjected
+            );
+          }
+          return out;
+        }
+
+        var portfolioByCol = {};
+        for (var cj = 0; cj < allCols.length; cj++) {
+          portfolioByCol[allCols[cj].id] = portfolioPnlEmptyMetrics_();
+        }
+        for (var ck = 0; ck < projects.length; ck++) {
+          var pm = colMetricsForProject_(projects[ck]);
+          for (var cm = 0; cm < allCols.length; cm++) {
+            var cid = allCols[cm].id;
+            portfolioByCol[cid] = portfolioPnlAddMetrics_(portfolioByCol[cid], pm[cid] || portfolioPnlEmptyMetrics_());
+          }
+        }
+
+        if (els.ppnlKpiRevenue) {
+          els.ppnlKpiRevenue.textContent = formatMoneyCompact((portfolioByCol.FY || portfolioPnlEmptyMetrics_()).revenue);
+        }
+        if (els.ppnlKpiCost) {
+          els.ppnlKpiCost.textContent = formatMoneyCompact((portfolioByCol.FY || portfolioPnlEmptyMetrics_()).totalCost);
+        }
+        if (els.ppnlKpiMargin) {
+          var fym = portfolioByCol.FY || portfolioPnlEmptyMetrics_();
+          els.ppnlKpiMargin.textContent =
+            fym.marginPct == null ? ' - ' : formatPct(fym.marginPct) + '%';
+        }
+        if (els.ppnlKpiProjects) {
+          els.ppnlKpiProjects.textContent = String(projects.length);
+        }
+
+        var headHtml = ['<tr><th class="fos-portfolio-label"> </th>'];
+        for (var hi = 0; hi < cols.length; hi++) {
+          headHtml.push(
+            '<th class="' +
+              portfolioPnlColHeaderClass_(cols[hi]) +
+              '">' +
+              escapeHtml(cols[hi].label) +
+              '</th>'
+          );
+        }
+        headHtml.push('</tr>');
+        if (els.ppnlGridHead) els.ppnlGridHead.innerHTML = headHtml.join('');
+
+        function rowHtml_(label, rowKind, depth, metricsByCol, rowClass, toggleAttr, isExpanded, labelMode) {
+          var pad = 8 + depth * 14;
+          var toggleBtn = toggleAttr
+            ? '<button type="button" class="fos-portfolio-toggle" ' +
+              toggleAttr +
+              ' aria-label="Expand or collapse">' +
+              (isExpanded ? '▾' : '▸') +
+              '</button>'
+            : '';
+          var labelTextClass = 'fos-portfolio-label-text';
+          if (labelMode === 'truncate') labelTextClass += ' fos-portfolio-label-truncate';
+          if (labelMode === 'wrap') labelTextClass += ' fos-portfolio-label-wrap';
+          var cells = [
+            '<tr class="' +
+              rowClass +
+              '"><td class="fos-portfolio-label" style="padding-left:' +
+              pad +
+              'px"><span class="fos-portfolio-label-inner">' +
+              toggleBtn +
+              '<span class="' +
+              labelTextClass +
+              '">' +
+              escapeHtml(label) +
+              '</span></span></td>',
+          ];
+          for (var ri = 0; ri < cols.length; ri++) {
+            var col = cols[ri];
+            var met = metricsByCol[col.id] || portfolioPnlEmptyMetrics_();
+            cells.push(
+              '<td class="' +
+                portfolioPnlCellClass_(col, met, includeProjected) +
+                '">' +
+                portfolioPnlRowValue_(met, rowKind) +
+                '</td>'
+            );
+          }
+          cells.push('</tr>');
+          return cells.join('');
+        }
+
+        function projectDetailRows_(proj, projMetrics) {
+          var rows = [];
+          var revExpanded = portfolioPnlState.expandedRevenue[proj.id] !== false;
+          var costExpanded = portfolioPnlState.expandedCosts[proj.id] !== false;
+          rows.push(
+            rowHtml_(
+              'Revenue',
+              'revenue',
+              2,
+              projMetrics,
+              'fos-portfolio-group fos-portfolio-detail',
+              'data-ppnl-rev="' + escapeAttr_(proj.id) + '" aria-expanded="' + (revExpanded ? 'true' : 'false') + '"',
+              revExpanded,
+              'wrap'
+            )
+          );
+          if (revExpanded) {
+            rows.push(
+              rowHtml_('Subscription', 'subscription', 3, projMetrics, 'fos-portfolio-detail fos-portfolio-sub', null, false, 'wrap')
+            );
+            rows.push(
+              rowHtml_('Services', 'services', 3, projMetrics, 'fos-portfolio-detail fos-portfolio-sub', null, false, 'wrap')
+            );
+          }
+          rows.push(
+            rowHtml_(
+              'Costs',
+              'costs',
+              2,
+              projMetrics,
+              'fos-portfolio-group fos-portfolio-detail',
+              'data-ppnl-cost="' + escapeAttr_(proj.id) + '" aria-expanded="' + (costExpanded ? 'true' : 'false') + '"',
+              costExpanded,
+              'wrap'
+            )
+          );
+          if (costExpanded) {
+            rows.push(
+              rowHtml_('Employee', 'employee', 3, projMetrics, 'fos-portfolio-detail fos-portfolio-sub', null, false, 'wrap')
+            );
+            rows.push(
+              rowHtml_('Contractor', 'contractor', 3, projMetrics, 'fos-portfolio-detail fos-portfolio-sub', null, false, 'wrap')
+            );
+            rows.push(
+              rowHtml_('ODC', 'odc', 3, projMetrics, 'fos-portfolio-detail fos-portfolio-sub', null, false, 'wrap')
+            );
+          }
+          rows.push(
+            rowHtml_('Margin $', 'margin_d', 2, projMetrics, 'fos-portfolio-detail', null, false, 'wrap')
+          );
+          rows.push(
+            rowHtml_('Margin %', 'margin_pct', 2, projMetrics, 'fos-portfolio-detail', null, false, 'wrap')
+          );
+          return rows;
+        }
+
+        var body = [];
+        body.push(
+          rowHtml_('Portfolio Revenue', 'portfolio', 0, portfolioByCol, 'fos-portfolio-portfolio', null, false, 'wrap')
+        );
+
+        for (var ui = 0; ui < customers.length; ui++) {
+          var custRow = customers[ui];
+          var custKey = custRow.name;
+          var custExpanded = !!portfolioPnlState.expandedCustomers[custKey];
+          var custMetrics = {};
+          for (var cmi = 0; cmi < allCols.length; cmi++) {
+            custMetrics[allCols[cmi].id] = portfolioPnlEmptyMetrics_();
+          }
+          for (var cpi = 0; cpi < custRow.projects.length; cpi++) {
+            var cpj = colMetricsForProject_(custRow.projects[cpi]);
+            for (var cpx = 0; cpx < allCols.length; cpx++) {
+              var colId = allCols[cpx].id;
+              custMetrics[colId] = portfolioPnlAddMetrics_(custMetrics[colId], cpj[colId]);
+            }
+          }
+          body.push(
+            rowHtml_(
+              custKey,
+              'customer',
+              0,
+              custMetrics,
+              'fos-portfolio-customer',
+              'data-ppnl-cust="' + escapeAttr_(custKey) + '" aria-expanded="' + (custExpanded ? 'true' : 'false') + '"',
+              custExpanded,
+              'wrap'
+            )
+          );
+          if (!custExpanded) continue;
+          for (var pri = 0; pri < custRow.projects.length; pri++) {
+            var proj = custRow.projects[pri];
+            var projExpanded = !!portfolioPnlState.expandedProjects[proj.id];
+            var projMetrics = colMetricsForProject_(proj);
+            var projRowClass = 'fos-portfolio-project' + (projExpanded ? ' fos-portfolio-project--expanded' : ' fos-portfolio-project--collapsed');
+            body.push(
+              rowHtml_(
+                proj.name,
+                'project',
+                1,
+                projMetrics,
+                projRowClass,
+                'data-ppnl-proj="' + escapeAttr_(proj.id) + '" aria-expanded="' + (projExpanded ? 'true' : 'false') + '"',
+                projExpanded,
+                projExpanded ? 'wrap' : 'truncate'
+              )
+            );
+            if (!projExpanded) continue;
+            body = body.concat(projectDetailRows_(proj, projMetrics));
+          }
+        }
+
+        if (els.ppnlGridBody) els.ppnlGridBody.innerHTML = body.join('');
+      }
+
+      function wirePortfolioPnlOnce_() {
+        if (portfolioPnlControlsWired_) return;
+        portfolioPnlControlsWired_ = true;
+        if (els.ppnlRefreshBtn) {
+          els.ppnlRefreshBtn.addEventListener('click', function () {
+            if (!isLiveDataSource_() && navState.fiberyAccess === false) return;
+            try {
+              sessionStorage.removeItem(PORTFOLIO_PNL_CACHE_KEY);
+            } catch (e) {
+              /* ignore */
+            }
+            logActivity_('portfolio_pnl_refresh', 'portfolio-pnl', '');
+            loadPortfolioPnlAll_(true);
+          });
+        }
+        portfolioPnlSyncControls_();
+        if (els.ppnlTypeSubscription) {
+          els.ppnlTypeSubscription.addEventListener('change', function () {
+            portfolioPnlOnTypeFilterChange_(els.ppnlTypeSubscription);
+          });
+        }
+        if (els.ppnlTypeServices) {
+          els.ppnlTypeServices.addEventListener('change', function () {
+            portfolioPnlOnTypeFilterChange_(els.ppnlTypeServices);
+          });
+        }
+        if (els.ppnlCollapseQuarters) {
+          els.ppnlCollapseQuarters.addEventListener('change', function () {
+            portfolioPnlState.collapseMonthsByQuarter = !!els.ppnlCollapseQuarters.checked;
+            renderPortfolioPnlGrid_();
+            logActivity_(
+              'portfolio_pnl_quarter_toggle',
+              'portfolio-pnl',
+              portfolioPnlState.collapseMonthsByQuarter ? 'on' : 'off'
+            );
+          });
+        }
+        if (els.ppnlIncludeProjected) {
+          els.ppnlIncludeProjected.addEventListener('change', function () {
+            portfolioPnlState.includeProjected = !!els.ppnlIncludeProjected.checked;
+            renderPortfolioPnlGrid_();
+            logActivity_(
+              'portfolio_pnl_projected_toggle',
+              'portfolio-pnl',
+              portfolioPnlState.includeProjected ? 'on' : 'off'
+            );
+          });
+        }
+        if (els.ppnlGridBody) {
+          els.ppnlGridBody.addEventListener('click', function (ev) {
+            var btn = ev.target.closest('.fos-portfolio-toggle');
+            if (!btn) return;
+            var cust = btn.getAttribute('data-ppnl-cust');
+            var proj = btn.getAttribute('data-ppnl-proj');
+            var rev = btn.getAttribute('data-ppnl-rev');
+            var cost = btn.getAttribute('data-ppnl-cost');
+            if (cust) {
+              portfolioPnlState.expandedCustomers[cust] = !portfolioPnlState.expandedCustomers[cust];
+              logActivity_('portfolio_pnl_expand_toggle', 'portfolio-pnl', 'customer');
+            } else if (proj) {
+              portfolioPnlState.expandedProjects[proj] = !portfolioPnlState.expandedProjects[proj];
+              logActivity_('portfolio_pnl_expand_toggle', 'portfolio-pnl', 'project');
+            } else if (rev) {
+              portfolioPnlState.expandedRevenue[rev] = !portfolioPnlState.expandedRevenue[rev];
+              logActivity_('portfolio_pnl_expand_toggle', 'portfolio-pnl', 'revenue');
+            } else if (cost) {
+              portfolioPnlState.expandedCosts[cost] = !portfolioPnlState.expandedCosts[cost];
+              logActivity_('portfolio_pnl_expand_toggle', 'portfolio-pnl', 'costs');
+            }
+            renderPortfolioPnlGrid_();
+          });
+        }
+      }
+
+      function showPortfolioPnlLiveOrSnapshot_() {
+        if (!isLiveDataSource_()) {
+          if (!dataSourceState.deliveryProjects) {
+            if (dataSourceState.snapshotDate && !dataSourceState.bundleLoading) {
+              loadSnapshotBundle_(dataSourceState.snapshotDate, true);
+              return;
+            }
+            if (els.ppnlLiveOnly) els.ppnlLiveOnly.classList.remove('d-none');
+            renderPortfolioPnlGrid_();
+            return;
+          }
+        } else if (navState.fiberyAccess === false) {
+          if (els.ppnlLiveOnly) els.ppnlLiveOnly.classList.remove('d-none');
+          renderPortfolioPnlGrid_();
+          return;
+        }
+        if (els.ppnlLiveOnly) els.ppnlLiveOnly.classList.add('d-none');
+        loadPortfolioPnlAll_(false);
+      }
+
+      function showPortfolioPnl() {
+        if (!els.panelPortfolioPnl) return;
+        if (navState.expensesAccess === false) {
+          showComingSoon('Portfolio P&L is available to the Finance team, Execs, and Admins.');
+          return;
+        }
+        els.panelHome.classList.add('d-none');
+        if (els.panelAgreementDashboard) els.panelAgreementDashboard.classList.add('d-none');
+        if (els.panelOperations) els.panelOperations.classList.add('d-none');
+        if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
+        if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
+        if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
+        if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        els.panelPortfolioPnl.classList.remove('d-none');
+        hidePanelSettings_();
+        els.topbarTitle.textContent = 'Portfolio P&L';
+        if (els.ppnlFetchError) els.ppnlFetchError.classList.add('d-none');
+        wirePortfolioPnlOnce_();
+        logActivity_('portfolio_pnl_panel_open', 'portfolio-pnl', '');
+        showPortfolioPnlLiveOrSnapshot_();
       }
 
       function showExpenses() {
@@ -17244,6 +18600,11 @@
           if (item.id === 'expenses') {
             setActiveNav('expenses');
             showExpenses();
+            return;
+          }
+          if (item.id === 'portfolio-pnl') {
+            setActiveNav('portfolio-pnl');
+            showPortfolioPnl();
             return;
           }
           if (item.id === 'operations') {

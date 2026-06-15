@@ -1,5 +1,5 @@
 /**
- * PRD version 2.12.9 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.13.4 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Anthropic Admin API client for AI usage sync (messages, cost_report, claude_code).
  */
@@ -59,7 +59,7 @@ function aiUsageFetchAnthropicApiKeyIndex_() {
 function aiUsageFetchAnthropicMessagesForDay_(dateYmd) {
   var key = aiUsageRequireAnthropicKey_();
   var startIso = dateYmd + 'T00:00:00Z';
-  var endIso = dateYmd + 'T23:59:59Z';
+  var endIso = aiUsageAnthropicDayEndExclusiveIso_(dateYmd);
   var rows = [];
   var page = null;
   var guard = 0;
@@ -99,7 +99,7 @@ function aiUsageFetchAnthropicMessagesForDay_(dateYmd) {
 function aiUsageFetchAnthropicCostForDay_(dateYmd) {
   var key = aiUsageRequireAnthropicKey_();
   var startIso = dateYmd + 'T00:00:00Z';
-  var endIso = dateYmd + 'T23:59:59Z';
+  var endIso = aiUsageAnthropicDayEndExclusiveIso_(dateYmd);
   var rows = [];
   var page = null;
   var guard = 0;
@@ -156,4 +156,14 @@ function aiUsageFetchAnthropicClaudeCodeForDay_(dateYmd) {
     guard++;
   } while (page && guard < 50);
   return rows;
+}
+
+/**
+ * Anthropic usage/cost reports treat ending_at as exclusive (next UTC midnight).
+ *
+ * @param {string} dateYmd
+ * @return {string}
+ */
+function aiUsageAnthropicDayEndExclusiveIso_(dateYmd) {
+  return aiUsageAddDaysYmd_(dateYmd, 1) + 'T00:00:00Z';
 }

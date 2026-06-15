@@ -1,5 +1,5 @@
 /**
- * PRD version 2.12.9 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.13.4 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `delivery`, panel
  * `#panel-delivery`). Two public endpoints, both authorized via
@@ -44,7 +44,7 @@
  *     `statusUpdates: { latest, history, statusOptions }` (v2.12.5 / feature 018).
  *     `resourceAllocations: { hasAllocations, rowCount, months?, lifetimeAllocatedCost?,
  *       emptyMessage? }` (v2.12.6 / feature 019); per-month `allocatedByRole` (v2.12.9 / 020).
- *     `cacheSchemaVersion: 7` (client key suffix `_v7`).
+ *     `cacheSchemaVersion: 8` (client key suffix `_v8`; v2.13.0 adds laborEmployee/laborContractor).
  *
  * Diagnostics (run from the Apps Script editor):
  *   _diag_sampleDeliveryPayload()
@@ -78,9 +78,10 @@ var DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_ = 1;
  *   v5 - v2.12.5: `statusUpdates` block (feature 018).
  *   v6 - v2.12.6: `resourceAllocations` block (feature 019).
  *   v7 - v2.12.9: `resourceAllocations.months[].allocatedByRole` (feature 020).
+ *   v8 - v2.13.0: per-month `laborEmployee` + `laborContractor` (feature 022).
  * @const {number}
  */
-var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 7;
+var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 8;
 
 /** @const {number} Default TTL (minutes) for the client-side cache. */
 var DELIVERY_DEFAULT_CACHE_TTL_MIN_ = 10;
@@ -552,7 +553,12 @@ function resolvePnlRevenueItemMonthKey_(row) {
  * @private
  */
 function buildMonthlyPnL_(args) {
+  var internalNames = (args.internalCompanyNames && args.internalCompanyNames.length)
+    ? args.internalCompanyNames
+    : getAgreementThresholds_().internalCompanyNames;
   var laborByMonth = {};
+  var laborByMonthEmployee = {};
+  var laborByMonthContractor = {};
   var laborByMonthByRole = {};
   var laborRoleTotals = {};
   var odcByMonth = {};
@@ -574,6 +580,11 @@ function buildMonthlyPnL_(args) {
     if (!isFinite(cost)) { laborSkipped++; continue; }
     var roleName = l.userRole || l.clockifyUserRole || '(No role)';
     laborByMonth[key] = (laborByMonth[key] || 0) + cost;
+    if (isInternalLabor_(l, internalNames)) {
+      laborByMonthEmployee[key] = (laborByMonthEmployee[key] || 0) + cost;
+    } else {
+      laborByMonthContractor[key] = (laborByMonthContractor[key] || 0) + cost;
+    }
     if (!laborByMonthByRole[key]) laborByMonthByRole[key] = {};
     laborByMonthByRole[key][roleName] = (laborByMonthByRole[key][roleName] || 0) + cost;
     laborRoleTotals[roleName] = (laborRoleTotals[roleName] || 0) + cost;
@@ -703,6 +714,8 @@ function buildMonthlyPnL_(args) {
       label: monthLabel_(mk),
       revenue: rev,
       labor: lab,
+      laborEmployee: Number(laborByMonthEmployee[mk] || 0),
+      laborContractor: Number(laborByMonthContractor[mk] || 0),
       laborByRole: laborByMonthByRole[mk] ? Object.assign({}, laborByMonthByRole[mk]) : {},
       expenses: exp,
       totalCost: totalCost,
@@ -894,6 +907,7 @@ function fetchLaborCostsForAgreement_(agreementId, maxRows) {
           startDateTime: 'Agreement Management/Start Date Time',
           userRole: ['Agreement Management/User Role', 'Agreement Management/Name'],
           clockifyUserRole: ['Agreement Management/Clockify User Role', 'enum/name'],
+          clockifyUserCompany: ['Agreement Management/Clockify User Company', 'enum/name'],
         },
         'q/where': ['=', ['Agreement Management/Agreement', 'fibery/id'], '$agreementId'],
         'q/order-by': [[['Agreement Management/Start Date Time'], 'q/asc']],
@@ -912,6 +926,7 @@ function fetchLaborCostsForAgreement_(agreementId, maxRows) {
         startDateTime: stringOrNull_(page[i].startDateTime),
         userRole: stringOrNull_(page[i].userRole),
         clockifyUserRole: stringOrNull_(page[i].clockifyUserRole),
+        clockifyUserCompany: stringOrNull_(page[i].clockifyUserCompany),
       });
       if (maxRows && rows.length >= maxRows) {
         partial = true;

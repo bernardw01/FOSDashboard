@@ -1,5 +1,5 @@
 /**
- * PRD version 2.12.9 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.13.4 - sync with docs/FOS-Dashboard-PRD.md
  *
  * User activity logging - append-only event rows to the "User Activity" tab
  * in the Users spreadsheet (AUTH_SPREADSHEET_ID). Implements Section 3.8 / FR-60-FR-66.
@@ -74,6 +74,13 @@ var ACTIVITY_VALID_EVENT_TYPES_ = {
   delivery_status_update_submit: true,
   delivery_status_update_history_open: true,
   delivery_filter: true,
+  portfolio_pnl_panel_open: true,
+  portfolio_pnl_refresh: true,
+  portfolio_pnl_fetch_done: true,
+  portfolio_pnl_expand_toggle: true,
+  portfolio_pnl_projected_toggle: true,
+  portfolio_pnl_quarter_toggle: true,
+  portfolio_pnl_type_filter: true,
   data_source_change: true,
   snapshot_bundle_load_start: true,
   snapshot_bundle_load_done: true,

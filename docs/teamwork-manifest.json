@@ -159,7 +159,16 @@
       "featureId": "021",
       "intakeTaskId": 40151912,
       "publishedAt": "2026-06-11",
-      "lastSyncedAt": "2026-06-11"
+      "lastSyncedAt": "2026-06-12"
+    },
+    "feature_022": {
+      "id": 311833,
+      "title": "Feature 022 - Portfolio Project P&L",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/311833",
+      "featureId": "022",
+      "intakeTaskId": 40160887,
+      "publishedAt": "2026-06-12",
+      "lastSyncedAt": "2026-06-12"
     }
   },
   "tasks": {
@@ -243,19 +252,59 @@
       "estDevHoursGitBase": "2205fda4c4c7760776177454f11f004755c939a4",
       "workflowStage": "Shipped"
     },
-    "Feature 021 - P&L allocated cost line color": {
+    "v2.12.9 - P&L allocated cost line color": {
       "id": 40151944,
       "tasklist": "Delivery",
       "featureId": "021",
       "releaseType": "Enhancement",
       "releaseTitle": "P&L allocated cost line color",
-      "provisionalTaskName": true,
-      "shippedVersion": null,
+      "provisionalTaskName": false,
+      "shippedVersion": "v2.12.9",
       "notebookKey": "feature_021",
       "intakeTaskId": 40151912,
       "url": "https://win.godeap.io/app/tasks/40151944",
       "renameAtShip": "v{FOS_PRD_VERSION} - P&L allocated cost line color",
-      "workflowStage": "In-progress"
+      "workflowStage": "Shipped",
+      "shippedAt": "2026-06-12",
+      "estDevHours": 6,
+      "estDevHoursRationale": [
+        "Git range: cb283fac..HEAD (44 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +5 lines): +1.5h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +3 lines): +2.0h",
+        "Teamwork / automation scripts (+142 lines): +0.8h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 5.5h"
+      ],
+      "estDevHoursGitBase": "cb283faccd0c7992f801c5d9ece9dc71d5a18681"
+    },
+    "v2.13.4 - Portfolio Project P&L": {
+      "id": 40161428,
+      "tasklist": "Finance",
+      "featureId": "022",
+      "releaseType": "Enhancement",
+      "releaseTitle": "Portfolio Project P&L",
+      "provisionalTaskName": false,
+      "shippedVersion": "v2.13.4",
+      "notebookKey": "feature_022",
+      "intakeTaskId": 40160887,
+      "url": "https://win.godeap.io/app/tasks/40161428",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Portfolio Project P&L",
+      "workflowStage": "Shipped",
+      "shippedAt": "2026-06-12",
+      "estDevHours": 6,
+      "estDevHoursRationale": [
+        "Git range: cb283fac..HEAD (44 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +5 lines): +1.5h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +3 lines): +2.0h",
+        "Teamwork / automation scripts (+142 lines): +0.8h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 5.5h"
+      ],
+      "estDevHoursGitBase": "cb283faccd0c7992f801c5d9ece9dc71d5a18681"
     }
   },
   "lastBootstrappedAt": "2026-06-10"

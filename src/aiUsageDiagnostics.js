@@ -1,5 +1,5 @@
 /**
- * PRD version 2.12.9 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.13.4 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Phase 0 diagnostics for AI usage Admin APIs (feature 017).
  * Editor-only helpers; logs redacted summaries (no secrets, no full payloads).
@@ -98,7 +98,7 @@ function _diag_sampleAiUsageAnthropic(dateYmd) {
   Logger.log('Anthropic org: id=%s name=%s', org.id || '', org.name || '');
 
   var startIso = dateYmd + 'T00:00:00Z';
-  var endIso = dateYmd + 'T23:59:59Z';
+  var endIso = aiUsageAnthropicDayEndExclusiveIso_(dateYmd);
   var messages = _aiUsageAnthropicGetJson_('/v1/organizations/usage_report/messages', key, {
     starting_at: startIso,
     ending_at: endIso,
@@ -113,7 +113,7 @@ function _diag_sampleAiUsageAnthropic(dateYmd) {
   var cost = _aiUsageAnthropicGetJson_('/v1/organizations/cost_report', key, {
     starting_at: startIso,
     ending_at: endIso,
-    group_by: ['description', 'model'],
+    group_by: ['workspace_id', 'description'],
     limit: 31,
   });
   var costStats = _aiUsageSummarizeAnthropicCost_(cost);
@@ -180,7 +180,7 @@ function _aiUsageRequireAdminKey_(prop, label) {
  * @return {!Object}
  */
 function _aiUsageAnthropicGetJson_(path, adminKey, query) {
-  var qs = _aiUsageBuildQuery_(query);
+  var qs = _aiUsageBuildQuery_(query, true);
   var url = AI_USAGE_ANTHROPIC_API_BASE_ + path + (qs ? '?' + qs : '');
   var resp = UrlFetchApp.fetch(url, {
     method: 'get',
@@ -216,9 +216,10 @@ function _aiUsageOpenAiGetJson_(path, adminKey, query) {
 
 /**
  * @param {!Object} body
+ * @param {boolean=} bracketArrays When true, array params use `key[]=` (Anthropic Admin API).
  * @return {string}
  */
-function _aiUsageBuildQuery_(body) {
+function _aiUsageBuildQuery_(body, bracketArrays) {
   var parts = [];
   Object.keys(body).forEach(function (k) {
     var v = body[k];
@@ -227,7 +228,8 @@ function _aiUsageBuildQuery_(body) {
     }
     if (Array.isArray(v)) {
       v.forEach(function (item) {
-        parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(String(item)));
+        var param = bracketArrays ? k + '[]' : k;
+        parts.push(encodeURIComponent(param) + '=' + encodeURIComponent(String(item)));
       });
       return;
     }
