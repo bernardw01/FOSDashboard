@@ -329,21 +329,6 @@
       "estDevHoursGitBase": "04e788a13e8e57a07412fde3f9a12368d3df5dc8",
       "workflowStage": "Shipped"
     },
-    "Feature 017 - AI usage sync operator UI": {
-      "id": 40139491,
-      "tasklist": "Data platform",
-      "featureId": "017",
-      "releaseTitle": "AI usage sync operator UI",
-      "provisionalTaskName": true,
-      "workingVersionEstimate": "2.14.0",
-      "shippedVersion": null,
-      "notebookKey": "feature_017",
-      "url": "https://win.godeap.io/app/tasks/40139491",
-      "renameAtShip": "v{FOS_PRD_VERSION} - AI usage sync operator UI",
-      "releaseType": "Enhancement",
-      "intakeTaskId": 40159053,
-      "workflowStage": "Spec Draft"
-    },
     "Feature 023 - AI Usage dashboard": {
       "id": 40180335,
       "tasklist": "Finance",
@@ -357,6 +342,43 @@
       "url": "https://win.godeap.io/app/tasks/40180335",
       "renameAtShip": "v{FOS_PRD_VERSION} - AI Usage dashboard",
       "workflowStage": "Spec Draft"
+    },
+    "v2.15.7 - AI usage sync operator UI": {
+      "id": 40139491,
+      "tasklist": "Data platform",
+      "featureId": "017",
+      "releaseTitle": "AI usage sync operator UI",
+      "provisionalTaskName": false,
+      "workingVersionEstimate": "2.14.0",
+      "shippedVersion": "v2.15.7",
+      "notebookKey": "feature_017",
+      "url": "https://win.godeap.io/app/tasks/40139491",
+      "renameAtShip": "v{FOS_PRD_VERSION} - AI usage sync operator UI",
+      "releaseType": "Enhancement",
+      "intakeTaskId": 40159053,
+      "workflowStage": "Shipped",
+      "shippedAt": "2026-06-16",
+      "estDevHours": 21,
+      "estDevHoursRationale": [
+        "Git range: 38a3fa73..HEAD (49 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +1241 lines): +4.5h",
+        "Apps Script module `src/adminSettingsRegistry.js`: +1.0h",
+        "Apps Script module `src/aiUsageAnthropicClient.js`: +0.9h",
+        "Apps Script module `src/aiUsageConstants.js`: +0.9h",
+        "Apps Script module `src/aiUsageDashboard.js`: +2.2h",
+        "Apps Script module `src/aiUsageDiagnostics.js`: +1.1h",
+        "Apps Script module `src/aiUsageFiberyWriter.js`: +1.7h",
+        "Apps Script module `src/aiUsageNormalize.js`: +0.9h",
+        "Apps Script module `src/aiUsageSyncJob.js`: +2.2h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +1 lines): +2.0h",
+        "Feature spec / docs (+306 lines): +1.8h",
+        "Teamwork / automation scripts (+145 lines): +0.8h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 21.0h"
+      ],
+      "estDevHoursGitBase": "38a3fa73a8e89c9424f4973c40ed682c7ef5722d"
     }
   },
   "lastBootstrappedAt": "2026-06-10"

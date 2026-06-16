@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.15.6 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.15.7 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -2341,6 +2341,25 @@
 
     .fos-settings-root .fos-ai-usage-sync-operator .fos-ai-usage-status-badge.is-muted {
       background: rgba(138, 160, 182, 0.15);
+      color: var(--text-muted);
+    }
+
+    .fos-settings-root .fos-ai-usage-sync-operator .fos-ai-usage-sync-range-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem 1rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .fos-settings-root .fos-ai-usage-sync-operator .fos-ai-usage-sync-range-row label {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      margin-bottom: 0;
+    }
+
+    .fos-settings-root .fos-ai-usage-sync-operator .form-check-label {
+      font-size: 0.8125rem;
       color: var(--text-muted);
     }
 
@@ -6044,6 +6063,9 @@
         aiUsageSyncRunning: false,
         aiUsageSyncPollTimer: null,
         aiUsageSyncWatchdogTimer: null,
+        aiUsageSyncUseCustomRange: false,
+        aiUsageSyncStartYmd: '',
+        aiUsageSyncEndYmd: '',
       };
       var settingsUsageChart_ = null;
       var settingsUsageChartRendered_ = false;
@@ -6596,10 +6618,31 @@
         return 'is-muted';
       }
 
+      function seedAdminAiUsageSyncCustomDates_() {
+        if (adminSettingsState_.aiUsageSyncStartYmd && adminSettingsState_.aiUsageSyncEndYmd) {
+          return;
+        }
+        var status = adminSettingsState_.aiUsageSync;
+        var range = (status && status.incrementalRange) || {};
+        if (range.startYmd && range.endYmd) {
+          adminSettingsState_.aiUsageSyncStartYmd = range.startYmd;
+          adminSettingsState_.aiUsageSyncEndYmd = range.endYmd;
+          return;
+        }
+        var end = new Date();
+        var start = new Date(end.getTime());
+        start.setUTCDate(start.getUTCDate() - 6);
+        adminSettingsState_.aiUsageSyncEndYmd = end.toISOString().slice(0, 10);
+        adminSettingsState_.aiUsageSyncStartYmd = start.toISOString().slice(0, 10);
+      }
+
       function renderAdminAiUsageSyncOperator_(body) {
         var wrap = document.createElement('div');
         wrap.className = 'fos-ai-usage-sync-operator';
         wrap.id = 'settings-ai-usage-sync-operator';
+
+        var status = adminSettingsState_.aiUsageSync;
+        var statusErr = adminSettingsState_.aiUsageSyncError;
 
         var title = document.createElement('div');
         title.className = 'small fw-semibold text-white mb-2';
@@ -6609,11 +6652,98 @@
         var hint = document.createElement('p');
         hint.className = 'small text-secondary mb-2';
         hint.textContent =
-          'Pull new Anthropic usage into Fibery. The next run uses the last sync log and existing Usage rows to choose the date window (with overlap for late vendor data).';
+          'Pull Anthropic usage into Fibery. Choose incremental (recommended) or a custom start/end date window.';
         wrap.appendChild(hint);
 
-        var status = adminSettingsState_.aiUsageSync;
-        var statusErr = adminSettingsState_.aiUsageSyncError;
+        var modeRow = document.createElement('div');
+        modeRow.className = 'mb-2';
+        var incId = 'settings-ai-usage-sync-mode-inc';
+        var customId = 'settings-ai-usage-sync-mode-custom';
+        var incWrap = document.createElement('div');
+        incWrap.className = 'form-check form-check-inline';
+        var incInput = document.createElement('input');
+        incInput.type = 'radio';
+        incInput.className = 'form-check-input';
+        incInput.name = 'settings-ai-usage-sync-mode';
+        incInput.id = incId;
+        incInput.checked = !adminSettingsState_.aiUsageSyncUseCustomRange;
+        incInput.addEventListener('change', function () {
+          if (incInput.checked) {
+            adminSettingsState_.aiUsageSyncUseCustomRange = false;
+            renderAdminSettingsGroups_();
+          }
+        });
+        var incLbl = document.createElement('label');
+        incLbl.className = 'form-check-label';
+        incLbl.setAttribute('for', incId);
+        incLbl.textContent = 'Incremental (recommended)';
+        incWrap.appendChild(incInput);
+        incWrap.appendChild(incLbl);
+        modeRow.appendChild(incWrap);
+
+        var customWrap = document.createElement('div');
+        customWrap.className = 'form-check form-check-inline';
+        var customInput = document.createElement('input');
+        customInput.type = 'radio';
+        customInput.className = 'form-check-input';
+        customInput.name = 'settings-ai-usage-sync-mode';
+        customInput.id = customId;
+        customInput.checked = adminSettingsState_.aiUsageSyncUseCustomRange;
+        customInput.addEventListener('change', function () {
+          if (customInput.checked) {
+            adminSettingsState_.aiUsageSyncUseCustomRange = true;
+            seedAdminAiUsageSyncCustomDates_();
+            renderAdminSettingsGroups_();
+          }
+        });
+        var customLbl = document.createElement('label');
+        customLbl.className = 'form-check-label';
+        customLbl.setAttribute('for', customId);
+        customLbl.textContent = 'Custom date range';
+        customWrap.appendChild(customInput);
+        customWrap.appendChild(customLbl);
+        modeRow.appendChild(customWrap);
+        wrap.appendChild(modeRow);
+
+        if (adminSettingsState_.aiUsageSyncUseCustomRange) {
+          var rangeRow = document.createElement('div');
+          rangeRow.className = 'fos-ai-usage-sync-range-row';
+          var startLbl = document.createElement('label');
+          startLbl.setAttribute('for', 'settings-ai-usage-sync-start');
+          startLbl.textContent = 'Start';
+          var startInput = document.createElement('input');
+          startInput.type = 'date';
+          startInput.id = 'settings-ai-usage-sync-start';
+          startInput.className = 'form-control form-control-sm';
+          startInput.style.maxWidth = '11rem';
+          startInput.value = adminSettingsState_.aiUsageSyncStartYmd || '';
+          startInput.addEventListener('change', function () {
+            adminSettingsState_.aiUsageSyncStartYmd = startInput.value || '';
+          });
+          var endLbl = document.createElement('label');
+          endLbl.setAttribute('for', 'settings-ai-usage-sync-end');
+          endLbl.textContent = 'End';
+          var endInput = document.createElement('input');
+          endInput.type = 'date';
+          endInput.id = 'settings-ai-usage-sync-end';
+          endInput.className = 'form-control form-control-sm';
+          endInput.style.maxWidth = '11rem';
+          endInput.value = adminSettingsState_.aiUsageSyncEndYmd || '';
+          endInput.addEventListener('change', function () {
+            adminSettingsState_.aiUsageSyncEndYmd = endInput.value || '';
+          });
+          rangeRow.appendChild(startLbl);
+          rangeRow.appendChild(startInput);
+          rangeRow.appendChild(endLbl);
+          rangeRow.appendChild(endInput);
+          wrap.appendChild(rangeRow);
+          var maxDays = (status && status.maxBackfillDays) || 90;
+          var rangeHint = document.createElement('p');
+          rangeHint.className = 'small text-secondary mb-2';
+          rangeHint.textContent =
+            'Vendor fetch uses this inclusive window (max ' + String(maxDays) + ' days).';
+          wrap.appendChild(rangeHint);
+        }
 
         if (statusErr) {
           var errEl = document.createElement('p');
@@ -6717,6 +6847,13 @@
           status.anthropicKeyConfigured &&
           !adminSettingsState_.aiUsageSyncRunning &&
           !adminSettingsState_.loading;
+        if (canRun && adminSettingsState_.aiUsageSyncUseCustomRange) {
+          canRun =
+            /^\d{4}-\d{2}-\d{2}$/.test(adminSettingsState_.aiUsageSyncStartYmd || '') &&
+            /^\d{4}-\d{2}-\d{2}$/.test(adminSettingsState_.aiUsageSyncEndYmd || '') &&
+            (adminSettingsState_.aiUsageSyncStartYmd || '') <=
+              (adminSettingsState_.aiUsageSyncEndYmd || '');
+        }
         runBtn.disabled = !canRun;
         runBtn.addEventListener('click', function () {
           runAdminAiUsageSync_();
@@ -6738,6 +6875,12 @@
           .withSuccessHandler(function (data) {
             adminSettingsState_.aiUsageSync = data;
             adminSettingsState_.aiUsageSyncError = null;
+            if (
+              adminSettingsState_.aiUsageSyncUseCustomRange &&
+              !adminSettingsState_.aiUsageSyncStartYmd
+            ) {
+              seedAdminAiUsageSyncCustomDates_();
+            }
             if (typeof callback === 'function') callback(data);
           })
           .withFailureHandler(function (err) {
@@ -6779,7 +6922,16 @@
         if (adminSettingsState_.aiUsageSyncRunning) return;
         adminSettingsState_.aiUsageSyncRunning = true;
         renderAdminSettingsGroups_();
-        logActivity_('ai_usage_sync_start', 'settings', '');
+        logActivity_(
+          'ai_usage_sync_start',
+          'settings',
+          adminSettingsState_.aiUsageSyncUseCustomRange
+            ? 'custom ' +
+                String(adminSettingsState_.aiUsageSyncStartYmd || '') +
+                '..' +
+                String(adminSettingsState_.aiUsageSyncEndYmd || '')
+            : 'incremental'
+        );
         var resultEl = document.getElementById('settings-ai-usage-sync-result');
         if (resultEl) resultEl.textContent = '';
 
@@ -6842,7 +6994,11 @@
             logActivity_('ai_usage_sync_error', 'settings', msg.slice(0, 80));
             finishAdminAiUsageSyncUi_(resultEl, msg);
           })
-          .runAiUsageSyncIncremental();
+          .runAiUsageSyncForSettings(
+            adminSettingsState_.aiUsageSyncUseCustomRange,
+            adminSettingsState_.aiUsageSyncStartYmd,
+            adminSettingsState_.aiUsageSyncEndYmd
+          );
       }
 
       function buildAdminSettingsRow_(row) {

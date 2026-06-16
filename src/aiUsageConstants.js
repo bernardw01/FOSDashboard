@@ -1,5 +1,5 @@
 /**
- * PRD version 2.15.6 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.15.7 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Shared constants for AI usage sync (feature 017).
  */

@@ -1,5 +1,5 @@
 /**
- * PRD version 2.15.6 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.15.7 - sync with docs/FOS-Dashboard-PRD.md
  *
  * AI usage sync orchestration (Anthropic Phase B, feature 017).
  *
@@ -7,6 +7,7 @@
  *   runDailyAiUsageSync_()
  *   runAiUsageSyncOnDemand(startYmd, endYmd)
  *   runAiUsageSyncIncremental()
+ *   runAiUsageSyncForSettings(useCustomRange, startYmd, endYmd)
  *   getAiUsageSyncStatus()
  *   installDailyAiUsageSyncTrigger()
  *   removeDailyAiUsageSyncTriggers()
@@ -78,7 +79,55 @@ function runAiUsageSyncOnDemand(startYmd, endYmd) {
 function runAiUsageSyncIncremental() {
   var auth = requireAuthForApi_();
   requireAdminRole_(auth);
+  return runAiUsageSyncIncrementalInternal_();
+}
 
+/**
+ * ADMIN Settings: incremental or custom-range sync.
+ *
+ * @param {boolean} useCustomRange When true, use startYmd/endYmd instead of incremental resolver.
+ * @param {string=} startYmd YYYY-MM-DD (required when useCustomRange).
+ * @param {string=} endYmd YYYY-MM-DD (required when useCustomRange).
+ * @return {!{ ok: boolean, message: string, summary?: !Object }}
+ */
+function runAiUsageSyncForSettings(useCustomRange, startYmd, endYmd) {
+  var auth = requireAuthForApi_();
+  requireAdminRole_(auth);
+
+  if (!aiUsageSyncIsEnabled_()) {
+    return { ok: false, message: 'AI usage sync is disabled (AI_USAGE_SYNC_ENABLED=false)' };
+  }
+  if (!PropertiesService.getScriptProperties().getProperty(AI_USAGE_ANTHROPIC_ADMIN_KEY_PROP_)) {
+    return { ok: false, message: 'ANTHROPIC_ADMIN_API_KEY is not set' };
+  }
+
+  if (!useCustomRange) {
+    return runAiUsageSyncIncrementalInternal_();
+  }
+
+  startYmd = String(startYmd || '').trim();
+  endYmd = String(endYmd || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(startYmd) || !/^\d{4}-\d{2}-\d{2}$/.test(endYmd)) {
+    return { ok: false, message: 'Start and end dates are required (YYYY-MM-DD).' };
+  }
+  if (startYmd > endYmd) {
+    return { ok: false, message: 'Start date must be on or before end date.' };
+  }
+  var maxDays = aiUsageResolveMaxBackfillDays_();
+  var span = aiUsageDaySpan_(startYmd, endYmd);
+  if (span > maxDays) {
+    return { ok: false, message: 'Date range exceeds AI_USAGE_MAX_BACKFILL_DAYS (' + maxDays + ').' };
+  }
+  return runAiUsageSyncForRange_(startYmd, endYmd, 'manual');
+}
+
+/**
+ * Incremental sync (no auth; callers must gate ADMIN).
+ *
+ * @return {!{ ok: boolean, message: string, summary?: !Object }}
+ * @private
+ */
+function runAiUsageSyncIncrementalInternal_() {
   if (!aiUsageSyncIsEnabled_()) {
     return { ok: false, message: 'AI usage sync is disabled (AI_USAGE_SYNC_ENABLED=false)' };
   }
@@ -132,6 +181,7 @@ function getAiUsageSyncStatus() {
       alreadyUpToDate: range.alreadyUpToDate,
       maxDaysPerRun: range.maxDaysPerRun,
     },
+    maxBackfillDays: aiUsageResolveMaxBackfillDays_(),
     lastRun: aiUsageDecorateLatestSyncRun_(readLatestAiUsageSyncRunFromSheet_()),
   };
 }
