@@ -1,12 +1,12 @@
 /**
- * PRD version 2.15.7 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.15.12 - sync with docs/FOS-Dashboard-PRD.md
  *
- * AI Usage dashboard (feature 023). Reads Fibery AI Usage Data/Usage with
- * Clockify User join for developer vs product (AI Usage Tracker) classification.
+ * AI Usage dashboard (feature 023). Reads Fibery Claude API Costs via daily Drive
+ * cache (`aiUsageDashboardCache.js`) with Clockify User join for classification.
  */
 
 /** @const {number} */
-var AI_USAGE_DASHBOARD_CACHE_SCHEMA_VERSION_ = 2;
+var AI_USAGE_DASHBOARD_CACHE_SCHEMA_VERSION_ = 4;
 
 /** @const {string} */
 var AI_USAGE_DASHBOARD_CACHE_TTL_PROP_ = 'AI_USAGE_DASHBOARD_CACHE_TTL_MINUTES';
@@ -30,16 +30,19 @@ var AI_USAGE_DASHBOARD_DEFAULT_TTL_MINUTES_ = 10;
 var AI_USAGE_DASHBOARD_DEFAULT_TOP_N_ = 20;
 
 /** @const {number} */
-var AI_USAGE_DASHBOARD_DEFAULT_MAX_ROWS_ = 5000;
+var AI_USAGE_DASHBOARD_DEFAULT_MAX_ROWS_ = 75000;
 
 /** @const {number} */
-var AI_USAGE_DASHBOARD_QUERY_PAGE_SIZE_ = 500;
+var AI_USAGE_DASHBOARD_QUERY_PAGE_SIZE_ = 1000;
 
 /** @const {number} */
-var AI_USAGE_DASHBOARD_QUERY_MAX_PAGES_ = 20;
+var AI_USAGE_DASHBOARD_QUERY_MAX_PAGES_ = 160;
 
 /** @const {string} */
 var AI_USAGE_UNMATCHED_LABEL_ = 'Unmatched';
+
+/** @const {string} */
+var AI_USAGE_DASHBOARD_SOURCE_PLATFORM_LABEL_ = 'Anthropic';
 
 /**
  * @return {number}
@@ -52,12 +55,14 @@ function getAiUsageDashboardCacheTtlMinutes() {
 /**
  * @param {?string=} rangeStart ISO datetime or YYYY-MM-DD (inclusive).
  * @param {?string=} rangeEnd ISO datetime or YYYY-MM-DD (inclusive end day).
+ * @param {boolean=} forceRefresh When true, rebuild today's Drive cache from Fibery.
  * @return {!Object}
  */
-function getAiUsageDashboardData(rangeStart, rangeEnd) {
+function getAiUsageDashboardData(rangeStart, rangeEnd, forceRefresh) {
   requireAiUsageAccessForApi_();
+  var refresh = forceRefresh === true;
   try {
-    return buildAiUsageDashboardPayload_(rangeStart, rangeEnd);
+    return buildAiUsageDashboardPayload_(rangeStart, rangeEnd, refresh);
   } catch (e) {
     var msg = e && e.message ? String(e.message) : 'Could not load AI usage data.';
     if (msg === 'NOT_AUTHORIZED') {
@@ -134,7 +139,7 @@ function getAiUsageDashboardProps_() {
       AI_USAGE_DASHBOARD_MAX_ROWS_PROP_,
       AI_USAGE_DASHBOARD_DEFAULT_MAX_ROWS_,
       100,
-      20000
+      150000
     ),
   };
 }
@@ -142,15 +147,55 @@ function getAiUsageDashboardProps_() {
 /**
  * @param {?string=} rangeStart
  * @param {?string=} rangeEnd
+ * @param {boolean=} forceRefresh
  * @return {!Object}
  * @private
  */
-function buildAiUsageDashboardPayload_(rangeStart, rangeEnd) {
+function buildAiUsageDashboardPayload_(rangeStart, rangeEnd, forceRefresh) {
   var props = getAiUsageDashboardProps_();
   var now = new Date();
   var fetchedAtIso = now.toISOString();
   var range = resolveAiUsageRange_(rangeStart, rangeEnd, now, props.defaultRangeDays);
+  var cacheDateKey = resolveSnapshotDateKey_(now);
+  var warnings = [];
 
+  if (isAiUsageDriveCacheEnabled_()) {
+    var cacheResult = loadOrBuildAiUsageDriveCache_(cacheDateKey, forceRefresh === true, props);
+    if (cacheResult.ok && cacheResult.bundle) {
+      return buildAiUsagePayloadFromDriveBundle_(
+        cacheResult.bundle,
+        range,
+        props,
+        !!cacheResult.fromDrive,
+        fetchedAtIso,
+        cacheResult.manifest
+      );
+    }
+    if (!cacheResult.ok) {
+      warnings.push(
+        'Drive cache unavailable (' + (cacheResult.reason || 'CACHE_MISS') + '); loading from Fibery.'
+      );
+    }
+  } else if (!isAiUsageDriveCacheConfigured_()) {
+    warnings.push('Drive cache not configured (set FOS_SNAPSHOT_DRIVE_FOLDER_ID); loading from Fibery.');
+  }
+
+  var fiberyPayload = buildAiUsagePayloadFromFibery_(range, props, fetchedAtIso);
+  if (warnings.length) {
+    fiberyPayload.warnings = (fiberyPayload.warnings || []).concat(warnings);
+    fiberyPayload.partial = true;
+  }
+  return fiberyPayload;
+}
+
+/**
+ * @param {!Object} range
+ * @param {!Object} props
+ * @param {string} fetchedAtIso
+ * @return {!Object}
+ * @private
+ */
+function buildAiUsagePayloadFromFibery_(range, props, fetchedAtIso) {
   var fetched = fetchAllAiUsageRows_(range.startYmd, range.endYmd, props.maxRows);
   if (!fetched.ok) {
     return {
@@ -183,6 +228,8 @@ function buildAiUsageDashboardPayload_(rangeStart, rangeEnd) {
   var payload = {
     ok: true,
     source: 'fibery',
+    dataSource: 'claude-api-costs',
+    cacheLayer: 'none',
     fetchedAt: fetchedAtIso,
     cacheSchemaVersion: AI_USAGE_DASHBOARD_CACHE_SCHEMA_VERSION_,
     ttlMinutes: props.cacheTtlMinutes,
@@ -194,6 +241,11 @@ function buildAiUsageDashboardPayload_(rangeStart, rangeEnd) {
     byProduct: aggregates.byProduct,
     byMonth: aggregates.byMonth,
     filterOptions: filterOptions,
+    rollups: {
+      window: buildAiUsageRollups_(rows, props.topN),
+      sliceRowCount: rows.length,
+      cacheRowCount: rows.length,
+    },
   };
   if (warnings.length) {
     payload.warnings = warnings;
@@ -297,10 +349,15 @@ function aiUsageParseYmd_(ymd) {
 function fetchAllAiUsageRows_(startYmd, endYmd, maxRows) {
   var all = [];
   var truncated = false;
-  var usageDateField = aiUsageField_('Usage Date');
+  var usageDateField = aiUsageField_('usagedateutc');
   var clockifyUserPath = aiUsageUsageClockifyUserField_();
+  var maxPages = Math.min(
+    AI_USAGE_DASHBOARD_QUERY_MAX_PAGES_,
+    Math.max(1, Math.ceil(maxRows / AI_USAGE_DASHBOARD_QUERY_PAGE_SIZE_))
+  );
 
-  for (var page = 0; page < AI_USAGE_DASHBOARD_QUERY_MAX_PAGES_; page++) {
+  var lastBatchLen = 0;
+  for (var page = 0; page < maxPages; page++) {
     if (all.length >= maxRows) {
       truncated = true;
       break;
@@ -308,27 +365,23 @@ function fetchAllAiUsageRows_(startYmd, endYmd, maxRows) {
     var limit = Math.min(AI_USAGE_DASHBOARD_QUERY_PAGE_SIZE_, maxRows - all.length);
     var q = {
       query: {
-        'q/from': aiUsageUsageDatabase_(),
+        'q/from': aiUsageClaudeApiCostsDatabase_(),
         'q/select': {
           id: 'fibery/id',
           usageDate: usageDateField,
-          costUsd: aiUsageField_('Cost USD'),
-          sourcePlatform: [aiUsageField_('Source Platform'), 'enum/name'],
-          sourceDataset: [aiUsageField_('Source Dataset'), 'enum/name'],
-          customerType: [aiUsageField_('Customer Type'), 'enum/name'],
-          model: aiUsageField_('Model'),
-          actorEmail: aiUsageField_('Actor Email'),
-          actorLabel: aiUsageField_('Actor Label'),
-          mappingStatus: [aiUsageField_('Mapping Status'), 'enum/name'],
-          allocationCategory: [aiUsageField_('Allocation Category'), 'enum/name'],
+          costUsd: aiUsageField_('costusd'),
+          model: [aiUsageField_('model'), 'enum/name'],
+          apiKey: [aiUsageField_('apikey'), 'enum/name'],
+          workspace: [aiUsageField_('workspace'), 'enum/name'],
+          tokenType: [aiUsageField_('tokentype'), 'enum/name'],
+          costType: [aiUsageField_('costtype'), 'enum/name'],
+          usageType: [aiUsageField_('usagetype'), 'enum/name'],
+          userCompany: [aiUsageField_('User Company'), 'enum/name'],
+          userDepartment: [aiUsageField_('User Department'), 'enum/name'],
+          userRole: [aiUsageField_('User Role'), 'Agreement Management/Name'],
           clockifyUserId: [clockifyUserPath, 'fibery/id'],
           clockifyUserName: [clockifyUserPath, 'Agreement Management/Name'],
           aiUsageTracker: [clockifyUserPath, 'Agreement Management/AI Usage Tracker'],
-          teamMemberRole: [
-            clockifyUserPath,
-            'Agreement Management/Team Member Role',
-            'Agreement Management/Name',
-          ],
           clockifyUserEmailJoin: [
             clockifyUserPath,
             'Agreement Management/Clockify User Email',
@@ -354,6 +407,7 @@ function fetchAllAiUsageRows_(startYmd, endYmd, maxRows) {
       };
     }
     var batch = r.rows || [];
+    lastBatchLen = batch.length;
     all = all.concat(batch);
     if (batch.length < limit) {
       break;
@@ -363,8 +417,95 @@ function fetchAllAiUsageRows_(startYmd, endYmd, maxRows) {
       break;
     }
   }
-  if (page >= AI_USAGE_DASHBOARD_QUERY_MAX_PAGES_ - 1) {
+  if (!truncated && lastBatchLen >= AI_USAGE_DASHBOARD_QUERY_PAGE_SIZE_ && all.length >= maxRows) {
     truncated = true;
+  }
+  return { ok: true, rows: all, truncated: truncated };
+}
+
+/**
+ * @param {number} y
+ * @param {number} m 1-12
+ * @param {number} d
+ * @return {string}
+ * @private
+ */
+function aiUsageFormatYmdParts_(y, m, d) {
+  var ms = m < 10 ? '0' + m : String(m);
+  var ds = d < 10 ? '0' + d : String(d);
+  return y + '-' + ms + '-' + ds;
+}
+
+/**
+ * Calendar month slices intersecting [startYmd, endYmd], ascending.
+ *
+ * @param {string} startYmd
+ * @param {string} endYmd
+ * @return {!Array<!{ startYmd: string, endYmd: string }>}
+ * @private
+ */
+function enumerateAiUsageMonthRanges_(startYmd, endYmd) {
+  var out = [];
+  var sp = parseSnapshotDateParts_(startYmd);
+  var ep = parseSnapshotDateParts_(endYmd);
+  if (!sp || !ep) {
+    return out;
+  }
+  var y = sp.y;
+  var m = sp.m;
+  while (true) {
+    var monthStart = aiUsageFormatYmdParts_(y, m, 1);
+    var lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    var monthEnd = aiUsageFormatYmdParts_(y, m, lastDay);
+    var chunkStart = monthStart < startYmd ? startYmd : monthStart;
+    var chunkEnd = monthEnd > endYmd ? endYmd : monthEnd;
+    if (chunkStart <= chunkEnd) {
+      out.push({ startYmd: chunkStart, endYmd: chunkEnd });
+    }
+    if (y === ep.y && m === ep.m) {
+      break;
+    }
+    m++;
+    if (m > 12) {
+      m = 1;
+      y++;
+    }
+  }
+  return out;
+}
+
+/**
+ * Fetches Claude API Costs month-by-month (smaller Fibery offsets) for Drive cache.
+ *
+ * @param {string} startYmd
+ * @param {string} endYmd
+ * @param {number} maxRows
+ * @return {!Object}
+ * @private
+ */
+function fetchAllAiUsageRowsChunked_(startYmd, endYmd, maxRows) {
+  var months = enumerateAiUsageMonthRanges_(startYmd, endYmd);
+  if (!months.length) {
+    return fetchAllAiUsageRows_(startYmd, endYmd, maxRows);
+  }
+  var all = [];
+  var truncated = false;
+  for (var i = months.length - 1; i >= 0; i--) {
+    if (all.length >= maxRows) {
+      truncated = true;
+      break;
+    }
+    var mr = months[i];
+    var remaining = maxRows - all.length;
+    var part = fetchAllAiUsageRows_(mr.startYmd, mr.endYmd, remaining);
+    if (!part.ok) {
+      return part;
+    }
+    all = all.concat(part.rows);
+    if (part.truncated) {
+      truncated = true;
+      break;
+    }
   }
   return { ok: true, rows: all, truncated: truncated };
 }
@@ -379,12 +520,7 @@ function normalizeAiUsageRows_(rawRows) {
   for (var i = 0; i < rawRows.length; i++) {
     var r = rawRows[i] || {};
     var rawCostUsd = numberOrNull_(r.costUsd);
-    var sourceDataset = stringOrNull_(r.sourceDataset) || '';
-    var customerType = stringOrNull_(r.customerType) || '';
-    var costUsd = 0;
-    if (rawCostUsd !== null && aiUsageRowIsBillableCost_(sourceDataset, customerType)) {
-      costUsd = rawCostUsd;
-    }
+    var costUsd = rawCostUsd === null ? 0 : rawCostUsd;
     var clockifyUserId = stringOrNull_(r.clockifyUserId);
     var personName = AI_USAGE_UNMATCHED_LABEL_;
     var bucket = 'unmatched';
@@ -394,15 +530,14 @@ function normalizeAiUsageRows_(rawRows) {
       personName =
         stringOrNull_(r.clockifyUserName) ||
         stringOrNull_(r.clockifyUserEmailJoin) ||
-        stringOrNull_(r.actorEmail) ||
-        stringOrNull_(r.actorLabel) ||
+        stringOrNull_(r.apiKey) ||
         '(Unknown user)';
       isProduct = r.aiUsageTracker === true;
       bucket = isProduct ? 'product' : 'developer';
     }
 
     var usageDate = aiUsageCoerceYmd_(r.usageDate) || '';
-    var roleName = stringOrNull_(r.teamMemberRole) || '';
+    var roleName = stringOrNull_(r.userRole) || '';
 
     out.push({
       id: stringOrNull_(r.id) || '',
@@ -413,13 +548,16 @@ function normalizeAiUsageRows_(rawRows) {
       personKey: personName,
       roleName: roleName || '(No role)',
       clockifyUserId: clockifyUserId || '',
-      sourcePlatform: stringOrNull_(r.sourcePlatform) || '',
-      sourceDataset: sourceDataset,
-      customerType: customerType,
+      sourcePlatform: AI_USAGE_DASHBOARD_SOURCE_PLATFORM_LABEL_,
+      sourceDataset: 'Claude API Costs',
       model: stringOrNull_(r.model) || '',
-      actorEmail: stringOrNull_(r.actorEmail) || '',
-      mappingStatus: stringOrNull_(r.mappingStatus) || '',
-      allocationCategory: stringOrNull_(r.allocationCategory) || '',
+      apiKey: stringOrNull_(r.apiKey) || '',
+      workspace: stringOrNull_(r.workspace) || '',
+      tokenType: stringOrNull_(r.tokenType) || '',
+      costType: stringOrNull_(r.costType) || '',
+      usageType: stringOrNull_(r.usageType) || '',
+      userCompany: stringOrNull_(r.userCompany) || '',
+      userDepartment: stringOrNull_(r.userDepartment) || '',
     });
   }
   return out;
@@ -579,11 +717,12 @@ function _diag_sampleAiUsageDashboardPayload() {
   var now = new Date();
   var endYmd = aiUsageYmdFromDate_(now);
   var start = new Date(now.getTime() - 30 * 86400000);
-  var payload = buildAiUsageDashboardPayload_(aiUsageYmdFromDate_(start), endYmd);
+  var payload = buildAiUsageDashboardPayload_(aiUsageYmdFromDate_(start), endYmd, false);
   console.log(
     '_diag_sampleAiUsageDashboardPayload -> ',
     JSON.stringify({
       ok: payload.ok,
+      dataSource: payload.dataSource,
       rowCount: payload.rows ? payload.rows.length : 0,
       kpis: payload.kpis,
       byDeveloper: (payload.byDeveloper || []).slice(0, 5),

@@ -1,5 +1,5 @@
 /**
- * PRD version 2.15.7 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.15.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Shared constants for AI usage sync (feature 017).
  */
@@ -83,6 +83,15 @@ function aiUsageField_(fieldSuffix) {
  */
 function aiUsageUsageDatabase_() {
   return aiUsageFiberyAppPrefix_() + '/Usage';
+}
+
+/**
+ * Anthropic cost_report rows (feature 023 dashboard read path).
+ *
+ * @return {string}
+ */
+function aiUsageClaudeApiCostsDatabase_() {
+  return aiUsageFiberyAppPrefix_() + '/Claude API Costs';
 }
 
 /**

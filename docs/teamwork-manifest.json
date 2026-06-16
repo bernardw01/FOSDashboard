@@ -178,7 +178,15 @@
       "featureId": "023",
       "intakeTaskId": 40180160,
       "publishedAt": "2026-06-15",
-      "lastSyncedAt": "2026-06-15"
+      "lastSyncedAt": "2026-06-16"
+    },
+    "feature_024": {
+      "id": 311906,
+      "title": "Feature 024 - P&L resource assignments modal",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/311906",
+      "featureId": "024",
+      "publishedAt": "2026-06-16",
+      "lastSyncedAt": "2026-06-16"
     }
   },
   "tasks": {
@@ -379,6 +387,58 @@
         "Total (rounded to nearest 0.5h): 21.0h"
       ],
       "estDevHoursGitBase": "38a3fa73a8e89c9424f4973c40ed682c7ef5722d"
+    },
+    "v2.15.10 - P&L resource assignments modal": {
+      "id": 40194885,
+      "tasklist": "Delivery",
+      "featureId": "024",
+      "releaseType": "Enhancement",
+      "releaseTitle": "P&L resource assignments modal",
+      "provisionalTaskName": false,
+      "shippedVersion": "v2.15.10",
+      "notebookKey": "feature_024",
+      "url": "https://win.godeap.io/app/tasks/40194885",
+      "renameAtShip": "v{FOS_PRD_VERSION} - P&L resource assignments modal",
+      "workflowStage": "Shipped",
+      "shippedAt": "2026-06-16",
+      "estDevHours": 6,
+      "estDevHoursRationale": [
+        "Git range: 38b83176..HEAD (38 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +162 lines): +2.4h",
+        "Apps Script module `src/aiUsageSyncJob.js`: +1.0h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +1 lines): +2.0h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 6.5h"
+      ],
+      "estDevHoursGitBase": "38b83176e32733beaa77f781e6ca6acf6f4858ec"
+    },
+    "v2.15.12 - P&L assignments modal Role column": {
+      "id": 40203320,
+      "tasklist": "Delivery",
+      "featureId": "024",
+      "releaseType": "Enhancement",
+      "releaseTitle": "P&L assignments modal Role column",
+      "provisionalTaskName": false,
+      "shippedVersion": "v2.15.12",
+      "notebookKey": "feature_024",
+      "url": "https://win.godeap.io/app/tasks/40203320",
+      "renameAtShip": "v{FOS_PRD_VERSION} - P&L assignments modal Role column",
+      "workflowStage": "Shipped",
+      "shippedAt": "2026-06-16",
+      "estDevHours": 6,
+      "estDevHoursRationale": [
+        "Git range: 38b83176..HEAD (38 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +162 lines): +2.4h",
+        "Apps Script module `src/aiUsageSyncJob.js`: +1.0h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +1 lines): +2.0h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 6.5h"
+      ],
+      "estDevHoursGitBase": "38b83176e32733beaa77f781e6ca6acf6f4858ec"
     }
   },
   "lastBootstrappedAt": "2026-06-10"

@@ -1,5 +1,5 @@
 /**
- * PRD version 2.15.7 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.15.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `delivery`, panel
  * `#panel-delivery`). Two public endpoints, both authorized via
@@ -43,8 +43,9 @@
  *     `laborRoles: !Array<string>` + per-month `laborByRole` map (v2.6.8).
  *     `statusUpdates: { latest, history, statusOptions }` (v2.12.5 / feature 018).
  *     `resourceAllocations: { hasAllocations, rowCount, months?, lifetimeAllocatedCost?,
- *       emptyMessage? }` (v2.12.6 / feature 019); per-month `allocatedByRole` (v2.12.9 / 020).
- *     `cacheSchemaVersion: 8` (client key suffix `_v8`; v2.13.0 adds laborEmployee/laborContractor).
+ *       emptyMessage?, assignments? }` (v2.12.6 / feature 019); per-month `allocatedByRole`
+ *       (v2.12.9 / 020); `assignments[]` detail rows (v2.15.10 / 024; v2.15.12 adds roleName).
+ *     `cacheSchemaVersion: 10` (client key suffix `_v10`; v2.15.12 adds assignments[].roleName).
  *
  * Diagnostics (run from the Apps Script editor):
  *   _diag_sampleDeliveryPayload()
@@ -81,7 +82,7 @@ var DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_ = 1;
  *   v8 - v2.13.0: per-month `laborEmployee` + `laborContractor` (feature 022).
  * @const {number}
  */
-var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 8;
+var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 10;
 
 /** @const {number} Default TTL (minutes) for the client-side cache. */
 var DELIVERY_DEFAULT_CACHE_TTL_MIN_ = 10;
@@ -1062,6 +1063,11 @@ function fetchResourceAllocationsForAgreement_(agreementId) {
         allocatedHours: 'Agreement Management/Allocated Hours',
         duration: 'Agreement Management/Duration',
         allocationName: 'Agreement Management/Allocation Name',
+        clockifyUserName: [
+          'Agreement Management/Clockify User',
+          'Agreement Management/Name',
+        ],
+        percentAllocated: 'Agreement Management/Percent Allocated',
         roleName: [
           'Agreement Management/Clockify User Team Member Role',
           'Agreement Management/Name',
@@ -1084,6 +1090,9 @@ function fetchResourceAllocationsForAgreement_(agreementId) {
       allocatedCost: numberOr_(page[i].allocatedCost, 0),
       allocatedHours: numberOr_(page[i].allocatedHours, 0),
       allocationName: stringOrNull_(page[i].allocationName),
+      clockifyUserName: stringOrNull_(page[i].clockifyUserName),
+      percentAllocated: page[i].percentAllocated != null && page[i].percentAllocated !== ''
+        ? numberOr_(page[i].percentAllocated, 0) : null,
       roleName: stringOrNull_(page[i].roleName) || '(No role)',
       durStart: dur ? stringOrNull_(dur.start) : null,
       durEnd: dur ? stringOrNull_(dur.end) : null,
@@ -1097,7 +1106,67 @@ function fetchResourceAllocationsForAgreement_(agreementId) {
  * @private
  */
 function emptyResourceAllocationsBlock_() {
-  return { hasAllocations: false, rowCount: 0 };
+  return { hasAllocations: false, rowCount: 0, assignments: [] };
+}
+
+/**
+ * @param {?string} iso
+ * @return {string}
+ * @private
+ */
+function allocationYmdFromIso_(iso) {
+  if (!iso) return '';
+  var s = String(iso).trim();
+  return s.length >= 10 ? s.slice(0, 10) : s;
+}
+
+/**
+ * @param {?string} durStart
+ * @param {?string} durEnd
+ * @return {string}
+ * @private
+ */
+function formatResourceAllocationDurationLabel_(durStart, durEnd) {
+  var s = allocationYmdFromIso_(durStart);
+  var e = allocationYmdFromIso_(durEnd);
+  if (s && e) return s === e ? s : s + ' to ' + e;
+  if (s) return s + ' (open end)';
+  if (e) return '(open start) to ' + e;
+  return ' - ';
+}
+
+/**
+ * @param {!Array<!Object>} rows
+ * @return {!Array<!Object>}
+ * @private
+ */
+function buildResourceAllocationAssignmentsList_(rows) {
+  if (!rows || !rows.length) return [];
+  var out = [];
+  for (var i = 0; i < rows.length; i++) {
+    var row = rows[i];
+    var name = stringOrNull_(row.clockifyUserName)
+      || stringOrNull_(row.allocationName)
+      || '(Unnamed)';
+    var pct = row.percentAllocated;
+    var pctNum = (pct === null || pct === undefined || pct === '') ? null : Number(pct);
+    out.push({
+      id: row.id,
+      name: name,
+      roleName: stringOrNull_(row.roleName) || '(No role)',
+      durationLabel: formatResourceAllocationDurationLabel_(row.durStart, row.durEnd),
+      percentAllocated: (pctNum !== null && isFinite(pctNum)) ? pctNum : null,
+      allocatedHours: Number(row.allocatedHours || 0),
+    });
+  }
+  out.sort(function (a, b) {
+    var ad = a.durationLabel || '';
+    var bd = b.durationLabel || '';
+    if (ad !== bd) return ad < bd ? -1 : 1;
+    if (a.name !== b.name) return a.name < b.name ? -1 : 1;
+    return 0;
+  });
+  return out;
 }
 
 /**
@@ -1209,6 +1278,7 @@ function roundAllocatedByRole_(roleMap) {
  */
 function buildResourceAllocationsBlock_(rows, chartMonths, warningsOut) {
   var empty = emptyResourceAllocationsBlock_();
+  var assignments = buildResourceAllocationAssignmentsList_(rows || []);
   if (!rows || !rows.length) return empty;
 
   var validRows = [];
@@ -1217,7 +1287,9 @@ function buildResourceAllocationsBlock_(rows, chartMonths, warningsOut) {
     if (!isFinite(cost) || cost <= 0) continue;
     validRows.push(rows[i]);
   }
-  if (!validRows.length) return empty;
+  if (!validRows.length) {
+    return { hasAllocations: false, rowCount: 0, assignments: assignments };
+  }
 
   var monthKeys = [];
   var monthKeySet = {};
@@ -1254,6 +1326,7 @@ function buildResourceAllocationsBlock_(rows, chartMonths, warningsOut) {
       rowCount: validRows.length,
       lifetimeAllocatedCost: Math.round(lifetimeTotal),
       emptyMessage: 'Allocations exist but none overlap project dates.',
+      assignments: assignments,
     };
   }
 
@@ -1278,6 +1351,7 @@ function buildResourceAllocationsBlock_(rows, chartMonths, warningsOut) {
     rowCount: validRows.length,
     months: monthsOut,
     lifetimeAllocatedCost: Math.round(lifetimeTotal),
+    assignments: assignments,
   };
 }
 

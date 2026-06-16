@@ -1,5 +1,5 @@
 /**
- * PRD version 2.15.7 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.15.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -714,10 +714,27 @@ function getAdminSettingsCatalog_() {
       'AI_USAGE_DASHBOARD_MAX_ROWS',
       'ai-usage-dashboard',
       'Max usage rows per fetch',
-      'Fibery Usage rows loaded per date-range request.',
+      'Fibery Claude API Costs rows loaded when building the daily Drive cache (month-chunked). Raise if the AI Usage panel warns about a row ceiling; lower to reduce Drive bundle size.',
       'number',
-      5000,
-      { min: 100, max: 20000 }
+      75000,
+      { min: 100, max: 150000 }
+    ),
+    adminSettingEntry_(
+      'AI_USAGE_DASHBOARD_DRIVE_CACHE_ENABLED',
+      'ai-usage-dashboard',
+      'Drive daily cache enabled',
+      'When true and FOS_SNAPSHOT_DRIVE_FOLDER_ID is set, the first AI Usage load each day writes ai-usage-cache/YYYY-MM-DD/ on Drive; later loads read Drive until Refresh.',
+      'boolean',
+      true
+    ),
+    adminSettingEntry_(
+      'AI_USAGE_DASHBOARD_CACHE_RANGE_DAYS',
+      'ai-usage-dashboard',
+      'Drive cache window (days)',
+      'Inclusive Fibery fetch window stored in the daily Drive bundle (default 365). Client date presets slice this bundle server-side.',
+      'number',
+      365,
+      { min: 7, max: 365 }
     ),
   ];
 }

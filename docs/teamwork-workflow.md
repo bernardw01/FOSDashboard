@@ -162,6 +162,7 @@ Add `--dry-run` to preview the API payload without writing. Override hours with 
 | `Feature 019 - Resource allocation cost on P&L chart` | Delivery P&L chart - planned vs actual labor (Inbox intake) |
 | `Feature 020 - P&L month modal allocation variance` | Chart month modal - allocated cost by role + variance vs actual (Inbox intake) |
 | `Feature 021 - P&L allocated cost line color` | Chart allocated cost line violet → bright orange (Inbox intake) |
+| `Feature 024 - P&L resource assignments modal` | Chart link opens modal with allocation name, duration, %, hours |
 
 ## Git sync mapping
 

@@ -1,5 +1,5 @@
 /**
- * PRD version 2.15.7 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.15.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * App Versions tab in the auth spreadsheet - tracks PRD releases and deployment URLs.
  * Feature 013.
@@ -418,6 +418,102 @@ function appVersionsWarn_(msg, err) {
   } catch (_) {
     /* ignore */
   }
+}
+
+/**
+ * Sets **Available** to FALSE for catalog rows strictly below `minVersion`.
+ * Example: `archiveAppVersionsBelow_('2.10.0')` archives 2.9.x and earlier.
+ *
+ * @param {string} minVersion Semver floor (rows with lower version are archived).
+ * @return {!Object}
+ */
+function archiveAppVersionsBelow_(minVersion) {
+  var floor = String(minVersion || '2.10.0').trim();
+  var sheet = getAppVersionsSheetOrNull_();
+  if (!sheet) {
+    return { ok: false, reason: 'SHEET_MISSING' };
+  }
+
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) {
+    return { ok: true, minVersion: floor, archived: [], alreadyArchived: [], count: 0 };
+  }
+
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var idxVersion = findHeaderIndex_(headers, 'PRD Version');
+  var idxAvailable = findHeaderIndex_(headers, 'Available');
+  if (idxVersion < 0 || idxAvailable < 0) {
+    return {
+      ok: false,
+      reason: 'HEADERS',
+      message: 'App Versions tab is missing PRD Version or Available column.',
+    };
+  }
+
+  var values = sheet.getRange(2, 1, lastRow, lastCol).getValues();
+  var archived = [];
+  var alreadyArchived = [];
+  var invalidVersions = [];
+  var changed = false;
+
+  for (var r = 0; r < values.length; r++) {
+    var version = values[r][idxVersion] != null ? String(values[r][idxVersion]).trim() : '';
+    if (!version) {
+      continue;
+    }
+    if (!parseSemverParts_(version)) {
+      invalidVersions.push(version);
+      continue;
+    }
+    if (compareSemver_(version, floor) >= 0) {
+      continue;
+    }
+    if (!parseAvailableCell_(values[r][idxAvailable])) {
+      alreadyArchived.push(version);
+      continue;
+    }
+    values[r][idxAvailable] = false;
+    archived.push(version);
+    changed = true;
+  }
+
+  if (changed) {
+    sheet.getRange(2, 1, lastRow, lastCol).setValues(values);
+  }
+
+  var result = {
+    ok: true,
+    minVersion: floor,
+    archived: archived,
+    alreadyArchived: alreadyArchived,
+    invalidVersions: invalidVersions,
+    count: archived.length,
+  };
+  console.log('archiveAppVersionsBelow_ -> ' + JSON.stringify(result));
+  return result;
+}
+
+/**
+ * Editor one-click: archive all releases below 2.10.0.
+ * Run from Apps Script IDE (no parameters).
+ * @return {!Object}
+ */
+function _runArchiveAppVersionsBelow_() {
+  return archiveAppVersionsBelow_('2.10.0');
+}
+
+/**
+ * ADMIN API: archive catalog rows below minVersion (Available -> FALSE).
+ * @param {string=} minVersion
+ * @return {!Object}
+ */
+function archiveAppVersionsBelowForAdmin(minVersion) {
+  var auth = requireAuthForApi_();
+  if (!auth || String(auth.role || '').trim().toUpperCase() !== 'ADMIN') {
+    throw new Error('FORBIDDEN');
+  }
+  return archiveAppVersionsBelow_(minVersion || '2.10.0');
 }
 
 /**

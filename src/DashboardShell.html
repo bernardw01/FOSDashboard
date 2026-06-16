@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.15.7 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.15.12 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -3884,6 +3884,11 @@
                     Bars stack labor by role + expenses per month; lines overlay revenue and planned allocation cost. Lighter bars indicate projected months. Hover for details; click a month to open its P&amp;L.
                   </p>
                   <p class="small mb-0 mt-2 d-none" id="delivery-pnl-allocation-note" style="color: var(--ag-text-muted)"></p>
+                  <p class="small mb-0 mt-1 d-none" id="delivery-pnl-assignments-link-wrap">
+                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" id="delivery-pnl-assignments-link" style="color: var(--ag-accent)">
+                      View resource assignments
+                    </button>
+                  </p>
                 </div>
                 <p class="small mb-0 mt-2 d-none" id="delivery-pnl-empty" style="color: var(--ag-text-muted)">
                   No monthly activity for this project yet.
@@ -4489,7 +4494,7 @@
           </div>
         </div>
 
-        <!-- AI Usage - Fibery Usage rows (feature 023). -->
+        <!-- AI Usage - Fibery Claude API Costs (feature 023). -->
         <div id="panel-ai-usage" class="d-none fos-agreement-root">
           <div id="aiu-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
           <div class="fos-agreement-inner shadow-lg">
@@ -4573,7 +4578,7 @@
             </section>
 
             <p class="small mb-3 d-none" id="aiu-empty" style="color: var(--ag-text-muted)">
-              No AI usage rows in this date range. Run sync under <strong>Settings → AI usage sync (Fibery)</strong>.
+              No Claude API cost rows in this date range. Confirm data exists in Fibery <strong>Claude API Costs</strong>.
             </p>
 
             <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 mb-3" id="aiu-kpi-row">
@@ -4650,7 +4655,7 @@
                       <th scope="col" data-aiu-sort="personName">Person</th>
                       <th scope="col" data-aiu-sort="roleName">Role</th>
                       <th scope="col" data-aiu-sort="bucket">Type</th>
-                      <th scope="col" data-aiu-sort="sourcePlatform">Platform</th>
+                      <th scope="col" data-aiu-sort="model">Model</th>
                       <th scope="col" data-aiu-sort="costUsd" class="num">Cost USD</th>
                     </tr>
                   </thead>
@@ -4925,6 +4930,46 @@
     </div>
   </div>
 
+  <!-- v2.15.10 - Resource assignments detail on Delivery P&L chart (feature 024). -->
+  <div
+    class="modal fade fos-modal"
+    id="deliveryPnlAssignmentsModal"
+    tabindex="-1"
+    aria-labelledby="deliveryPnlAssignmentsModalTitle"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+      <div class="modal-content rounded-4">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title fw-semibold" id="deliveryPnlAssignmentsModalTitle">Resource assignments</h5>
+            <div class="small text-secondary" id="deliveryPnlAssignmentsModalSubtitle"> - </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="fos-financial-scroll">
+            <table class="fos-financial-table" aria-describedby="deliveryPnlAssignmentsModalTitle">
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col">Role</th>
+                  <th scope="col">Duration</th>
+                  <th scope="col" class="num">% allocation</th>
+                  <th scope="col" class="num">Total hours</th>
+                </tr>
+              </thead>
+              <tbody id="deliveryPnlAssignmentsModalBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-fos-primary px-4" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- v2.12.9 - Agreement status update on Delivery P&L (feature 018). -->
   <div
     class="modal fade fos-modal"
@@ -5052,7 +5097,7 @@
       var AGREEMENT_TTL_PREF_KEY = 'fos_agreement_dashboard_ttl_minutes_v1';
       var UTIL_CACHE_KEY = 'fos_utilization_dashboard_v1';
       var AI_USAGE_CACHE_KEY = 'fos_ai_usage_dashboard_v1';
-      var AI_USAGE_CACHE_SCHEMA_VERSION = 2;
+      var AI_USAGE_CACHE_SCHEMA_VERSION = 4;
       var AI_USAGE_FILTERS_PREF_KEY = 'fos_ai_usage_filters_v1';
       var AI_USAGE_TTL_PREF_KEY = 'fos_ai_usage_dashboard_ttl_minutes_v1';
       var AI_USAGE_DETAIL_PAGE_SIZE = 100;
@@ -5074,8 +5119,8 @@
       // flag or `revenueItems[]` per month) is invalidated cleanly when
       // the user upgrades.
       var DELIVERY_PNL_KEY_PREFIX = 'fos_delivery_pnl_';
-      var DELIVERY_PNL_KEY_SUFFIX = '_v8';
-      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 8;
+      var DELIVERY_PNL_KEY_SUFFIX = '_v10';
+      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 10;
       var DELIVERY_STATUS_CLIENT_META_ = {
         on_track: { enumName: 'Agreement On Track', trafficLight: 'green' },
         at_risk: { enumName: 'Agreement At Risk', trafficLight: 'yellow' },
@@ -5444,6 +5489,11 @@
         deliveryPnlChartWrap: document.getElementById('delivery-pnl-chart-wrap'),
         deliveryPnlChartCanvas: document.getElementById('delivery-pnl-chart'),
         deliveryPnlAllocationNote: document.getElementById('delivery-pnl-allocation-note'),
+        deliveryPnlAssignmentsLinkWrap: document.getElementById('delivery-pnl-assignments-link-wrap'),
+        deliveryPnlAssignmentsLink: document.getElementById('delivery-pnl-assignments-link'),
+        deliveryPnlAssignmentsModal: document.getElementById('deliveryPnlAssignmentsModal'),
+        deliveryPnlAssignmentsModalSubtitle: document.getElementById('deliveryPnlAssignmentsModalSubtitle'),
+        deliveryPnlAssignmentsModalBody: document.getElementById('deliveryPnlAssignmentsModalBody'),
         deliveryPnlMonthModal: document.getElementById('deliveryPnlMonthModal'),
         deliveryPnlMonthModalTitle: document.getElementById('deliveryPnlMonthModalTitle'),
         deliveryPnlMonthModalSubtitle: document.getElementById('deliveryPnlMonthModalSubtitle'),
@@ -17612,7 +17662,7 @@
             '<td>' + escapeHtml(r.personName || ' - ') + '</td>' +
             '<td>' + escapeHtml(r.roleName || ' - ') + '</td>' +
             '<td>' + escapeHtml(r.bucket || ' - ') + '</td>' +
-            '<td>' + escapeHtml(r.sourcePlatform || ' - ') + '</td>' +
+            '<td>' + escapeHtml(r.model || ' - ') + '</td>' +
             '<td class="num">' + escapeHtml(formatMoneyCompact(r.costUsd || 0)) + '</td>';
           els.aiuTableBody.appendChild(tr);
         }
@@ -17652,7 +17702,16 @@
         if (els.aiuSubtitle && payload.range) {
           var rs = payload.range.startYmd || (payload.range.start || '').slice(0, 10);
           var re = payload.range.endYmd || (payload.range.end || '').slice(0, 10);
-          els.aiuSubtitle.textContent = rs + ' through ' + re;
+          var sub = rs + ' through ' + re;
+          if (payload.cacheLayer === 'drive') {
+            sub += ' · Drive cache';
+            if (payload.cacheDateKey) {
+              sub += ' (' + payload.cacheDateKey + ')';
+            }
+          } else if (payload.source === 'fibery' || payload.cacheLayer === 'none') {
+            sub += ' · live Fibery';
+          }
+          els.aiuSubtitle.textContent = sub;
         }
       }
       function applyAiUsagePayload_(data) {
@@ -17728,7 +17787,7 @@
               els.aiuFetchError.classList.remove('d-none');
             }
           })
-          .getAiUsageDashboardData(range.startIso, range.endIso);
+          .getAiUsageDashboardData(range.startIso, range.endIso, !!forceRefresh);
       }
       function loadAiUsageFiltersFromStorage_() {
         try {
@@ -17825,7 +17884,7 @@
             var payload = aiUsageState.payload;
             if (!payload || !payload.rows) return;
             var filtered = applyAiUsageFilters(payload.rows);
-            var lines = ['Date,Person,Role,Type,Platform,Dataset,Model,Cost USD'];
+            var lines = ['Date,Person,Role,Type,Model,API Key,Workspace,Cost USD'];
             for (var i = 0; i < filtered.length; i++) {
               var r = filtered[i];
               lines.push([
@@ -17833,9 +17892,9 @@
                 r.personName,
                 r.roleName,
                 r.bucket,
-                r.sourcePlatform,
-                r.sourceDataset || '',
                 r.model || '',
+                r.apiKey || '',
+                r.workspace || '',
                 r.costUsd,
               ].map(function (c) { return '"' + String(c == null ? '' : c).replace(/"/g, '""') + '"'; }).join(','));
             }
@@ -19035,6 +19094,7 @@
         if (view !== 'chart' || !alloc) {
           noteEl.classList.add('d-none');
           noteEl.textContent = '';
+          updateDeliveryPnLAssignmentsLink_(payload);
           return;
         }
         var msg = '';
@@ -19049,6 +19109,76 @@
         } else {
           noteEl.textContent = '';
           noteEl.classList.add('d-none');
+        }
+        updateDeliveryPnLAssignmentsLink_(payload);
+      }
+
+      function updateDeliveryPnLAssignmentsLink_(payload) {
+        var wrap = els.deliveryPnlAssignmentsLinkWrap;
+        if (!wrap) return;
+        var view = deliveryState.pnlView === 'chart' ? 'chart' : 'table';
+        var alloc = payload && payload.resourceAllocations;
+        var show = view === 'chart' && alloc
+          && alloc.hasAllocations && alloc.months && alloc.months.length && !alloc.emptyMessage;
+        if (show) {
+          wrap.classList.remove('d-none');
+        } else {
+          wrap.classList.add('d-none');
+        }
+      }
+
+      function formatAllocationPercent_(v) {
+        if (v === null || v === undefined || v === '') return ' - ';
+        var n = Number(v);
+        if (!isFinite(n)) return ' - ';
+        if (n > 0 && n <= 1) n = n * 100;
+        if (Math.abs(n - Math.round(n)) < 0.05) return String(Math.round(n)) + '%';
+        return n.toFixed(1) + '%';
+      }
+
+      function showDeliveryPnLAssignmentsModal_() {
+        var modalEl = els.deliveryPnlAssignmentsModal;
+        if (!modalEl) return;
+        var payload = deliveryState.lastPnlPayload || {};
+        var alloc = payload.resourceAllocations || {};
+        var rows = alloc.assignments || [];
+        var project = deliveryState.selectedId && deliveryState.projectsByIndex
+          ? deliveryState.projectsByIndex[deliveryState.selectedId] : null;
+        if (els.deliveryPnlAssignmentsModalSubtitle) {
+          var projectName = project ? (project.name || '') : '';
+          var customerName = project ? (project.customer || '') : '';
+          els.deliveryPnlAssignmentsModalSubtitle.textContent = projectName
+            ? (customerName ? projectName + ' · ' + customerName : projectName)
+            : ' - ';
+        }
+        var tbody = els.deliveryPnlAssignmentsModalBody;
+        if (tbody) {
+          if (!rows.length) {
+            tbody.innerHTML =
+              '<tr><td colspan="5" class="text-secondary">No assignment rows in this payload.</td></tr>';
+          } else {
+            var html = '';
+            for (var i = 0; i < rows.length; i++) {
+              var r = rows[i];
+              html +=
+                '<tr>' +
+                  '<td>' + escapeHtml(r.name || ' - ') + '</td>' +
+                  '<td>' + escapeHtml(r.roleName || '(No role)') + '</td>' +
+                  '<td>' + escapeHtml(r.durationLabel || ' - ') + '</td>' +
+                  '<td class="num">' + escapeHtml(formatAllocationPercent_(r.percentAllocated)) + '</td>' +
+                  '<td class="num">' + escapeHtml(formatHours(r.allocatedHours || 0)) + '</td>' +
+                '</tr>';
+            }
+            tbody.innerHTML = html;
+          }
+        }
+        logActivity_('delivery_pnl_assignments_modal_open', 'delivery', 'count=' + rows.length);
+        try {
+          var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+          modal.show();
+        } catch (e) {
+          modalEl.classList.add('show');
+          modalEl.style.display = 'block';
         }
       }
 
@@ -19079,6 +19209,7 @@
           if (els.deliveryPnlGridWrap) els.deliveryPnlGridWrap.classList.remove('d-none');
           if (els.deliveryPnlChartWrap) els.deliveryPnlChartWrap.classList.add('d-none');
           if (els.deliveryPnlAllocationNote) els.deliveryPnlAllocationNote.classList.add('d-none');
+          if (els.deliveryPnlAssignmentsLinkWrap) els.deliveryPnlAssignmentsLinkWrap.classList.add('d-none');
         }
       }
       function syncDeliveryViewButtons_(view) {
@@ -19865,6 +19996,11 @@
       if (els.deliveryPnlCsvBtn) {
         els.deliveryPnlCsvBtn.addEventListener('click', function () {
           copyDeliveryPnLAsCsv_();
+        });
+      }
+      if (els.deliveryPnlAssignmentsLink) {
+        els.deliveryPnlAssignmentsLink.addEventListener('click', function () {
+          showDeliveryPnLAssignmentsModal_();
         });
       }
       if (els.deliveryStatusUpdateSubmit) {
