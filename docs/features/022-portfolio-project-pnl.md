@@ -243,6 +243,8 @@ No new Drive artifact required for v1: aggregate existing `delivery-pnl/<agreeme
 | Non Subscription/Services agreement | **Excluded** from portfolio (not shown, not counted in progress total) |
 | Apps Script execution time | Batch projects via **`getPortfolioProjectPnLBatch`**; sequential client batches; progress indicator; partial warning with names + messages |
 
+**Performance follow-on:** [Feature 025 - Portfolio P&L performance and load-source UX](025-portfolio-pnl-performance-and-load-source-ux.md) (slim builder, batch tuning, loading **`Source:`** labels across dashboards).
+
 ## Verification steps
 
 1. Confirm inbox attachment `Sample Structure.xlsx` row/column layout matches rendered grid structure (hierarchy and Q/FY columns).

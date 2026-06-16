@@ -1,5 +1,5 @@
 /**
- * PRD version 2.15.12 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.16.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Match AI usage rows to Agreement Management/Clockify Users + Actor Mapping.
  */

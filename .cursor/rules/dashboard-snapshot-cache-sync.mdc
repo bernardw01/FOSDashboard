@@ -17,6 +17,9 @@ The **daily snapshot job** (`src/dashboardSnapshotJob.js`) persists the **same n
 | `delivery-pnl/<id>.json` | `buildDeliveryProjectMonthlyPnLInternal_` | `DELIVERY_PNL_CACHE_SCHEMA_VERSION_` | `DELIVERY_PNL_CACHE_SCHEMA_VERSION` |
 | `expenses.json` | `buildExpensesDashboardPayload_()` | `EXPENSES_CACHE_SCHEMA_VERSION_` | `EXPENSES_CACHE_SCHEMA_VERSION` |
 | `pipeline.json` | `buildPipelineDashboardPayload_()` | `PIPELINE_CACHE_SCHEMA_VERSION_` | `PIPELINE_CACHE_SCHEMA_VERSION` |
+| `portfolio-pnl.json` | `writePortfolioPnlSnapshotBundle_` (aggregates delivery-pnl artifacts) | `PORTFOLIO_PNL_BUNDLE_CACHE_SCHEMA_VERSION_` (1) | `PORTFOLIO_PNL_CACHE_SCHEMA` (3) |
+
+Daily Drive (not snapshot date folder): **`portfolio-pnl-cache/YYYY-MM-DD/bundle.json`** via `loadOrBuildPortfolioPnlDriveCache_` in `portfolioPnlDashboardCache.js`.
 
 Manifest rows use `payload.cacheSchemaVersion` via `appendManifestDataset_` in the job; bump the **server** constant and the job will record the new version automatically.
 

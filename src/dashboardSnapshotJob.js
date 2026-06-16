@@ -1,5 +1,5 @@
 /**
- * PRD version 2.15.12 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.16.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Daily historical dashboard snapshot job. Fetches live Fibery payloads,
  * writes JSON artifacts to Google Drive (`dashboardSnapshotStore.js`),
@@ -570,6 +570,76 @@ function runPnlBatchForDate_(snapshotDate, fromContinuation) {
 }
 
 /**
+ * Writes portfolio-pnl.json bundle from per-project delivery-pnl artifacts.
+ *
+ * @param {string} snapshotDate
+ * @param {!Object} manifest
+ * @private
+ */
+function writePortfolioPnlSnapshotBundle_(snapshotDate, manifest) {
+  var dateFolder = readSnapshotDateFolderOrNull_(snapshotDate);
+  if (!dateFolder) {
+    return;
+  }
+  var delivery = readSnapshotJsonFromDateFolder_(dateFolder, 'delivery-projects.json');
+  if (!delivery || !delivery.projects) {
+    manifest.warnings.push('Portfolio P&L bundle skipped: delivery-projects missing.');
+    return;
+  }
+  var projects = filterPortfolioProjects_(delivery.projects);
+  var pnlById = {};
+  var failedIds = [];
+  var failedDetails = [];
+  for (var i = 0; i < projects.length; i++) {
+    var id = projects[i].id;
+    var pnl = readSnapshotJsonFromDateFolder_(dateFolder, snapshotPnlRelativePath_(id));
+    if (pnl && pnl.ok !== false) {
+      pnlById[id] = pnl;
+    } else {
+      failedIds.push(id);
+      failedDetails.push({
+        id: id,
+        name: projects[i].name || id,
+        message: (pnl && pnl.message) || 'P&L snapshot missing.',
+      });
+    }
+  }
+  var fetchedAt = new Date().toISOString();
+  var bundle = {
+    ok: true,
+    source: 'snapshot',
+    loadSource: 'snapshot',
+    snapshotDate: snapshotDate,
+    fetchedAt: fetchedAt,
+    cacheSchemaVersion: PORTFOLIO_PNL_BUNDLE_CACHE_SCHEMA_VERSION_,
+    calendarYear: parseInt(snapshotDate.slice(0, 4), 10) || new Date().getFullYear(),
+    projects: projects,
+    pnlById: pnlById,
+    failedIds: failedIds,
+    failedDetails: failedDetails,
+    partial: failedIds.length > 0,
+    projectCount: projects.length,
+  };
+  try {
+    var meta = writeSnapshotArtifact_(snapshotDate, 'portfolio-pnl.json', bundle);
+    appendManifestDataset_(
+      manifest,
+      'portfolio-pnl',
+      'portfolio-pnl.json',
+      meta,
+      PORTFOLIO_PNL_BUNDLE_CACHE_SCHEMA_VERSION_,
+      fetchedAt,
+      { projectCount: projects.length, failedCount: failedIds.length },
+      failedIds.length > 0
+    );
+  } catch (e) {
+    manifest.warnings.push(
+      'Portfolio P&L bundle write failed: ' + (e && e.message ? e.message : String(e))
+    );
+  }
+}
+
+/**
  * @param {string} snapshotDate
  * @param {!Object} manifest
  * @private
@@ -600,6 +670,7 @@ function finalizeSnapshotManifest_(snapshotDate, manifest) {
     }
   }
   manifest.completedAt = new Date().toISOString();
+  writePortfolioPnlSnapshotBundle_(snapshotDate, manifest);
   writeSnapshotManifest_(snapshotDate, manifest);
 }
 

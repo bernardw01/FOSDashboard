@@ -1,5 +1,5 @@
 /**
- * PRD version 2.15.12 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.16.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -510,6 +510,23 @@ function getAdminSettingsCatalog_() {
       'number',
       5,
       { min: 0, max: 50 }
+    ),
+    adminSettingEntry_(
+      'PORTFOLIO_PNL_BATCH_SIZE',
+      'delivery',
+      'Portfolio P&L batch size',
+      'Agreements per getPortfolioProjectPnLBatch server call (legacy/diagnostics). Live Portfolio uses getPortfolioPnLDashboardData. Max 4.',
+      'number',
+      3,
+      { min: 1, max: 4 }
+    ),
+    adminSettingEntry_(
+      'PORTFOLIO_PNL_DRIVE_CACHE_ENABLED',
+      'delivery',
+      'Portfolio P&L Drive daily cache',
+      'When true and FOS_SNAPSHOT_DRIVE_FOLDER_ID is set, first Portfolio P&L load each day writes portfolio-pnl-cache/YYYY-MM-DD/ on Drive; later loads read Drive until Refresh.',
+      'boolean',
+      true
     ),
     adminSettingEntry_(
       'FOS_SNAPSHOT_DRIVE_FOLDER_ID',

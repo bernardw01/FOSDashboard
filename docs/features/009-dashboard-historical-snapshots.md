@@ -1,6 +1,6 @@
 # Dashboard historical snapshots
 
-> **PRD version 2.8.0** - see `docs/FOS-Dashboard-PRD.md` (**FR-42**, **FR-40**, **FR-104**, **AC-60**).
+> **PRD version 2.16.1** - see `docs/FOS-Dashboard-PRD.md` (**FR-42**, **FR-40**, **FR-104**, **AC-60**).
 
 ## Goal
 
@@ -41,11 +41,12 @@ Root folder: Script Property **`FOS_SNAPSHOT_DRIVE_FOLDER_ID`** (create via **`e
 | Artifact | Source | Notes |
 |----------|--------|--------|
 | `agreement.json` | `buildAgreementDashboardPayload_(snapshotDate)` | Future revenue filtered as of snapshot date |
-| `utilization.json` | `buildUtilizationDashboardPayload_(start, end)` | Default 90-day window ending snapshot date; `cacheSchemaVersion: 4` (v2.13.6: `clockifyUserWorkStatus`; was **3** through v2.13.5) |
+| `utilization.json` | `buildUtilizationDashboardPayload_(start, end)` | Default 90-day window ending snapshot date; `cacheSchemaVersion: 5` (v2.16.1: browser cache key migration; was **4** through v2.13.6) |
 | `delivery-projects.json` | `buildDeliveryDashboardPayloadFromAgreement_` | No extra Fibery fetch |
 | `expenses.json` | `buildExpensesDashboardPayload_()` | Spreadsheet tab at job run time; `cacheSchemaVersion: 2` (v2.11.2); skip when **`SNAPSHOT_INCLUDE_EXPENSES`** is false |
 | `pipeline.json` | `buildPipelineDashboardPayload_()` | Fibery `HubSpot/Deal`; `cacheSchemaVersion: 2` (v2.11.1); skip when **`SNAPSHOT_INCLUDE_PIPELINE`** is false |
-| `delivery-pnl/*.json` | `buildDeliveryProjectMonthlyPnLInternal_` | Batched; continuation trigger if needed; `cacheSchemaVersion: 9` (v2.15.10: `resourceAllocations.assignments[]`; was **8** through v2.13.0) |
+| `delivery-pnl/*.json` | `buildDeliveryProjectMonthlyPnLInternal_` | Batched; continuation trigger if needed; `cacheSchemaVersion: 10` (v2.15.12: `assignments[].roleName`; was **9** through v2.15.10) |
+| `portfolio-pnl.json` | `writePortfolioPnlSnapshotBundle_` (aggregates per-project artifacts) | Written at manifest finalize; schema **1** (v2.16.0 / feature **025**); slim portfolio payloads (`portfolioMode`) |
 
 ### Failure policy
 
@@ -57,6 +58,7 @@ Root folder: Script Property **`FOS_SNAPSHOT_DRIVE_FOLDER_ID`** (create via **`e
 | Expenses | Warning; manifest may be **partial** |
 | Pipeline | Warning; manifest may be **partial** |
 | Delivery P&L | Per-project failure; manifest **partial** |
+| Portfolio P&L bundle | Warning if `portfolio-pnl.json` missing; client may show unavailable message (legacy snapshots) |
 
 ## Script Properties
 

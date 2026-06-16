@@ -1,6 +1,6 @@
 # Feature: Utilization Management Dashboard (Fibery Labor Costs)
 
-> **PRD version 2.11.0** - see `docs/FOS-Dashboard-PRD.md`. **v2.11.0** removes labor time-approval tracking (Pending Approvals KPI/widget, Approval columns, cache schema **3**). Phase A–C history through v1.18.0 unchanged; see main PRD **§8** and **AC-69**.
+> **PRD version 2.16.1** - see `docs/FOS-Dashboard-PRD.md`. **v2.16.1** utilization browser cache schema **5** + session key **`fos_utilization_dashboard_v2`**. **v2.11.0** removes labor time-approval tracking (Pending Approvals KPI/widget, Approval columns, cache schema **3**). Phase A–C history through v1.18.0 unchanged; see main PRD **§8** and **AC-69**.
 
 ## Status
 
@@ -374,3 +374,9 @@ filters = {
 - **Slack notification** - daily digest when the pending approvals queue exceeds a threshold.
 - **CSV / Excel export** of any filtered view.
 - **Persisted thresholds** - admin UI to tune `UTILIZATION_*` constants without Script Property edits.
+
+## Changelog
+
+| Version | Date | Notes |
+| --- | --- | --- |
+| 2.16.1 | 2026-06-09 | Browser cache schema **5**; session key **`fos_utilization_dashboard_v2`**; purge legacy **`_v1`** on init; stamp schema on write. **AC-32**. |

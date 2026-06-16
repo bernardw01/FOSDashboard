@@ -1,5 +1,5 @@
 /**
- * PRD version 2.15.12 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.16.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Historical dashboard snapshot storage (Option A): Google Drive folder
  * with per-date subfolders, JSON artifacts, and a manifest per day.
@@ -429,9 +429,10 @@ function _diag_listSnapshots() {
 /** @const {!Object<string, number>} */
 var SNAPSHOT_EXPECTED_SCHEMA_VERSIONS_ = {
   agreement: 3,
-  utilization: 4,
+  utilization: 5,
   'delivery-projects': 1,
   'delivery-pnl': 10,
+  'portfolio-pnl': 1,
   expenses: 2,
   pipeline: 2,
 };
@@ -441,6 +442,7 @@ var SNAPSHOT_ARTIFACT_FILES_ = {
   agreement: 'agreement.json',
   utilization: 'utilization.json',
   'delivery-projects': 'delivery-projects.json',
+  'portfolio-pnl': 'portfolio-pnl.json',
   expenses: 'expenses.json',
   pipeline: 'pipeline.json',
 };
@@ -893,4 +895,55 @@ function getDashboardSnapshotPnl(snapshotDate, agreementId) {
   }
   tagSnapshotPayloadSource_(payload);
   return payload;
+}
+
+/**
+ * Client-callable: bundled Portfolio P&L from a snapshot date.
+ * @param {string} snapshotDate
+ * @return {!Object}
+ */
+function getDashboardSnapshotPortfolioPnl(snapshotDate) {
+  var auth = requireAuthForApi_();
+  if (!canAccessExpensesDashboard_(auth)) {
+    return {
+      ok: false,
+      source: 'snapshot',
+      message: 'Portfolio P&L is available to the Finance team, Execs, and Admins.',
+    };
+  }
+  var dateKey = requireSnapshotDate_(snapshotDate);
+  var warnings = [];
+
+  if (!PropertiesService.getScriptProperties().getProperty(SNAPSHOT_DRIVE_FOLDER_PROP_)) {
+    return {
+      ok: false,
+      source: 'snapshot',
+      message: 'Historical snapshots are not configured.',
+    };
+  }
+
+  var dateFolder = readSnapshotDateFolderOrNull_(dateKey);
+  if (!dateFolder) {
+    return {
+      ok: false,
+      source: 'snapshot',
+      message: 'No snapshot folder for ' + dateKey + '.',
+    };
+  }
+
+  var payload = readSnapshotJsonFromDateFolder_(dateFolder, SNAPSHOT_ARTIFACT_FILES_['portfolio-pnl']);
+  if (payload && validateSnapshotArtifactSchema_(payload, 'portfolio-pnl', warnings)) {
+    tagSnapshotPayloadSource_(payload);
+    payload.loadSource = 'snapshot';
+    payload.snapshotDate = dateKey;
+    return payload;
+  }
+
+  return {
+    ok: false,
+    source: 'snapshot',
+    snapshotDate: dateKey,
+    message: warnings[0] || 'Portfolio P&L snapshot not found for ' + dateKey + '.',
+    warnings: warnings,
+  };
 }

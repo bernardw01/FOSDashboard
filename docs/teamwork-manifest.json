@@ -187,6 +187,14 @@
       "featureId": "024",
       "publishedAt": "2026-06-16",
       "lastSyncedAt": "2026-06-16"
+    },
+    "feature_025": {
+      "id": 311911,
+      "title": "Feature 025 - Portfolio P&L performance and load source",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/311911",
+      "featureId": "025",
+      "publishedAt": "2026-06-16",
+      "lastSyncedAt": "2026-06-16"
     }
   },
   "tasks": {
@@ -439,6 +447,19 @@
         "Total (rounded to nearest 0.5h): 6.5h"
       ],
       "estDevHoursGitBase": "38b83176e32733beaa77f781e6ca6acf6f4858ec"
+    },
+    "Feature 025 - Portfolio P&L performance and load source": {
+      "id": 40203349,
+      "tasklist": "Finance",
+      "featureId": "025",
+      "releaseType": "Enhancement",
+      "releaseTitle": "Portfolio P&L performance and load source",
+      "provisionalTaskName": true,
+      "shippedVersion": null,
+      "notebookKey": "feature_025",
+      "url": "https://win.godeap.io/app/tasks/40203349",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Portfolio P&L performance and load source",
+      "workflowStage": "Spec Draft"
     }
   },
   "lastBootstrappedAt": "2026-06-10"

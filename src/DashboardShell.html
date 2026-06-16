@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.15.12 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.16.1 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -5095,7 +5095,8 @@
       var AGREEMENT_CACHE_KEY = 'fos_agreement_dashboard_v2';
       var AGREEMENT_CACHE_SCHEMA_VERSION = 3;
       var AGREEMENT_TTL_PREF_KEY = 'fos_agreement_dashboard_ttl_minutes_v1';
-      var UTIL_CACHE_KEY = 'fos_utilization_dashboard_v1';
+      var UTIL_CACHE_KEY = 'fos_utilization_dashboard_v2';
+      var UTIL_CACHE_LEGACY_KEYS_ = ['fos_utilization_dashboard_v1'];
       var AI_USAGE_CACHE_KEY = 'fos_ai_usage_dashboard_v1';
       var AI_USAGE_CACHE_SCHEMA_VERSION = 4;
       var AI_USAGE_FILTERS_PREF_KEY = 'fos_ai_usage_filters_v1';
@@ -5103,7 +5104,7 @@
       var AI_USAGE_DETAIL_PAGE_SIZE = 100;
       // v3 (PRD 2.11.0) drops labor approval / pending-approvals fields.
       // v2 (PRD 1.14.0) added aggregates.byPersonWeek + alerts[].
-      var UTIL_CACHE_SCHEMA_VERSION = 4;
+      var UTIL_CACHE_SCHEMA_VERSION = 5;
       var UTIL_TTL_PREF_KEY = 'fos_utilization_dashboard_ttl_minutes_v1';
       var UTIL_FILTERS_PREF_KEY = 'fos_utilization_filters_v1';
       var UTIL_FILTERS_SCHEMA_VERSION = 1;
@@ -7447,7 +7448,66 @@
       var utilRenderState = { lastRenderedFetchedAt: null };
       var loadingFlags_ = {};
 
-      function setGlobalLoading_(key, on, message) {
+      function getActiveSnapshotDate_() {
+        return dataSourceState.snapshotDate || null;
+      }
+
+      function loadSourceFromPayload_(data) {
+        if (!data) return { transport: 'fibery' };
+        if (data.loadSource === 'drive-cache' || data.source === 'drive-cache' || data.fromDrive) {
+          return { transport: 'driveDailyCache', cacheDateKey: data.cacheDateKey || '' };
+        }
+        if (data.loadSource === 'snapshot' || data.source === 'snapshot') {
+          return { transport: 'snapshot', snapshotDate: data.snapshotDate || getActiveSnapshotDate_() };
+        }
+        return { transport: 'fibery' };
+      }
+
+      function formatLoadSourceLabel_(ctx) {
+        if (!ctx) return '';
+        var t = ctx.transport || ctx;
+        if (t === 'fibery') return 'Source: Live Fibery';
+        if (t === 'browserCache') return 'Source: Browser cache';
+        if (t === 'mixed') return 'Source: Mixed (cache + Fibery)';
+        if (t === 'snapshot') {
+          var sd = ctx.snapshotDate || getActiveSnapshotDate_() || '';
+          return sd ? ('Source: Snapshot · ' + sd) : 'Source: Snapshot';
+        }
+        if (t === 'driveDailyCache') {
+          var ck = ctx.cacheDateKey || '';
+          return ck ? ('Source: Drive cache · ' + ck) : 'Source: Drive cache';
+        }
+        if (t === 'spreadsheet') return 'Source: Spreadsheet';
+        return '';
+      }
+
+      function ensureLoadingSourceEl_(overlayEl, id) {
+        if (!overlayEl) return null;
+        var el = id ? document.getElementById(id) : null;
+        if (el) return el;
+        el = document.createElement('p');
+        el.id = id || ('load-src-' + String(Math.random()).slice(2, 9));
+        el.className = 'fos-loading-source small mb-0 mt-1';
+        el.style.color = 'var(--ag-text-muted)';
+        overlayEl.appendChild(el);
+        return el;
+      }
+
+      function setOverlayLoadSource_(overlayEl, sourceId, ctx) {
+        var label = formatLoadSourceLabel_(ctx);
+        var el = sourceId ? document.getElementById(sourceId) : null;
+        if (!el) el = ensureLoadingSourceEl_(overlayEl, sourceId);
+        if (!el) return;
+        if (label) {
+          el.textContent = label;
+          el.classList.remove('d-none');
+        } else {
+          el.textContent = '';
+          el.classList.add('d-none');
+        }
+      }
+
+      function setGlobalLoading_(key, on, message, sourceCtx) {
         if (!key) return;
         loadingFlags_[key] = !!on;
         var active = false;
@@ -7458,7 +7518,8 @@
           }
         }
         if (els.fosLoadingBody && message && on) {
-          els.fosLoadingBody.textContent = message;
+          var srcLine = formatLoadSourceLabel_(sourceCtx);
+          els.fosLoadingBody.textContent = srcLine ? (message + '\n' + srcLine) : message;
         }
         if (!els.fosLoadingModal || typeof bootstrap === 'undefined' || !bootstrap.Modal) return;
         var modal = bootstrap.Modal.getOrCreateInstance(els.fosLoadingModal);
@@ -7466,24 +7527,29 @@
         else modal.hide();
       }
 
-      function setAgreementLoading(on) {
-        setGlobalLoading_('agreement', on, 'Loading data');
+      function setAgreementLoading(on, sourceCtx) {
+        setOverlayLoadSource_(els.agreementLoading, 'agreement-loading-source', on ? sourceCtx : null);
+        setGlobalLoading_('agreement', on, 'Loading data…', sourceCtx);
       }
 
-      function setRrLoading(on) {
-        setGlobalLoading_('revenueReview', on, 'Loading data');
+      function setRrLoading(on, sourceCtx) {
+        setOverlayLoadSource_(els.rrLoading, 'rr-loading-source', on ? sourceCtx : null);
+        setGlobalLoading_('revenueReview', on, 'Loading agreement data…', sourceCtx);
       }
 
-      function setExpensesLoading(on) {
-        setGlobalLoading_('expenses', on, 'Loading data');
+      function setExpensesLoading(on, sourceCtx) {
+        setOverlayLoadSource_(els.expLoading, 'exp-loading-source', on ? sourceCtx : null);
+        setGlobalLoading_('expenses', on, 'Loading expenses…', on ? (sourceCtx || { transport: 'spreadsheet' }) : null);
       }
 
-      function setUtilLoading(on) {
-        setGlobalLoading_('utilization', on, 'Loading data');
+      function setUtilLoading(on, sourceCtx) {
+        setOverlayLoadSource_(els.utilLoading, 'util-loading-source', on ? sourceCtx : null);
+        setGlobalLoading_('utilization', on, 'Loading data…', sourceCtx);
       }
 
-      function setLhLoading(on) {
-        setGlobalLoading_('laborHours', on, 'Loading data');
+      function setLhLoading(on, sourceCtx) {
+        setOverlayLoadSource_(els.lhLoading, 'lh-loading-source', on ? sourceCtx : null);
+        setGlobalLoading_('laborHours', on, 'Loading week…', sourceCtx);
       }
 
       function formatMoneyCompact(n) {
@@ -8586,13 +8652,13 @@
           if (els.rrFetchError) {
             els.rrFetchError.classList.add('d-none');
           }
-          setRrLoading(true);
+          setRrLoading(true, { transport: 'fibery' });
         } else {
           if (els.agreementRefreshBtn) {
             els.agreementRefreshBtn.disabled = true;
           }
           els.agreementFetchError.classList.add('d-none');
-          setAgreementLoading(true);
+          setAgreementLoading(true, { transport: 'fibery' });
         }
         google.script.run
           .withSuccessHandler(function (data) {
@@ -8879,20 +8945,48 @@
          memory; only a date-range change re-fetches.
          ================================================================== */
 
+      function migrateUtilizationSessionCache_() {
+        try {
+          for (var li = 0; li < UTIL_CACHE_LEGACY_KEYS_.length; li++) {
+            sessionStorage.removeItem(UTIL_CACHE_LEGACY_KEYS_[li]);
+          }
+          var raw = sessionStorage.getItem(UTIL_CACHE_KEY);
+          if (!raw) return;
+          var o = JSON.parse(raw);
+          if (!o || o.cacheSchemaVersion !== UTIL_CACHE_SCHEMA_VERSION) {
+            sessionStorage.removeItem(UTIL_CACHE_KEY);
+          }
+        } catch (e) {
+          try {
+            sessionStorage.removeItem(UTIL_CACHE_KEY);
+          } catch (e2) { /* ignore */ }
+        }
+      }
+
       function readUtilizationCache() {
         try {
           var raw = sessionStorage.getItem(UTIL_CACHE_KEY);
           if (!raw) return null;
           var o = JSON.parse(raw);
-          if (!o || o.cacheSchemaVersion !== UTIL_CACHE_SCHEMA_VERSION) return null;
+          if (!o || o.cacheSchemaVersion !== UTIL_CACHE_SCHEMA_VERSION) {
+            sessionStorage.removeItem(UTIL_CACHE_KEY);
+            return null;
+          }
           return o;
         } catch (e) {
+          try {
+            sessionStorage.removeItem(UTIL_CACHE_KEY);
+          } catch (e2) { /* ignore */ }
           return null;
         }
       }
       function writeUtilizationCache(data) {
+        if (!data) return;
+        var envelope = Object.assign({}, data, {
+          cacheSchemaVersion: UTIL_CACHE_SCHEMA_VERSION,
+        });
         try {
-          sessionStorage.setItem(UTIL_CACHE_KEY, JSON.stringify(data));
+          sessionStorage.setItem(UTIL_CACHE_KEY, JSON.stringify(envelope));
         } catch (e) { /* quota / private mode */ }
       }
       function readUtilTtlMinutes() {
@@ -10888,7 +10982,7 @@
         }
         if (els.utilRefreshBtn) els.utilRefreshBtn.disabled = true;
         els.utilFetchError.classList.add('d-none');
-        setUtilLoading(true);
+        setUtilLoading(true, { transport: 'fibery' });
         google.script.run
           .withSuccessHandler(function (data) {
             setUtilLoading(false);
@@ -12144,7 +12238,7 @@
           return;
         }
 
-        setLhLoading(true);
+        setLhLoading(true, { transport: 'fibery' });
         var rosterRange = laborRosterFetchRange_(bounds);
         google.script.run
           .withSuccessHandler(function (data) {
@@ -12592,11 +12686,13 @@
         deliveryOnFilterChange_();
       }
 
-      function setDeliveryLoading(on) {
-        setGlobalLoading_('delivery', on, 'Loading data');
+      function setDeliveryLoading(on, sourceCtx) {
+        setOverlayLoadSource_(els.deliveryLoading, 'delivery-loading-source', on ? sourceCtx : null);
+        setGlobalLoading_('delivery', on, 'Loading data…', sourceCtx);
       }
-      function setDeliveryPnLLoading(on) {
-        setGlobalLoading_('deliveryPnl', on, 'Loading data');
+      function setDeliveryPnLLoading(on, sourceCtx) {
+        setOverlayLoadSource_(els.deliveryPnlLoading, 'delivery-pnl-loading-source', on ? sourceCtx : null);
+        setGlobalLoading_('deliveryPnl', on, 'Fetching monthly P&L…', sourceCtx);
       }
 
       function formatLastRefresh(fetchedAtIso) {
@@ -12608,6 +12704,13 @@
         } catch (e) {
           return 'Last refreshed:  - ';
         }
+      }
+
+      function formatLastRefreshWithSource_(fetchedAtIso, ctx) {
+        var base = formatLastRefresh(fetchedAtIso);
+        var src = formatLoadSourceLabel_(ctx);
+        if (!src) return base;
+        return base + ' · ' + src.replace(/^Source: /, '');
       }
       function formatProjectDuration_(p) {
         var start = p.durStart ? String(p.durStart).slice(0, 10) : (p.executionDate ? String(p.executionDate).slice(0, 10) : '');
@@ -15668,7 +15771,7 @@
         if (!isLiveDataSource_()) return;
         if (els.expRefreshBtn) els.expRefreshBtn.disabled = true;
         if (els.expFetchError) els.expFetchError.classList.add('d-none');
-        setExpensesLoading(true);
+        setExpensesLoading(true, { transport: 'spreadsheet' });
         google.script.run
           .withSuccessHandler(function (data) {
             setExpensesLoading(false);
@@ -15741,8 +15844,8 @@
         lastRenderedFetchedAt: null,
       };
 
-      function setPipelineLoading(on) {
-        setGlobalLoading_('pipeline', on, 'Loading data');
+      function setPipelineLoading(on, sourceCtx) {
+        setGlobalLoading_('pipeline', on, 'Loading data…', on ? (sourceCtx || { transport: 'fibery' }) : null);
       }
 
       function readPipelineCache() {
@@ -16013,7 +16116,7 @@
         if (!isLiveDataSource_()) return;
         if (els.pipelineRefreshBtn) els.pipelineRefreshBtn.disabled = true;
         if (els.pipelineFetchError) els.pipelineFetchError.classList.add('d-none');
-        setPipelineLoading(true);
+        setPipelineLoading(true, { transport: 'fibery' });
         google.script.run
           .withSuccessHandler(function (data) {
             setPipelineLoading(false);
@@ -16262,8 +16365,8 @@
         showExpensesMaybeLoad_();
       }
 
-      var PORTFOLIO_PNL_CACHE_KEY = 'fos_portfolio_pnl_v2';
-      var PORTFOLIO_PNL_CACHE_SCHEMA = 2;
+      var PORTFOLIO_PNL_CACHE_KEY = 'fos_portfolio_pnl_v3';
+      var PORTFOLIO_PNL_CACHE_SCHEMA = 3;
       var PORTFOLIO_PNL_TYPES = { Subscription: true, Services: true };
       var portfolioPnlControlsWired_ = false;
       var portfolioPnlLoadToken_ = 0;
@@ -16282,6 +16385,7 @@
         expandedRevenue: {},
         expandedCosts: {},
         fetchedAt: null,
+        loadSource: null,
         loading: false,
       };
 
@@ -16569,12 +16673,22 @@
         if (snapshotDate) {
           if (!dataSourceState.pnlByAgreementId) dataSourceState.pnlByAgreementId = {};
           dataSourceState.pnlByAgreementId[agreementId] = data;
-        } else {
+        } else if (!data || data.portfolioMode !== true) {
           writeDeliveryPnlCache(agreementId, data);
         }
       }
 
-      function portfolioPnlSetLoading_(on, loaded, total) {
+      function portfolioPnlApplyServerBundle_(data, loadCtx) {
+        portfolioPnlState.projects = data.projects || [];
+        portfolioPnlState.pnlById = data.pnlById || {};
+        portfolioPnlState.failedIds = data.failedIds || [];
+        portfolioPnlState.failedDetails = data.failedDetails || [];
+        portfolioPnlState.fetchedAt = data.fetchedAt || new Date().toISOString();
+        portfolioPnlState.calendarYear = data.calendarYear || new Date().getFullYear();
+        portfolioPnlState.loadSource = loadCtx || loadSourceFromPayload_(data);
+      }
+
+      function portfolioPnlSetLoading_(on, loaded, total, sourceCtx, stats) {
         if (!els.ppnlLoading) return;
         if (on) {
           els.ppnlLoading.classList.remove('d-none');
@@ -16583,13 +16697,17 @@
           els.ppnlLoading.classList.add('d-none');
           els.ppnlLoading.setAttribute('aria-hidden', 'true');
         }
+        setOverlayLoadSource_(els.ppnlLoading, 'ppnl-loading-source', on ? sourceCtx : null);
         if (els.ppnlLoadingLabel) {
           els.ppnlLoadingLabel.textContent = on ? 'Loading portfolio P&L…' : 'Loading portfolio P&L…';
         }
         if (els.ppnlLoadingSub) {
           if (on && total > 0) {
-            els.ppnlLoadingSub.textContent =
-              'Fetching P&L for all projects… (' + String(loaded) + ' / ' + String(total) + ' projects)';
+            var sub = 'Fetching P&L for all projects… (' + String(loaded) + ' / ' + String(total) + ' projects)';
+            if (stats && (stats.fromCache > 0 || stats.fromFibery > 0)) {
+              sub += ' · ' + String(stats.fromCache || 0) + ' from cache, ' + String(stats.fromFibery || 0) + ' from Fibery';
+            }
+            els.ppnlLoadingSub.textContent = sub;
           } else if (on) {
             els.ppnlLoadingSub.textContent = 'Fetching P&L for all projects…';
           }
@@ -16704,7 +16822,12 @@
         portfolioPnlState.failedDetails = [];
         if (els.ppnlFetchError) els.ppnlFetchError.classList.add('d-none');
         if (els.ppnlPartialNote) els.ppnlPartialNote.classList.add('d-none');
-        portfolioPnlSetLoading_(true, 0, 0);
+
+        var liveMode = isLiveDataSource_();
+        var initialSource = liveMode
+          ? { transport: 'fibery' }
+          : { transport: 'snapshot', snapshotDate: getActiveSnapshotDate_() };
+        portfolioPnlSetLoading_(true, 0, 0, initialSource);
 
         if (!forceRefresh) {
           var cached = portfolioPnlReadCache_();
@@ -16719,6 +16842,7 @@
             portfolioPnlState.includeServices = cached.includeServices !== false;
             portfolioPnlState.includeProjected = !!cached.includeProjected;
             portfolioPnlState.collapseMonthsByQuarter = !!cached.collapseMonthsByQuarter;
+            portfolioPnlState.loadSource = cached.loadSource || { transport: 'browserCache' };
             portfolioPnlState.loading = false;
             portfolioPnlSyncControls_();
             portfolioPnlSetLoading_(false, 0, 0);
@@ -16727,162 +16851,93 @@
           }
         }
 
-        portfolioPnlResolveProjects_(function (resolved) {
-          if (token !== portfolioPnlLoadToken_) return;
-          if (!resolved.ok) {
+        if (!liveMode) {
+          var snapDate = dataSourceState.snapshotDate;
+          if (!snapDate) {
             portfolioPnlState.loading = false;
             portfolioPnlSetLoading_(false, 0, 0);
-            if (resolved.reason === 'NO_FIBERY') {
-              if (els.ppnlLiveOnly) els.ppnlLiveOnly.classList.remove('d-none');
-            } else if (els.ppnlFetchError) {
-              els.ppnlFetchError.textContent = resolved.message || 'Could not load projects.';
+            renderPortfolioPnlGrid_();
+            return;
+          }
+          google.script.run
+            .withSuccessHandler(function (data) {
+              if (token !== portfolioPnlLoadToken_) return;
+              portfolioPnlState.loading = false;
+              portfolioPnlSetLoading_(false, 0, 0);
+              if (!data || data.ok === false) {
+                if (els.ppnlFetchError) {
+                  els.ppnlFetchError.textContent = (data && data.message) || 'Portfolio P&L snapshot unavailable.';
+                  els.ppnlFetchError.classList.remove('d-none');
+                }
+                renderPortfolioPnlGrid_();
+                return;
+              }
+              var snapCtx = { transport: 'snapshot', snapshotDate: snapDate };
+              portfolioPnlApplyServerBundle_(data, snapCtx);
+              portfolioPnlFinishLoad_(token, (data.projects || []).length, (data.projects || []).length, snapCtx);
+            })
+            .withFailureHandler(function (err) {
+              if (token !== portfolioPnlLoadToken_) return;
+              portfolioPnlState.loading = false;
+              portfolioPnlSetLoading_(false, 0, 0);
+              if (els.ppnlFetchError) {
+                els.ppnlFetchError.textContent = String(err);
+                els.ppnlFetchError.classList.remove('d-none');
+              }
+              renderPortfolioPnlGrid_();
+            })
+            .getDashboardSnapshotPortfolioPnl(snapDate);
+          return;
+        }
+
+        if (navState.fiberyAccess === false) {
+          portfolioPnlState.loading = false;
+          portfolioPnlSetLoading_(false, 0, 0);
+          if (els.ppnlLiveOnly) els.ppnlLiveOnly.classList.remove('d-none');
+          renderPortfolioPnlGrid_();
+          return;
+        }
+        if (els.ppnlLiveOnly) els.ppnlLiveOnly.classList.add('d-none');
+
+        google.script.run
+          .withSuccessHandler(function (data) {
+            if (token !== portfolioPnlLoadToken_) return;
+            portfolioPnlState.loading = false;
+            portfolioPnlSetLoading_(false, 0, 0);
+            if (!data || data.ok === false) {
+              if (els.ppnlFetchError) {
+                els.ppnlFetchError.textContent = (data && data.message) || 'Could not load portfolio P&L.';
+                els.ppnlFetchError.classList.remove('d-none');
+              }
+              renderPortfolioPnlGrid_();
+              return;
+            }
+            var loadCtx = loadSourceFromPayload_(data);
+            portfolioPnlApplyServerBundle_(data, loadCtx);
+            portfolioPnlFinishLoad_(
+              token,
+              (data.projects || []).length,
+              (data.projects || []).length,
+              loadCtx
+            );
+          })
+          .withFailureHandler(function (err) {
+            if (token !== portfolioPnlLoadToken_) return;
+            portfolioPnlState.loading = false;
+            portfolioPnlSetLoading_(false, 0, 0);
+            if (els.ppnlFetchError) {
+              els.ppnlFetchError.textContent = String(err);
               els.ppnlFetchError.classList.remove('d-none');
             }
             renderPortfolioPnlGrid_();
-            return;
-          }
-          if (els.ppnlLiveOnly) els.ppnlLiveOnly.classList.add('d-none');
-          var projects = resolved.projects || [];
-          portfolioPnlState.projects = projects;
-          portfolioPnlState.pnlById = {};
-          portfolioPnlState.fetchedAt = resolved.fetchedAt;
-          var snapshotDate = isLiveDataSource_() ? null : dataSourceState.snapshotDate;
-          var total = projects.length;
-          var loaded = 0;
-          portfolioPnlSetLoading_(true, loaded, total);
-
-          if (!total) {
-            portfolioPnlState.loading = false;
-            portfolioPnlSetLoading_(false, 0, 0);
-            renderPortfolioPnlGrid_();
-            return;
-          }
-
-          var idsToFetch = [];
-          for (var pi = 0; pi < projects.length; pi++) {
-            var pid = projects[pi].id;
-            var cachedPnl = snapshotDate
-              ? dataSourceState.pnlByAgreementId && dataSourceState.pnlByAgreementId[pid]
-              : readDeliveryPnlCache(pid);
-            if (cachedPnl && cachedPnl.ok !== false) {
-              portfolioPnlState.pnlById[pid] = cachedPnl;
-              loaded++;
-            } else {
-              idsToFetch.push(pid);
-            }
-          }
-          portfolioPnlSetLoading_(true, loaded, total);
-
-          if (!idsToFetch.length) {
-            portfolioPnlState.loading = false;
-            portfolioPnlSetLoading_(false, loaded, total);
-            portfolioPnlWriteCache_({
-              cacheSchemaVersion: PORTFOLIO_PNL_CACHE_SCHEMA,
-              calendarYear: portfolioPnlState.calendarYear,
-              projects: portfolioPnlState.projects,
-              pnlById: portfolioPnlState.pnlById,
-              failedIds: portfolioPnlState.failedIds,
-              failedDetails: portfolioPnlState.failedDetails,
-              fetchedAt: new Date().toISOString(),
-              includeProjected: portfolioPnlState.includeProjected,
-              includeSubscription: portfolioPnlState.includeSubscription !== false,
-              includeServices: portfolioPnlState.includeServices !== false,
-              collapseMonthsByQuarter: portfolioPnlState.collapseMonthsByQuarter,
-            });
-            renderPortfolioPnlGrid_();
-            return;
-          }
-
-          function fetchSnapshotOne_(agreementId, done) {
-            google.script.run
-              .withSuccessHandler(function (data) {
-                if (token !== portfolioPnlLoadToken_) return;
-                if (data && data.ok !== false) {
-                  portfolioPnlApplyPayload_(agreementId, data, snapshotDate);
-                } else {
-                  portfolioPnlRecordFailure_(
-                    agreementId,
-                    (data && data.message) || 'Snapshot P&L missing or invalid.'
-                  );
-                }
-                loaded++;
-                portfolioPnlSetLoading_(true, loaded, total);
-                done();
-              })
-              .withFailureHandler(function (err) {
-                if (token !== portfolioPnlLoadToken_) return;
-                portfolioPnlRecordFailure_(agreementId, String(err));
-                loaded++;
-                portfolioPnlSetLoading_(true, loaded, total);
-                done();
-              })
-              .getDashboardSnapshotPnl(snapshotDate, agreementId);
-          }
-
-          function fetchSnapshotSequential_(index) {
-            if (token !== portfolioPnlLoadToken_) return;
-            if (index >= idsToFetch.length) {
-              portfolioPnlFinishLoad_(token, loaded, total);
-              return;
-            }
-            fetchSnapshotOne_(idsToFetch[index], function () {
-              fetchSnapshotSequential_(index + 1);
-            });
-          }
-
-          function fetchLiveBatch_(startIndex) {
-            if (token !== portfolioPnlLoadToken_) return;
-            google.script.run
-              .withSuccessHandler(function (batch) {
-                if (token !== portfolioPnlLoadToken_) return;
-                if (batch && batch.results) {
-                  for (var ri = 0; ri < batch.results.length; ri++) {
-                    var row = batch.results[ri];
-                    portfolioPnlApplyPayload_(row.agreementId, row.payload, null);
-                  }
-                }
-                if (batch && batch.failures) {
-                  for (var fi = 0; fi < batch.failures.length; fi++) {
-                    var fail = batch.failures[fi];
-                    portfolioPnlRecordFailure_(fail.agreementId, fail.message);
-                  }
-                }
-                loaded += batch && batch.processed ? batch.processed : 0;
-                portfolioPnlSetLoading_(true, loaded, total);
-                if (batch && batch.done) {
-                  portfolioPnlFinishLoad_(token, loaded, total);
-                } else {
-                  fetchLiveBatch_(batch ? batch.nextIndex : startIndex + 2);
-                }
-              })
-              .withFailureHandler(function (err) {
-                if (token !== portfolioPnlLoadToken_) return;
-                var sliceSize = Math.min(2, idsToFetch.length - startIndex);
-                for (var bi = 0; bi < sliceSize; bi++) {
-                  portfolioPnlRecordFailure_(idsToFetch[startIndex + bi], String(err));
-                }
-                loaded += sliceSize;
-                portfolioPnlSetLoading_(true, loaded, total);
-                if (startIndex + sliceSize >= idsToFetch.length) {
-                  portfolioPnlFinishLoad_(token, loaded, total);
-                } else {
-                  fetchLiveBatch_(startIndex + sliceSize);
-                }
-              })
-              .getPortfolioProjectPnLBatch(idsToFetch, startIndex, 2);
-          }
-
-          if (snapshotDate) {
-            fetchSnapshotSequential_(0);
-          } else {
-            fetchLiveBatch_(0);
-          }
-        });
+          })
+          .getPortfolioPnLDashboardData(!!forceRefresh);
       }
 
-      function portfolioPnlFinishLoad_(token, loaded, total) {
+      function portfolioPnlFinishLoad_(token, loaded, total, loadCtx) {
         if (token !== portfolioPnlLoadToken_) return;
         portfolioPnlState.loading = false;
+        portfolioPnlState.loadSource = loadCtx || portfolioPnlState.loadSource;
         portfolioPnlSetLoading_(false, loaded, total);
         portfolioPnlWriteCache_({
           cacheSchemaVersion: PORTFOLIO_PNL_CACHE_SCHEMA,
@@ -16891,7 +16946,8 @@
           pnlById: portfolioPnlState.pnlById,
           failedIds: portfolioPnlState.failedIds,
           failedDetails: portfolioPnlState.failedDetails,
-          fetchedAt: new Date().toISOString(),
+          fetchedAt: portfolioPnlState.fetchedAt || new Date().toISOString(),
+          loadSource: portfolioPnlState.loadSource,
           includeProjected: portfolioPnlState.includeProjected,
           includeSubscription: portfolioPnlState.includeSubscription !== false,
           includeServices: portfolioPnlState.includeServices !== false,
@@ -16925,7 +16981,10 @@
             (projects.length === 1 ? '' : 's');
         }
         if (els.ppnlLastRefresh && portfolioPnlState.fetchedAt) {
-          els.ppnlLastRefresh.textContent = formatLastRefresh(portfolioPnlState.fetchedAt);
+          els.ppnlLastRefresh.textContent = formatLastRefreshWithSource_(
+            portfolioPnlState.fetchedAt,
+            portfolioPnlState.loadSource
+          );
         }
 
         if (els.ppnlPartialNote) {
@@ -17358,7 +17417,7 @@
           localStorage.setItem(AI_USAGE_TTL_PREF_KEY, String(n));
         } catch (e) { /* ignore */ }
       }
-      function setAiUsageLoading(on) {
+      function setAiUsageLoading(on, sourceCtx) {
         if (!els.aiuLoading) return;
         if (on) {
           els.aiuLoading.classList.remove('d-none');
@@ -17367,6 +17426,7 @@
           els.aiuLoading.classList.add('d-none');
           els.aiuLoading.setAttribute('aria-hidden', 'true');
         }
+        setOverlayLoadSource_(els.aiuLoading, 'aiu-loading-source', on ? sourceCtx : null);
       }
       function destroyAiUsageChart(key) {
         var inst = chartInstances[key];
@@ -17761,7 +17821,7 @@
         var range = resolveAiUsageRangeFromPreset_();
         if (els.aiuRefreshBtn) els.aiuRefreshBtn.disabled = true;
         if (els.aiuFetchError) els.aiuFetchError.classList.add('d-none');
-        setAiUsageLoading(true);
+        setAiUsageLoading(true, { transport: 'fibery' });
         google.script.run
           .withSuccessHandler(function (data) {
             setAiUsageLoading(false);
@@ -18073,7 +18133,7 @@
         opts = opts || {};
         if (els.deliveryRefreshBtn) els.deliveryRefreshBtn.disabled = true;
         if (els.deliveryFetchError) els.deliveryFetchError.classList.add('d-none');
-        setDeliveryLoading(true);
+        setDeliveryLoading(true, { transport: 'fibery' });
         google.script.run
           .withSuccessHandler(function (data) {
             setDeliveryLoading(false);
@@ -18885,13 +18945,16 @@
       function fetchDeliveryPnlFromServer_(project) {
         if (!project || !project.id) return;
         var agreementId = project.id;
-        setDeliveryPnLLoading(true);
+        var snapshotDate = getSnapshotDate_();
+        var pnlSourceCtx = !isLiveDataSource_() && snapshotDate
+          ? { transport: 'snapshot', snapshotDate: snapshotDate }
+          : { transport: 'fibery' };
+        setDeliveryPnLLoading(true, pnlSourceCtx);
         if (els.deliveryPnlGridWrap) els.deliveryPnlGridWrap.classList.add('d-none');
         if (els.deliveryPnlEmpty) els.deliveryPnlEmpty.classList.add('d-none');
         if (els.deliveryPnlError) els.deliveryPnlError.classList.add('d-none');
         var t0 = Date.now();
         logActivity_('delivery_pnl_fetch_start', 'delivery', 'agreementId=' + agreementId);
-        var snapshotDate = getSnapshotDate_();
         var run = google.script.run
           .withSuccessHandler(function (data) {
             // Stale-response guard: if the user selected a different
@@ -20255,6 +20318,7 @@
       });
 
       function init() {
+        migrateUtilizationSessionCache_();
         initDataSourceCatalog_();
         google.script.run
           .withSuccessHandler(applyAppVersionStatus_)

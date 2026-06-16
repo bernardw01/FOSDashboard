@@ -1,5 +1,5 @@
 /**
- * PRD version 2.15.12 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.16.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `delivery`, panel
  * `#panel-delivery`). Two public endpoints, both authorized via
@@ -238,7 +238,9 @@ function getDeliveryProjectMonthlyPnL(agreementId) {
  * @param {string} agreementId
  * @return {!Object}
  */
-function buildDeliveryProjectMonthlyPnLInternal_(agreementId) {
+function buildDeliveryProjectMonthlyPnLInternal_(agreementId, options) {
+  options = options || {};
+  var portfolioMode = options.portfolioMode === true;
   var fetchedAtIso = new Date().toISOString();
   var emptyShell = {
     ok: false,
@@ -299,14 +301,16 @@ function buildDeliveryProjectMonthlyPnLInternal_(agreementId) {
   }
 
   var statusWarnings = [];
-  var statusFetch = fetchStatusUpdatesForAgreement_(agreementId);
   var statusUpdates = buildStatusUpdatesBlock_([], true);
-  if (statusFetch.ok) {
-    statusUpdates = buildStatusUpdatesBlock_(statusFetch.rows, true);
-  } else {
-    statusUpdates = buildStatusUpdatesBlock_([], false);
-    statusWarnings.push(statusFetch.reason || 'STATUS_UPDATES_FETCH_FAILED');
-    console.warn('Status updates fetch failed for ' + agreementId + ': ' + statusFetch.message);
+  if (!portfolioMode) {
+    var statusFetch = fetchStatusUpdatesForAgreement_(agreementId);
+    if (statusFetch.ok) {
+      statusUpdates = buildStatusUpdatesBlock_(statusFetch.rows, true);
+    } else {
+      statusUpdates = buildStatusUpdatesBlock_([], false);
+      statusWarnings.push(statusFetch.reason || 'STATUS_UPDATES_FETCH_FAILED');
+      console.warn('Status updates fetch failed for ' + agreementId + ': ' + statusFetch.message);
+    }
   }
 
   var thresholds = getAgreementThresholds_();
@@ -325,21 +329,23 @@ function buildDeliveryProjectMonthlyPnLInternal_(agreementId) {
 
   var allocWarnings = [];
   var resourceAllocations = emptyResourceAllocationsBlock_();
-  var allocFetch = fetchResourceAllocationsForAgreement_(agreementId);
-  if (allocFetch.ok) {
-    resourceAllocations = buildResourceAllocationsBlock_(
-      allocFetch.rows,
-      built.months,
-      allocWarnings
-    );
-  } else {
-    allocWarnings.push(allocFetch.reason || 'RESOURCE_ALLOCATIONS_FETCH_FAILED');
-    console.warn('Resource allocations fetch failed for ' + agreementId + ': ' + allocFetch.message);
+  if (!portfolioMode) {
+    var allocFetch = fetchResourceAllocationsForAgreement_(agreementId);
+    if (allocFetch.ok) {
+      resourceAllocations = buildResourceAllocationsBlock_(
+        allocFetch.rows,
+        built.months,
+        allocWarnings
+      );
+    } else {
+      allocWarnings.push(allocFetch.reason || 'RESOURCE_ALLOCATIONS_FETCH_FAILED');
+      console.warn('Resource allocations fetch failed for ' + agreementId + ': ' + allocFetch.message);
+    }
   }
 
   var allWarnings = statusWarnings.concat(allocWarnings);
 
-  return {
+  var out = {
     ok: true,
     source: 'fibery',
     fetchedAt: fetchedAtIso,
@@ -350,16 +356,31 @@ function buildDeliveryProjectMonthlyPnLInternal_(agreementId) {
     months: built.months,
     laborRoles: built.laborRoles,
     lifetime: built.lifetime,
-    discrepancyCheck: built.discrepancyCheck,
     partial: laborFetch.partial,
     capCounts: {
       laborRowsRead: laborFetch.rows.length,
       laborRowCap: maxLaborRows,
     },
-    statusUpdates: statusUpdates,
-    resourceAllocations: resourceAllocations,
     warnings: allWarnings.length ? allWarnings : undefined,
   };
+  if (portfolioMode) {
+    out.portfolioMode = true;
+  } else {
+    out.discrepancyCheck = built.discrepancyCheck;
+    out.statusUpdates = statusUpdates;
+    out.resourceAllocations = resourceAllocations;
+  }
+  return out;
+}
+
+/**
+ * Slim monthly P&L for Portfolio aggregation (skips status + allocations).
+ *
+ * @param {string} agreementId
+ * @return {!Object}
+ */
+function buildPortfolioMonthlyPnLInternal_(agreementId) {
+  return buildDeliveryProjectMonthlyPnLInternal_(agreementId, { portfolioMode: true });
 }
 
 /* ------------------------------------------------------------------------- */
