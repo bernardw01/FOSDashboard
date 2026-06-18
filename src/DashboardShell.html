@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.16.1 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.17.1 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -1779,6 +1779,22 @@
     .fos-util-detail-table tbody tr:hover {
       background: rgba(82, 201, 229, 0.06);
     }
+    .fos-util-detail-table tfoot td {
+      position: sticky;
+      bottom: 0;
+      background: var(--ag-surface);
+      border-top: 1px solid var(--ag-border);
+      padding: 8px 10px;
+      font-weight: 600;
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+    .fos-util-detail-table tfoot .util-detail-total-label {
+      color: var(--ag-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-size: 0.72rem;
+    }
     .fos-util-detail-table td {
       padding: 6px 10px;
       vertical-align: middle;
@@ -3462,9 +3478,38 @@
             <div class="row g-3 mt-1">
               <div class="col-12">
                 <section class="fos-section-card" aria-labelledby="util-detail-heading">
-                  <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                    <h2 id="util-detail-heading" class="mb-0">Detail entries</h2>
-                    <span class="small" style="color: var(--ag-text-muted)" id="util-detail-count">0 rows</span>
+                  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                      <h2 id="util-detail-heading" class="mb-0">Detail entries</h2>
+                      <span class="small" style="color: var(--ag-text-muted)" id="util-detail-count">0 rows</span>
+                      <span class="small d-none" style="color: var(--ag-text-muted)" id="util-detail-filter-hint">(table filters active)</span>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-end gap-2 fos-util-detail-toolbar">
+                      <div class="fos-util-multi">
+                        <label class="field-label" style="display: block; line-height: 1; margin-bottom: 2px">Company</label>
+                        <button type="button" class="multi-trigger" id="util-detail-company-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                          All companies
+                        </button>
+                        <ul class="dropdown-menu" id="util-detail-company-menu" aria-label="Detail table company filter"></ul>
+                      </div>
+                      <div class="fos-util-multi">
+                        <label class="field-label" style="display: block; line-height: 1; margin-bottom: 2px">Person</label>
+                        <button type="button" class="multi-trigger" id="util-detail-person-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                          All persons
+                        </button>
+                        <ul class="dropdown-menu" id="util-detail-person-menu" aria-label="Detail table person filter"></ul>
+                      </div>
+                      <div class="fos-util-multi">
+                        <label class="field-label" style="display: block; line-height: 1; margin-bottom: 2px">Role</label>
+                        <button type="button" class="multi-trigger" id="util-detail-role-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                          All roles
+                        </button>
+                        <ul class="dropdown-menu" id="util-detail-role-menu" aria-label="Detail table role filter"></ul>
+                      </div>
+                      <button type="button" class="fos-util-clear-btn" id="util-detail-clear-filters">Clear table filters</button>
+                      <button type="button" class="btn btn-sm btn-outline-secondary" id="util-detail-export-csv-btn">Copy CSV</button>
+                      <span class="small" id="util-detail-csv-status" style="color: var(--ag-text-muted)"></span>
+                    </div>
                   </div>
                   <div class="fos-util-detail-wrap">
                     <table class="fos-util-detail-table">
@@ -3481,6 +3526,14 @@
                         </tr>
                       </thead>
                       <tbody id="util-detail-tbody"></tbody>
+                      <tfoot id="util-detail-tfoot" class="d-none">
+                        <tr>
+                          <td colspan="5" class="text-end util-detail-total-label">Total (filtered)</td>
+                          <td class="text-end" id="util-detail-total-hours"> - </td>
+                          <td class="text-end" id="util-detail-total-cost"> - </td>
+                          <td></td>
+                        </tr>
+                      </tfoot>
                     </table>
                   </div>
                   <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-2 fos-util-detail-pager">
@@ -5108,6 +5161,8 @@
       var UTIL_TTL_PREF_KEY = 'fos_utilization_dashboard_ttl_minutes_v1';
       var UTIL_FILTERS_PREF_KEY = 'fos_utilization_filters_v1';
       var UTIL_FILTERS_SCHEMA_VERSION = 1;
+      var UTIL_DETAIL_FILTERS_PREF_KEY = 'fos_utilization_detail_filters_v1';
+      var UTIL_DETAIL_FILTERS_SCHEMA_VERSION = 1;
       var UTIL_DETAIL_PAGE_SIZE = 100;
       // v1.19.0 - Delivery Dashboard. Projects list and per-project monthly
       // P&L share the same TTL knob. The per-project P&Ls use a key prefix
@@ -5195,6 +5250,12 @@
           sortDir: 'desc',        // 'asc' | 'desc'
           page: 0,                // 0-indexed page
           pageSize: UTIL_DETAIL_PAGE_SIZE,
+        },
+        // Feature 026 - Detail table filters (subset of top-level global filters).
+        detailFilters: {
+          companies: {},
+          persons: {},
+          roles: {},
         },
         // Phase C - heatmap-local Role multi-select (distinct from the global
         // Role filter; lets the user scope the heatmap to engineering / data
@@ -5403,6 +5464,19 @@
         utilDetailPageInfo: document.getElementById('util-detail-page-info'),
         utilDetailPrev: document.getElementById('util-detail-prev'),
         utilDetailNext: document.getElementById('util-detail-next'),
+        utilDetailFilterHint: document.getElementById('util-detail-filter-hint'),
+        utilDetailCompanyMenu: document.getElementById('util-detail-company-menu'),
+        utilDetailCompanyTrigger: document.getElementById('util-detail-company-trigger'),
+        utilDetailPersonMenu: document.getElementById('util-detail-person-menu'),
+        utilDetailPersonTrigger: document.getElementById('util-detail-person-trigger'),
+        utilDetailRoleMenu: document.getElementById('util-detail-role-menu'),
+        utilDetailRoleTrigger: document.getElementById('util-detail-role-trigger'),
+        utilDetailClearFilters: document.getElementById('util-detail-clear-filters'),
+        utilDetailExportCsvBtn: document.getElementById('util-detail-export-csv-btn'),
+        utilDetailCsvStatus: document.getElementById('util-detail-csv-status'),
+        utilDetailTfoot: document.getElementById('util-detail-tfoot'),
+        utilDetailTotalHours: document.getElementById('util-detail-total-hours'),
+        utilDetailTotalCost: document.getElementById('util-detail-total-cost'),
         // Phase C - Alerts / Heatmap / Drawer.
         utilAttentionList: document.getElementById('util-attention-list'),
         utilAttentionCount: document.getElementById('util-attention-count'),
@@ -5879,6 +5953,7 @@
         deliveryRenderState.lastRenderedFetchedAt = null;
         revenueReviewRenderState.lastRenderedFetchedAt = null;
         expensesRenderState.lastRenderedFetchedAt = null;
+        expensesRenderState.chartsRenderedForFetchedAt = null;
         pipelineState.lastRenderedFetchedAt = null;
         laborHoursFetchCache_.key = null;
         laborHoursFetchCache_.payload = null;
@@ -6170,6 +6245,7 @@
         deliveryRenderState.lastRenderedFetchedAt = null;
         revenueReviewRenderState.lastRenderedFetchedAt = null;
         expensesRenderState.lastRenderedFetchedAt = null;
+        expensesRenderState.chartsRenderedForFetchedAt = null;
         laborHoursFetchCache_.key = null;
         laborHoursFetchCache_.payload = null;
       }
@@ -7444,7 +7520,7 @@
       // cached payload is identical to what's already on screen. v1.13.1.
       var agreementRenderState = { lastRenderedFetchedAt: null };
       var revenueReviewRenderState = { lastRenderedFetchedAt: null };
-      var expensesRenderState = { lastRenderedFetchedAt: null };
+      var expensesRenderState = { lastRenderedFetchedAt: null, chartsRenderedForFetchedAt: null };
       var utilRenderState = { lastRenderedFetchedAt: null };
       var loadingFlags_ = {};
 
@@ -9042,6 +9118,79 @@
       function roleKeyForRow_(r) {
         return r.userRole || r.clockifyUserRole || '(No role)';
       }
+      function companyKeyForRow_(r) {
+        return String(r.clockifyUserCompany || '').trim() || '(No company)';
+      }
+      function isAnyDetailTableFilterActive_() {
+        var df = utilState.detailFilters;
+        return (
+          setFromKeys(df.companies).length > 0 ||
+          setFromKeys(df.persons).length > 0 ||
+          setFromKeys(df.roles).length > 0
+        );
+      }
+      function clearUtilDetailTableFilters_() {
+        utilState.detailFilters = { companies: {}, persons: {}, roles: {} };
+        persistUtilDetailFilters_();
+      }
+      function pruneUtilDetailTableFilters_(globalRows) {
+        var df = utilState.detailFilters;
+        var companySet = {};
+        var personSet = {};
+        var roleSet = {};
+        for (var i = 0; i < globalRows.length; i++) {
+          var gr = globalRows[i];
+          companySet[companyKeyForRow_(gr)] = true;
+          personSet[personKeyForRow_(gr)] = true;
+          roleSet[roleKeyForRow_(gr)] = true;
+        }
+        var changed = false;
+        var ck = setFromKeys(df.companies);
+        for (var ci = 0; ci < ck.length; ci++) {
+          if (!companySet[ck[ci]]) {
+            delete df.companies[ck[ci]];
+            changed = true;
+          }
+        }
+        var pk = setFromKeys(df.persons);
+        for (var pi = 0; pi < pk.length; pi++) {
+          if (!personSet[pk[pi]]) {
+            delete df.persons[pk[pi]];
+            changed = true;
+          }
+        }
+        var rk = setFromKeys(df.roles);
+        for (var ri = 0; ri < rk.length; ri++) {
+          if (!roleSet[rk[ri]]) {
+            delete df.roles[rk[ri]];
+            changed = true;
+          }
+        }
+        if (changed) persistUtilDetailFilters_();
+      }
+      function applyUtilDetailTableFilters_(globalRows) {
+        var df = utilState.detailFilters;
+        var hasCompany = setFromKeys(df.companies).length > 0;
+        var hasPerson = setFromKeys(df.persons).length > 0;
+        var hasRole = setFromKeys(df.roles).length > 0;
+        if (!hasCompany && !hasPerson && !hasRole) return globalRows;
+        var out = [];
+        for (var i = 0; i < globalRows.length; i++) {
+          var r = globalRows[i];
+          if (hasCompany && !df.companies[companyKeyForRow_(r)]) continue;
+          if (hasPerson && !df.persons[personKeyForRow_(r)]) continue;
+          if (hasRole && !df.roles[roleKeyForRow_(r)]) continue;
+          out.push(r);
+        }
+        return out;
+      }
+      function getUtilDetailRows_() {
+        var p = utilState.payload;
+        if (!p) return [];
+        var globalRows = applyFilters(p.rows || []);
+        pruneUtilDetailTableFilters_(globalRows);
+        return applyUtilDetailTableFilters_(globalRows);
+      }
       function applyFilters(rows) {
         var f = utilState.filters;
         var customers = f.customers;
@@ -9184,7 +9333,96 @@
         updateMultiTriggerLabel(els.utilRoleTrigger, 'All roles', 'role', utilState.filters.roles);
       }
 
-      function populateMultiMenu(menu, items, keyFn, labelFn, selectedMap) {
+      function onUtilDetailTableFilterChange_() {
+        utilState.detail.page = 0;
+        persistUtilDetailFilters_();
+        var df = utilState.detailFilters;
+        logActivity_(
+          'util_detail_table_filter',
+          'operations',
+          'company=' + setFromKeys(df.companies).length +
+            ' · person=' + setFromKeys(df.persons).length +
+            ' · role=' + setFromKeys(df.roles).length
+        );
+        renderUtilDashboard();
+      }
+
+      function buildDetailFilterCompanyItems_(rows) {
+        var map = {};
+        for (var i = 0; i < rows.length; i++) {
+          var key = companyKeyForRow_(rows[i]);
+          if (!map[key]) map[key] = { name: key, hours: 0 };
+          map[key].hours += Number(rows[i].hours || 0);
+        }
+        var arr = [];
+        for (var k in map) if (Object.prototype.hasOwnProperty.call(map, k)) arr.push(map[k]);
+        arr.sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
+        return arr;
+      }
+      function buildDetailFilterPersonItems_(rows) {
+        var map = {};
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          var key = personKeyForRow_(r);
+          if (!map[key]) {
+            map[key] = { key: key, name: r.userName || key, hours: 0 };
+          }
+          map[key].hours += Number(r.hours || 0);
+        }
+        var arr = [];
+        for (var pk in map) if (Object.prototype.hasOwnProperty.call(map, pk)) arr.push(map[pk]);
+        arr.sort(function (a, b) {
+          return String(a.name || '').toLowerCase().localeCompare(String(b.name || '').toLowerCase());
+        });
+        return arr;
+      }
+      function buildDetailFilterRoleItems_(rows) {
+        var map = {};
+        for (var i = 0; i < rows.length; i++) {
+          var roleName = roleKeyForRow_(rows[i]);
+          if (!map[roleName]) map[roleName] = { name: roleName, hours: 0 };
+          map[roleName].hours += Number(rows[i].hours || 0);
+        }
+        var arr = [];
+        for (var rk in map) if (Object.prototype.hasOwnProperty.call(map, rk)) arr.push(map[rk]);
+        arr.sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); });
+        return arr;
+      }
+      function populateUtilDetailFilterMenus_(globalRows) {
+        var companies = buildDetailFilterCompanyItems_(globalRows);
+        var persons = buildDetailFilterPersonItems_(globalRows);
+        var roles = buildDetailFilterRoleItems_(globalRows);
+        var df = utilState.detailFilters;
+        populateMultiMenu(
+          els.utilDetailCompanyMenu,
+          companies,
+          function (item) { return item.name; },
+          function (item) { return item.name + ' · ' + formatHours(item.hours || 0) + 'h'; },
+          df.companies,
+          onUtilDetailTableFilterChange_
+        );
+        populateMultiMenu(
+          els.utilDetailPersonMenu,
+          persons,
+          function (item) { return item.key; },
+          function (item) { return (item.name || item.key) + ' · ' + formatHours(item.hours || 0) + 'h'; },
+          df.persons,
+          onUtilDetailTableFilterChange_
+        );
+        populateMultiMenu(
+          els.utilDetailRoleMenu,
+          roles,
+          function (item) { return item.name; },
+          function (item) { return item.name + ' · ' + formatHours(item.hours || 0) + 'h'; },
+          df.roles,
+          onUtilDetailTableFilterChange_
+        );
+        updateMultiTriggerLabel(els.utilDetailCompanyTrigger, 'All companies', 'company', df.companies);
+        updateMultiTriggerLabel(els.utilDetailPersonTrigger, 'All persons', 'person', df.persons);
+        updateMultiTriggerLabel(els.utilDetailRoleTrigger, 'All roles', 'role', df.roles);
+      }
+
+      function populateMultiMenu(menu, items, keyFn, labelFn, selectedMap, onAfterChange) {
         if (!menu) return;
         menu.innerHTML = '';
         if (!items || !items.length) {
@@ -9210,7 +9448,8 @@
             input.addEventListener('change', function () {
               if (input.checked) sm[k] = true;
               else delete sm[k];
-              renderUtilDashboard();
+              if (typeof onAfterChange === 'function') onAfterChange();
+              else renderUtilDashboard();
             });
           })(li2.querySelector('input'), key, selectedMap);
           menu.appendChild(li2);
@@ -9744,19 +9983,28 @@
       function renderUtilDashboard() {
         var p = utilState.payload;
         if (!p) return;
-        var rows = applyFilters(p.rows || []);
-        var kpis = computeKpisClient(rows);
+        var globalRows = applyFilters(p.rows || []);
+        pruneUtilDetailTableFilters_(globalRows);
+        var detailRows = applyUtilDetailTableFilters_(globalRows);
+        var kpis = computeKpisClient(globalRows);
         renderUtilKpis(kpis);
         renderChipBar();
         updateMultiTriggerLabel(els.utilCustomerTrigger, 'All customers', 'customer', utilState.filters.customers);
         updateMultiTriggerLabel(els.utilProjectTrigger, 'All projects', 'project', utilState.filters.projects);
         updateMultiTriggerLabel(els.utilPersonTrigger, 'All persons', 'person', utilState.filters.persons);
         updateMultiTriggerLabel(els.utilRoleTrigger, 'All roles', 'role', utilState.filters.roles);
+        populateUtilDetailFilterMenus_(globalRows);
+        if (els.utilDetailFilterHint) {
+          els.utilDetailFilterHint.classList.toggle('d-none', !isAnyDetailTableFilterActive_());
+        }
+        if (els.utilDetailExportCsvBtn) {
+          els.utilDetailExportCsvBtn.disabled = detailRows.length === 0;
+        }
         var subtitle =
           formatHours(kpis.totalHours) + ' hours · ' + kpis.rowCount + ' entries · range ' +
           rangeLabel(p.range);
         if (els.utilSubtitle) els.utilSubtitle.textContent = subtitle;
-        renderUtilDetailTable(rows);
+        renderUtilDetailTable(detailRows);
         // Phase C - Alerts panel (uses server-precomputed alerts from the
         // payload; doesn't depend on the active filter set), Heatmap (honors
         // global filters + heatmap-local Role filter).
@@ -9764,12 +10012,12 @@
         renderUtilHeatmap();
         loadChartJs()
           .then(function () {
-            renderUtilCustomerBar(rows, p.dimensions);
-            renderUtilProjectBar(rows, p.dimensions);
-            renderUtilWeeklyLine(rows);
-            renderUtilBillableStack(rows);
-            renderUtilRoleDonut(rows, p.dimensions);
-            renderUtilPersonBar(rows, p.dimensions);
+            renderUtilCustomerBar(globalRows, p.dimensions);
+            renderUtilProjectBar(globalRows, p.dimensions);
+            renderUtilWeeklyLine(globalRows);
+            renderUtilBillableStack(globalRows);
+            renderUtilRoleDonut(globalRows, p.dimensions);
+            renderUtilPersonBar(globalRows, p.dimensions);
           })
           .catch(function (e) {
             els.utilFetchError.textContent = e && e.message ? e.message : 'Could not load charts.';
@@ -9838,6 +10086,22 @@
         var sortDir = s.sortDir;
         sortedRows.sort(function (a, b) { return compareDetail_(a, b, sortKey, sortDir); });
 
+        var sumHours = 0;
+        var sumCost = 0;
+        for (var si = 0; si < rows.length; si++) {
+          sumHours += Number(rows[si].hours || 0);
+          sumCost += Number(rows[si].cost || 0);
+        }
+        if (els.utilDetailTfoot) {
+          els.utilDetailTfoot.classList.toggle('d-none', rows.length === 0);
+        }
+        if (els.utilDetailTotalHours) {
+          els.utilDetailTotalHours.textContent = rows.length ? formatHours(sumHours) : ' - ';
+        }
+        if (els.utilDetailTotalCost) {
+          els.utilDetailTotalCost.textContent = rows.length ? formatMoneyCompact(sumCost) : ' - ';
+        }
+
         var total = sortedRows.length;
         var pageSize = s.pageSize > 0 ? s.pageSize : UTIL_DETAIL_PAGE_SIZE;
         var pageCount = Math.max(1, Math.ceil(total / pageSize));
@@ -9889,6 +10153,67 @@
         }
         if (els.utilDetailPrev) els.utilDetailPrev.disabled = s.page <= 0;
         if (els.utilDetailNext) els.utilDetailNext.disabled = s.page >= pageCount - 1;
+      }
+
+      var utilDetailCsvFlashTimer_ = null;
+      function flashUtilDetailCsvStatus_(msg, isError) {
+        if (!els.utilDetailCsvStatus) return;
+        els.utilDetailCsvStatus.textContent = msg || '';
+        els.utilDetailCsvStatus.classList.toggle('text-danger', !!isError);
+        els.utilDetailCsvStatus.classList.toggle('text-success', !isError);
+        if (utilDetailCsvFlashTimer_) clearTimeout(utilDetailCsvFlashTimer_);
+        utilDetailCsvFlashTimer_ = setTimeout(function () {
+          if (els.utilDetailCsvStatus) els.utilDetailCsvStatus.textContent = '';
+        }, 3500);
+      }
+      function utilDetailCsvCell_(row, key) {
+        switch (key) {
+          case 'day':
+            return row.day || (row.startDateTime ? String(row.startDateTime).slice(0, 10) : '');
+          case 'userName':
+            return row.userName || '';
+          case 'customer':
+            return row.customer || '(Unassigned)';
+          case 'projectName':
+            return row.projectName || '';
+          case 'role':
+            return row.userRole || row.clockifyUserRole || '';
+          case 'hours':
+            return formatHours(row.hours);
+          case 'cost':
+            return formatMoneyCompact(row.cost || 0);
+          case 'userRoleBillRate':
+            return (row.userRoleBillRate === null || row.userRoleBillRate === undefined)
+              ? ''
+              : formatRate(row.userRoleBillRate);
+          default:
+            return '';
+        }
+      }
+      function exportUtilDetailCsv_() {
+        var detailRows = getUtilDetailRows_();
+        if (!detailRows.length) {
+          flashUtilDetailCsvStatus_('No rows to export', true);
+          return;
+        }
+        var headers = ['Date', 'Person', 'Customer', 'Project', 'Role', 'Hours', 'Cost', 'Bill rate'];
+        var keys = ['day', 'userName', 'customer', 'projectName', 'role', 'hours', 'cost', 'userRoleBillRate'];
+        var lines = [csvRowLh_(headers)];
+        for (var i = 0; i < detailRows.length; i++) {
+          var cells = [];
+          for (var ki = 0; ki < keys.length; ki++) {
+            cells.push(utilDetailCsvCell_(detailRows[i], keys[ki]));
+          }
+          lines.push(csvRowLh_(cells));
+        }
+        writeTextToClipboard_(lines.join('\n'))
+          .then(function () {
+            flashUtilDetailCsvStatus_('Copied ' + detailRows.length + ' rows');
+            logActivity_('util_detail_export_csv', 'operations', 'rows=' + detailRows.length);
+          })
+          .catch(function () {
+            flashUtilDetailCsvStatus_('Copy failed', true);
+          });
       }
 
       /* ====================================================================
@@ -10935,6 +11260,47 @@
         syncInternalButtons();
       }
 
+      function readUtilDetailFilters_() {
+        try {
+          var raw = localStorage.getItem(UTIL_DETAIL_FILTERS_PREF_KEY);
+          if (!raw) return null;
+          var o = JSON.parse(raw);
+          if (!o || o.schemaVersion !== UTIL_DETAIL_FILTERS_SCHEMA_VERSION) return null;
+          return o;
+        } catch (e) {
+          return null;
+        }
+      }
+      function persistUtilDetailFilters_() {
+        var df = utilState.detailFilters;
+        try {
+          localStorage.setItem(
+            UTIL_DETAIL_FILTERS_PREF_KEY,
+            JSON.stringify({
+              schemaVersion: UTIL_DETAIL_FILTERS_SCHEMA_VERSION,
+              companies: setFromKeys(df.companies),
+              persons: setFromKeys(df.persons),
+              roles: setFromKeys(df.roles),
+            })
+          );
+        } catch (e) { /* quota / private mode */ }
+      }
+      function applyStoredDetailFilters_() {
+        var stored = readUtilDetailFilters_();
+        utilState.detailFilters = { companies: {}, persons: {}, roles: {} };
+        if (!stored) return;
+        var df = utilState.detailFilters;
+        if (Array.isArray(stored.companies)) {
+          for (var ci = 0; ci < stored.companies.length; ci++) df.companies[stored.companies[ci]] = true;
+        }
+        if (Array.isArray(stored.persons)) {
+          for (var pi = 0; pi < stored.persons.length; pi++) df.persons[stored.persons[pi]] = true;
+        }
+        if (Array.isArray(stored.roles)) {
+          for (var ri = 0; ri < stored.roles.length; ri++) df.roles[stored.roles[ri]] = true;
+        }
+      }
+
       function rangeLabel(range) {
         if (!range) return ' - ';
         try {
@@ -11117,6 +11483,7 @@
           utilState.filters.billable = 'all';
           utilState.filters.internalLabor = 'include';
           utilState.detail.page = 0;
+          clearUtilDetailTableFilters_();
           // Phase C - also clear the heatmap-local Role filter on global Clear.
           utilState.heatmap.roleFilter = {};
           syncBillableButtons();
@@ -11218,6 +11585,17 @@
             logActivity_('util_detail', 'operations', 'page_next');
           });
         }
+        if (els.utilDetailClearFilters) {
+          els.utilDetailClearFilters.addEventListener('click', function () {
+            clearUtilDetailTableFilters_();
+            utilState.detail.page = 0;
+            renderUtilDashboard();
+            logActivity_('util_detail_table_filter', 'operations', 'clear_table');
+          });
+        }
+        if (els.utilDetailExportCsvBtn) {
+          els.utilDetailExportCsvBtn.addEventListener('click', exportUtilDetailCsv_);
+        }
       })();
 
       function showOperations() {
@@ -11237,6 +11615,7 @@
         if (!isLiveDataSource_()) {
           if (dataSourceState.utilization) {
             applyStoredFilters_();
+            applyStoredDetailFilters_();
             applyUtilPayload(dataSourceState.utilization);
             lockUtilRangeToSnapshotManifest_();
             return;
@@ -11259,6 +11638,7 @@
             utilRenderState.lastRenderedFetchedAt === cached.fetchedAt;
           if (!alreadyRendered) {
             applyStoredFilters_();
+            applyStoredDetailFilters_();
             applyUtilPayload(cached);
           }
           if (ttlMinutes > 0 && isCacheStale(cached, ttlMinutes)) {
@@ -11267,6 +11647,7 @@
           }
         } else {
           applyStoredFilters_();
+          applyStoredDetailFilters_();
           applyUtilPayload({
             ok: true,
             fetchedAt: null,
@@ -15277,6 +15658,7 @@
         }
 
         expensesDestroyCharts_();
+        expensesRenderState.chartsRenderedForFetchedAt = null;
 
         if (filteredRows.length) {
           loadChartJs()
@@ -15289,13 +15671,7 @@
               if (els.expChartSoftware && els.expChartSoftware.parentElement) {
                 els.expChartSoftware.parentElement.style.display = 'none';
               }
-              if (els.expRiskEmpty) els.expRiskEmpty.classList.remove('d-none');
-              if (els.expRiskMonthControl) els.expRiskMonthControl.classList.add('d-none');
-              if (els.expChartRisk && els.expChartRisk.parentElement) {
-                els.expChartRisk.parentElement.style.display = 'none';
-              }
-              return;
-            }
+            } else {
             var deptDatasets = [];
             var dk = 0;
             for (var di = 0; di < deptTopKeys.length; di++) {
@@ -15496,8 +15872,13 @@
               });
               expensesAttachSoftwareChartClick_(chartInstances.expensesSoftware, monthLabels, vendorTopKeys);
             }
+            }
 
             renderExpensesRiskChart_();
+            expensesRenderState.chartsRenderedForFetchedAt =
+              expensesState.payload && expensesState.payload.fetchedAt
+                ? expensesState.payload.fetchedAt
+                : null;
           })
           .catch(function (err) {
             console && console.warn && console.warn('Expenses charts: Chart.js load failed', err);
@@ -15518,6 +15899,10 @@
           if (els.expChartRisk && els.expChartRisk.parentElement) {
             els.expChartRisk.parentElement.style.display = 'none';
           }
+          expensesRenderState.chartsRenderedForFetchedAt =
+            expensesState.payload && expensesState.payload.fetchedAt
+              ? expensesState.payload.fetchedAt
+              : null;
         }
 
         if (els.expCustTbody) {
@@ -16314,10 +16699,16 @@
           cached &&
           cached.fetchedAt &&
           expensesRenderState.lastRenderedFetchedAt === cached.fetchedAt;
+        var chartsNeedRender =
+          !cached ||
+          !cached.fetchedAt ||
+          expensesRenderState.chartsRenderedForFetchedAt !== cached.fetchedAt;
 
         if (cached && cached.ok !== false) {
           if (!alreadyRendered) {
             applyExpensesPayload_(cached);
+          } else if (chartsNeedRender) {
+            renderExpensesView_();
           }
           return;
         }

@@ -195,6 +195,14 @@
       "featureId": "025",
       "publishedAt": "2026-06-16",
       "lastSyncedAt": "2026-06-16"
+    },
+    "feature_026": {
+      "id": 312009,
+      "title": "Feature 026 - Utilization detail table filters and CSV export",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/312009",
+      "featureId": "026",
+      "publishedAt": "2026-06-18",
+      "lastSyncedAt": "2026-06-18"
     }
   },
   "tasks": {
@@ -459,6 +467,19 @@
       "notebookKey": "feature_025",
       "url": "https://win.godeap.io/app/tasks/40203349",
       "renameAtShip": "v{FOS_PRD_VERSION} - Portfolio P&L performance and load source",
+      "workflowStage": "Spec Draft"
+    },
+    "Feature 026 - Utilization detail table filters and CSV export": {
+      "id": 40227803,
+      "tasklist": "Operations",
+      "featureId": "026",
+      "releaseType": "Enhancement",
+      "releaseTitle": "Utilization detail table filters and CSV export",
+      "provisionalTaskName": true,
+      "shippedVersion": null,
+      "notebookKey": "feature_026",
+      "url": "https://win.godeap.io/app/tasks/40227803",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Utilization detail table filters and CSV export",
       "workflowStage": "Spec Draft"
     }
   },

@@ -1,6 +1,6 @@
 # Feature: Utilization Management Dashboard (Fibery Labor Costs)
 
-> **PRD version 2.16.1** - see `docs/FOS-Dashboard-PRD.md`. **v2.16.1** utilization browser cache schema **5** + session key **`fos_utilization_dashboard_v2`**. **v2.11.0** removes labor time-approval tracking (Pending Approvals KPI/widget, Approval columns, cache schema **3**). Phase A–C history through v1.18.0 unchanged; see main PRD **§8** and **AC-69**.
+> **PRD version 2.17.0** - see `docs/FOS-Dashboard-PRD.md`. **v2.17.0** detail table filters + CSV (feature **026**). **v2.16.1** utilization browser cache schema **5**.
 
 ## Status
 
@@ -13,6 +13,7 @@
 | **Phase C correctness patch (v1.14.1)** | `isPendingApproval_` no longer flags `Approval = Approved` rows whose `Time Entry Status` is blank as pending (was producing 7,000+ false-positive stale-approval alerts in the field). New editor helper `_diag_sampleUtilizationPending()` dumps the Approval × Time-Entry-Status distribution + the count the predicate flags as pending, for verifying the fix against live data. See main PRD **FR-80**, **AC-28**. | v1.14.1 | **Delivered v1.14.1** |
 | **Alerts patch (v2.8.1)** | **Stale-approval alert rules removed** from `src/utilizationAlerts.js` (no `stale_approval` / `stale_approval_rollup` cards). Utilization Alerts panel evaluates **Under-utilized** and **Over-allocated** only. See main PRD **FR-80**, **AC-28**. | v2.8.1 | **Delivered v2.8.1** |
 | **Approval removal (v2.11.0)** | Labor time-approval no longer tracked: drops `isPending`, Pending Approvals KPI/widget, Approval columns, approval Fibery fields, `UTILIZATION_STALE_APPROVAL_*` settings; cache schema **2 → 3**. See **AC-69**. | v2.11.0 | **Delivered v2.11.0** |
+| **Detail table filters + CSV (v2.17.0)** | Table-local **Company** (`Agreement Management/Clockify User Company`) · **Person** · **Role** on Detail entries (subset of top-level filters); **Copy CSV** (visible columns). Feature **026**. | v2.17.0 | **Delivered v2.17.0** |
 
 ## Goal
 
