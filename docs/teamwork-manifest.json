@@ -211,7 +211,7 @@
       "featureId": "027",
       "intakeTaskId": 40228925,
       "publishedAt": "2026-06-18",
-      "lastSyncedAt": "2026-06-18"
+      "lastSyncedAt": "2026-07-06"
     },
     "feature_028": {
       "id": 312026,
@@ -219,7 +219,15 @@
       "url": "https://win.godeap.io/app/projects/1615262/notebooks/312026",
       "featureId": "028",
       "publishedAt": "2026-06-18",
-      "lastSyncedAt": "2026-06-18"
+      "lastSyncedAt": "2026-07-06"
+    },
+    "feature_030": {
+      "id": 312320,
+      "title": "Feature 030 - Sales OS pipeline",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/312320",
+      "featureId": "030",
+      "publishedAt": "2026-07-06",
+      "lastSyncedAt": "2026-07-06"
     }
   },
   "tasks": {
@@ -513,32 +521,111 @@
       ],
       "estDevHoursGitBase": "9ef59251c176e6aec1493d60599cb6647eddfe7b"
     },
-    "Feature 027 - Resource assignment dashboard": {
+    "v2.18.3 - Resource assignment dashboard": {
       "id": 40229350,
       "tasklist": "Operations",
       "featureId": "027",
       "releaseType": "Enhancement",
       "releaseTitle": "Resource assignment dashboard",
-      "provisionalTaskName": true,
-      "shippedVersion": null,
+      "provisionalTaskName": false,
+      "shippedVersion": "v2.18.3",
       "notebookKey": "feature_027",
       "intakeTaskId": 40228925,
       "url": "https://win.godeap.io/app/tasks/40229350",
       "renameAtShip": "v{FOS_PRD_VERSION} - Resource assignment dashboard",
-      "workflowStage": "Spec Draft"
+      "workflowStage": "Shipped",
+      "shippedAt": "2026-07-06",
+      "estDevHours": 23,
+      "estDevHoursRationale": [
+        "Git range: 2a268f8..HEAD (58 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Apps Script module `src/Code.js`: +0.9h",
+        "Client chart/UI (`src/DashboardShell.html`, +6548 lines): +4.5h",
+        "Apps Script module `src/adminSettingsRegistry.js`: +1.1h",
+        "Apps Script module `src/dashboardSnapshotJob.js`: +1.0h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +1 lines): +2.0h",
+        "Apps Script module `src/expensesDashboard.js`: +1.7h",
+        "Apps Script module `src/pipelineDashboard.js`: +1.8h",
+        "Apps Script module `src/resourceAssignmentDashboard.js`: +2.2h",
+        "Apps Script module `src/salesPipelineSheet.js`: +2.2h",
+        "Apps Script module `src/userActivityLog.js`: +0.8h",
+        "Feature spec / docs (+421 lines): +2.0h",
+        "Teamwork / automation scripts (+627 lines): +1.8h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 23.0h"
+      ],
+      "estDevHoursGitBase": "2a268f8"
     },
-    "Feature 028 - Resource assignments plan vs actual": {
+    "v2.19.1 - Resource assignments plan vs actual": {
       "id": 40234724,
       "tasklist": "Operations",
       "featureId": "028",
       "releaseType": "Enhancement",
       "releaseTitle": "Resource assignments plan vs actual",
-      "provisionalTaskName": true,
-      "shippedVersion": null,
+      "provisionalTaskName": false,
+      "shippedVersion": "v2.19.1",
       "notebookKey": "feature_028",
       "url": "https://win.godeap.io/app/tasks/40234724",
       "renameAtShip": "v{FOS_PRD_VERSION} - Resource assignments plan vs actual",
-      "workflowStage": "Spec Draft"
+      "workflowStage": "Shipped",
+      "shippedAt": "2026-07-06",
+      "estDevHours": 23,
+      "estDevHoursRationale": [
+        "Git range: 2a268f8..HEAD (58 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Apps Script module `src/Code.js`: +0.9h",
+        "Client chart/UI (`src/DashboardShell.html`, +6548 lines): +4.5h",
+        "Apps Script module `src/adminSettingsRegistry.js`: +1.1h",
+        "Apps Script module `src/dashboardSnapshotJob.js`: +1.0h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +1 lines): +2.0h",
+        "Apps Script module `src/expensesDashboard.js`: +1.7h",
+        "Apps Script module `src/pipelineDashboard.js`: +1.8h",
+        "Apps Script module `src/resourceAssignmentDashboard.js`: +2.2h",
+        "Apps Script module `src/salesPipelineSheet.js`: +2.2h",
+        "Apps Script module `src/userActivityLog.js`: +0.8h",
+        "Feature spec / docs (+421 lines): +2.0h",
+        "Teamwork / automation scripts (+627 lines): +1.8h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 23.0h"
+      ],
+      "estDevHoursGitBase": "2a268f8"
+    },
+    "v2.21.3 - Sales OS pipeline": {
+      "id": 40401643,
+      "tasklist": "Sales",
+      "featureId": "030",
+      "releaseType": "Enhancement",
+      "releaseTitle": "Sales OS pipeline",
+      "provisionalTaskName": false,
+      "shippedVersion": "v2.21.3",
+      "notebookKey": "feature_030",
+      "url": "https://win.godeap.io/app/tasks/40401643",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Sales OS pipeline",
+      "workflowStage": "Shipped",
+      "shippedAt": "2026-07-06",
+      "estDevHours": 23,
+      "estDevHoursRationale": [
+        "Git range: 2a268f8..HEAD (58 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Apps Script module `src/Code.js`: +0.9h",
+        "Client chart/UI (`src/DashboardShell.html`, +6548 lines): +4.5h",
+        "Apps Script module `src/adminSettingsRegistry.js`: +1.1h",
+        "Apps Script module `src/dashboardSnapshotJob.js`: +1.0h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +1 lines): +2.0h",
+        "Apps Script module `src/expensesDashboard.js`: +1.7h",
+        "Apps Script module `src/pipelineDashboard.js`: +1.8h",
+        "Apps Script module `src/resourceAssignmentDashboard.js`: +2.2h",
+        "Apps Script module `src/salesPipelineSheet.js`: +2.2h",
+        "Apps Script module `src/userActivityLog.js`: +0.8h",
+        "Feature spec / docs (+421 lines): +2.0h",
+        "Teamwork / automation scripts (+627 lines): +1.8h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 23.0h"
+      ],
+      "estDevHoursGitBase": "2a268f8"
     }
   },
   "lastBootstrappedAt": "2026-06-10"

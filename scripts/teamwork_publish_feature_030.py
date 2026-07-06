@@ -60,10 +60,16 @@ def create_notebook_html_direct(title: str, desc: str, html: str) -> int:
     res = api(
         "POST",
         f"/projects/{PROJECT_ID}/notebooks.json",
-        {"notebook": {"title": title, "description": desc, "contents": html}},
+        {
+            "notebook": {
+                "name": title,
+                "description": desc,
+                "content": html,
+                "content-type": "HTML",
+            }
+        },
     )
-    nb_id = int(res["notebookId"])
-    return nb_id
+    return int(res.get("notebookId") or res.get("id"))
 
 
 def update_release_task_description(
