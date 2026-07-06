@@ -1,11 +1,11 @@
 /**
- * PRD version 2.17.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.21.3 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FOS Dashboard - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.17.1';
+var FOS_PRD_VERSION = '2.21.3';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '2.17.1';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'Utilization detail table shows filtered Hours and Cost totals in a sticky footer row.';
+  'Pipeline overview: deals-by-stage collapsed by default; One Line Read shown once.';
 
 /**
  * @return {string}
@@ -165,6 +165,7 @@ function buildNavigationModel_(auth) {
         { id: 'agreement-dashboard', label: 'Agreements', active: false },
         { id: 'operations', label: 'Utilization', active: false },
         { id: 'labor-hours', label: 'Labor hours', active: false },
+        { id: 'resource-assignments', label: 'Resource assignments', active: false },
       ],
     },
     {
@@ -193,6 +194,7 @@ function buildNavigationModel_(auth) {
   var fiberyAccess = !!(auth && auth.fiberyAccess);
   var expensesAccess = canAccessExpensesDashboard_(auth);
   var pipelineAccess = canAccessPipelineDashboard_(auth);
+  var resourceAssignmentsAccess = canAccessResourceAssignmentsDashboard_(auth);
   var navItems = allItems.slice();
   if (!expensesAccess) {
     navItems = navItems.filter(function (item) {
@@ -204,6 +206,22 @@ function buildNavigationModel_(auth) {
       return item.id !== 'sales-group';
     });
   }
+  if (!resourceAssignmentsAccess) {
+    navItems = navItems.map(function (item) {
+      if (item.id !== 'operations-group' || !item.children) {
+        return item;
+      }
+      return {
+        type: item.type,
+        id: item.id,
+        label: item.label,
+        active: item.active,
+        children: item.children.filter(function (ch) {
+          return ch.id !== 'resource-assignments';
+        }),
+      };
+    });
+  }
   var model = {
     userEmail: auth.email,
     userLabel: label,
@@ -212,6 +230,7 @@ function buildNavigationModel_(auth) {
     fiberyAccess: fiberyAccess,
     expensesAccess: expensesAccess,
     pipelineAccess: pipelineAccess,
+    resourceAssignmentsAccess: resourceAssignmentsAccess,
     isAdmin: isAdminUser_(auth),
     items: navItems,
   };

@@ -1,38 +1,30 @@
 /**
- * PRD version 2.17.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.21.3 - sync with docs/FOS-Dashboard-PRD.md
  *
- * Sales **Pipeline** dashboard (feature 016). Reads HubSpot deals synced into
- * Fibery (`HubSpot/Deal`) through fiberyClient.js and returns a normalized,
- * read-only payload for the #panel-pipeline surface.
+ * Sales **Pipeline** dashboard (features 016 + 030). Merges the sales opportunity
+ * tracker spreadsheet with HubSpot deals synced into Fibery (`HubSpot/Deal`).
+ * Sheet wins for stage and ACV; HubSpot/Fibery values are retained for delta (*).
  *
- * Stage / pipeline names are free text in Fibery (no enum ids). Won / Lost /
- * Closed are derived from the **stage bucket** because HubSpot/Is Won and
- * HubSpot/Is Closed are almost always null in the synced data (R0, 2026-05-28).
- *
- * Script Properties (see docs/features/016-pipeline-dashboard.md):
- *   PIPELINE_MAX_ROWS, PIPELINE_STAGE_BUCKET_MAP_JSON
- *
- * Rich-text fields (Deal Description, Next Step Date) are Fibery documents and
- * are intentionally NOT fetched in v1 (each would need a separate document
- * round-trip). The normalized shape keeps the keys for forward-compat.
+ * Script Properties: PIPELINE_MAX_ROWS, PIPELINE_STAGE_BUCKET_MAP_JSON,
+ *   SALES_PIPELINE_SPREADSHEET_ID, SALES_PIPELINE_DEALS_SHEET_NAME, ...
  */
 
 /** @const {number} */
-var PIPELINE_CACHE_SCHEMA_VERSION_ = 2;
+var PIPELINE_CACHE_SCHEMA_VERSION_ = 3;
 
-/** @const {number} Fibery page size (<= 1000 per API). */
+/** @const {number} */
 var PIPELINE_QUERY_PAGE_LIMIT_ = 1000;
 
-/** @const {number} Hard ceiling on pages fetched per call. */
+/** @const {number} */
 var PIPELINE_QUERY_MAX_PAGES_ = 10;
 
-/**
- * Default case-insensitive stage-name  ->  bucket map (R0 confirmed values).
- * Operators can extend / override via PIPELINE_STAGE_BUCKET_MAP_JSON.
- * @const {!Object<string, string>}
- */
+/** @const {number} */
+var PIPELINE_DELTA_AMOUNT_EPSILON_ = 500;
+
+/** @const {!Object<string, string>} */
 var PIPELINE_DEFAULT_STAGE_BUCKET_MAP_ = {
   prospecting: 'prospecting',
+  prospect: 'prospecting',
   qualifying: 'prospecting',
   discovery: 'discovery',
   'discovery / demo': 'demo',
@@ -44,16 +36,15 @@ var PIPELINE_DEFAULT_STAGE_BUCKET_MAP_ = {
   negotiating: 'negotiating',
   'negotiating / contract': 'negotiating',
   'negotiation/contract': 'negotiating',
+  'negotiation / contract': 'negotiating',
+  'proposal sent': 'proposing',
+  'demo': 'demo',
   'closed won': 'won',
   'closed lost': 'lost',
   'on hold': 'onhold',
   'kickoff scheduled/in implementation': 'implementation',
 };
 
-/**
- * @return {{ email: string, role: string, team: string, fiberyAccess: boolean }}
- * @throws {Error} NOT_AUTHORIZED | FORBIDDEN
- */
 function requirePipelineAccessForApi_() {
   var auth = requireAuthForApi_();
   if (!canAccessPipelineDashboard_(auth)) {
@@ -62,12 +53,6 @@ function requirePipelineAccessForApi_() {
   return auth;
 }
 
-/**
- * Pipeline dashboard (Sales nav group) - visible when ANY is true:
- * team = CLIENT-ENGAGEMENT, role = EXEC, or role = ADMIN.
- * @param {{ email?: string, role?: string, team?: string }} auth
- * @return {boolean}
- */
 function canAccessPipelineDashboard_(auth) {
   if (!auth || !auth.email) {
     return false;
@@ -79,10 +64,6 @@ function canAccessPipelineDashboard_(auth) {
   return String(auth.team || '').trim().toUpperCase() === 'CLIENT-ENGAGEMENT';
 }
 
-/**
- * Public API: normalized pipeline payload for the client.
- * @return {!Object}
- */
 function getPipelineDashboardData() {
   requirePipelineAccessForApi_();
   try {
@@ -97,9 +78,7 @@ function getPipelineDashboardData() {
     }
     try {
       console.warn('getPipelineDashboardData: ' + msg);
-    } catch (_) {
-      /* ignore */
-    }
+    } catch (_) {}
     return {
       ok: false,
       message: msg,
@@ -109,10 +88,6 @@ function getPipelineDashboardData() {
   }
 }
 
-/**
- * @return {{ maxRows: number, stageBucketMap: !Object<string,string> }}
- * @private
- */
 function getPipelineProps_() {
   var p = PropertiesService.getScriptProperties();
   var rawMax = (p.getProperty('PIPELINE_MAX_ROWS') || '').trim();
@@ -120,7 +95,6 @@ function getPipelineProps_() {
   if (!isFinite(maxRows) || maxRows <= 0) {
     maxRows = 2000;
   }
-
   var map = {};
   var k;
   for (k in PIPELINE_DEFAULT_STAGE_BUCKET_MAP_) {
@@ -139,18 +113,11 @@ function getPipelineProps_() {
           }
         }
       }
-    } catch (e) {
-      /* ignore malformed override; defaults still apply */
-    }
+    } catch (e) {}
   }
   return { maxRows: maxRows, stageBucketMap: map };
 }
 
-/**
- * @param {*} v Fibery numeric (often a string or null).
- * @return {number}
- * @private
- */
 function pipelineToNumber_(v) {
   if (v === null || v === undefined || v === '') {
     return 0;
@@ -162,12 +129,6 @@ function pipelineToNumber_(v) {
   return isFinite(n) ? n : 0;
 }
 
-/**
- * @param {string} stage
- * @param {!Object<string,string>} map
- * @return {string} bucket key (falls back to 'other')
- * @private
- */
 function pipelineBucketForStage_(stage, map) {
   var key = String(stage || '').trim().toLowerCase();
   if (key && map.hasOwnProperty(key)) {
@@ -176,11 +137,6 @@ function pipelineBucketForStage_(stage, map) {
   return 'other';
 }
 
-/**
- * @param {string} bucket
- * @return {string} forecast category
- * @private
- */
 function pipelineDeriveForecastCategory_(bucket) {
   if (bucket === 'proposing' || bucket === 'negotiating') {
     return 'COMMIT';
@@ -200,11 +156,6 @@ function pipelineDeriveForecastCategory_(bucket) {
   return 'PIPELINE';
 }
 
-/**
- * @param {string|null} iso ISO datetime string.
- * @return {string|null} 'YYYY-MM-DD' (date part) or null.
- * @private
- */
 function pipelineIsoDay_(iso) {
   if (!iso) {
     return null;
@@ -213,11 +164,6 @@ function pipelineIsoDay_(iso) {
   return s.length >= 10 ? s.slice(0, 10) : s;
 }
 
-/**
- * @param {string|null} iso
- * @return {number|null} whole days since the date, or null.
- * @private
- */
 function pipelineDaysSince_(iso) {
   if (!iso) {
     return null;
@@ -229,12 +175,38 @@ function pipelineDaysSince_(iso) {
   return Math.floor((Date.now() - t) / 86400000);
 }
 
-/**
- * @param {number} limit
- * @param {number} offset
- * @return {!Object} fiberyQuery_ spec
- * @private
- */
+function pipelineParseHubspotDealId_(link) {
+  if (!link) {
+    return '';
+  }
+  var m = String(link).match(/\/deal\/(\d+)/);
+  return m ? m[1] : '';
+}
+
+function pipelineStageDiffers_(a, b) {
+  var na = String(a || '').trim().toLowerCase();
+  var nb = String(b || '').trim().toLowerCase();
+  if (!na || !nb || na === nb) {
+    return false;
+  }
+  return (
+    pipelineBucketForStage_(na, PIPELINE_DEFAULT_STAGE_BUCKET_MAP_) !==
+    pipelineBucketForStage_(nb, PIPELINE_DEFAULT_STAGE_BUCKET_MAP_)
+  );
+}
+
+function pipelineAmountDiffers_(sheetVal, hubVal) {
+  var a = pipelineToNumber_(sheetVal);
+  var b = pipelineToNumber_(hubVal);
+  if (a <= 0 && b <= 0) {
+    return false;
+  }
+  if (a <= 0 || b <= 0) {
+    return true;
+  }
+  return Math.abs(a - b) > PIPELINE_DELTA_AMOUNT_EPSILON_;
+}
+
 function buildPipelineDealsQuery_(limit, offset) {
   return {
     query: {
@@ -262,13 +234,6 @@ function buildPipelineDealsQuery_(limit, offset) {
   };
 }
 
-/**
- * Pages through all deals up to maxRows / page ceiling.
- * @param {number} maxRows
- * @return {!{ok: true, rows: !Array<!Object>, truncated: boolean}|
- *           !{ok: false, reason: string, message: string}}
- * @private
- */
 function fetchAllPipelineDeals_(maxRows) {
   var all = [];
   var maxPages = Math.min(
@@ -295,30 +260,9 @@ function fetchAllPipelineDeals_(maxRows) {
   return { ok: true, rows: all, truncated: true };
 }
 
-/**
- * Normalized pipeline payload (live API and daily snapshot job).
- * Does not check user authorization; callers must gate access.
- *
- * @return {!Object} client payload
- * @private
- */
-function buildPipelineDashboardPayload_() {
-  var cfg = getPipelineProps_();
-  var fetchedAt = new Date().toISOString();
-  var warnings = [];
-
-  var fetched = fetchAllPipelineDeals_(cfg.maxRows);
-  if (!fetched.ok) {
-    return {
-      ok: false,
-      message: fetched.message || 'Could not reach Fibery.',
-      fetchedAt: fetchedAt,
-      cacheSchemaVersion: PIPELINE_CACHE_SCHEMA_VERSION_,
-    };
-  }
-
-  var raw = fetched.rows || [];
+function normalizeFiberyPipelineDeals_(raw, stageBucketMap) {
   var deals = [];
+  var byHubspotId = {};
   var pipelinesSeen = {};
   var unmappedStages = {};
   var skippedTest = 0;
@@ -330,27 +274,23 @@ function buildPipelineDashboardPayload_() {
       skippedTest++;
       continue;
     }
-
     var stage = d.stage === null || d.stage === undefined ? '' : String(d.stage).trim();
-    var bucket = pipelineBucketForStage_(stage, cfg.stageBucketMap);
+    var bucket = pipelineBucketForStage_(stage, stageBucketMap);
     if (bucket === 'other' && stage) {
       unmappedStages[stage] = (unmappedStages[stage] || 0) + 1;
     }
-
     var pipeline =
       d.pipeline === null || d.pipeline === undefined ? '' : String(d.pipeline).trim();
     if (pipeline) {
       pipelinesSeen[pipeline] = true;
     }
-
-    var amount = pipelineToNumber_(d.amount);
-    var weighted = pipelineToNumber_(d.weightedAmount);
-    var probability = pipelineToNumber_(d.probability);
+    var hubspotLink =
+      d.hubspotLink !== null && d.hubspotLink !== undefined ? String(d.hubspotLink).trim() : '';
+    var hubspotDealId = pipelineParseHubspotDealId_(hubspotLink);
     var closeIso = d.closeDate ? String(d.closeDate) : null;
     var stageChangeIso = d.lastStageChangeDate ? String(d.lastStageChangeDate) : null;
-
-    deals.push({
-      id: String(d.id || ('row-' + i)),
+    var normalized = {
+      fiberyId: String(d.id || ('row-' + i)),
       publicId: d.publicId !== null && d.publicId !== undefined ? String(d.publicId) : '',
       name: name || '(no name)',
       company:
@@ -358,16 +298,11 @@ function buildPipelineDashboardPayload_() {
           ? String(d.companyName).trim()
           : name || '(no name)',
       pipeline: pipeline || 'Other',
-      stage: stage || 'Unknown',
+      hubspotStage: stage || 'Unknown',
       bucket: bucket,
-      amount: amount,
-      weightedAmount: weighted,
-      probability: probability,
-      forecastCategory: pipelineDeriveForecastCategory_(bucket),
-      isWon: bucket === 'won',
-      isLost: bucket === 'lost',
-      isClosed: bucket === 'won' || bucket === 'lost',
-      isStale: /^stale\b/i.test(name),
+      hubspotAmount: pipelineToNumber_(d.amount),
+      hubspotWeightedAmount: pipelineToNumber_(d.weightedAmount),
+      hubspotProbability: pipelineToNumber_(d.probability),
       owner:
         d.ownerName !== null && d.ownerName !== undefined && String(d.ownerName).trim()
           ? String(d.ownerName).trim()
@@ -375,13 +310,150 @@ function buildPipelineDashboardPayload_() {
       closeDate: pipelineIsoDay_(closeIso),
       lastStageChangeDate: pipelineIsoDay_(stageChangeIso),
       daysInStage: pipelineDaysSince_(stageChangeIso),
-      hubspotLink:
-        d.hubspotLink !== null && d.hubspotLink !== undefined ? String(d.hubspotLink).trim() : '',
-      description: '',
-      nextStep: '',
-    });
+      hubspotLink: hubspotLink,
+      hubspotDealId: hubspotDealId,
+      isStale: /^stale\b/i.test(name),
+    };
+    deals.push(normalized);
+    if (hubspotDealId) {
+      byHubspotId[hubspotDealId] = normalized;
+    }
+  }
+  return {
+    deals: deals,
+    byHubspotId: byHubspotId,
+    pipelinesSeen: pipelinesSeen,
+    unmappedStages: unmappedStages,
+    skippedTest: skippedTest,
+  };
+}
+
+function mergePipelineSheetRow_(sheetRow, fibery, stageBucketMap, index) {
+  var salesStage = sheetRow.salesStage || 'Prospect';
+  var bucket = pipelineBucketForStage_(salesStage, stageBucketMap);
+  var amount = pipelineToNumber_(sheetRow.acv);
+  var weighted = pipelineToNumber_(sheetRow.weightedAcv);
+  var probability = pipelineToNumber_(sheetRow.probability);
+  if (!weighted && amount > 0 && probability > 0) {
+    weighted = Math.round(amount * probability);
+  }
+  var hubspotStage = fibery ? fibery.hubspotStage : '';
+  var hubspotAmount = fibery ? fibery.hubspotAmount : 0;
+  var hubspotWeighted = fibery ? fibery.hubspotWeightedAmount : 0;
+  var deltaStage = fibery ? pipelineStageDiffers_(salesStage, hubspotStage) : false;
+  var deltaAmount = fibery ? pipelineAmountDiffers_(amount, hubspotAmount) : false;
+  var deltaWeighted = fibery ? pipelineAmountDiffers_(weighted, hubspotWeighted) : false;
+  var id =
+    (sheetRow.salesOppId || 'sheet') +
+    '-' +
+    (sheetRow.hubspotDealId || String(sheetRow.rowNumber || index));
+  return {
+    id: id,
+    salesOppId: sheetRow.salesOppId || '',
+    hubspotDealId: sheetRow.hubspotDealId || (fibery ? fibery.hubspotDealId : ''),
+    fiberyId: fibery ? fibery.fiberyId : '',
+    publicId: fibery ? fibery.publicId : '',
+    name: fibery ? fibery.name : sheetRow.company,
+    company: sheetRow.company || (fibery ? fibery.company : ''),
+    pipeline: fibery ? fibery.pipeline : 'Other',
+    stage: salesStage,
+    salesStage: salesStage,
+    hubspotStage: hubspotStage,
+    bucket: bucket,
+    amount: amount,
+    hubspotAmount: hubspotAmount,
+    weightedAmount: weighted,
+    hubspotWeightedAmount: hubspotWeighted,
+    probability: probability,
+    forecastCategory: pipelineDeriveForecastCategory_(bucket),
+    isWon: bucket === 'won',
+    isLost: bucket === 'lost',
+    isClosed: bucket === 'won' || bucket === 'lost',
+    isStale: fibery ? fibery.isStale : false,
+    owner: fibery ? fibery.owner : 'Unassigned',
+    closeDate: fibery ? fibery.closeDate : null,
+    lastStageChangeDate: fibery ? fibery.lastStageChangeDate : null,
+    daysInStage: fibery ? fibery.daysInStage : null,
+    hubspotLink: fibery ? fibery.hubspotLink : '',
+    sourceRecord: fibery ? 'merged' : 'sheet-only',
+    hubspotDelta: { stage: deltaStage, amount: deltaAmount, weighted: deltaWeighted },
+    hasHubspotDelta: deltaStage || deltaAmount || deltaWeighted,
+    vertical: sheetRow.vertical || '',
+    product: sheetRow.product || '',
+    contact: sheetRow.contact || '',
+    contactTitle: sheetRow.contactTitle || '',
+    contactEmail: sheetRow.contactEmail || '',
+    contactPhone: sheetRow.contactPhone || '',
+    source: sheetRow.source || '',
+    partnerSourced: !!sheetRow.partnerSourced,
+    assumptions: sheetRow.assumptions || '',
+    discoveryDate: sheetRow.discoveryDate || null,
+    nextStep: sheetRow.nextStep || '',
+    nextStepDate: sheetRow.nextStepDate || null,
+    execSponsor: sheetRow.execSponsor || '',
+    notes: sheetRow.notes || '',
+    tcv: pipelineToNumber_(sheetRow.tcv),
+    description: '',
+  };
+}
+
+function buildPipelineDashboardPayload_() {
+  var cfg = getPipelineProps_();
+  var fetchedAt = new Date().toISOString();
+  var warnings = [];
+
+  var sheetResult = readSalesPipelineSheetRows_();
+  if (!sheetResult.ok) {
+    return {
+      ok: false,
+      message: sheetResult.message || 'Could not read sales pipeline spreadsheet.',
+      fetchedAt: fetchedAt,
+      cacheSchemaVersion: PIPELINE_CACHE_SCHEMA_VERSION_,
+    };
+  }
+  if (sheetResult.warnings && sheetResult.warnings.length) {
+    warnings = warnings.concat(sheetResult.warnings);
   }
 
+  var fetched = fetchAllPipelineDeals_(cfg.maxRows);
+  if (!fetched.ok) {
+    return {
+      ok: false,
+      message: fetched.message || 'Could not reach Fibery.',
+      fetchedAt: fetchedAt,
+      cacheSchemaVersion: PIPELINE_CACHE_SCHEMA_VERSION_,
+    };
+  }
+
+  var fiberyNorm = normalizeFiberyPipelineDeals_(fetched.rows || [], cfg.stageBucketMap);
+  var sheetRows = sheetResult.rows || [];
+  var merged = [];
+  var matchedHubspot = 0;
+  var sheetOnly = 0;
+
+  for (var i = 0; i < sheetRows.length; i++) {
+    var sr = sheetRows[i];
+    var fibery = null;
+    if (sr.hubspotDealId && fiberyNorm.byHubspotId[sr.hubspotDealId]) {
+      fibery = fiberyNorm.byHubspotId[sr.hubspotDealId];
+      matchedHubspot++;
+    } else {
+      sheetOnly++;
+      if (sr.hubspotDealId) {
+        warnings.push(
+          'Sheet row ' + sr.salesOppId + ' has HubSpot ID ' + sr.hubspotDealId + ' with no Fibery match.'
+        );
+      }
+    }
+    merged.push(mergePipelineSheetRow_(sr, fibery, cfg.stageBucketMap, i));
+  }
+
+  var pipelinesSeen = {};
+  for (var j = 0; j < merged.length; j++) {
+    if (merged[j].pipeline) {
+      pipelinesSeen[merged[j].pipeline] = true;
+    }
+  }
   var pipelines = [];
   for (var pn in pipelinesSeen) {
     if (pipelinesSeen.hasOwnProperty(pn)) {
@@ -390,33 +462,28 @@ function buildPipelineDashboardPayload_() {
   }
   pipelines.sort();
 
-  var unmappedList = [];
-  for (var st in unmappedStages) {
-    if (unmappedStages.hasOwnProperty(st)) {
-      unmappedList.push(st + ' (' + unmappedStages[st] + ')');
-    }
-  }
-  if (unmappedList.length) {
-    warnings.push(
-      'Unmapped deal stage(s) bucketed as "other": ' + unmappedList.slice(0, 8).join(', ') +
-        (unmappedList.length > 8 ? ', ...' : '') +
-        '. Set PIPELINE_STAGE_BUCKET_MAP_JSON to map them.'
-    );
-  }
-
   return {
     ok: true,
-    source: 'fibery',
+    source: 'merged',
     fetchedAt: fetchedAt,
     cacheSchemaVersion: PIPELINE_CACHE_SCHEMA_VERSION_,
-    deals: deals,
+    deals: merged,
     pipelines: pipelines,
     partial: !!fetched.truncated,
     warnings: warnings,
+    editorial: {
+      oneLineRead: sheetResult.oneLineRead || '',
+      sheetUpdatedAt: sheetResult.sheetUpdatedAt || null,
+    },
+    stageDefinitions: sheetResult.stageDefinitions || [],
     meta: {
-      rowCountRaw: raw.length,
-      dealCount: deals.length,
-      skippedTestCount: skippedTest,
+      rowCountRawFibery: (fetched.rows || []).length,
+      dealCount: merged.length,
+      sheetRowCount: sheetRows.length,
+      matchedHubspotCount: matchedHubspot,
+      sheetOnlyCount: sheetOnly,
+      skippedTestCount: fiberyNorm.skippedTest,
+      hiddenFiberyOnlyCount: Math.max(0, fiberyNorm.deals.length - matchedHubspot),
     },
   };
 }

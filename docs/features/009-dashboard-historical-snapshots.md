@@ -1,6 +1,6 @@
 # Dashboard historical snapshots
 
-> **PRD version 2.16.1** - see `docs/FOS-Dashboard-PRD.md` (**FR-42**, **FR-40**, **FR-104**, **AC-60**).
+> **PRD version 2.21.0** - see `docs/FOS-Dashboard-PRD.md` (**FR-42**, **FR-40**, **FR-104**, **AC-60**).
 
 ## Goal
 
@@ -24,6 +24,7 @@ Root folder: Script Property **`FOS_SNAPSHOT_DRIVE_FOLDER_ID`** (create via **`e
  delivery-projects.json
  expenses.json
  pipeline.json
+ resource-assignments.json
  delivery-pnl/
  <agreementId>.json
 ```
@@ -43,8 +44,9 @@ Root folder: Script Property **`FOS_SNAPSHOT_DRIVE_FOLDER_ID`** (create via **`e
 | `agreement.json` | `buildAgreementDashboardPayload_(snapshotDate)` | Future revenue filtered as of snapshot date |
 | `utilization.json` | `buildUtilizationDashboardPayload_(start, end)` | Default 90-day window ending snapshot date; `cacheSchemaVersion: 5` (v2.16.1: browser cache key migration; was **4** through v2.13.6) |
 | `delivery-projects.json` | `buildDeliveryDashboardPayloadFromAgreement_` | No extra Fibery fetch |
-| `expenses.json` | `buildExpensesDashboardPayload_()` | Spreadsheet tab at job run time; `cacheSchemaVersion: 2` (v2.11.2); skip when **`SNAPSHOT_INCLUDE_EXPENSES`** is false |
-| `pipeline.json` | `buildPipelineDashboardPayload_()` | Fibery `HubSpot/Deal`; `cacheSchemaVersion: 2` (v2.11.1); skip when **`SNAPSHOT_INCLUDE_PIPELINE`** is false |
+| `expenses.json` | `buildExpensesDashboardPayload_()` | Spreadsheet tab at job run time; `cacheSchemaVersion: 3` (v2.17.2: category column resolution; was **2** through v2.11.2); skip when **`SNAPSHOT_INCLUDE_EXPENSES`** is false |
+| `pipeline.json` | `buildPipelineDashboardPayload_()` | Merged Opportunity Tracker + Fibery `HubSpot/Deal`; `cacheSchemaVersion: 3` (v2.21.0; was **2** in v2.11.1); skip when **`SNAPSHOT_INCLUDE_PIPELINE`** is false |
+| `resource-assignments.json` | `buildResourceAssignmentDashboardPayload_(start, end)` | Fibery Resource Allocations + Labor Costs actuals; range snapshot date **-30 / +90** days; `cacheSchemaVersion: 2` (v2.19.0; was **1** in v2.18.x); skip when **`SNAPSHOT_INCLUDE_RESOURCE_ASSIGNMENTS`** is false |
 | `delivery-pnl/*.json` | `buildDeliveryProjectMonthlyPnLInternal_` | Batched; continuation trigger if needed; `cacheSchemaVersion: 10` (v2.15.12: `assignments[].roleName`; was **9** through v2.15.10) |
 | `portfolio-pnl.json` | `writePortfolioPnlSnapshotBundle_` (aggregates per-project artifacts) | Written at manifest finalize; schema **1** (v2.16.0 / feature **025**); slim portfolio payloads (`portfolioMode`) |
 
@@ -57,6 +59,7 @@ Root folder: Script Property **`FOS_SNAPSHOT_DRIVE_FOLDER_ID`** (create via **`e
 | Delivery projects | Follows agreement |
 | Expenses | Warning; manifest may be **partial** |
 | Pipeline | Warning; manifest may be **partial** |
+| Resource assignments | Warning; manifest may be **partial** |
 | Delivery P&L | Per-project failure; manifest **partial** |
 | Portfolio P&L bundle | Warning if `portfolio-pnl.json` missing; client may show unavailable message (legacy snapshots) |
 
@@ -73,6 +76,7 @@ Root folder: Script Property **`FOS_SNAPSHOT_DRIVE_FOLDER_ID`** (create via **`e
 | `FOS_SNAPSHOT_LOG_SHEET_NAME` | `Snapshot Runs` | Log tab in `AUTH_SPREADSHEET_ID` |
 | `SNAPSHOT_INCLUDE_EXPENSES` | `true` | When false, job skips `expenses.json` |
 | `SNAPSHOT_INCLUDE_PIPELINE` | `true` | When false, job skips `pipeline.json` |
+| `SNAPSHOT_INCLUDE_RESOURCE_ASSIGNMENTS` | `true` | When false, job skips `resource-assignments.json` |
 
 ## Operations runbook
 

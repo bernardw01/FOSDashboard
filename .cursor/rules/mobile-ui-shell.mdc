@@ -1,0 +1,57 @@
+---
+description: Require mobile layout accommodations whenever desktop Web App UI changes
+alwaysApply: true
+---
+
+# Mobile UI shell (FOS Dashboard)
+
+Any **new or changed user-visible UI** in the Web App MUST include a **mobile accommodation** in the **same** change set as the desktop work. Do not ship desktop-only panels, toolbars, or nav entries and defer mobile to a follow-up.
+
+Canonical reference: **feature 029** (`docs/features/029-mobile-shell-phase-ab.md`, **FR-123**, **AC-82**). Primary file: **`src/DashboardShell.html`**.
+
+## Breakpoint
+
+- **Mobile:** `max-width: 767.98px` (`body.fos-mobile`, `!isLargeViewport()`).
+- **Desktop:** `min-width: 768px` (existing sidebar + panel chrome unchanged).
+
+## When this rule applies
+
+| Change type | Mobile requirement |
+| --- | --- |
+| New dashboard **panel** or major panel section | Mobile layout in `@media (max-width: 767.98px)` or `.fos-mobile-only` controls; KPIs scannable (2-col grid or cards, not wide tables only). |
+| New **toolbar** filters, tabs, or view switchers | On mobile, use **`openMobileFilterSheet_()`** or equivalent bottom sheet; hide cramped inline tab bars. |
+| New **sidebar nav** route | Update **`renderMobileBottomNav_`** / **`HOME_QUICK_NAV_ITEMS_`** when the route is primary-tier; ensure **`buildNavigationModel_()`** access gates hide mobile entries too. |
+| Wide **tables / heatmaps / grids** | Mobile: card list, single-week focus, or progressive disclosure; document "desktop-only detail" only when explicitly accepted in the feature spec. |
+| New **client activity** events | Whitelist in **`userActivityLog.js`**; include mobile-specific events when adding mobile-only affordances. |
+
+## Reuse before inventing
+
+1. **Bottom nav** (`#fos-mobile-bottom-nav`) for top-tier routes; **More** opens the full sidebar.
+2. **Data source pill** (`#fos-mobile-data-source-btn`) - do not duplicate Live/snapshot UI in the mobile sidebar.
+3. **Filter bottom sheet** (`openMobileFilterSheet_({ title, context, items, onSelect })`) for pickers and tab filters.
+4. **Progressive disclosure:** `.fos-*-mobile-extra` sections hidden until **Show charts** / **Show details** toggle (see Agreements and Pipeline).
+5. **Touch targets:** minimum **44px** height for taps; use `fos-mobile-only` for controls that replace desktop inline UI.
+
+## Feature spec and PRD (required)
+
+For every feature that touches **`DashboardShell.html`** UI:
+
+1. **User story** for mobile users (at least one).
+2. **Acceptance criteria** with **Given mobile width (&lt; 768px)** scenarios.
+3. **Verification step** at ~390px (DevTools device mode or phone) in addition to desktop.
+4. Extend **FR-123** or add a focused FR/AC row in **`docs/FOS-Dashboard-PRD.md`** when behavior is product-visible.
+
+## Completion checklist (block merge if missing)
+
+- [ ] Mobile CSS and/or `.fos-mobile-only` markup added or updated for the changed panel.
+- [ ] No new horizontal-only UX without a mobile alternative (sheet, cards, or documented exception).
+- [ ] Desktop layout at **≥ 768px** unchanged unless the feature intentionally changes both.
+- [ ] Feature doc **UI Notes** lists mobile components; **Verification Steps** include mobile width.
+- [ ] If new routes or primary nav: bottom nav / quick access updated when applicable.
+
+## Anti-patterns
+
+- Desktop panel + "mobile later" follow-up task.
+- Pinch-zoom tables as the only mobile experience.
+- Mobile-only logic that bypasses **`navItemById_` / `onNavClick`** access checks.
+- Filter sheets or bottom nav that only work in the editor preview (verify on **deployed** Web App).

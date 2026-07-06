@@ -1,6 +1,6 @@
 # Dashboard historical data source (UI)
 
-> **PRD version 2.16.0** - see `docs/FOS-Dashboard-PRD.md` (**FR-105**, **AC-61**). Storage job: [009-dashboard-historical-snapshots.md](009-dashboard-historical-snapshots.md).
+> **PRD version 2.18.0** - see `docs/FOS-Dashboard-PRD.md` (**FR-105**, **AC-61**). Storage job: [009-dashboard-historical-snapshots.md](009-dashboard-historical-snapshots.md).
 
 ## Goal
 
@@ -28,11 +28,11 @@ A **Data source** control in the left sidebar lets authorized users view all das
 | Function | Purpose |
 |----------|---------|
 | `getDashboardSnapshotCatalog()` | Authorized list of snapshots + synthetic Live option metadata |
-| `getDashboardSnapshotCoreBundle(snapshotDate)` | `agreement`, `utilization`, `deliveryProjects`, optional `expenses`, `pipeline`, `manifest` |
+| `getDashboardSnapshotCoreBundle(snapshotDate)` | `agreement`, `utilization`, `deliveryProjects`, optional `expenses`, `pipeline`, `resourceAssignments`, `manifest` |
 | `getDashboardSnapshotPnl(snapshotDate, agreementId)` | Lazy Delivery P&L artifact |
 | `getDashboardSnapshotPortfolioPnl(snapshotDate)` | Portfolio P&L bundle (`portfolio-pnl.json`; v2.16.0+) |
 
-`getDashboardSnapshotCoreBundle` omits **`expenses`** / **`pipeline`** when the current user lacks Finance / Client Engagement access (same rules as live APIs).
+`getDashboardSnapshotCoreBundle` omits **`expenses`** / **`pipeline`** / **`resourceAssignments`** when the current user lacks the corresponding access (Finance / Client Engagement gates; same rules as live APIs).
 
 ## Panel behavior (snapshot mode)
 
@@ -46,6 +46,7 @@ A **Data source** control in the left sidebar lets authorized users view all das
 | Delivery P&L | `getDashboardSnapshotPnl` per selected project (includes **`statusUpdates`** when artifact schema **5+**; **`resourceAllocations`** when schema **6**; status chip read-only; **Add status update** hidden) |
 | Expenses | `bundle.expenses` when present; else inline "not available" message |
 | Pipeline | `bundle.pipeline` when present; else inline "not available" message |
+| Resource assignments | `bundle.resourceAssignments` when present; else inline "not available" message |
 | Portfolio P&L | `getDashboardSnapshotPortfolioPnl` (single `portfolio-pnl.json` bundle; v2.16.0+); legacy snapshots without the artifact show unavailable message |
 
 ## Activity logging
@@ -58,5 +59,6 @@ Route **`shell`**: `data_source_change`, `snapshot_bundle_load_start`, `snapshot
 - Utilization date range is not user-adjustable in snapshot mode.
 - Expenses snapshot reflects spreadsheet contents at job run time (not re-filtered by snapshot date).
 - Snapshot dates before **v2.8.0** lack `expenses.json` / `pipeline.json`; those panels show a legacy message until a new snapshot is taken.
+- Snapshot dates before **v2.18.0** lack `resource-assignments.json`; Resource assignments in snapshot mode shows unavailable until a new snapshot is taken.
 - Snapshot dates before **v2.16.0** lack `portfolio-pnl.json`; Portfolio P&L in snapshot mode shows unavailable until a new snapshot is taken.
 - Delivery P&L artifacts with `cacheSchemaVersion: 4` (before **v2.12.0**) lack `statusUpdates`; the status chip shows a not-in-snapshot message.

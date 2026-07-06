@@ -1,5 +1,5 @@
 /**
- * PRD version 2.17.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.21.3 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Historical dashboard snapshot storage (Option A): Google Drive folder
  * with per-date subfolders, JSON artifacts, and a manifest per day.
@@ -435,6 +435,7 @@ var SNAPSHOT_EXPECTED_SCHEMA_VERSIONS_ = {
   'portfolio-pnl': 1,
   expenses: 2,
   pipeline: 2,
+  'resource-assignments': 1,
 };
 
 /** @const {!Object<string, string>} */
@@ -445,6 +446,7 @@ var SNAPSHOT_ARTIFACT_FILES_ = {
   'portfolio-pnl': 'portfolio-pnl.json',
   expenses: 'expenses.json',
   pipeline: 'pipeline.json',
+  'resource-assignments': 'resource-assignments.json',
 };
 
 /**
@@ -694,6 +696,7 @@ function getDashboardSnapshotCatalog() {
  *   deliveryProjects: ?Object,
  *   expenses: ?Object,
  *   pipeline: ?Object,
+ *   resourceAssignments: ?Object,
  *   warnings?: !Array<string>,
  *   message?: string
  * }}
@@ -711,6 +714,7 @@ function getDashboardSnapshotCoreBundle(snapshotDate) {
     deliveryProjects: null,
     expenses: null,
     pipeline: null,
+    resourceAssignments: null,
     warnings: warnings,
   };
 
@@ -743,6 +747,7 @@ function getDashboardSnapshotCoreBundle(snapshotDate) {
   );
   var expenses = readOptionalSnapshotArtifact_(dateFolder, 'expenses', warnings);
   var pipeline = readOptionalSnapshotArtifact_(dateFolder, 'pipeline', warnings);
+  var resourceAssignments = readOptionalSnapshotArtifact_(dateFolder, 'resource-assignments', warnings);
 
   var agreementOk = validateSnapshotArtifactSchema_(agreement, 'agreement', warnings);
   var utilOk = validateSnapshotArtifactSchema_(utilization, 'utilization', warnings);
@@ -779,12 +784,18 @@ function getDashboardSnapshotCoreBundle(snapshotDate) {
   if (pipeline) {
     tagSnapshotPayloadSource_(pipeline);
   }
+  if (resourceAssignments) {
+    tagSnapshotPayloadSource_(resourceAssignments);
+  }
 
   if (!canAccessExpensesDashboard_(auth)) {
     expenses = null;
   }
   if (!canAccessPipelineDashboard_(auth)) {
     pipeline = null;
+  }
+  if (!canAccessResourceAssignmentsDashboard_(auth)) {
+    resourceAssignments = null;
   }
 
   return {
@@ -796,6 +807,7 @@ function getDashboardSnapshotCoreBundle(snapshotDate) {
     deliveryProjects: deliveryProjects,
     expenses: expenses,
     pipeline: pipeline,
+    resourceAssignments: resourceAssignments,
     warnings: warnings.length ? warnings : undefined,
   };
 }

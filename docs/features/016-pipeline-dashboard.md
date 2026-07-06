@@ -1,6 +1,6 @@
 # Feature: Pipeline dashboard (Sales - Fibery HubSpot deals)
 
-> **PRD version 2.11.1** - **Status: Released v2.6.0** (panel); **stage map patch v2.11.1** (`Qualifying`, standalone `Negotiating`); **snapshot `pipeline.json` cache schema 2**. Shipped with **FR-110** and **AC-66**, **Sales** nav group, `src/pipelineDashboard.js`, `#panel-pipeline`. See `016-pipeline-dashboard-implementation-plan.md`.
+> **PRD version 2.21.0** - **Status: Released v2.6.0** (panel); extended **v2.21.0** (Sales OS merge, feature **030**). Stage map patch **v2.11.1**; snapshot **`pipeline.json` cache schema 3** (v2.21.0; was **2**). Shipped with **FR-110**, **FR-124**, and **AC-66**, **AC-83**, **Sales** nav group, `src/pipelineDashboard.js`, `src/salesPipelineSheet.js`, `#panel-pipeline`. See `016-pipeline-dashboard-implementation-plan.md` and **`030-sales-os-pipeline.md`**.
 
 > **Source mockup:** `harpin-dashboard-v3.html` (harpin AI - Pipeline Dashboard). The mockup wires directly to a HubSpot MCP and ships a light harpin theme. This feature **reuses the mockup's layout and section structure only** - data comes from **Fibery `HubSpot/Deal`** via the existing Fibery client, and the surface adopts the **current dark dashboard chrome**, not the mockup palette.
 
@@ -72,6 +72,8 @@ Buckets (display order): **Prospecting → Discovery → Demo → Validation →
 ## Goal
 
 Add a new **top-level sidebar group "Sales"** - positioned **directly beneath Home and above Operations** - containing a single dashboard, **Pipeline Dashboard** (`route id = pipeline`, panel `#panel-pipeline`). It surfaces the live HubSpot sales pipeline from Fibery with: a **KPI summary** (Total Deal Amount / Commit / Best Case), a **deals-by-stage** breakdown, a **revenue-by-quarter** forecast chart, and a **pipeline funnel** by stage - matching the layout of `harpin-dashboard-v3.html` in the current dashboard branding.
+
+**v2.21.0 (feature 030):** The panel now merges the sales **Opportunity Tracker** spreadsheet with Fibery deals (sheet wins stage/ACV; HubSpot deltas marked with **\***). See **`docs/features/030-sales-os-pipeline.md`** for Sales OS views and merge rules. Fibery-only deals without a sheet row are hidden.
 
 **Primary audience:** Sales leadership and ops reviewing pipeline health, commit, and forecast.
 

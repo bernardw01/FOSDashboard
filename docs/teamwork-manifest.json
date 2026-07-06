@@ -203,6 +203,23 @@
       "featureId": "026",
       "publishedAt": "2026-06-18",
       "lastSyncedAt": "2026-06-18"
+    },
+    "feature_027": {
+      "id": 312013,
+      "title": "Feature 027 - Resource assignment dashboard",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/312013",
+      "featureId": "027",
+      "intakeTaskId": 40228925,
+      "publishedAt": "2026-06-18",
+      "lastSyncedAt": "2026-06-18"
+    },
+    "feature_028": {
+      "id": 312026,
+      "title": "Feature 028 - Resource assignments plan vs actual",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/312026",
+      "featureId": "028",
+      "publishedAt": "2026-06-18",
+      "lastSyncedAt": "2026-06-18"
     }
   },
   "tasks": {
@@ -469,17 +486,58 @@
       "renameAtShip": "v{FOS_PRD_VERSION} - Portfolio P&L performance and load source",
       "workflowStage": "Spec Draft"
     },
-    "Feature 026 - Utilization detail table filters and CSV export": {
+    "v2.17.1 - Utilization detail table filters and CSV export": {
       "id": 40227803,
       "tasklist": "Operations",
       "featureId": "026",
       "releaseType": "Enhancement",
       "releaseTitle": "Utilization detail table filters and CSV export",
-      "provisionalTaskName": true,
-      "shippedVersion": null,
+      "provisionalTaskName": false,
+      "shippedVersion": "v2.17.1",
       "notebookKey": "feature_026",
       "url": "https://win.godeap.io/app/tasks/40227803",
       "renameAtShip": "v{FOS_PRD_VERSION} - Utilization detail table filters and CSV export",
+      "workflowStage": "Shipped",
+      "shippedAt": "2026-06-18",
+      "estDevHours": 10,
+      "estDevHoursRationale": [
+        "Git range: 9ef59251..HEAD (44 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +414 lines): +3.8h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +1 lines): +2.0h",
+        "Feature spec / docs (+376 lines): +1.9h",
+        "Teamwork / automation scripts (+146 lines): +0.8h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 9.5h"
+      ],
+      "estDevHoursGitBase": "9ef59251c176e6aec1493d60599cb6647eddfe7b"
+    },
+    "Feature 027 - Resource assignment dashboard": {
+      "id": 40229350,
+      "tasklist": "Operations",
+      "featureId": "027",
+      "releaseType": "Enhancement",
+      "releaseTitle": "Resource assignment dashboard",
+      "provisionalTaskName": true,
+      "shippedVersion": null,
+      "notebookKey": "feature_027",
+      "intakeTaskId": 40228925,
+      "url": "https://win.godeap.io/app/tasks/40229350",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Resource assignment dashboard",
+      "workflowStage": "Spec Draft"
+    },
+    "Feature 028 - Resource assignments plan vs actual": {
+      "id": 40234724,
+      "tasklist": "Operations",
+      "featureId": "028",
+      "releaseType": "Enhancement",
+      "releaseTitle": "Resource assignments plan vs actual",
+      "provisionalTaskName": true,
+      "shippedVersion": null,
+      "notebookKey": "feature_028",
+      "url": "https://win.godeap.io/app/tasks/40234724",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Resource assignments plan vs actual",
       "workflowStage": "Spec Draft"
     }
   },

@@ -1,5 +1,5 @@
 /**
- * PRD version 2.17.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.21.3 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Daily historical dashboard snapshot job. Fetches live Fibery payloads,
  * writes JSON artifacts to Google Drive (`dashboardSnapshotStore.js`),
@@ -16,6 +16,7 @@
  *   FOS_SNAPSHOT_LOG_SHEET_NAME        - default Snapshot Runs
  *   SNAPSHOT_INCLUDE_EXPENSES          - default true
  *   SNAPSHOT_INCLUDE_PIPELINE          - default true
+ *   SNAPSHOT_INCLUDE_RESOURCE_ASSIGNMENTS - default true
  *   AUTH_SPREADSHEET_ID                - same spreadsheet as Users tab
  *
  * Public (editor / trigger):
@@ -43,6 +44,9 @@ var SNAPSHOT_INCLUDE_EXPENSES_PROP_ = 'SNAPSHOT_INCLUDE_EXPENSES';
 
 /** @const {string} */
 var SNAPSHOT_INCLUDE_PIPELINE_PROP_ = 'SNAPSHOT_INCLUDE_PIPELINE';
+
+/** @const {string} */
+var SNAPSHOT_INCLUDE_RESOURCE_ASSIGNMENTS_PROP_ = 'SNAPSHOT_INCLUDE_RESOURCE_ASSIGNMENTS';
 
 /** @const {string} */
 var SNAPSHOT_QUEUE_DATE_PROP_ = 'SNAPSHOT_QUEUE_DATE';
@@ -363,6 +367,35 @@ function runDashboardSnapshotForDate_(snapshotDate, force) {
         );
       } else {
         manifest.warnings.push('Pipeline snapshot failed: ' + (pipeline.message || 'unknown'));
+      }
+    }
+
+    if (resolveSnapshotIncludeResourceAssignments_()) {
+      var raRange = buildResourceAssignmentRangeForSnapshot_(snapshotDate);
+      var resourceAssignments = buildResourceAssignmentDashboardPayload_(
+        raRange.startYmd,
+        raRange.endYmd
+      );
+      if (resourceAssignments.ok) {
+        var raMeta = writeSnapshotArtifact_(snapshotDate, 'resource-assignments.json', resourceAssignments);
+        appendManifestDataset_(
+          manifest,
+          'resource-assignments',
+          'resource-assignments.json',
+          raMeta,
+          resourceAssignments.cacheSchemaVersion,
+          resourceAssignments.fetchedAt,
+          {
+            rangeStart: raRange.startYmd,
+            rangeEnd: raRange.endYmd,
+            personCount: (resourceAssignments.persons || []).length,
+          },
+          !!resourceAssignments.partial
+        );
+      } else {
+        manifest.warnings.push(
+          'Resource assignments snapshot failed: ' + (resourceAssignments.message || 'unknown')
+        );
       }
     }
 
@@ -688,6 +721,14 @@ function resolveSnapshotIncludeExpenses_() {
  */
 function resolveSnapshotIncludePipeline_() {
   return resolveSnapshotIncludeFlag_(SNAPSHOT_INCLUDE_PIPELINE_PROP_);
+}
+
+/**
+ * @return {boolean}
+ * @private
+ */
+function resolveSnapshotIncludeResourceAssignments_() {
+  return resolveSnapshotIncludeFlag_(SNAPSHOT_INCLUDE_RESOURCE_ASSIGNMENTS_PROP_);
 }
 
 /**

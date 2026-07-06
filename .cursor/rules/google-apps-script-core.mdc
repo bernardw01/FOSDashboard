@@ -38,6 +38,7 @@ Follow these standards when generating or changing code in this repository.
 - Use HTML Service for UI surfaces and `google.script.run` for client-server calls.
 - Return safe, user-friendly error messages to the frontend.
 - Do not expose stack traces, secrets, or raw sensitive responses to users.
+- **Mobile (mandatory):** Any new or changed desktop UI in **`src/DashboardShell.html`** MUST ship mobile accommodations in the same change set. Follow **`.cursor/rules/mobile-ui-shell.mdc`** (breakpoint 768px, bottom nav, filter sheet, progressive disclosure). Feature specs must include mobile user stories, AC, and verification at ~390px width.
 
 ## Security and Reliability
 

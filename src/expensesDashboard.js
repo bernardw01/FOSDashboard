@@ -1,5 +1,5 @@
 /**
- * PRD version 2.17.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.21.3 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Spreadsheet-backed **Expenses** dashboard (feature 015). Reads expense lines
  * from AUTH_SPREADSHEET_ID tab AUTH_EXPENSES_SHEET_NAME (default `expenses`).
@@ -13,7 +13,17 @@
  */
 
 /** @const {number} */
-var EXPENSES_CACHE_SCHEMA_VERSION_ = 2;
+var EXPENSES_CACHE_SCHEMA_VERSION_ = 3;
+
+/** @const {!Array<string>} Alternate expense tab headers for the category dimension. */
+var EXPENSES_CATEGORY_HEADER_FALLBACKS_ = [
+  'Expense Category',
+  'Expense category',
+  'Categories',
+  'Category Name',
+  'GL Category',
+  'Merchant Category',
+];
 
 /** @const {number} Rows with |amount| at or below this are omitted (USD). */
 var EXPENSES_AMOUNT_EPSILON_ = 0.005;
@@ -190,6 +200,59 @@ function expensesParseAmount_(cell) {
  * @return {Array<string>}
  * @private
  */
+/**
+ * @param {Array} headers
+ * @param {number} idx
+ * @return {string}
+ * @private
+ */
+function expensesHeaderLabel_(headers, idx) {
+  if (idx < 0 || !headers || idx >= headers.length) {
+    return '';
+  }
+  var h = headers[idx];
+  return h === null || h === undefined ? '' : String(h).trim();
+}
+
+/**
+ * Resolves the category column without matching amount / currency columns.
+ *
+ * @param {Array} headers
+ * @param {string} configuredName
+ * @return {number}
+ * @private
+ */
+function findExpensesCategoryColumnIndex_(headers, configuredName) {
+  var primary = String(configuredName || 'Category').trim();
+  if (primary) {
+    var idx = findHeaderIndex_(headers, primary);
+    if (idx >= 0) {
+      return idx;
+    }
+  }
+  for (var f = 0; f < EXPENSES_CATEGORY_HEADER_FALLBACKS_.length; f++) {
+    var fallback = EXPENSES_CATEGORY_HEADER_FALLBACKS_[f];
+    if (primary && fallback.toLowerCase() === primary.toLowerCase()) {
+      continue;
+    }
+    idx = findHeaderIndex_(headers, fallback);
+    if (idx >= 0) {
+      return idx;
+    }
+  }
+  for (var c = 0; c < (headers || []).length; c++) {
+    var label = expensesHeaderLabel_(headers, c).toLowerCase();
+    if (!label || label.indexOf('category') < 0) {
+      continue;
+    }
+    if (label.indexOf('amount') >= 0 || label.indexOf('currency') >= 0) {
+      continue;
+    }
+    return c;
+  }
+  return -1;
+}
+
 function expensesDupHeaderWarn_(headers) {
   var seen = {};
   var dups = [];
@@ -288,7 +351,7 @@ function buildExpensesDashboardPayload_() {
   var idxDepartment = findHeaderIndex_(h, cfg.colDepartment);
   var idxCustomer = findHeaderIndex_(h, cfg.colCustomer);
   var idxVendor = findHeaderIndex_(h, cfg.colVendor);
-  var idxCategory = findHeaderIndex_(h, cfg.colCategory);
+  var idxCategory = findExpensesCategoryColumnIndex_(h, cfg.colCategory);
   var idxMemo = findHeaderIndex_(h, cfg.colMemo);
   var idxTransaction = findHeaderIndex_(h, cfg.colTransaction);
   var idxActivity = findHeaderIndex_(h, cfg.colActivity);
@@ -317,6 +380,32 @@ function buildExpensesDashboardPayload_() {
   if (idxCustomer < 0) {
     warnings.push('Customer column "' + cfg.colCustomer + '" not found - all rows treated as unattributed.');
   }
+  if (idxCategory < 0) {
+    warnings.push(
+      'Category column "' +
+        cfg.colCategory +
+        '" not found - charts and drill-downs show Uncategorized. ' +
+        'Verify the expenses tab headers or set AUTH_EXPENSES_COL_CATEGORY.'
+    );
+  } else {
+    var resolvedCategoryHeader = expensesHeaderLabel_(h, idxCategory);
+    if (
+      resolvedCategoryHeader &&
+      resolvedCategoryHeader.toLowerCase() !== cfg.colCategory.trim().toLowerCase()
+    ) {
+      warnings.push(
+        'Category column resolved as "' +
+          resolvedCategoryHeader +
+          '" (configured "' +
+          cfg.colCategory +
+          '").'
+      );
+    }
+  }
+
+  meta.categoryColumnIndex = idxCategory;
+  meta.categoryColumnHeader = idxCategory >= 0 ? expensesHeaderLabel_(h, idxCategory) : '';
+  meta.categoryNonBlankCount = 0;
 
   var rows = [];
   var partial = false;
@@ -381,6 +470,14 @@ function buildExpensesDashboardPayload_() {
     /** @type {string} */
     var id = txn || 'row-' + (r + 1) + '-' + fetchedAt;
 
+    var categoryVal =
+      idxCategory >= 0 && row[idxCategory] !== null && row[idxCategory] !== undefined
+        ? String(row[idxCategory]).trim()
+        : '';
+    if (categoryVal) {
+      meta.categoryNonBlankCount++;
+    }
+
     rows.push({
       id: id,
       purchaseDate: purchaseIso,
@@ -396,10 +493,7 @@ function buildExpensesDashboardPayload_() {
         idxVendor >= 0 && row[idxVendor] !== null && row[idxVendor] !== undefined
           ? String(row[idxVendor]).trim()
           : '',
-      category:
-        idxCategory >= 0 && row[idxCategory] !== null && row[idxCategory] !== undefined
-          ? String(row[idxCategory]).trim()
-          : '',
+      category: categoryVal,
       memo:
         idxMemo >= 0 && row[idxMemo] !== null && row[idxMemo] !== undefined
           ? String(row[idxMemo]).trim()
@@ -453,6 +547,14 @@ function buildExpensesDashboardPayload_() {
     warnings.push('Skipped ' + meta.skippedUndatedCount + ' row(s) with no effective date.');
   }
 
+  if (rows.length && meta.categoryNonBlankCount === 0 && idxCategory >= 0) {
+    warnings.push(
+      'Category column "' +
+        meta.categoryColumnHeader +
+        '" was found but every imported row is blank - verify the sheet export.'
+    );
+  }
+
   return {
     ok: true,
     source: 'spreadsheet',
@@ -470,4 +572,79 @@ function buildExpensesDashboardPayload_() {
       softwareCategoryMatch: cfg.softwareCategoryMatch,
     },
   };
+}
+
+/**
+ * Operator diagnostic: header map + category fill rate for the expenses tab.
+ * Run from the Apps Script editor (no Web App auth required).
+ *
+ * @return {!Object}
+ */
+function _diag_expensesHeaders() {
+  var cfg = getExpensesProps_();
+  var props = PropertiesService.getScriptProperties();
+  var spreadsheetId = (props.getProperty('AUTH_SPREADSHEET_ID') || '').trim();
+  if (!spreadsheetId) {
+    return { ok: false, message: 'AUTH_SPREADSHEET_ID is not set.' };
+  }
+  var ss = SpreadsheetApp.openById(spreadsheetId);
+  var sheet = ss.getSheetByName(cfg.sheetName);
+  if (!sheet) {
+    return {
+      ok: false,
+      message: 'Tab "' + cfg.sheetName + '" not found.',
+      spreadsheetId: spreadsheetId,
+    };
+  }
+  var values = sheet.getDataRange().getValues();
+  if (!values || values.length < 1) {
+    return { ok: false, message: 'Sheet is empty.', spreadsheetId: spreadsheetId };
+  }
+  var headers = values[0];
+  var headerList = [];
+  for (var i = 0; i < headers.length; i++) {
+    headerList.push({ index: i, label: expensesHeaderLabel_(headers, i) });
+  }
+  var idxCategory = findExpensesCategoryColumnIndex_(headers, cfg.colCategory);
+  var idxAmount = findHeaderIndex_(headers, cfg.colAmount);
+  var sampleCategories = [];
+  var nonBlank = 0;
+  var scanned = 0;
+  for (var r = 1; r < values.length && r <= 500; r++) {
+    scanned++;
+    if (idxCategory < 0) {
+      continue;
+    }
+    var cell = values[r][idxCategory];
+    var cat = cell === null || cell === undefined ? '' : String(cell).trim();
+    if (cat) {
+      nonBlank++;
+      if (sampleCategories.length < 12 && sampleCategories.indexOf(cat) < 0) {
+        sampleCategories.push(cat);
+      }
+    }
+  }
+  return {
+    ok: true,
+    spreadsheetId: spreadsheetId,
+    sheetName: cfg.sheetName,
+    rowCount: Math.max(0, values.length - 1),
+    configuredCategoryHeader: cfg.colCategory,
+    resolvedCategoryIndex: idxCategory,
+    resolvedCategoryHeader: idxCategory >= 0 ? expensesHeaderLabel_(headers, idxCategory) : '',
+    amountColumnIndex: idxAmount,
+    amountColumnHeader: idxAmount >= 0 ? expensesHeaderLabel_(headers, idxAmount) : '',
+    scannedRows: scanned,
+    categoryNonBlankCount: nonBlank,
+    sampleCategories: sampleCategories,
+    headers: headerList,
+    categoryFallbacks: EXPENSES_CATEGORY_HEADER_FALLBACKS_,
+  };
+}
+
+/**
+ * @return {!Object}
+ */
+function _diag_sampleExpensesPayload() {
+  return buildExpensesDashboardPayload_();
 }

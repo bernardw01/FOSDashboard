@@ -1,6 +1,6 @@
 # Feature: Expenses dashboard (spreadsheet-backed)
 
-> **PRD version 2.16.2** - shipped in web app **v2.5.0+** with **FR-109** / **AC-65**; nav under **Finance** group (**v2.5.1**); **FINANCE team / EXEC / ADMIN** (**v2.6.1**); **historical snapshot `expenses.json`** (**v2.8.0**, feature **009**); chart layout + risk map (**v2.5.5** - **v2.5.6**); customer table under Sankey (**v2.5.7**); **submission cycle by employee** chart (**v2.7.0**); **risk chart re-render on panel revisit** (**v2.16.2**).
+> **PRD version 2.17.2** - shipped in web app **v2.5.0+** with **FR-109** / **AC-65**; nav under **Finance** group (**v2.5.1**); **FINANCE team / EXEC / ADMIN** (**v2.6.1**); **historical snapshot `expenses.json`** (**v2.8.0**, feature **009**); chart layout + risk map (**v2.5.5** - **v2.5.6**); customer table under Sankey (**v2.5.7**); **submission cycle by employee** chart (**v2.7.0**); **risk chart re-render on panel revisit** (**v2.16.2**); **category column header resolution** (**v2.17.2**).
 
 > **Implementation plan:** [`docs/features/015-expenses-dashboard-implementation-plan.md`](015-expenses-dashboard-implementation-plan.md) - **Status:** implemented (PRD **2.5.0**).
 
@@ -362,6 +362,7 @@ Reuse **`.fos-util-drawer`** pattern (backdrop + `open` class, close affordance,
 
 | Date | Change |
 | --- | --- |
+| 2026-06-09 | **v2.17.2** - **Expenses** category column tolerant header resolution + **`EXPENSES_CACHE_SCHEMA_VERSION_` 3**; warnings when category column missing or all blank; **`_diag_expensesHeaders()`**. |
 | 2026-06-09 | **v2.16.2** - Software vendor risk chart: track **`chartsRenderedForFetchedAt`** so revisiting **Expenses** re-runs Chart.js when an async build was aborted; risk map no longer skipped when department chart preconditions fail. |
 | 2026-05-27 | **v2.5.8** - Expenses drilldowns now use a sortable **modal table** (no slide-out drawer); copy CSV shows temporary **Data copied to clipboard** alert. |
 | 2026-05-27 | **v2.5.7** - **Customer attribution** table directly under Sankey; risk map MoM **0%** when prior month spend is zero. |

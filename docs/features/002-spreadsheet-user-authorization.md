@@ -72,11 +72,12 @@ This table is the **canonical access map** for the Web App as of **PRD 2.8.0**. 
 | **Agreements** (`agreement-dashboard`) | All authorized | `getAgreementDashboardData()` | Fibery; no extra role/team gate |
 | **Utilization** (`operations`) | All authorized | `getUtilizationDashboardData()` | Fibery |
 | **Labor hours** (`labor-hours`) | All authorized | Utilization payload / `getLaborHoursConfig_()` | Same labor dataset |
+| **Resource assignments** (`resource-assignments`) | **Any** of: **Team = CLIENT-ENGAGEMENT**, **Role = EXEC**, **Role = ADMIN** | `getResourceAssignmentDashboardData()` returns **FORBIDDEN** otherwise | `canAccessResourceAssignmentsDashboard_()` - **FR-122** / **AC-81** (**v2.18.1**) |
 | **Delivery - Projects & P&L** (`delivery`) | All authorized | `getDeliveryDashboardData()`, `getDeliveryProjectMonthlyPnL()` | Fibery |
 | **Revenue review** (`revenue-review`) | All authorized | Reuses agreement payload | Client cache of agreement data |
 | **Expenses** (`expenses`, Finance group) | **Any** of: **Team = FINANCE**, **Role = EXEC**, **Role = ADMIN** | `getExpensesDashboardData()` returns **FORBIDDEN** otherwise | `canAccessExpensesDashboard_()` - **FR-109** / **AC-65** |
 | **Pipeline** (`pipeline`, Sales group) | **Any** of: **Team = CLIENT-ENGAGEMENT**, **Role = EXEC**, **Role = ADMIN** | `getPipelineDashboardData()` returns **FORBIDDEN** otherwise | `canAccessPipelineDashboard_()` - **FR-110** / **AC-66** |
-| **Historical snapshots** (Data source) | All authorized (catalog + core bundle) | `getDashboardSnapshotCatalog()`, `getDashboardSnapshotCoreBundle()`, `getDashboardSnapshotPnl()` | **`expenses`** / **`pipeline`** fields omitted when user fails the gates above (**v2.8.0**) |
+| **Historical snapshots** (Data source) | All authorized (catalog + core bundle) | `getDashboardSnapshotCatalog()`, `getDashboardSnapshotCoreBundle()`, `getDashboardSnapshotPnl()` | **`expenses`** / **`pipeline`** / **`resourceAssignments`** fields omitted when user fails the gates above |
 
 **Matching rules:** **Role** and **Team** comparisons are **trimmed** and **case-insensitive** (`FINANCE`, `finance`, and `Finance` are equivalent). **`EXEC`** and **`ADMIN`** are role literals, not team names.
 

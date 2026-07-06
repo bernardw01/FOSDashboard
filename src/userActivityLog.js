@@ -1,5 +1,5 @@
 /**
- * PRD version 2.17.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.21.3 - sync with docs/FOS-Dashboard-PRD.md
  *
  * User activity logging - append-only event rows to the "User Activity" tab
  * in the Users spreadsheet (AUTH_SPREADSHEET_ID). Implements Section 3.8 / FR-60-FR-66.
@@ -67,8 +67,11 @@ var ACTIVITY_VALID_EVENT_TYPES_ = {
   expenses_sort: true,
   pipeline_refresh: true,
   pipeline_view_change: true,
+  pipeline_sales_view_change: true,
+  pipeline_hubspot_filter: true,
   pipeline_export: true,
   pipeline_stage_toggle: true,
+  pipeline_deals_sort: true,
   delivery_pnl_chart_month_click: true,
   delivery_pnl_assignments_modal_open: true,
   delivery_status_update_modal_open: true,
@@ -98,7 +101,23 @@ var ACTIVITY_VALID_EVENT_TYPES_ = {
   ai_usage_export: true,
   util_detail_table_filter: true,
   util_detail_export_csv: true,
+  resource_assignments_refresh: true,
+  resource_assignments_range_change: true,
+  resource_assignments_expand_person: true,
+  resource_assignments_alert_click: true,
+  resource_assignments_filter_change: true,
+  resource_assignments_export_csv: true,
+  resource_assignments_tab_change: true,
+  resource_assignments_expand_project: true,
+  resource_assignments_expand_proj_person: true,
   app_version_update_click: true,
+  mobile_bottom_nav: true,
+  mobile_data_source_open: true,
+  mobile_filter_sheet_open: true,
+  mobile_filter_sheet_select: true,
+  home_quick_nav: true,
+  agreement_mobile_charts_toggle: true,
+  pipeline_mobile_charts_toggle: true,
 };
 
 /** @const {number} */

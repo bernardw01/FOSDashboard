@@ -1,5 +1,5 @@
 /**
- * PRD version 2.17.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.21.3 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -113,7 +113,7 @@ function getAdminSettingsCatalog_() {
     adminSettingEntry_('AUTH_EXPENSES_COL_DEPARTMENT', 'expenses-dashboard', 'Department header', 'Department name dimension.', 'string', 'Department Name'),
     adminSettingEntry_('AUTH_EXPENSES_COL_CUSTOMER', 'expenses-dashboard', 'GL Customer header', 'Customer attribution (blank  ->  unattributed).', 'string', 'GL Customer Name'),
     adminSettingEntry_('AUTH_EXPENSES_COL_VENDOR', 'expenses-dashboard', 'Vendor header', '', 'string', 'Vendor'),
-    adminSettingEntry_('AUTH_EXPENSES_COL_CATEGORY', 'expenses-dashboard', 'Category header', '', 'string', 'Category'),
+    adminSettingEntry_('AUTH_EXPENSES_COL_CATEGORY', 'expenses-dashboard', 'Category header', 'Expense category dimension. Also tries Expense Category, Categories, and other *category* headers (excluding amount columns).', 'string', 'Category'),
     adminSettingEntry_('AUTH_EXPENSES_COL_MEMO', 'expenses-dashboard', 'Memo header', '', 'string', 'Memo'),
     adminSettingEntry_('AUTH_EXPENSES_COL_TRANSACTION_ID', 'expenses-dashboard', 'Transaction ID header', '', 'string', 'Transaction ID'),
     adminSettingEntry_('AUTH_EXPENSES_COL_ACTIVITY_TYPE', 'expenses-dashboard', 'Activity type header', '', 'string', 'Activity type'),
@@ -144,6 +144,48 @@ function getAdminSettingsCatalog_() {
       'JSON object mapping a case-insensitive Deal Stage name to a bucket key (prospecting, discovery, demo, validation, proposing, negotiating, won, lost, onhold, implementation). Merges over built-in defaults; unmapped stages fall into "other".',
       'json',
       ''
+    ),
+    adminSettingEntry_(
+      'SALES_PIPELINE_SPREADSHEET_ID',
+      'pipeline-dashboard',
+      'Sales pipeline spreadsheet ID',
+      'Google Sheet ID for the sales opportunity tracker (Opportunity Tracker tab). Merged with Fibery HubSpot/Deal on refresh.',
+      'string',
+      '1jZDCN75kFN53-UXN65zA6GaoWmirowbzfOrDLRaWqs4'
+    ),
+    adminSettingEntry_(
+      'SALES_PIPELINE_DEALS_SHEET_NAME',
+      'pipeline-dashboard',
+      'Opportunity Tracker tab name',
+      'Worksheet name for deal rows (headers on SALES_PIPELINE_HEADER_ROW).',
+      'string',
+      'Opportunity Tracker'
+    ),
+    adminSettingEntry_(
+      'SALES_PIPELINE_STAGE_DEFS_SHEET_NAME',
+      'pipeline-dashboard',
+      'Stage Definitions tab name',
+      'Worksheet with stage probability and exit-criteria reference rows.',
+      'string',
+      'Stage Definitions'
+    ),
+    adminSettingEntry_(
+      'SALES_PIPELINE_HEADER_ROW',
+      'pipeline-dashboard',
+      'Opportunity Tracker header row',
+      '1-based row number for column headers (data starts on the next row).',
+      'number',
+      5,
+      { min: 1, max: 20 }
+    ),
+    adminSettingEntry_(
+      'SALES_PIPELINE_MAX_ROWS',
+      'pipeline-dashboard',
+      'Opportunity Tracker row cap',
+      'Maximum data rows read from the sales spreadsheet per refresh.',
+      'number',
+      500,
+      { min: 50, max: 2000 }
     ),
     adminSettingEntry_(
       'FIBERY_HOST',
@@ -604,6 +646,23 @@ function getAdminSettingsCatalog_() {
       'When false, the daily job skips pipeline.json (live Pipeline panel still works).',
       'boolean',
       true
+    ),
+    adminSettingEntry_(
+      'SNAPSHOT_INCLUDE_RESOURCE_ASSIGNMENTS',
+      'snapshots',
+      'Include resource assignments in snapshot',
+      'When false, the daily job skips resource-assignments.json (live panel still works).',
+      'boolean',
+      true
+    ),
+    adminSettingEntry_(
+      'RESOURCE_ASSIGNMENTS_MAX_ROWS',
+      'operations',
+      'Resource assignments row cap',
+      'Max Fibery Resource Allocation rows fetched for the assignments dashboard (500-20000).',
+      'number',
+      5000,
+      { min: 500, max: 20000 }
     ),
     adminSettingEntry_(
       'FIBERY_AI_USAGE_APP',
