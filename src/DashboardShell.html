@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.21.3 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.22.0 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -407,6 +407,9 @@
       word-break: break-word;
       min-width: 4.5rem;
     }
+    #panel-portfolio-pnl .fos-portfolio-grid td.is-negative {
+      color: var(--ag-danger);
+    }
     #panel-portfolio-pnl .fos-portfolio-grid th {
       position: sticky;
       top: 0;
@@ -530,6 +533,14 @@
       font-variant-numeric: tabular-nums;
       cursor: help;
       border-bottom: 1px dotted var(--ag-text-dim);
+    }
+    #panel-portfolio-pnl .ppnl-kpi-value.is-negative {
+      color: var(--ag-danger);
+    }
+    #panel-portfolio-pnl .ppnl-kpi-value.is-negative:hover,
+    #panel-portfolio-pnl .ppnl-kpi-value.is-negative:focus-visible {
+      color: var(--ag-danger);
+      border-bottom-color: var(--ag-danger);
     }
     #panel-portfolio-pnl .ppnl-kpi-value:hover,
     #panel-portfolio-pnl .ppnl-kpi-value:focus-visible {
@@ -5419,6 +5430,10 @@
               <button type="button" class="btn btn-sm fw-semibold px-3" id="ppnl-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
                 Refresh
               </button>
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="ppnl-export-excel-btn" disabled title="Available after Portfolio P&amp;L finishes loading" style="background: transparent; color: var(--ag-text); border: 1px solid var(--ag-border); min-height: 44px">
+                Export Excel
+              </button>
+              <span class="small d-none" id="ppnl-export-status" role="status" style="color: var(--ag-text-muted)"></span>
               <div class="d-flex flex-wrap align-items-center gap-2 ms-1" id="ppnl-type-filters" aria-label="Agreement type filters">
                 <span class="small mb-0" style="color: var(--ag-text-muted)">Include</span>
                 <div class="form-check form-check-inline mb-0">
@@ -6878,6 +6893,8 @@
         ppnlLiveOnly: document.getElementById('ppnl-live-only'),
         ppnlSubtitle: document.getElementById('ppnl-subtitle'),
         ppnlRefreshBtn: document.getElementById('ppnl-refresh-btn'),
+        ppnlExportExcelBtn: document.getElementById('ppnl-export-excel-btn'),
+        ppnlExportStatus: document.getElementById('ppnl-export-status'),
         ppnlTypeSubscription: document.getElementById('ppnl-type-subscription'),
         ppnlTypeServices: document.getElementById('ppnl-type-services'),
         ppnlCollapseQuarters: document.getElementById('ppnl-collapse-quarters'),
@@ -20749,7 +20766,25 @@
         fetchedAt: null,
         loadSource: null,
         loading: false,
+        dataReady: false,
+        exporting: false,
       };
+
+      function portfolioPnlSetExportEnabled_(ready) {
+        portfolioPnlState.dataReady = !!ready;
+        if (!els.ppnlExportExcelBtn) return;
+        var canExport =
+          !!ready &&
+          !portfolioPnlState.loading &&
+          !portfolioPnlState.exporting &&
+          portfolioPnlActiveProjects_(portfolioPnlState.projects || []).length > 0;
+        els.ppnlExportExcelBtn.disabled = !canExport;
+        els.ppnlExportExcelBtn.title = canExport
+          ? 'Download Portfolio P&L as Excel with outline groups'
+          : ready
+            ? 'No projects in the current filter'
+            : 'Available after Portfolio P&L finishes loading';
+      }
 
       function portfolioPnlFilterProjects_(projects) {
         var out = [];
@@ -20969,27 +21004,49 @@
         return fy;
       }
 
+      function portfolioPnlRowAmount_(metrics, rowKind) {
+        if (!metrics) return null;
+        if (rowKind === 'margin_pct') return metrics.marginPct;
+        if (rowKind === 'revenue' || rowKind === 'portfolio' || rowKind === 'customer' || rowKind === 'project') {
+          return metrics.revenue;
+        }
+        if (rowKind === 'subscription') return metrics.revenueSub;
+        if (rowKind === 'services') return metrics.revenueSvc;
+        if (rowKind === 'costs') return metrics.totalCost;
+        if (rowKind === 'employee') {
+          return metrics.isProjected && metrics.laborAllocated > 0
+            ? metrics.laborAllocated
+            : metrics.laborEmp;
+        }
+        if (rowKind === 'contractor') {
+          if (metrics.isProjected && metrics.laborAllocated > 0) return null;
+          return metrics.laborCon;
+        }
+        if (rowKind === 'odc') return metrics.odc;
+        if (rowKind === 'margin_d') return metrics.marginDollar;
+        return null;
+      }
+
+      function portfolioPnlRowIsNegative_(metrics, rowKind) {
+        if (!metrics) return false;
+        if (rowKind === 'margin_pct') {
+          return metrics.marginPct != null && metrics.marginPct < 0;
+        }
+        var n = portfolioPnlRowAmount_(metrics, rowKind);
+        if (n == null || n === 0) return false;
+        if (rowKind === 'costs' || rowKind === 'employee' || rowKind === 'contractor' || rowKind === 'odc') {
+          return n > 0;
+        }
+        return n < 0;
+      }
+
       function portfolioPnlRowValue_(metrics, rowKind) {
         if (!metrics) return ' - ';
         if (rowKind === 'margin_pct') {
           return metrics.marginPct == null ? ' - ' : formatPct(metrics.marginPct) + '%';
         }
-        var n = 0;
-        if (rowKind === 'revenue' || rowKind === 'portfolio' || rowKind === 'customer' || rowKind === 'project') {
-          n = metrics.revenue;
-        } else if (rowKind === 'subscription') n = metrics.revenueSub;
-        else if (rowKind === 'services') n = metrics.revenueSvc;
-        else if (rowKind === 'costs') n = metrics.totalCost;
-        else if (rowKind === 'employee') {
-          n =
-            metrics.isProjected && metrics.laborAllocated > 0
-              ? metrics.laborAllocated
-              : metrics.laborEmp;
-        } else if (rowKind === 'contractor') {
-          if (metrics.isProjected && metrics.laborAllocated > 0) return ' - ';
-          n = metrics.laborCon;
-        } else if (rowKind === 'odc') n = metrics.odc;
-        else if (rowKind === 'margin_d') n = metrics.marginDollar;
+        var n = portfolioPnlRowAmount_(metrics, rowKind);
+        if (n == null) return ' - ';
         if (rowKind === 'costs' || rowKind === 'employee' || rowKind === 'contractor' || rowKind === 'odc') {
           return n ? '(' + formatMoneyCompact(Math.abs(n)) + ')' : ' - ';
         }
@@ -21002,12 +21059,15 @@
         return 'text-end';
       }
 
-      function portfolioPnlCellClass_(col, metrics, includeProjected) {
+      function portfolioPnlCellClass_(col, metrics, includeProjected, rowKind) {
         var cls = 'fos-portfolio-num text-end';
         if (col.kind === 'quarter') cls += ' fos-portfolio-quarter-col';
         if (col.id === 'FY') cls += ' fos-portfolio-fy-col';
         if (includeProjected && metrics && metrics.isProjected && col.kind === 'month') {
           cls += ' fos-portfolio-projected-cell';
+        }
+        if (rowKind && portfolioPnlRowIsNegative_(metrics, rowKind)) {
+          cls += ' is-negative';
         }
         return cls;
       }
@@ -21180,6 +21240,8 @@
       function loadPortfolioPnlAll_(forceRefresh) {
         var token = ++portfolioPnlLoadToken_;
         portfolioPnlState.loading = true;
+        portfolioPnlState.dataReady = false;
+        portfolioPnlSetExportEnabled_(false);
         portfolioPnlState.failedIds = [];
         portfolioPnlState.failedDetails = [];
         if (els.ppnlFetchError) els.ppnlFetchError.classList.add('d-none');
@@ -21209,6 +21271,7 @@
             portfolioPnlSyncControls_();
             portfolioPnlSetLoading_(false, 0, 0);
             renderPortfolioPnlGrid_();
+            portfolioPnlSetExportEnabled_(true);
             return;
           }
         }
@@ -21316,6 +21379,7 @@
           collapseMonthsByQuarter: portfolioPnlState.collapseMonthsByQuarter,
         });
         renderPortfolioPnlGrid_();
+        portfolioPnlSetExportEnabled_(true);
         logActivity_(
           'portfolio_pnl_fetch_done',
           'portfolio-pnl',
@@ -21392,7 +21456,10 @@
           }
           if (els.ppnlKpiRevenue) els.ppnlKpiRevenue.textContent = '$0';
           if (els.ppnlKpiCost) els.ppnlKpiCost.textContent = '$0';
-          if (els.ppnlKpiMargin) els.ppnlKpiMargin.textContent = ' - ';
+          if (els.ppnlKpiMargin) {
+            els.ppnlKpiMargin.textContent = ' - ';
+            els.ppnlKpiMargin.classList.remove('is-negative');
+          }
           if (els.ppnlKpiProjects) els.ppnlKpiProjects.textContent = '0';
           return;
         }
@@ -21446,6 +21513,10 @@
           var fym = portfolioByCol.FY || portfolioPnlEmptyMetrics_();
           els.ppnlKpiMargin.textContent =
             fym.marginPct == null ? ' - ' : formatPct(fym.marginPct) + '%';
+          els.ppnlKpiMargin.classList.toggle(
+            'is-negative',
+            fym.marginPct != null && fym.marginPct < 0
+          );
         }
         if (els.ppnlKpiProjects) {
           els.ppnlKpiProjects.textContent = String(projects.length);
@@ -21494,7 +21565,7 @@
             var met = metricsByCol[col.id] || portfolioPnlEmptyMetrics_();
             cells.push(
               '<td class="' +
-                portfolioPnlCellClass_(col, met, includeProjected) +
+                portfolioPnlCellClass_(col, met, includeProjected, rowKind) +
                 '">' +
                 portfolioPnlRowValue_(met, rowKind) +
                 '</td>'
@@ -21616,6 +21687,269 @@
         }
 
         if (els.ppnlGridBody) els.ppnlGridBody.innerHTML = body.join('');
+        portfolioPnlSetExportEnabled_(!!portfolioPnlState.dataReady);
+      }
+
+      function portfolioPnlExportCellNumber_(metrics, rowKind) {
+        var n = portfolioPnlRowAmount_(metrics, rowKind);
+        if (n == null) return null;
+        if (rowKind === 'margin_pct') {
+          return metrics.marginPct == null ? null : Number(metrics.marginPct);
+        }
+        if (!n) return null;
+        if (rowKind === 'costs' || rowKind === 'employee' || rowKind === 'contractor' || rowKind === 'odc') {
+          return Math.abs(Number(n));
+        }
+        return Number(n);
+      }
+
+      function portfolioPnlPushExportRow_(out, label, kind, outlineLevel, metricsByCol, cols) {
+        var values = [];
+        for (var i = 0; i < cols.length; i++) {
+          var met = metricsByCol[cols[i].id] || portfolioPnlEmptyMetrics_();
+          values.push(portfolioPnlExportCellNumber_(met, kind));
+        }
+        out.push({
+          label: label,
+          kind: kind,
+          outlineLevel: outlineLevel,
+          values: values,
+        });
+      }
+
+      function portfolioPnlBuildExcelExportRequest_() {
+        var year = portfolioPnlState.calendarYear || new Date().getFullYear();
+        var allCols = portfolioPnlPeriodColumns_(year);
+        var collapseMonths = !!portfolioPnlState.collapseMonthsByQuarter;
+        var cols = portfolioPnlDisplayColumns_(allCols, collapseMonths);
+        var includeProjected = !!portfolioPnlState.includeProjected;
+        var projects = portfolioPnlActiveProjects_(portfolioPnlState.projects || []);
+
+        var columns = cols.map(function (c) {
+          var isProjected = false;
+          if (c.kind === 'month' && includeProjected) {
+            var now = new Date();
+            var curKey =
+              now.getUTCFullYear() +
+              '-' +
+              (now.getUTCMonth() + 1 < 10 ? '0' + (now.getUTCMonth() + 1) : String(now.getUTCMonth() + 1));
+            isProjected = String(c.id) > curKey;
+            for (var piCheck = 0; piCheck < projects.length && !isProjected; piCheck++) {
+              var metCheck = portfolioPnlMonthMetrics_(
+                portfolioPnlState.pnlById[projects[piCheck].id],
+                projects[piCheck].type,
+                c.id,
+                true
+              );
+              if (metCheck && metCheck.isProjected) isProjected = true;
+            }
+          }
+          return {
+            id: c.id,
+            label: c.label,
+            kind: c.kind,
+            isProjected: isProjected,
+          };
+        });
+
+        function colMetricsForProject_(project) {
+          var pnl = portfolioPnlState.pnlById[project.id];
+          var out = {};
+          for (var ci = 0; ci < allCols.length; ci++) {
+            out[allCols[ci].id] = portfolioPnlProjectColumnMetrics_(
+              pnl,
+              project.type,
+              allCols[ci],
+              year,
+              includeProjected
+            );
+          }
+          return out;
+        }
+
+        var portfolioByCol = {};
+        for (var cj = 0; cj < allCols.length; cj++) {
+          portfolioByCol[allCols[cj].id] = portfolioPnlEmptyMetrics_();
+        }
+        for (var ck = 0; ck < projects.length; ck++) {
+          var pm = colMetricsForProject_(projects[ck]);
+          for (var cm = 0; cm < allCols.length; cm++) {
+            var cid = allCols[cm].id;
+            portfolioByCol[cid] = portfolioPnlAddMetrics_(
+              portfolioByCol[cid],
+              pm[cid] || portfolioPnlEmptyMetrics_()
+            );
+          }
+        }
+
+        var rows = [];
+        portfolioPnlPushExportRow_(rows, 'Portfolio Revenue', 'portfolio', 0, portfolioByCol, cols);
+
+        var customers = [];
+        var custMap = {};
+        for (var pi = 0; pi < projects.length; pi++) {
+          var cust = String(projects[pi].customer || '(No customer)').trim() || '(No customer)';
+          if (!custMap[cust]) {
+            custMap[cust] = { name: cust, projects: [] };
+            customers.push(custMap[cust]);
+          }
+          custMap[cust].projects.push(projects[pi]);
+        }
+
+        for (var ui = 0; ui < customers.length; ui++) {
+          var custRow = customers[ui];
+          var custMetrics = {};
+          for (var cmi = 0; cmi < allCols.length; cmi++) {
+            custMetrics[allCols[cmi].id] = portfolioPnlEmptyMetrics_();
+          }
+          for (var cpi = 0; cpi < custRow.projects.length; cpi++) {
+            var cpj = colMetricsForProject_(custRow.projects[cpi]);
+            for (var cpx = 0; cpx < allCols.length; cpx++) {
+              var colId = allCols[cpx].id;
+              custMetrics[colId] = portfolioPnlAddMetrics_(custMetrics[colId], cpj[colId]);
+            }
+          }
+          portfolioPnlPushExportRow_(rows, custRow.name, 'customer', 1, custMetrics, cols);
+
+          for (var pri = 0; pri < custRow.projects.length; pri++) {
+            var proj = custRow.projects[pri];
+            var projMetrics = colMetricsForProject_(proj);
+            portfolioPnlPushExportRow_(rows, proj.name, 'project', 2, projMetrics, cols);
+            portfolioPnlPushExportRow_(rows, 'Revenue', 'revenue', 3, projMetrics, cols);
+            portfolioPnlPushExportRow_(rows, 'Subscription', 'subscription', 4, projMetrics, cols);
+            portfolioPnlPushExportRow_(rows, 'Services', 'services', 4, projMetrics, cols);
+            portfolioPnlPushExportRow_(rows, 'Costs', 'costs', 3, projMetrics, cols);
+            portfolioPnlPushExportRow_(rows, 'Employee', 'employee', 4, projMetrics, cols);
+            portfolioPnlPushExportRow_(rows, 'Contractor', 'contractor', 4, projMetrics, cols);
+            portfolioPnlPushExportRow_(rows, 'ODC', 'odc', 4, projMetrics, cols);
+            portfolioPnlPushExportRow_(rows, 'Margin $', 'margin_d', 3, projMetrics, cols);
+            portfolioPnlPushExportRow_(rows, 'Margin %', 'margin_pct', 3, projMetrics, cols);
+          }
+        }
+
+        var srcLabel = formatLoadSourceLabel_(portfolioPnlState.loadSource) || 'Panel (already loaded)';
+        return {
+          columns: columns,
+          rows: rows,
+          failedDetails: (portfolioPnlState.failedDetails || []).map(function (d) {
+            return { id: d.id, name: d.name, message: d.message };
+          }),
+          meta: {
+            calendarYear: year,
+            projectCount: projects.length,
+            typeFilterLabel: portfolioPnlTypeFilterLabel_(),
+            collapseMonthsByQuarter: collapseMonths,
+            includeProjected: includeProjected,
+            includeSubscription: portfolioPnlState.includeSubscription !== false,
+            includeServices: portfolioPnlState.includeServices !== false,
+            loadSourceLabel: srcLabel,
+            fetchedAt: portfolioPnlState.fetchedAt || '',
+            generatedAt: new Date().toISOString(),
+          },
+        };
+      }
+
+      function portfolioPnlDownloadBase64File_(base64, fileName, mimeType) {
+        var binary = atob(base64);
+        var len = binary.length;
+        var bytes = new Uint8Array(len);
+        for (var i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+        var blob = new Blob([bytes], { type: mimeType || 'application/octet-stream' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = fileName || 'Portfolio-PnL.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () {
+          try {
+            URL.revokeObjectURL(url);
+          } catch (e) {
+            /* ignore */
+          }
+        }, 1500);
+      }
+
+      function portfolioPnlSetExportStatus_(text, isError) {
+        if (!els.ppnlExportStatus) return;
+        if (!text) {
+          els.ppnlExportStatus.classList.add('d-none');
+          els.ppnlExportStatus.textContent = '';
+          return;
+        }
+        els.ppnlExportStatus.textContent = text;
+        els.ppnlExportStatus.style.color = isError ? 'var(--ag-danger)' : 'var(--ag-text-muted)';
+        els.ppnlExportStatus.classList.remove('d-none');
+      }
+
+      function portfolioPnlExportExcel_() {
+        if (portfolioPnlState.exporting) return;
+        if (!portfolioPnlState.dataReady || portfolioPnlState.loading) {
+          portfolioPnlSetExportStatus_('Wait for Portfolio P&L to finish loading.', true);
+          return;
+        }
+        var projects = portfolioPnlActiveProjects_(portfolioPnlState.projects || []);
+        if (!projects.length) {
+          portfolioPnlSetExportStatus_('No projects in the current filter.', true);
+          return;
+        }
+        var request;
+        try {
+          request = portfolioPnlBuildExcelExportRequest_();
+        } catch (eBuild) {
+          portfolioPnlSetExportStatus_('Could not prepare export.', true);
+          return;
+        }
+
+        portfolioPnlState.exporting = true;
+        portfolioPnlSetExportEnabled_(false);
+        portfolioPnlSetExportStatus_('Building Excel file…', false);
+
+        google.script.run
+          .withSuccessHandler(function (resp) {
+            portfolioPnlState.exporting = false;
+            portfolioPnlSetExportEnabled_(!!portfolioPnlState.dataReady);
+            if (!resp || resp.ok === false) {
+              portfolioPnlSetExportStatus_((resp && resp.message) || 'Excel export failed.', true);
+              logActivity_('portfolio_pnl_export_excel', 'portfolio-pnl', 'ok=false');
+              return;
+            }
+            try {
+              portfolioPnlDownloadBase64File_(
+                resp.contentBase64,
+                resp.fileName,
+                resp.mimeType
+              );
+              portfolioPnlSetExportStatus_('Downloaded ' + (resp.fileName || 'Excel file'), false);
+              logActivity_(
+                'portfolio_pnl_export_excel',
+                'portfolio-pnl',
+                'ok=true · year=' +
+                  String(request.meta.calendarYear) +
+                  ' · projects=' +
+                  String(request.meta.projectCount) +
+                  ' · projected=' +
+                  (request.meta.includeProjected ? '1' : '0') +
+                  ' · quarters=' +
+                  (request.meta.collapseMonthsByQuarter ? '1' : '0')
+              );
+            } catch (eDl) {
+              portfolioPnlSetExportStatus_('Download failed in this browser.', true);
+              logActivity_('portfolio_pnl_export_excel', 'portfolio-pnl', 'ok=false · download');
+            }
+          })
+          .withFailureHandler(function (err) {
+            portfolioPnlState.exporting = false;
+            portfolioPnlSetExportEnabled_(!!portfolioPnlState.dataReady);
+            var msg = err && err.message ? err.message : String(err || 'Excel export failed.');
+            if (msg === 'FORBIDDEN' || /Finance team/i.test(msg)) {
+              msg = 'Portfolio P&L export is available to the Finance team, Execs, and Admins.';
+            }
+            portfolioPnlSetExportStatus_(msg, true);
+            logActivity_('portfolio_pnl_export_excel', 'portfolio-pnl', 'ok=false');
+          })
+          .getPortfolioPnlExcelExport(request);
       }
 
       function wirePortfolioPnlOnce_() {
@@ -21633,15 +21967,23 @@
             loadPortfolioPnlAll_(true);
           });
         }
+        if (els.ppnlExportExcelBtn) {
+          els.ppnlExportExcelBtn.addEventListener('click', function () {
+            portfolioPnlExportExcel_();
+          });
+        }
         portfolioPnlSyncControls_();
+        portfolioPnlSetExportEnabled_(!!portfolioPnlState.dataReady);
         if (els.ppnlTypeSubscription) {
           els.ppnlTypeSubscription.addEventListener('change', function () {
             portfolioPnlOnTypeFilterChange_(els.ppnlTypeSubscription);
+            portfolioPnlSetExportEnabled_(!!portfolioPnlState.dataReady);
           });
         }
         if (els.ppnlTypeServices) {
           els.ppnlTypeServices.addEventListener('change', function () {
             portfolioPnlOnTypeFilterChange_(els.ppnlTypeServices);
+            portfolioPnlSetExportEnabled_(!!portfolioPnlState.dataReady);
           });
         }
         if (els.ppnlCollapseQuarters) {

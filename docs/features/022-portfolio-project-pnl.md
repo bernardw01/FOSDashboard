@@ -1,12 +1,13 @@
 # Feature: Portfolio Project P&L (Finance)
 
-> **PRD version 2.13.5** - sync with `docs/FOS-Dashboard-PRD.md`  
+> **PRD version 2.22.0** - sync with `docs/FOS-Dashboard-PRD.md`  
 > **Feature id:** 022 | **Task list:** Finance  
 > **Teamwork notebook:** [Feature 022 - Portfolio Project P&L](https://win.godeap.io/app/projects/1615262/notebooks/311833)  
 > **Release task:** [Feature 022 - Portfolio Project P&L](https://win.godeap.io/app/tasks/40161428)  
 > **Intake:** [Inbox task 40160887](https://win.godeap.io/app/tasks/40160887)  
 > **Extends:** [Feature 006 - Delivery project P&L](006-delivery-project-pnl.md)  
-> **Status:** Implemented (**v2.13.5**; deploy with `clasp push`)
+> **Related:** [Feature 031 - Portfolio P&L Excel export](031-portfolio-pnl-excel-export.md) (**v2.22.0**)  
+> **Status:** Implemented (**v2.13.5**; Excel export shipped **v2.22.0**)
 
 ## Goal
 
@@ -133,7 +134,7 @@ Portfolio Revenue                   Jan … Dec | Q1 Q2 Q3 Q4 | FY
 
 - **Expand/collapse:** Default **collapsed** to portfolio total + **customer subtotals** only. User expands a customer to see projects; expands a project for Revenue/Costs/Margin detail rows (Subscription, Services, Employee, Contractor, ODC).
 - **Sticky** row labels (column B equivalent) while horizontally scrolling months.
-- **Negative margins** use the same threshold coloring as Delivery monthly grid where applicable.
+- **Negative amounts:** Cost rows (parentheses) and negative **Margin $** / **Margin %** cells use **`var(--ag-danger)`** red text (**v2.21.4**). Negative margins may also use Delivery threshold coloring where applicable.
 - **Empty state:** "No Subscription or Services projects in scope" when the filtered set is empty.
 
 ### Loading UX (Phase A - required)
@@ -288,6 +289,8 @@ No new Drive artifact required for v1: aggregate existing `delivery-pnl/<agreeme
 | 2026-06-12 | Draft requirements from Inbox 40160887 + `Sample Structure.xlsx`. |
 | 2026-06-12 | Customer review: Agreement Type revenue split; Finance/EXEC/ADMIN access; calendar year; projected-month toggle (default off); collapsed customer-level default. |
 | 2026-06-12 | Implemented v2.13.0: Finance Portfolio P&L panel, progress loader, schema 8 labor splits. |
+| 2026-07-08 | **v2.22.0:** Excel export with outline groups (feature **031**). |
+| 2026-07-07 | Patch v2.21.4: cost and negative margin grid cells render in red; FY margin KPI red when negative. |
 | 2026-06-13 | Patch v2.13.5: **Expenses** nav hides Portfolio P&L panel (`showExpenses` adds `d-none` on `#panel-portfolio-pnl`). |
 | 2026-06-12 | Patch v2.13.4: **Subscription** / **Services** agreement-type filter checkboxes. |
 | 2026-06-12 | Patch v2.13.1: sequential batch P&L load (`getPortfolioProjectPnLBatch`), partial-failure detail, KPI card + tooltips, column order (months + quarter blocks), revenue/cost expand groups, projected-month styling + allocation labor, grid readability (borders, wrap, customer emphasis, project name truncate/wrap). |

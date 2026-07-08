@@ -1,5 +1,5 @@
 /**
- * PRD version 2.21.3 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.22.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Upsert normalized rows into AI Usage Data/Usage (feature 017).
  */

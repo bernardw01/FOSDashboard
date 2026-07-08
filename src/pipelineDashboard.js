@@ -1,5 +1,5 @@
 /**
- * PRD version 2.21.3 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.22.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Sales **Pipeline** dashboard (features 016 + 030). Merges the sales opportunity
  * tracker spreadsheet with HubSpot deals synced into Fibery (`HubSpot/Deal`).
