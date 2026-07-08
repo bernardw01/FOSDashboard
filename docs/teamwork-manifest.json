@@ -178,7 +178,7 @@
       "featureId": "023",
       "intakeTaskId": 40180160,
       "publishedAt": "2026-06-15",
-      "lastSyncedAt": "2026-06-16"
+      "lastSyncedAt": "2026-07-08"
     },
     "feature_024": {
       "id": 311906,
@@ -194,7 +194,7 @@
       "url": "https://win.godeap.io/app/projects/1615262/notebooks/311911",
       "featureId": "025",
       "publishedAt": "2026-06-16",
-      "lastSyncedAt": "2026-06-16"
+      "lastSyncedAt": "2026-07-08"
     },
     "feature_026": {
       "id": 312009,
@@ -228,6 +228,22 @@
       "featureId": "030",
       "publishedAt": "2026-07-06",
       "lastSyncedAt": "2026-07-06"
+    },
+    "feature_029": {
+      "id": 312376,
+      "title": "Feature 029 - Mobile shell Phase A and B",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/312376",
+      "featureId": "029",
+      "publishedAt": "2026-07-08",
+      "lastSyncedAt": "2026-07-08"
+    },
+    "feature_031": {
+      "id": 312377,
+      "title": "Feature 031 - Portfolio P&L Excel export",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/312377",
+      "featureId": "031",
+      "publishedAt": "2026-07-08",
+      "lastSyncedAt": "2026-07-08"
     }
   },
   "tasks": {
@@ -378,20 +394,6 @@
       "estDevHoursGitBase": "04e788a13e8e57a07412fde3f9a12368d3df5dc8",
       "workflowStage": "Shipped"
     },
-    "Feature 023 - AI Usage dashboard": {
-      "id": 40180335,
-      "tasklist": "Finance",
-      "featureId": "023",
-      "releaseType": "Enhancement",
-      "releaseTitle": "AI Usage dashboard",
-      "provisionalTaskName": true,
-      "shippedVersion": null,
-      "notebookKey": "feature_023",
-      "intakeTaskId": 40180160,
-      "url": "https://win.godeap.io/app/tasks/40180335",
-      "renameAtShip": "v{FOS_PRD_VERSION} - AI Usage dashboard",
-      "workflowStage": "Spec Draft"
-    },
     "v2.15.7 - AI usage sync operator UI": {
       "id": 40139491,
       "tasklist": "Data platform",
@@ -480,19 +482,6 @@
         "Total (rounded to nearest 0.5h): 6.5h"
       ],
       "estDevHoursGitBase": "38b83176e32733beaa77f781e6ca6acf6f4858ec"
-    },
-    "Feature 025 - Portfolio P&L performance and load source": {
-      "id": 40203349,
-      "tasklist": "Finance",
-      "featureId": "025",
-      "releaseType": "Enhancement",
-      "releaseTitle": "Portfolio P&L performance and load source",
-      "provisionalTaskName": true,
-      "shippedVersion": null,
-      "notebookKey": "feature_025",
-      "url": "https://win.godeap.io/app/tasks/40203349",
-      "renameAtShip": "v{FOS_PRD_VERSION} - Portfolio P&L performance and load source",
-      "workflowStage": "Spec Draft"
     },
     "v2.17.1 - Utilization detail table filters and CSV export": {
       "id": 40227803,
@@ -626,6 +615,142 @@
         "Total (rounded to nearest 0.5h): 23.0h"
       ],
       "estDevHoursGitBase": "2a268f8"
+    },
+    "v2.15.11 - AI Usage dashboard": {
+      "id": 40180335,
+      "tasklist": "Finance",
+      "featureId": "023",
+      "releaseType": "Enhancement",
+      "releaseTitle": "AI Usage dashboard",
+      "provisionalTaskName": false,
+      "shippedVersion": "v2.15.11",
+      "notebookKey": "feature_023",
+      "intakeTaskId": 40180160,
+      "url": "https://win.godeap.io/app/tasks/40180335",
+      "renameAtShip": "v{FOS_PRD_VERSION} - AI Usage dashboard",
+      "workflowStage": "Shipped",
+      "shippedAt": "2026-07-08",
+      "estDevHours": 25,
+      "estDevHoursRationale": [
+        "Git range: 2a268f8..HEAD (63 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Apps Script module `src/Code.js`: +0.9h",
+        "Client chart/UI (`src/DashboardShell.html`, +7217 lines): +4.5h",
+        "Apps Script module `src/adminSettingsRegistry.js`: +1.1h",
+        "Apps Script module `src/dashboardSnapshotJob.js`: +1.0h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +1 lines): +2.0h",
+        "Apps Script module `src/expensesDashboard.js`: +1.7h",
+        "Apps Script module `src/pipelineDashboard.js`: +1.8h",
+        "Apps Script module `src/portfolioPnlExcelExport.js`: +2.2h",
+        "Apps Script module `src/resourceAssignmentDashboard.js`: +2.2h",
+        "Apps Script module `src/salesPipelineSheet.js`: +2.2h",
+        "Apps Script module `src/userActivityLog.js`: +0.9h",
+        "Feature spec / docs (+822 lines): +2.0h",
+        "Teamwork / automation scripts (+633 lines): +1.8h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 25.0h"
+      ],
+      "estDevHoursGitBase": "2a268f8"
+    },
+    "v2.16.0 - Portfolio P&L performance and load source": {
+      "id": 40203349,
+      "tasklist": "Finance",
+      "featureId": "025",
+      "releaseType": "Enhancement",
+      "releaseTitle": "Portfolio P&L performance and load source",
+      "provisionalTaskName": false,
+      "shippedVersion": "v2.16.0",
+      "notebookKey": "feature_025",
+      "url": "https://win.godeap.io/app/tasks/40203349",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Portfolio P&L performance and load source",
+      "workflowStage": "Shipped",
+      "shippedAt": "2026-07-08",
+      "estDevHours": 25,
+      "estDevHoursRationale": [
+        "Git range: 2a268f8..HEAD (63 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Apps Script module `src/Code.js`: +0.9h",
+        "Client chart/UI (`src/DashboardShell.html`, +7217 lines): +4.5h",
+        "Apps Script module `src/adminSettingsRegistry.js`: +1.1h",
+        "Apps Script module `src/dashboardSnapshotJob.js`: +1.0h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +1 lines): +2.0h",
+        "Apps Script module `src/expensesDashboard.js`: +1.7h",
+        "Apps Script module `src/pipelineDashboard.js`: +1.8h",
+        "Apps Script module `src/portfolioPnlExcelExport.js`: +2.2h",
+        "Apps Script module `src/resourceAssignmentDashboard.js`: +2.2h",
+        "Apps Script module `src/salesPipelineSheet.js`: +2.2h",
+        "Apps Script module `src/userActivityLog.js`: +0.9h",
+        "Feature spec / docs (+822 lines): +2.0h",
+        "Teamwork / automation scripts (+633 lines): +1.8h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 25.0h"
+      ],
+      "estDevHoursGitBase": "2a268f8"
+    },
+    "v2.20.1 - Mobile shell Phase A and B": {
+      "id": 40424920,
+      "tasklist": "Platform and shell",
+      "featureId": "029",
+      "releaseType": "Enhancement",
+      "releaseTitle": "Mobile shell Phase A and B",
+      "provisionalTaskName": false,
+      "shippedVersion": "v2.20.1",
+      "notebookKey": "feature_029",
+      "url": "https://win.godeap.io/app/tasks/40424920",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Mobile shell Phase A and B",
+      "workflowStage": "Shipped",
+      "shippedAt": "2026-07-08",
+      "estDevHours": 25,
+      "estDevHoursRationale": [
+        "Git range: 2a268f8..HEAD (63 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Apps Script module `src/Code.js`: +0.9h",
+        "Client chart/UI (`src/DashboardShell.html`, +7217 lines): +4.5h",
+        "Apps Script module `src/adminSettingsRegistry.js`: +1.1h",
+        "Apps Script module `src/dashboardSnapshotJob.js`: +1.0h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +1 lines): +2.0h",
+        "Apps Script module `src/expensesDashboard.js`: +1.7h",
+        "Apps Script module `src/pipelineDashboard.js`: +1.8h",
+        "Apps Script module `src/portfolioPnlExcelExport.js`: +2.2h",
+        "Apps Script module `src/resourceAssignmentDashboard.js`: +2.2h",
+        "Apps Script module `src/salesPipelineSheet.js`: +2.2h",
+        "Apps Script module `src/userActivityLog.js`: +0.9h",
+        "Feature spec / docs (+822 lines): +2.0h",
+        "Teamwork / automation scripts (+633 lines): +1.8h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 25.0h"
+      ],
+      "estDevHoursGitBase": "2a268f8"
+    },
+    "v2.22.0 - Portfolio P&L Excel export": {
+      "id": 40424921,
+      "tasklist": "Finance",
+      "featureId": "031",
+      "releaseType": "Enhancement",
+      "releaseTitle": "Portfolio P&L Excel export",
+      "provisionalTaskName": false,
+      "shippedVersion": "v2.22.0",
+      "notebookKey": "feature_031",
+      "url": "https://win.godeap.io/app/tasks/40424921",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Portfolio P&L Excel export",
+      "workflowStage": "Shipped",
+      "shippedAt": "2026-07-08",
+      "estDevHours": 10,
+      "estDevHoursRationale": [
+        "Git range: c223947..HEAD (45 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +362 lines): +3.5h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +1 lines): +2.0h",
+        "Apps Script module `src/portfolioPnlExcelExport.js`: +2.2h",
+        "Feature spec / docs (+401 lines): +2.0h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 10.5h"
+      ],
+      "estDevHoursGitBase": "c223947"
     }
   },
   "lastBootstrappedAt": "2026-06-10"
