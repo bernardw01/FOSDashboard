@@ -41,9 +41,12 @@ if ($helperStart -lt 0) {
 }
 $helpers = $existing.Substring($helperStart)
 
+$prdMatch = [regex]::Match($existing, 'PRD version ([0-9]+\.[0-9]+\.[0-9]+)')
+$prdVersion = if ($prdMatch.Success) { $prdMatch.Groups[1].Value } else { '0.0.0' }
+
 $header = @"
 /**
- * PRD version 2.6.15 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version $prdVersion - sync with docs/FOS-Dashboard-PRD.md
  *
  * Bundled favicon PNG bytes (base64). Mirrored to Drive for HtmlOutput.setFaviconUrl
  * (Apps Script ignores <link rel="icon"> in HTML files and rejects data: URLs).

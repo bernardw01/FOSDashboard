@@ -1,6 +1,6 @@
 # Feature: Agreement Dashboard (Fibery + client cache)
 
-> **PRD version 2.1.0** - see `docs/FOS-Dashboard-PRD.md`.
+> **PRD version 2.23.0** - see `docs/FOS-Dashboard-PRD.md`. Brand logo note updated for v2.23.0 FinOps Performance Hub rebrand.
 
 ## Status
 
@@ -58,7 +58,7 @@ Copy **`agreement-dashboard-prd-v2.md` §9.5 - §9.7** into the Agreement Dashbo
 - Surfaces: `--bg` `#061B30`, `--surface` `#092747`, borders `#1a4060`, text `#FFFEFC` / muted `#A0AEC0`.
 - Accents: `#52C9E5`, `#007FA7`, `#20B4C4`, `#43D6BA`; danger **`#fc5c65`** only for errors / negative margin / critical alerts.
 - **Inter** (Google Fonts) weights 400 - 800; base **14px** on dashboard body.
-- Brand mark: rendered **once** in the app sidebar as `.fos-brand-logo` (`https://harpin.ai/wp-content/uploads/logo.svg`). The Agreement Dashboard panel header (`#panel-agreement-dashboard`) intentionally has **no** in-panel logo as of v1.13.0; the prior 32px logo + 28px `.agreement-logo-sep` divider were removed for cross-dashboard consistency with the Utilization Management Dashboard.
+- Brand mark: rendered **once** in the app sidebar as `.fos-brand-logo` via **`brandLogoAsset.js`** (source `src/assets/finops-performance-hub-icon-source.png`; v2.23.0 FinOps Performance Hub rebrand). The Agreement Dashboard panel header (`#panel-agreement-dashboard`) intentionally has **no** in-panel logo as of v1.13.0; the prior 32px logo + 28px `.agreement-logo-sep` divider were removed for cross-dashboard consistency with the Utilization Management Dashboard.
 - Cards: **20px** padding, **12px** radius, **1px solid** border; grid collapses **≤900px**; scrollbar **4px** track `var(--border)`.
 
 ## Client cache contract

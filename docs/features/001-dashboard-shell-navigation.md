@@ -1,6 +1,6 @@
-# Feature: Dashboard shell and navigation (FOS Web App)
+# Feature: Dashboard shell and navigation (FinOps Performance Hub Web App)
 
-> **PRD version 2.6.15** - see `docs/FOS-Dashboard-PRD.md`.
+> **PRD version 2.23.0** - see `docs/FOS-Dashboard-PRD.md`. **v2.23.0** FinOps Performance Hub rebrand (name + bundled logo).
 
 ## Goal
 
@@ -8,7 +8,7 @@ Deliver a **responsive** Google Apps Script Web App shell: **left navigation** (
 
 ## User Stories
 
-- As an **authenticated Workspace user**, I want a **clear layout** (menu + main panel) so I can orient myself in the FOS Dashboard.
+- As an **authenticated Workspace user**, I want a **clear layout** (menu + main panel) so I can orient myself in **FinOps Performance Hub**.
 - As a **user with limited access**, I want the **sidebar to only list dashboards I am allowed to see** (stubbed in v1; wiring documented below).
 - As any **user**, I want **Settings** and **inactive** dashboard links to respond with an explicit **coming soon** message instead of a broken page.
 
@@ -28,7 +28,8 @@ Deliver a **responsive** Google Apps Script Web App shell: **left navigation** (
 - **Routes/pages impacted**: Single-page shell only (`doGet` → `DashboardShell.html`). No additional Html files for Home/Settings/dashboard bodies in this feature.
 - **Components to create/edit**:
  - `src/DashboardShell.html` - layout, nav (icons + labels; **Settings** rendered as a `.fos-nav-btn` `<a>` link at the bottom of the sidebar), main, Bootstrap modal for “coming soon”, responsive offcanvas sidebar. Root CSS variables (`--bg`, `--surface`, `--surface2`, `--border`, `--accent`, `--accent2/3/4`, `--text`, `--text-muted`, `--text-dim`, `--danger`, `--warn`) are declared once at `:root` per `agreement-dashboard-prd-v2.md` §9.5; the `.fos-agreement-root` scope aliases `--ag-*` to those globals.
- - **Favicon** (v2.6.15+): harpin **`favicon.svg`** → **`favicon.png`** (32px) in **`faviconAsset.js`**; **`applyWebAppHtmlChrome_`** calls **`setFaviconUrl(getFaviconUrlForWebApp_())`** - bundled PNG mirrored to Drive on first use (`https://drive.google.com/uc?id=…&.png`, anyone-with-link). HtmlService **ignores** `<link rel="icon">` in HTML files. **`doGet?favicon=1`** returns PNG blob (no auth). Regenerate embed: `powershell -File scripts/embed-favicon.ps1`.
+ - **Brand logo** (v2.23.0+): **FinOps Performance Hub** mark from `src/assets/finops-performance-hub-icon-source.png`, embedded in **`brandLogoAsset.js`** at 128px display width; sidebar `.fos-brand-logo` via `template.brandLogoUrl` in **`doGet`**. Regenerate: `python3 scripts/embed-brand-logo.py`. No harpin.ai CDN.
+ - **Favicon** (v2.6.15+; v2.23.0 FinOps mark): **`favicon.png`** (32px) in **`faviconAsset.js`**, rasterized from the same source PNG; **`applyWebAppHtmlChrome_`** calls **`setFaviconUrl(getFaviconUrlForWebApp_())`** - bundled PNG mirrored to Drive on first use (`https://drive.google.com/uc?id=…&.png`, anyone-with-link). HtmlService **ignores** `<link rel="icon">` in HTML files. **`doGet?favicon=1`** returns PNG blob (no auth).
  - **Home hero** (`#panel-home-root`, v2.6.3+): quote card above the welcome panel - William Bruce Cameron quote, **DEAP team photo** (`src/assets/home-hero-deap.png`), light scrim (`.fos-home-hero-scrim`). Image bytes live in `src/homeHeroImage.js`; **`doGet`** sets `template.homeHeroImageUrl` so the photo is in the first HTML response (`<img src="<?!= homeHeroImageUrl ?>">`). **After changing the asset**, run `powershell -File scripts/embed-home-hero.ps1` then `clasp push`. See `src/assets/README.md`.
  - `src/NotAuthorized.html` - same root tokens (deep navy `--bg`, surface card, 12px radius, Inter typography) so the access-denied page matches the rest of the app.
  - `src/Code.js` - `doGet`, `getDashboardNavigation_()` (or equivalent) for nav + user hints passed to template or client.

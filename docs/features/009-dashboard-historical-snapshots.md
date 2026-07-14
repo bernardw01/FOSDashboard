@@ -1,6 +1,6 @@
 # Dashboard historical snapshots
 
-> **PRD version 2.21.0** - see `docs/FOS-Dashboard-PRD.md` (**FR-42**, **FR-40**, **FR-104**, **AC-60**).
+> **PRD version 2.24.0** - see `docs/FOS-Dashboard-PRD.md` (**FR-42**, **FR-40**, **FR-104**, **FR-126**, **AC-60**, **AC-88**). **v2.24.0** schema upgrade job for stale Drive snapshots.
 
 ## Goal
 
@@ -77,6 +77,7 @@ Root folder: Script Property **`FOS_SNAPSHOT_DRIVE_FOLDER_ID`** (create via **`e
 | `SNAPSHOT_INCLUDE_EXPENSES` | `true` | When false, job skips `expenses.json` |
 | `SNAPSHOT_INCLUDE_PIPELINE` | `true` | When false, job skips `pipeline.json` |
 | `SNAPSHOT_INCLUDE_RESOURCE_ASSIGNMENTS` | `true` | When false, job skips `resource-assignments.json` |
+| `SNAPSHOT_AUTO_UPGRADE_STALE` | `false` | When true, after finalize scan Drive and queue regeneration for schema-stale dates |
 
 ## Operations runbook
 
@@ -84,17 +85,31 @@ Root folder: Script Property **`FOS_SNAPSHOT_DRIVE_FOLDER_ID`** (create via **`e
 2. Run **`installDailySnapshotTrigger()`** as the account that should own snapshot files.
 3. Optional smoke test: **`_diag_runSnapshotForDate('2026-05-14')`** - always pass **`YYYY-MM-DD`** (the editor does not supply parameters if you click Run with no args; use **`_diag_runSnapshotForDate()`** with no args only on builds that default to today, or pass a string literal in the run dialog). Verify the date folder in Drive and a row on **Snapshot Runs**.
 4. List recent dates: **`_diag_listSnapshots()`**.
-5. Teardown: **`removeDailySnapshotTriggers()`**.
+5. **After a `cacheSchemaVersion` bump** (or when the Web App reports schema validation errors on historical dates):
+   1. **`_diag_listStaleSnapshots()`** - lists dates whose Drive artifacts lag live schema constants.
+   2. **`_diag_startSnapshotSchemaUpgrade()`** - queues those dates and regenerates them one-by-one (reuses daily builders + P&L continuation triggers).
+   3. Optional cancel: **`_diag_cancelSnapshotSchemaUpgrade()`**.
+   4. Optional always-on: Script Property **`SNAPSHOT_AUTO_UPGRADE_STALE=true`** enqueues remaining stale dates after each snapshot finalize (default **false**).
+6. Teardown: **`removeDailySnapshotTriggers()`**.
+
+### Schema upgrade caveats
+
+Upgrading is a **full re-snapshot for that calendar date**, not an in-place JSON transform:
+
+- **Agreement / Utilization / Delivery / Resource assignments / Delivery P&L:** rebuilt from Fibery with the original snapshot date as “as of” / range end (same as `_diag_runSnapshotForDate`).
+- **Expenses / Pipeline:** rebuilt from the live sheet / Fibery state **at upgrade run time** (those artifacts were already “point-in-time at capture,” not reconstructable purely from `cacheSchemaVersion`).
+- Large portfolios take multiple executions (P&L batches + upgrade queue). Watch **Triggers** and **Snapshot Runs**.
 
 ## Modules
 
-- `src/dashboardSnapshotStore.js` - Drive I/O, manifest, retention
-- `src/dashboardSnapshotJob.js` - orchestration, triggers, logging
+- `src/dashboardSnapshotStore.js` - Drive I/O, manifest, retention, **`inspectSnapshotDateSchema_` / `listStaleSnapshotDates_`**
+- `src/dashboardSnapshotJob.js` - orchestration, triggers, logging, **schema upgrade queue**
 
 ## Out of scope
 
 - Spreadsheet index tab (Option B hybrid)
 - GCS backend (Option C)
+- Pure byte-level schema transforms without re-fetch (would need per-bump migrators)
 
 ## Read API (v2.1.0+)
 

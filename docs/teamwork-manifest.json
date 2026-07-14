@@ -244,6 +244,13 @@
       "featureId": "031",
       "publishedAt": "2026-07-08",
       "lastSyncedAt": "2026-07-08"
+    },
+    "feature_032": {
+      "id": 312389,
+      "title": "Feature 032 - FinOps Ask (panel-scoped AI Q&A)",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/312389",
+      "featureId": "032",
+      "publishedAt": "2026-07-08"
     }
   },
   "tasks": {
@@ -751,6 +758,19 @@
         "Total (rounded to nearest 0.5h): 10.5h"
       ],
       "estDevHoursGitBase": "c223947"
+    },
+    "Feature 032 - FinOps Ask (panel-scoped AI Q&A)": {
+      "id": 40429663,
+      "tasklist": "Platform and shell",
+      "featureId": "032",
+      "releaseType": "Enhancement",
+      "releaseTitle": "FinOps Ask (panel-scoped AI Q&A)",
+      "provisionalTaskName": true,
+      "shippedVersion": null,
+      "notebookKey": "feature_032",
+      "url": "https://win.godeap.io/app/tasks/40429663",
+      "renameAtShip": "v{FOS_PRD_VERSION} - FinOps Ask (panel-scoped AI Q&A)",
+      "workflowStage": "Spec Draft"
     }
   },
   "lastBootstrappedAt": "2026-06-10"

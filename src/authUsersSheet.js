@@ -1,5 +1,5 @@
 /**
- * PRD version 2.22.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.24.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Spreadsheet-backed user authorization (Users tab).
  * Script Properties: AUTH_SPREADSHEET_ID (required), AUTH_USERS_SHEET_NAME (default Users),
@@ -15,19 +15,30 @@
 /**
  * Resolves the active user against the configured Users sheet.
  * First matching data row wins (row index ascending).
- * @return {{ ok: true, email: string, role: string, team: string, fiberyAccess: boolean }|{ ok: false, reason: string, email?: string }}
+ * @return {{
+ *   ok: true,
+ *   email: string,
+ *   role: string,
+ *   team: string,
+ *   fiberyAccess: boolean
+ * }|{
+ *   ok: false,
+ *   reason: string,
+ *   email?: string,
+ *   detail?: string
+ * }}
  */
 function getAuthorizationForActiveUser_() {
   var emailRaw = Session.getActiveUser().getEmail();
   var email = (emailRaw || '').trim();
   if (!email) {
-    return { ok: false, reason: 'NO_EMAIL' };
+    return authDeny_('NO_EMAIL', '', 'SESSION_EMAIL_EMPTY');
   }
 
   var props = PropertiesService.getScriptProperties();
   var spreadsheetId = (props.getProperty('AUTH_SPREADSHEET_ID') || '').trim();
   if (!spreadsheetId) {
-    return { ok: false, reason: 'MISSING_CONFIG', email: email };
+    return authDeny_('MISSING_CONFIG', email, 'AUTH_SPREADSHEET_ID_MISSING');
   }
 
   var sheetName = (props.getProperty('AUTH_USERS_SHEET_NAME') || 'Users').trim() || 'Users';
@@ -40,12 +51,12 @@ function getAuthorizationForActiveUser_() {
     var ss = SpreadsheetApp.openById(spreadsheetId);
     var sheet = ss.getSheetByName(sheetName);
     if (!sheet) {
-      return { ok: false, reason: 'SHEET_ERROR', email: email };
+      return authDeny_('SHEET_ERROR', email, 'USERS_TAB_NOT_FOUND');
     }
 
     var values = sheet.getDataRange().getValues();
     if (!values || values.length < 2) {
-      return { ok: false, reason: 'NOT_LISTED', email: email };
+      return authDeny_('NOT_LISTED', email, 'USERS_SHEET_EMPTY');
     }
 
     var headers = values[0];
@@ -53,7 +64,15 @@ function getAuthorizationForActiveUser_() {
     var idxRole = findHeaderIndex_(headers, colRole);
     var idxTeam = findHeaderIndex_(headers, colTeam);
     if (idxEmail < 0 || idxRole < 0 || idxTeam < 0) {
-      return { ok: false, reason: 'SHEET_ERROR', email: email };
+      var missingHeaders = [];
+      if (idxEmail < 0) missingHeaders.push(colEmail);
+      if (idxRole < 0) missingHeaders.push(colRole);
+      if (idxTeam < 0) missingHeaders.push(colTeam);
+      return authDeny_(
+        'SHEET_ERROR',
+        email,
+        'REQUIRED_HEADERS_MISSING:' + missingHeaders.join(',')
+      );
     }
     var idxFiberyAccess = findHeaderIndex_(headers, colFiberyAccess);
     if (idxFiberyAccess < 0) {
@@ -79,10 +98,43 @@ function getAuthorizationForActiveUser_() {
         return { ok: true, email: email, role: role, team: team, fiberyAccess: fiberyAccess };
       }
     }
-    return { ok: false, reason: 'NOT_LISTED', email: email };
+    return authDeny_('NOT_LISTED', email, 'USER_NOT_ON_LIST');
   } catch (e) {
-    return { ok: false, reason: 'SHEET_ERROR', email: email };
+    var errMsg = e && e.message ? String(e.message) : String(e);
+    try {
+      console.warn('authUsersSheet: exception reading users sheet: ' + errMsg);
+    } catch (_) {
+      /* ignore */
+    }
+    return authDeny_('SHEET_ERROR', email, 'SPREADSHEET_OPEN_FAILED');
   }
+}
+
+/**
+ * Builds a fail-closed authorization envelope and logs a safe diagnostic line.
+ *
+ * @param {string} reason Top-level reason shown on NotAuthorized.html.
+ * @param {string} email Active user email when known.
+ * @param {string} detail Stable sub-code for operators (no secrets).
+ * @return {{ ok: false, reason: string, email: string, detail: string }}
+ * @private
+ */
+function authDeny_(reason, email, detail) {
+  try {
+    console.warn(
+      'authUsersSheet: access denied reason=' + reason +
+      ' detail=' + detail +
+      (email ? ' email=' + email : '')
+    );
+  } catch (_) {
+    /* ignore */
+  }
+  return {
+    ok: false,
+    reason: reason,
+    email: email || '',
+    detail: detail || '',
+  };
 }
 
 /**

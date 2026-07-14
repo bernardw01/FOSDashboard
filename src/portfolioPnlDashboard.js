@@ -1,5 +1,5 @@
 /**
- * PRD version 2.22.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.24.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Portfolio Project P&L (Finance route `portfolio-pnl`, features 022 + 025).
  * Returns the in-scope project index and bundled monthly P&L payloads

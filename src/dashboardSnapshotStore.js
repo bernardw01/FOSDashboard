@@ -1,5 +1,5 @@
 /**
- * PRD version 2.22.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.24.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Historical dashboard snapshot storage (Option A): Google Drive folder
  * with per-date subfolders, JSON artifacts, and a manifest per day.
@@ -50,7 +50,7 @@ function ensureSnapshotDriveFolder() {
     }
   }
   try {
-    var folder = DriveApp.createFolder('FOS Dashboard Snapshots');
+    var folder = DriveApp.createFolder('FinOps Performance Hub Snapshots');
     props.setProperty(SNAPSHOT_DRIVE_FOLDER_PROP_, folder.getId());
     return { ok: true, folderId: folder.getId(), created: true };
   } catch (e2) {
@@ -426,17 +426,25 @@ function _diag_listSnapshots() {
 /* Authorized read API (Web App - historical data source UI).                 */
 /* ------------------------------------------------------------------------- */
 
-/** @const {!Object<string, number>} */
-var SNAPSHOT_EXPECTED_SCHEMA_VERSIONS_ = {
-  agreement: 3,
-  utilization: 5,
-  'delivery-projects': 1,
-  'delivery-pnl': 10,
-  'portfolio-pnl': 1,
-  expenses: 2,
-  pipeline: 2,
-  'resource-assignments': 1,
-};
+/**
+ * Expected `cacheSchemaVersion` per snapshot artifact. MUST stay aligned with the
+ * live dashboard builder constants (same Apps Script globals) so schema bumps do
+ * not drift between live UI, snapshot writers, and historical readers.
+ * @return {!Object<string, number>}
+ * @private
+ */
+function snapshotExpectedSchemaVersions_() {
+  return {
+    agreement: AGREEMENT_DASHBOARD_CACHE_SCHEMA_VERSION_,
+    utilization: UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_,
+    'delivery-projects': DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_,
+    'delivery-pnl': DELIVERY_PNL_CACHE_SCHEMA_VERSION_,
+    'portfolio-pnl': PORTFOLIO_PNL_BUNDLE_CACHE_SCHEMA_VERSION_,
+    expenses: EXPENSES_CACHE_SCHEMA_VERSION_,
+    pipeline: PIPELINE_CACHE_SCHEMA_VERSION_,
+    'resource-assignments': RESOURCE_ASSIGNMENTS_CACHE_SCHEMA_VERSION_,
+  };
+}
 
 /** @const {!Object<string, string>} */
 var SNAPSHOT_ARTIFACT_FILES_ = {
@@ -630,7 +638,7 @@ function validateSnapshotArtifactSchema_(payload, artifactKey, warnings) {
     warnings.push('Missing or invalid ' + artifactKey + ' payload.');
     return false;
   }
-  var expected = SNAPSHOT_EXPECTED_SCHEMA_VERSIONS_[artifactKey];
+  var expected = snapshotExpectedSchemaVersions_()[artifactKey];
   if (expected == null) {
     return true;
   }
@@ -755,7 +763,14 @@ function getDashboardSnapshotCoreBundle(snapshotDate) {
 
   if (!agreementOk || !utilOk || !deliveryOk) {
     empty.manifest = manifest;
-    empty.message = 'Snapshot data failed schema validation.';
+    empty.message =
+      'Snapshot data failed schema validation. ' +
+      (warnings.length
+        ? warnings.join(' ')
+        : 'Re-run the snapshot job for this date so artifacts match the current cacheSchemaVersion.') +
+      ' Tip: run _diag_runSnapshotForDate(\'' +
+      dateKey +
+      '\') in the Apps Script editor.';
     return empty;
   }
 
@@ -957,5 +972,179 @@ function getDashboardSnapshotPortfolioPnl(snapshotDate) {
     snapshotDate: dateKey,
     message: warnings[0] || 'Portfolio P&L snapshot not found for ' + dateKey + '.',
     warnings: warnings,
+  };
+}
+
+/**
+ * Compares one snapshot date's artifacts to current live schema constants.
+ *
+ * @param {string} snapshotDate
+ * @return {{
+ *   snapshotDate: string,
+ *   found: boolean,
+ *   status: string,
+ *   stale: boolean,
+ *   mismatches: !Array<!{ artifact: string, found: *, expected: number, reason: string }>
+ * }}
+ */
+function inspectSnapshotDateSchema_(snapshotDate) {
+  var dateKey = requireSnapshotDate_(snapshotDate);
+  var expected = snapshotExpectedSchemaVersions_();
+  var out = {
+    snapshotDate: dateKey,
+    found: false,
+    status: '',
+    stale: false,
+    mismatches: [],
+  };
+  var dateFolder = readSnapshotDateFolderOrNull_(dateKey);
+  if (!dateFolder) {
+    return out;
+  }
+  out.found = true;
+  var manifest = readSnapshotManifestFromFolder_(dateFolder);
+  out.status = (manifest && manifest.status) || '';
+
+  var versionByArtifact = {};
+  if (manifest && manifest.datasets && manifest.datasets.length) {
+    for (var d = 0; d < manifest.datasets.length; d++) {
+      var ds = manifest.datasets[d];
+      if (!ds || !ds.id) {
+        continue;
+      }
+      var artId = String(ds.id);
+      if (artId.indexOf('delivery-pnl') === 0 || String(ds.fileName || '').indexOf('delivery-pnl/') === 0) {
+        artId = 'delivery-pnl';
+      }
+      if (versionByArtifact[artId] == null && ds.cacheSchemaVersion != null) {
+        versionByArtifact[artId] = ds.cacheSchemaVersion;
+      }
+    }
+  }
+
+  var fileKeys = [
+    'agreement',
+    'utilization',
+    'delivery-projects',
+    'expenses',
+    'pipeline',
+    'resource-assignments',
+    'portfolio-pnl',
+  ];
+  for (var i = 0; i < fileKeys.length; i++) {
+    var key = fileKeys[i];
+    var exp = expected[key];
+    if (exp == null) {
+      continue;
+    }
+    var foundVer = versionByArtifact[key];
+    var required = key === 'agreement' || key === 'utilization' || key === 'delivery-projects';
+    if (foundVer == null) {
+      var payload = readSnapshotJsonFromDateFolder_(dateFolder, SNAPSHOT_ARTIFACT_FILES_[key]);
+      if (payload && payload.cacheSchemaVersion != null) {
+        foundVer = payload.cacheSchemaVersion;
+      }
+    }
+    if (foundVer == null) {
+      if (required) {
+        out.mismatches.push({
+          artifact: key,
+          found: null,
+          expected: exp,
+          reason: 'missing',
+        });
+      }
+      continue;
+    }
+    if (foundVer !== exp) {
+      out.mismatches.push({
+        artifact: key,
+        found: foundVer,
+        expected: exp,
+        reason: 'version_mismatch',
+      });
+    }
+  }
+
+  var pnlExpected = expected['delivery-pnl'];
+  if (pnlExpected != null) {
+    var pnlFound = versionByArtifact['delivery-pnl'];
+    if (pnlFound == null) {
+      pnlFound = sampleDeliveryPnlSchemaVersion_(dateFolder);
+    }
+    if (pnlFound != null && pnlFound !== pnlExpected) {
+      out.mismatches.push({
+        artifact: 'delivery-pnl',
+        found: pnlFound,
+        expected: pnlExpected,
+        reason: 'version_mismatch',
+      });
+    }
+  }
+
+  out.stale = out.mismatches.length > 0;
+  return out;
+}
+
+/**
+ * @param {GoogleAppsScript.Drive.Folder} dateFolder
+ * @return {?number}
+ * @private
+ */
+function sampleDeliveryPnlSchemaVersion_(dateFolder) {
+  try {
+    var folders = dateFolder.getFoldersByName('delivery-pnl');
+    if (!folders.hasNext()) {
+      return null;
+    }
+    var files = folders.next().getFiles();
+    if (!files.hasNext()) {
+      return null;
+    }
+    var parsed = JSON.parse(files.next().getBlob().getDataAsString());
+    return parsed && parsed.cacheSchemaVersion != null ? parsed.cacheSchemaVersion : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Lists snapshot dates whose Drive artifacts are behind current cache schemas.
+ *
+ * @return {{
+ *   ok: boolean,
+ *   currentSchemas: !Object<string, number>,
+ *   stale: !Array<!Object>,
+ *   scanned: number,
+ *   message?: string
+ * }}
+ */
+function listStaleSnapshotDates_() {
+  if (!PropertiesService.getScriptProperties().getProperty(SNAPSHOT_DRIVE_FOLDER_PROP_)) {
+    return {
+      ok: false,
+      currentSchemas: snapshotExpectedSchemaVersions_(),
+      stale: [],
+      scanned: 0,
+      message: 'FOS_SNAPSHOT_DRIVE_FOLDER_ID is not set.',
+    };
+  }
+  var entries = listSnapshotCatalogEntries_();
+  var stale = [];
+  for (var i = 0; i < entries.length; i++) {
+    var entry = entries[i];
+    if (!entry || !isSnapshotCatalogStatus_(entry.status)) {
+      continue;
+    }
+    var insp = inspectSnapshotDateSchema_(entry.snapshotDate);
+    if (insp.stale) {
+      stale.push(insp);
+    }
+  }
+  return {
+    ok: true,
+    currentSchemas: snapshotExpectedSchemaVersions_(),
+    stale: stale,
+    scanned: entries.length,
   };
 }

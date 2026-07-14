@@ -1,5 +1,5 @@
 /**
- * PRD version 2.22.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.24.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * User activity logging - append-only event rows to the "User Activity" tab
  * in the Users spreadsheet (AUTH_SPREADSHEET_ID). Implements Section 3.8 / FR-60-FR-66.
@@ -13,6 +13,7 @@
  *
  * Server-internal:
  *   recordPageLoad_(auth) - called from doGet after successful authorization.
+ *   recordAccessDenied_(deny) - called from doGet when authorization fails (best-effort).
  */
 
 /** @const {string} */
@@ -42,6 +43,7 @@ var ACTIVITY_REQUIRED_COLUMNS_COUNT_ = 6;
 /** @const {Object<string, boolean>} Allowed Event Type values (FR-63). */
 var ACTIVITY_VALID_EVENT_TYPES_ = {
   page_load: true,
+  access_denied: true,
   nav_view: true,
   refresh: true,
   server_call: true,
@@ -194,6 +196,54 @@ function recordPageLoad_(auth) {
     });
   } catch (e) {
     activityWarn_('recordPageLoad_ failed', e);
+  }
+}
+
+/**
+ * Server-internal: log an access denial from doGet (NotAuthorized path).
+ * Does NOT call requireAuthForApi_ - the caller is already unauthorized.
+ * Best-effort only: if SpreadsheetApp.openById fails for the same reason as
+ * the denial (e.g. SPREADSHEET_OPEN_FAILED under Execute as: User), the row
+ * cannot be written; console.warn still records the attempt.
+ *
+ * @param {{
+ *   reason?: string,
+ *   detail?: string,
+ *   email?: string
+ * }} deny Envelope from getAuthorizationForActiveUser_ when ok === false.
+ */
+function recordAccessDenied_(deny) {
+  try {
+    if (!isActivityLoggingEnabled_()) {
+      return;
+    }
+    var email = deny && deny.email ? String(deny.email).trim() : '';
+    var reason = deny && deny.reason ? String(deny.reason).trim() : 'UNKNOWN';
+    var detail = deny && deny.detail ? String(deny.detail).trim() : '';
+    var label = detail ? reason + ':' + detail : reason;
+    var result = writeActivityRow_({
+      email: email || '(unknown)',
+      role: '',
+      team: '',
+      eventType: 'access_denied',
+      route: 'access-denied',
+      label: truncate_(label, ACTIVITY_MAX_LABEL_),
+      sessionId: '',
+      userAgent: '',
+    });
+    if (!result || !result.ok) {
+      activityWarn_(
+        'recordAccessDenied_ could not write row reason=' +
+          reason +
+          (detail ? ' detail=' + detail : '') +
+          (email ? ' email=' + email : '') +
+          ' writeReason=' +
+          (result && result.reason ? result.reason : 'UNKNOWN'),
+        null
+      );
+    }
+  } catch (e) {
+    activityWarn_('recordAccessDenied_ failed', e);
   }
 }
 

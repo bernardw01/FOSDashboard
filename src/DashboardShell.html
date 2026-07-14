@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<!-- PRD version 2.22.0 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.24.0 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <base target="_top" />
-  <title>harpin AI Ops Dashboards</title>
+  <title>FinOps Performance Hub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -508,6 +508,18 @@
     }
     #panel-portfolio-pnl .fos-portfolio-progress {
       min-width: 200px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    #panel-portfolio-pnl .fos-portfolio-progress .progress-bar {
+      transition: width 0.35s ease;
+    }
+    @media (max-width: 767.98px) {
+      #panel-portfolio-pnl #ppnl-export-progress-block {
+        max-width: none;
+        flex-basis: 100%;
+      }
     }
     #panel-portfolio-pnl .ppnl-kpi-inline {
       display: flex;
@@ -2425,15 +2437,22 @@
       border-color: rgba(82, 201, 229, 0.18) !important;
     }
 
+    .fos-brand-block {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+
     .fos-brand-logo {
       display: block;
-      width: 136px;
-      max-width: 100%;
-      height: auto;
+      width: 44px;
+      height: 44px;
+      flex-shrink: 0;
+      object-fit: contain;
     }
 
     .fos-app-headline {
-      font-size: 0.9rem;
+      font-size: 1.125rem;
       font-weight: 600;
       letter-spacing: 0.02em;
       color: var(--text);
@@ -3717,16 +3736,18 @@
       </div>
       <div class="offcanvas-body d-flex flex-column p-0 flex-grow-1 min-h-0">
         <div class="p-3 border-bottom border-secondary border-opacity-25 flex-shrink-0">
-          <img
-            class="fos-brand-logo mb-2"
-            src="https://harpin.ai/wp-content/uploads/logo.svg"
-            width="136"
-            height="33"
-            alt=""
-            decoding="async"
-          />
-          <p id="fos-app-title" class="fos-app-headline mb-0">harpin AI Ops Dashboards</p>
-          <div id="user-chip" class="small text-secondary text-break mt-2">Loading…</div>
+          <div class="fos-brand-block mb-2">
+            <img
+              class="fos-brand-logo"
+              src="<?!= brandLogoUrl ?>"
+              width="44"
+              height="44"
+              alt="FinOps Performance Hub"
+              decoding="async"
+            />
+            <p id="fos-app-title" class="fos-app-headline mb-0">FinOps Performance Hub</p>
+          </div>
+          <div id="user-chip" class="small text-secondary text-break">Loading…</div>
         </div>
 
         <div class="px-3 pb-2 border-bottom border-secondary border-opacity-25 flex-shrink-0 fos-sidebar-data-source">
@@ -3866,7 +3887,7 @@
             <div class="card-body p-4 p-lg-5">
               <h1 class="h4 mb-3 fw-bold text-white">Home</h1>
               <p class="text-muted mb-0 lh-lg fos-home-welcome-desktop">
-                Welcome to the Finance and Operations Snapshot Dashboard. Use the menu for areas you are authorized to see. If a dashboard is not enabled, its link opens a “Coming soon” dialog instead of leaving this page.
+                Welcome to <strong class="text-white">FinOps Performance Hub</strong>. Use the menu for areas you are authorized to see. If a dashboard is not enabled, its link opens a “Coming soon” dialog instead of leaving this page.
               </p>
             </div>
           </div>
@@ -5408,11 +5429,12 @@
           <div class="fos-agreement-inner shadow-lg">
             <div class="fos-loading-overlay d-none" id="ppnl-loading" role="status" aria-live="polite" aria-hidden="true">
               <div class="fos-loading-spinner" aria-hidden="true"></div>
-              <span class="fos-loading-label" id="ppnl-loading-label">Loading portfolio P&L…</span>
-              <div class="progress fos-portfolio-progress mt-3 d-none" id="ppnl-progress-wrap" style="height: 6px; width: min(320px, 90vw);">
-                <div class="progress-bar" id="ppnl-progress-bar" role="progressbar" style="width: 0%; background: var(--ag-accent);"></div>
+              <span class="fos-loading-label" id="ppnl-loading-label">Loading portfolio P&amp;L…</span>
+              <div class="progress fos-portfolio-progress mt-3" id="ppnl-progress-wrap" style="height: 8px; width: min(320px, 90vw);">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" id="ppnl-progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="width: 0%; background: var(--ag-accent);"></div>
               </div>
-              <p class="small mb-0 mt-2" id="ppnl-loading-sub" style="color: var(--ag-text-muted)">Fetching P&amp;L for all projects…</p>
+              <p class="small mb-0 mt-2" id="ppnl-loading-sub" style="color: var(--ag-text-muted)">Preparing portfolio request…</p>
+              <p class="small mb-0 mt-1 d-none" id="ppnl-loading-activity" style="color: var(--ag-text-muted)"></p>
             </div>
 
             <div class="alert alert-info py-2 px-3 small mb-3 d-none" id="ppnl-live-only" role="status">
@@ -5433,7 +5455,12 @@
               <button type="button" class="btn btn-sm fw-semibold px-3" id="ppnl-export-excel-btn" disabled title="Available after Portfolio P&amp;L finishes loading" style="background: transparent; color: var(--ag-text); border: 1px solid var(--ag-border); min-height: 44px">
                 Export Excel
               </button>
-              <span class="small d-none" id="ppnl-export-status" role="status" style="color: var(--ag-text-muted)"></span>
+              <div class="d-flex flex-column gap-1 flex-grow-1" style="min-width: min(220px, 100%); max-width: 360px" id="ppnl-export-progress-block">
+                <span class="small d-none" id="ppnl-export-status" role="status" style="color: var(--ag-text-muted)"></span>
+                <div class="progress d-none fos-portfolio-progress" id="ppnl-export-progress-wrap" style="height: 6px; width: 100%;">
+                  <div class="progress-bar progress-bar-striped progress-bar-animated" id="ppnl-export-progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="width: 0%; background: var(--ag-accent);"></div>
+                </div>
+              </div>
               <div class="d-flex flex-wrap align-items-center gap-2 ms-1" id="ppnl-type-filters" aria-label="Agreement type filters">
                 <span class="small mb-0" style="color: var(--ag-text-muted)">Include</span>
                 <div class="form-check form-check-inline mb-0">
@@ -6888,6 +6915,7 @@
         ppnlLoading: document.getElementById('ppnl-loading'),
         ppnlLoadingLabel: document.getElementById('ppnl-loading-label'),
         ppnlLoadingSub: document.getElementById('ppnl-loading-sub'),
+        ppnlLoadingActivity: document.getElementById('ppnl-loading-activity'),
         ppnlProgressWrap: document.getElementById('ppnl-progress-wrap'),
         ppnlProgressBar: document.getElementById('ppnl-progress-bar'),
         ppnlLiveOnly: document.getElementById('ppnl-live-only'),
@@ -6895,6 +6923,8 @@
         ppnlRefreshBtn: document.getElementById('ppnl-refresh-btn'),
         ppnlExportExcelBtn: document.getElementById('ppnl-export-excel-btn'),
         ppnlExportStatus: document.getElementById('ppnl-export-status'),
+        ppnlExportProgressWrap: document.getElementById('ppnl-export-progress-wrap'),
+        ppnlExportProgressBar: document.getElementById('ppnl-export-progress-bar'),
         ppnlTypeSubscription: document.getElementById('ppnl-type-subscription'),
         ppnlTypeServices: document.getElementById('ppnl-type-services'),
         ppnlCollapseQuarters: document.getElementById('ppnl-collapse-quarters'),
@@ -8038,6 +8068,7 @@
         } catch (e) {
           /* ignore */
         }
+        utilState.payload = null;
         agreementRenderState.lastRenderedFetchedAt = null;
         utilRenderState.lastRenderedFetchedAt = null;
         deliveryRenderState.lastRenderedFetchedAt = null;
@@ -10882,9 +10913,27 @@
         var envelope = Object.assign({}, data, {
           cacheSchemaVersion: UTIL_CACHE_SCHEMA_VERSION,
         });
+        // Always keep the live in-memory copy. Utilization payloads often exceed
+        // sessionStorage quota (~5 MB); a silent setItem failure must not force
+        // a Fibery refetch when the user navigates away and back in-session.
+        utilState.payload = envelope;
         try {
           sessionStorage.setItem(UTIL_CACHE_KEY, JSON.stringify(envelope));
-        } catch (e) { /* quota / private mode */ }
+        } catch (e) {
+          /* quota / private mode - memory cache still valid for this tab */
+        }
+      }
+
+      /**
+       * Prefer in-memory payload (survives sessionStorage quota misses), then
+       * fall back to sessionStorage. Used by showOperations / Labor Hours.
+       * @return {Object|null}
+       */
+      function resolveUtilizationCachedPayload_() {
+        if (utilState.payload && utilState.payload.ok !== false) {
+          return utilState.payload;
+        }
+        return readUtilizationCache();
       }
       function readUtilTtlMinutes() {
         try {
@@ -13232,7 +13281,7 @@
           if (!isFinite(n) || n < 0) n = DEFAULT_TTL_MINUTES;
           writeUtilTtlMinutes(n);
           logActivity_('ttl_change', 'operations', String(n) + 'm');
-          var cached = readUtilizationCache();
+          var cached = resolveUtilizationCachedPayload_();
           if (cached && els.utilStaleBadge) {
             if (n > 0 && isCacheStale(cached, n)) els.utilStaleBadge.classList.remove('d-none');
             else els.utilStaleBadge.classList.add('d-none');
@@ -13447,7 +13496,10 @@
           }
           return;
         }
-        var cached = readUtilizationCache();
+        // Prefer in-memory utilState.payload: sessionStorage writes often fail
+        // on this payload size (quota), which previously caused every re-nav to
+        // miss cache and hit Fibery again (v2.22.2).
+        var cached = resolveUtilizationCachedPayload_();
         var ttlMinutes = readUtilTtlMinutes();
         if (cached && cached.ok !== false) {
           // Skip the re-render (and the localStorage filter restore) when
@@ -14386,9 +14438,7 @@
         var companyMap = laborHoursState.filters.companies;
         var cacheKey = laborWeekCacheKey_(bounds);
 
-        var memPayload = utilState.payload && utilState.payload.ok !== false ? utilState.payload : null;
-        var sessionPayload = memPayload || readUtilizationCache();
-        var basePayload = sessionPayload && sessionPayload.ok !== false ? sessionPayload : null;
+        var basePayload = resolveUtilizationCachedPayload_();
 
         function cfgFrom(payload) {
           return resolveLaborHoursConfig_(payload);
@@ -21110,12 +21160,69 @@
         portfolioPnlState.loadSource = loadCtx || loadSourceFromPayload_(data);
       }
 
-      function portfolioPnlSetLoading_(on, loaded, total, sourceCtx, stats) {
+      var portfolioPnlLoadProgressTimer_ = null;
+      var portfolioPnlExportProgressTimer_ = null;
+
+      function portfolioPnlClearLoadProgressTimer_() {
+        if (portfolioPnlLoadProgressTimer_) {
+          clearInterval(portfolioPnlLoadProgressTimer_);
+          portfolioPnlLoadProgressTimer_ = null;
+        }
+      }
+
+      function portfolioPnlClearExportProgressTimer_() {
+        if (portfolioPnlExportProgressTimer_) {
+          clearInterval(portfolioPnlExportProgressTimer_);
+          portfolioPnlExportProgressTimer_ = null;
+        }
+      }
+
+      function portfolioPnlSetProgressBar_(barEl, wrapEl, pct, opts) {
+        if (!barEl || !wrapEl) return;
+        opts = opts || {};
+        wrapEl.classList.remove('d-none');
+        var showPct = Math.max(0, Math.min(100, Math.round(pct || 0)));
+        barEl.style.width = showPct + '%';
+        barEl.setAttribute('aria-valuenow', String(showPct));
+        if (opts.indeterminate) {
+          barEl.classList.add('progress-bar-striped', 'progress-bar-animated');
+        } else if (opts.animate === false) {
+          barEl.classList.remove('progress-bar-striped', 'progress-bar-animated');
+        } else {
+          barEl.classList.add('progress-bar-striped', 'progress-bar-animated');
+        }
+      }
+
+      function portfolioPnlDescribeLoadActivity_(sourceCtx, phase) {
+        var transport = sourceCtx && sourceCtx.transport ? String(sourceCtx.transport) : '';
+        if (phase === 'cache') {
+          return 'Reading browser cache…';
+        }
+        if (phase === 'snapshot') {
+          return 'Loading portfolio P&L from snapshot…';
+        }
+        if (phase === 'drive') {
+          return 'Checking Drive daily cache, then Fibery if needed…';
+        }
+        if (transport === 'snapshot') {
+          return 'Reading snapshot portfolio-pnl.json…';
+        }
+        if (transport === 'driveCache') {
+          return 'Reading Drive portfolio cache…';
+        }
+        if (transport === 'browserCache') {
+          return 'Using browser session cache…';
+        }
+        return 'Fetching Subscription + Services project P&L from Fibery (this can take a minute)…';
+      }
+
+      function portfolioPnlSetLoading_(on, loaded, total, sourceCtx, stats, activityText) {
         if (!els.ppnlLoading) return;
         if (on) {
           els.ppnlLoading.classList.remove('d-none');
           els.ppnlLoading.setAttribute('aria-hidden', 'false');
         } else {
+          portfolioPnlClearLoadProgressTimer_();
           els.ppnlLoading.classList.add('d-none');
           els.ppnlLoading.setAttribute('aria-hidden', 'true');
         }
@@ -21123,26 +21230,70 @@
         if (els.ppnlLoadingLabel) {
           els.ppnlLoadingLabel.textContent = on ? 'Loading portfolio P&L…' : 'Loading portfolio P&L…';
         }
+        var activity =
+          activityText ||
+          (on ? portfolioPnlDescribeLoadActivity_(sourceCtx, null) : '');
         if (els.ppnlLoadingSub) {
           if (on && total > 0) {
-            var sub = 'Fetching P&L for all projects… (' + String(loaded) + ' / ' + String(total) + ' projects)';
+            var sub = 'Loaded ' + String(loaded) + ' / ' + String(total) + ' projects';
             if (stats && (stats.fromCache > 0 || stats.fromFibery > 0)) {
-              sub += ' · ' + String(stats.fromCache || 0) + ' from cache, ' + String(stats.fromFibery || 0) + ' from Fibery';
+              sub +=
+                ' · ' +
+                String(stats.fromCache || 0) +
+                ' from cache, ' +
+                String(stats.fromFibery || 0) +
+                ' from Fibery';
             }
             els.ppnlLoadingSub.textContent = sub;
           } else if (on) {
-            els.ppnlLoadingSub.textContent = 'Fetching P&L for all projects…';
+            els.ppnlLoadingSub.textContent = activity || 'Working…';
+          }
+        }
+        if (els.ppnlLoadingActivity) {
+          if (on && total > 0) {
+            els.ppnlLoadingActivity.textContent = activity || '';
+            els.ppnlLoadingActivity.classList.toggle('d-none', !activity);
+          } else if (on) {
+            els.ppnlLoadingActivity.textContent =
+              'Please keep this tab open. Progress updates when the server responds.';
+            els.ppnlLoadingActivity.classList.remove('d-none');
+          } else {
+            els.ppnlLoadingActivity.textContent = '';
+            els.ppnlLoadingActivity.classList.add('d-none');
           }
         }
         if (els.ppnlProgressWrap && els.ppnlProgressBar) {
           if (on && total > 0) {
-            els.ppnlProgressWrap.classList.remove('d-none');
-            var pct = Math.min(100, Math.round((loaded / total) * 100));
-            els.ppnlProgressBar.style.width = pct + '%';
-            els.ppnlProgressBar.setAttribute('aria-valuenow', String(pct));
+            portfolioPnlClearLoadProgressTimer_();
+            portfolioPnlSetProgressBar_(
+              els.ppnlProgressBar,
+              els.ppnlProgressWrap,
+              Math.min(100, Math.round((loaded / total) * 100)),
+              { animate: loaded < total }
+            );
+          } else if (on) {
+            // Indeterminate: ease toward ~90% while waiting on the server call.
+            portfolioPnlSetProgressBar_(els.ppnlProgressBar, els.ppnlProgressWrap, 8, {
+              indeterminate: true,
+            });
+            if (!portfolioPnlLoadProgressTimer_) {
+              var softPct = 8;
+              portfolioPnlLoadProgressTimer_ = setInterval(function () {
+                softPct = Math.min(90, softPct + 2 + Math.floor(Math.random() * 3));
+                portfolioPnlSetProgressBar_(
+                  els.ppnlProgressBar,
+                  els.ppnlProgressWrap,
+                  softPct,
+                  { indeterminate: true }
+                );
+              }, 900);
+            }
           } else {
+            portfolioPnlClearLoadProgressTimer_();
+            portfolioPnlSetProgressBar_(els.ppnlProgressBar, els.ppnlProgressWrap, 0, {
+              animate: false,
+            });
             els.ppnlProgressWrap.classList.add('d-none');
-            els.ppnlProgressBar.style.width = '0%';
           }
         }
       }
@@ -21251,7 +21402,16 @@
         var initialSource = liveMode
           ? { transport: 'fibery' }
           : { transport: 'snapshot', snapshotDate: getActiveSnapshotDate_() };
-        portfolioPnlSetLoading_(true, 0, 0, initialSource);
+        portfolioPnlSetLoading_(
+          true,
+          0,
+          0,
+          initialSource,
+          null,
+          liveMode
+            ? 'Contacting server for Drive cache / Fibery portfolio bundle…'
+            : 'Loading portfolio P&L from the selected snapshot…'
+        );
 
         if (!forceRefresh) {
           var cached = portfolioPnlReadCache_();
@@ -21284,6 +21444,14 @@
             renderPortfolioPnlGrid_();
             return;
           }
+          portfolioPnlSetLoading_(
+            true,
+            0,
+            0,
+            initialSource,
+            null,
+            'Reading snapshot portfolio-pnl.json for ' + String(snapDate) + '…'
+          );
           google.script.run
             .withSuccessHandler(function (data) {
               if (token !== portfolioPnlLoadToken_) return;
@@ -21324,6 +21492,16 @@
         }
         if (els.ppnlLiveOnly) els.ppnlLiveOnly.classList.add('d-none');
 
+        portfolioPnlSetLoading_(
+          true,
+          0,
+          0,
+          initialSource,
+          null,
+          forceRefresh
+            ? 'Refreshing portfolio from Fibery (skipping daily Drive cache)…'
+            : 'Checking Drive daily cache, then Fibery for any missing project P&L…'
+        );
         google.script.run
           .withSuccessHandler(function (data) {
             if (token !== portfolioPnlLoadToken_) return;
@@ -21883,45 +22061,97 @@
         els.ppnlExportStatus.classList.remove('d-none');
       }
 
+      function portfolioPnlSetExportProgress_(on, pct, label, isError) {
+        if (label || label === '') {
+          portfolioPnlSetExportStatus_(label, !!isError);
+        }
+        if (!els.ppnlExportProgressWrap || !els.ppnlExportProgressBar) return;
+        if (!on) {
+          portfolioPnlClearExportProgressTimer_();
+          els.ppnlExportProgressWrap.classList.add('d-none');
+          els.ppnlExportProgressBar.style.width = '0%';
+          els.ppnlExportProgressBar.setAttribute('aria-valuenow', '0');
+          els.ppnlExportProgressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+          return;
+        }
+        portfolioPnlSetProgressBar_(
+          els.ppnlExportProgressBar,
+          els.ppnlExportProgressWrap,
+          pct,
+          { indeterminate: pct < 95 }
+        );
+      }
+
+      function portfolioPnlStartExportProgressPulse_(fromPct) {
+        portfolioPnlClearExportProgressTimer_();
+        var softPct = Math.max(15, fromPct || 15);
+        portfolioPnlSetExportProgress_(true, softPct);
+        portfolioPnlExportProgressTimer_ = setInterval(function () {
+          softPct = Math.min(88, softPct + 1 + Math.floor(Math.random() * 2));
+          portfolioPnlSetExportProgress_(true, softPct);
+        }, 700);
+      }
+
       function portfolioPnlExportExcel_() {
         if (portfolioPnlState.exporting) return;
         if (!portfolioPnlState.dataReady || portfolioPnlState.loading) {
+          portfolioPnlSetExportProgress_(false);
           portfolioPnlSetExportStatus_('Wait for Portfolio P&L to finish loading.', true);
           return;
         }
         var projects = portfolioPnlActiveProjects_(portfolioPnlState.projects || []);
         if (!projects.length) {
+          portfolioPnlSetExportProgress_(false);
           portfolioPnlSetExportStatus_('No projects in the current filter.', true);
-          return;
-        }
-        var request;
-        try {
-          request = portfolioPnlBuildExcelExportRequest_();
-        } catch (eBuild) {
-          portfolioPnlSetExportStatus_('Could not prepare export.', true);
           return;
         }
 
         portfolioPnlState.exporting = true;
         portfolioPnlSetExportEnabled_(false);
-        portfolioPnlSetExportStatus_('Building Excel file…', false);
+        portfolioPnlSetExportProgress_(true, 10, 'Preparing export rows from the grid…', false);
+
+        var request;
+        try {
+          request = portfolioPnlBuildExcelExportRequest_();
+        } catch (eBuild) {
+          portfolioPnlState.exporting = false;
+          portfolioPnlSetExportEnabled_(!!portfolioPnlState.dataReady);
+          portfolioPnlSetExportProgress_(false);
+          portfolioPnlSetExportStatus_('Could not prepare export.', true);
+          return;
+        }
+
+        portfolioPnlSetExportProgress_(
+          true,
+          25,
+          'Building Excel workbook on the server…',
+          false
+        );
+        portfolioPnlStartExportProgressPulse_(28);
 
         google.script.run
           .withSuccessHandler(function (resp) {
+            portfolioPnlClearExportProgressTimer_();
             portfolioPnlState.exporting = false;
             portfolioPnlSetExportEnabled_(!!portfolioPnlState.dataReady);
             if (!resp || resp.ok === false) {
+              portfolioPnlSetExportProgress_(false);
               portfolioPnlSetExportStatus_((resp && resp.message) || 'Excel export failed.', true);
               logActivity_('portfolio_pnl_export_excel', 'portfolio-pnl', 'ok=false');
               return;
             }
             try {
+              portfolioPnlSetExportProgress_(true, 92, 'Downloading Excel file…', false);
               portfolioPnlDownloadBase64File_(
                 resp.contentBase64,
                 resp.fileName,
                 resp.mimeType
               );
-              portfolioPnlSetExportStatus_('Downloaded ' + (resp.fileName || 'Excel file'), false);
+              portfolioPnlSetExportProgress_(true, 100, 'Downloaded ' + (resp.fileName || 'Excel file'), false);
+              setTimeout(function () {
+                portfolioPnlSetExportProgress_(false);
+                portfolioPnlSetExportStatus_('Downloaded ' + (resp.fileName || 'Excel file'), false);
+              }, 1200);
               logActivity_(
                 'portfolio_pnl_export_excel',
                 'portfolio-pnl',
@@ -21935,13 +22165,16 @@
                   (request.meta.collapseMonthsByQuarter ? '1' : '0')
               );
             } catch (eDl) {
+              portfolioPnlSetExportProgress_(false);
               portfolioPnlSetExportStatus_('Download failed in this browser.', true);
               logActivity_('portfolio_pnl_export_excel', 'portfolio-pnl', 'ok=false · download');
             }
           })
           .withFailureHandler(function (err) {
+            portfolioPnlClearExportProgressTimer_();
             portfolioPnlState.exporting = false;
             portfolioPnlSetExportEnabled_(!!portfolioPnlState.dataReady);
+            portfolioPnlSetExportProgress_(false);
             var msg = err && err.message ? err.message : String(err || 'Excel export failed.');
             if (msg === 'FORBIDDEN' || /Finance team/i.test(msg)) {
               msg = 'Portfolio P&L export is available to the Finance team, Execs, and Admins.';

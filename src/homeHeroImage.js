@@ -1,5 +1,5 @@
 /**
- * PRD version 2.22.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.24.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Home hero background image as a data URL (embedded in doGet HtmlService template).
  * Source file: src/assets/home-hero-deap.png

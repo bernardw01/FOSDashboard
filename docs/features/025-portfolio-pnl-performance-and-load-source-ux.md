@@ -1,12 +1,12 @@
 # Feature: Portfolio P&L performance and load-source UX
 
-> **PRD version 2.16.0** - **FR-120** / **AC-79** (Released v2.16.0)  
+> **PRD version 2.22.1** - **FR-120** / **AC-79** (Released v2.16.0; load-overlay progress copy patched v2.22.1)  
 > **Feature id:** 025 | **Task list:** Finance  
 > **Teamwork notebook:** [Feature 025](https://win.godeap.io/app/projects/1615262/notebooks/311911)  
 > **Release task:** [Feature 025 - Portfolio P&L performance and load source](https://win.godeap.io/app/tasks/40203349)  
 > **Extends:** [Feature 022 - Portfolio Project P&L](022-portfolio-project-pnl.md), [Feature 010 - Historical data source](010-dashboard-historical-data-source.md)  
 > **Implementation plan:** [025-portfolio-pnl-performance-implementation-plan.md](025-portfolio-pnl-performance-implementation-plan.md)  
-> **Status:** Shipped **v2.16.0**
+> **Status:** Shipped **v2.16.0** (progress UX refinement **v2.22.1**)
 
 ## Goal
 
@@ -203,5 +203,6 @@ Extend **`dashboardSnapshotJob.js`**; feature **009** dataset table row; client 
 
 | Version | Date | Notes |
 | --- | --- | --- |
+| 2.22.1 | 2026-07-08 | Portfolio load overlay always shows animated progress + current-activity statement during single-bundle Fibery/Drive/snapshot waits (paired with feature **031** export UX). |
 | 2.16.0 | 2026-06-09 | Shipped Phases A–D: load-source UX, slim builder, **`getPortfolioPnLDashboardData`**, Drive **`portfolio-pnl-cache/`**, snapshot **`portfolio-pnl.json`**. **FR-120**, **AC-79**. |
 | (draft) | 2026-06-09 | Initial spec: performance evaluation + load-source UX plan |

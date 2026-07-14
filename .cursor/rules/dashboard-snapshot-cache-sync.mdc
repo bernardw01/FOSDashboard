@@ -60,3 +60,5 @@ When cache shape or `cacheSchemaVersion` changes, also verify:
 ## Quick verification
 
 After cache changes: run `_diag_snapshotPreflight()` then `_diag_runSnapshotForDate('YYYY-MM-DD')` and confirm Drive files open as JSON and `manifest.json` lists expected `cacheSchemaVersion` per dataset. In the Web App, select the snapshot in **Data source** and confirm all panels render without Fibery executions.
+
+When historical dates fail schema validation after a bump: run `_diag_listStaleSnapshots()` then `_diag_startSnapshotSchemaUpgrade()` (feature **009** / **FR-126**) to regenerate stale dates. Optional Script Property **`SNAPSHOT_AUTO_UPGRADE_STALE`**.

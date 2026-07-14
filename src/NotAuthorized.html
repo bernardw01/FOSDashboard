@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- PRD version 2.22.0 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.24.0 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <base target="_top" />
-  <title>Access not granted</title>
+  <title>Access not granted - FinOps Performance Hub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -48,24 +48,112 @@
     .fos-card strong.text-white {
       color: var(--text) !important;
     }
+    .fos-brand-logo {
+      display: block;
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      margin-bottom: 1rem;
+    }
+    .fos-deny-meta {
+      border-top: 1px solid var(--border);
+      margin-top: 1rem;
+      padding-top: 0.75rem;
+      font-size: 12px;
+      color: var(--text-muted);
+      word-break: break-word;
+    }
+    .fos-deny-meta code,
+    .fos-deny-code {
+      color: var(--accent);
+      font-size: 11px;
+    }
+    .fos-deny-hint {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 0;
+    }
   </style>
 </head>
 <body class="d-flex align-items-center justify-content-center p-4">
   <div class="fos-card p-4 p-md-5 shadow-lg w-100">
+    <img
+      class="fos-brand-logo"
+      src="<?!= brandLogoUrl ?>"
+      width="48"
+      height="48"
+      alt="FinOps Performance Hub"
+      decoding="async"
+    />
     <h1 class="h4 fw-bold text-white mb-3">Access not granted</h1>
-    <? if (reason === 'MISSING_CONFIG' || reason === 'SHEET_ERROR') { ?>
-    <p class="text-secondary mb-3 mb-md-4 lh-lg">
-      This application is not fully configured, or the authorization list could not be read. Please contact your
-      administrator.
+
+    <? if (reason === 'MISSING_CONFIG') { ?>
+    <p class="text-secondary mb-2 lh-lg">
+      <strong class="text-white">Authorization is not configured.</strong>
+      The app cannot look up users because <code class="fos-deny-code">AUTH_SPREADSHEET_ID</code> is not set in Script
+      Properties. Ask your administrator to set it and redeploy.
     </p>
-    <? } else { ?>
-    <p class="text-secondary mb-3 mb-md-4 lh-lg">
-      You are signed in, but your account is not on the authorized users list for <strong class="text-white"
-        >harpin AI Ops Dashboards</strong
-      >. If you believe this is a mistake, ask your administrator to add you to the Users sheet.
+      <? } else if (reason === 'SHEET_ERROR' && reasonDetail === 'USERS_TAB_NOT_FOUND') { ?>
+    <p class="text-secondary mb-2 lh-lg">
+      <strong class="text-white">The Users tab could not be found.</strong>
+      The authorization spreadsheet opened, but the configured tab name was missing. Check
+      <code class="fos-deny-code">AUTH_USERS_SHEET_NAME</code> (default <code class="fos-deny-code">Users</code>) and that
+      the tab exists.
+    </p>
+      <? } else if (reason === 'SHEET_ERROR' && reasonDetail && String(reasonDetail).indexOf('REQUIRED_HEADERS_MISSING:') === 0) { ?>
+    <p class="text-secondary mb-2 lh-lg">
+      <strong class="text-white">The Users sheet is missing required columns.</strong>
+      Row 1 must include:
+      <strong class="text-white"><?= String(reasonDetail).substring('REQUIRED_HEADERS_MISSING:'.length) ?></strong>.
+      Check column titles or <code class="fos-deny-code">AUTH_COL_EMAIL</code> /
+      <code class="fos-deny-code">AUTH_COL_ROLE</code> /
+      <code class="fos-deny-code">AUTH_COL_TEAM</code> overrides.
+    </p>
+      <? } else if (reason === 'SHEET_ERROR' && reasonDetail === 'SPREADSHEET_OPEN_FAILED') { ?>
+    <p class="text-secondary mb-2 lh-lg">
+      <strong class="text-white">The authorization spreadsheet could not be read.</strong>
+      Common causes: an invalid <code class="fos-deny-code">AUTH_SPREADSHEET_ID</code>, the spreadsheet was deleted, or
+      the account running the Web App lacks permission to open it. If the deployment uses
+      <strong class="text-white">Execute as: User accessing the web app</strong>, each user needs at least Viewer
+      access to the auth spreadsheet (or switch to <strong class="text-white">Execute as: Me</strong>).
+    </p>
+      <? } else if (reason === 'SHEET_ERROR') { ?>
+    <p class="text-secondary mb-2 lh-lg">
+      <strong class="text-white">The authorization list could not be read.</strong>
+      The Users spreadsheet or tab structure is misconfigured. Ask your administrator to review Script Properties and
+      the Users tab layout.
+    </p>
+      <? } else if (reason === 'NO_EMAIL') { ?>
+    <p class="text-secondary mb-2 lh-lg">
+      <strong class="text-white">Your signed-in email could not be determined.</strong>
+      Deploy the Web App as <strong class="text-white">Execute as: User accessing the web app</strong> and open the
+      published <code class="fos-deny-code">/exec</code> URL (not only the Apps Script editor preview).
+    </p>
+      <? } else if (reason === 'NOT_LISTED' && reasonDetail === 'USERS_SHEET_EMPTY') { ?>
+    <p class="text-secondary mb-2 lh-lg">
+      <strong class="text-white">No users are configured yet.</strong>
+      The Users tab has headers but no data rows. Ask your administrator to add your Google account email to the sheet.
+    </p>
+      <? } else { ?>
+    <p class="text-secondary mb-2 lh-lg">
+      You are signed in<? if (userEmail) { ?> as <strong class="text-white"><?!= userEmail ?></strong><? } ?>, but your
+      account is not on the authorized users list for <strong class="text-white">FinOps Performance Hub</strong>. If you
+      believe this is a mistake, ask your administrator to add you to the Users sheet.
     </p>
     <? } ?>
-    <p class="small text-secondary mb-0">PRD version <?!= prdVersion ?></p>
+
+    <p class="fos-deny-hint mb-0">If you need access, contact your administrator.</p>
+
+    <div class="fos-deny-meta">
+      <? if (userEmail) { ?>
+      <div>Signed in as: <strong class="text-white"><?!= userEmail ?></strong></div>
+      <? } ?>
+      <div>
+        Reason:
+        <code><?!= reason ?><? if (reasonDetail) { ?>:<?!= reasonDetail ?><? } ?></code>
+      </div>
+      <div class="mt-1 mb-0">PRD version <?!= prdVersion ?></div>
+    </div>
   </div>
 </body>
 </html>

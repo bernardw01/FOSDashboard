@@ -1,8 +1,8 @@
 # Feature: Portfolio P&L Excel export (outline / collapse)
 
-> **PRD version 2.22.0** - Released **v2.22.0**  
+> **PRD version 2.22.1** - Released **v2.22.0**; patched **v2.22.1**  
 > **Feature id:** 031 | **Task list:** Finance  
-> **Status:** Released (**v2.22.0**)  
+> **Status:** Released (**v2.22.1**)  
 > **Extends:** [Feature 022 - Portfolio Project P&L](022-portfolio-project-pnl.md), [Feature 025 - Portfolio P&L performance](025-portfolio-pnl-performance-and-load-source-ux.md)  
 > **Implementation plan:** [031-portfolio-pnl-excel-export-implementation-plan.md](031-portfolio-pnl-excel-export-implementation-plan.md)  
 > **Teamwork:** Ship as `v2.22.0 - Portfolio P&L Excel export` when publishing the release task.
@@ -46,6 +46,8 @@ Let finance and executive users **download the Portfolio P&L grid as a formatted
 
 - [x] Successful download uses **`Portfolio-PnL-YYYY-yyyyMMdd-HHmm.xlsx`**.
 - [x] Busy / disabled state while building; user-safe errors on failure.
+- [x] **As of v2.22.1:** animated **export progress bar** with staged status (prepare rows → server build → download).
+- [x] **As of v2.22.1:** Excel bytes come from Sheets **`/export?format=xlsx`** (not `Spreadsheet.getAs`), so browsers receive a real `.xlsx`.
 - [x] Row-count soft cap with clear message when too large.
 
 ### Mobile
@@ -59,8 +61,9 @@ Let finance and executive users **download the Portfolio P&L grid as a formatted
 ## UI Notes
 
 - **Route / panel:** `portfolio-pnl` / `#panel-portfolio-pnl` only (no new nav route).
-- **Desktop:** Add **Export Excel** button in the existing Portfolio toolbar (near Refresh). Optional secondary **Copy CSV** remains out of scope unless product asks to revive Feature **022** Phase B CSV in the same release.
-- **Mobile (`DashboardShell.html`, &lt; 768px):** Keep Export in the collapsing toolbar row; ensure filters + export remain usable without sidebar-only chrome (feature **029** patterns). Download still uses the same blob / anchor pattern as desktop Web App downloads.
+- **Desktop:** Add **Export Excel** button in the existing Portfolio toolbar (near Refresh). Optional secondary **Copy CSV** remains out of scope unless product asks to revive Feature **022** Phase B CSV in the same release. **v2.22.1:** show an inline progress bar under export status while the workbook builds.
+- **Mobile (`DashboardShell.html`, &lt; 768px):** Keep Export in the collapsing toolbar row; ensure filters + export remain usable without sidebar-only chrome (feature **029** patterns). Download still uses the same blob / anchor pattern as desktop Web App downloads. Export progress block wraps full width on narrow viewports.
+- **Load overlay (shared with 025):** During Fibery / Drive / snapshot Portfolio loads, keep the progress bar visible with current-activity copy so the panel does not look hung on the single bundle RPC.
 - **Not in scope for v1 of this feature:** editable live formulas linked to Fibery; PivotTables; multiple calendar years in one file; emailing the workbook from the server.
 
 ## Data Model
@@ -159,5 +162,6 @@ No new Fibery entities. Export is a **read-only materialization** of the already
 
 | Date | Version | Change |
 | --- | --- | --- |
+| 2026-07-08 | 2.22.1 | Fix unsupported PDF→xlsx `getAs` by exporting via Sheets URL; add export progress bar; improve Portfolio load overlay progress + activity copy. |
 | 2026-07-08 | 2.22.0 | Implemented Export Excel from loaded panel data; full hierarchy with outline groups; button disabled until load completes. |
 | 2026-07-08 | Draft | Initial feature request: formatted Excel export with collapse/expand groups matching Portfolio P&L hierarchy. |

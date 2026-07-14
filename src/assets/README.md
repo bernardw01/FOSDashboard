@@ -4,15 +4,17 @@ Binary and vector files here are **version-controlled sources** for the clasp pr
 
 | File | Used by | Regenerate embedded copy |
 | --- | --- | --- |
-| `favicon.svg` | Design source for tab icon | — |
-| `favicon.png` | Browser tab icon (`setFaviconUrl` via Drive mirror in `faviconAsset.js`) | `powershell -File scripts/embed-favicon.ps1` → updates `src/faviconAsset.js` (script rasterizes SVG→PNG if needed) |
+| `finops-performance-hub-icon-source.png` | **FinOps Performance Hub** sidebar logo (`brandLogoAsset.js`) and favicon source | `python3 scripts/embed-brand-logo.py` → `src/brandLogoAsset.js`; rasterize 32px PNG for tab icon → `scripts/embed-favicon.ps1` or Pillow resize → `src/faviconAsset.js` |
+| `favicon.svg` | Legacy design source (optional) | — |
+| `favicon.png` | Browser tab icon (`setFaviconUrl` via Drive mirror in `faviconAsset.js`) | Resize from `finops-performance-hub-icon-source.png`, then `powershell -File scripts/embed-favicon.ps1` or update `FOS_FAVICON_PNG_BASE64_` in `faviconAsset.js` |
 | `home-hero-deap.png` | Home hero (`#panel-home-root` → `.fos-home-hero`) | `powershell -File scripts/embed-home-hero.ps1` → updates `src/homeHeroImage.js` |
 
-**Do not** hotlink harpin.ai or other CDNs for these assets in production. Regenerate the matching `src/*Asset.js` / `homeHeroImage.js` file after any change to the source file, then `clasp push`.
+**Do not** hotlink external CDNs for these assets in production. Regenerate the matching `src/*Asset.js` / `homeHeroImage.js` file after any change to the source file, then `clasp push`.
 
 **Notes**
 
-- **Favicon:** Tab icon uses **`HtmlOutput.setFaviconUrl`** with a Drive mirror URL (`getFaviconUrlForWebApp_()`). Apps Script **ignores** `<link rel="icon">` in HTML files and **rejects** `data:` URLs for favicons. First page load mirrors bundled PNG to Drive (anyone-with-link). Rasterize with Node `npx @resvg/resvg-js-cli` when SVG changes.
+- **Favicon:** Tab icon uses **`HtmlOutput.setFaviconUrl`** with a Drive mirror URL (`getFaviconUrlForWebApp_()`). Apps Script **ignores** `<link rel="icon">` in HTML files and **rejects** `data:` URLs for favicons.
+- **Sidebar logo:** Bundled at 128px display width in `brandLogoAsset.js` to keep the HtmlService template payload reasonable.
 - `home-hero-deap.png` may be JPEG bytes with a `.png` extension; the hero embed script sets MIME from file magic bytes.
 
-Normative specs: `docs/features/001-dashboard-shell-navigation.md` (Home hero + favicon).
+Normative specs: `docs/features/001-dashboard-shell-navigation.md` (Home hero, favicon, shell branding).

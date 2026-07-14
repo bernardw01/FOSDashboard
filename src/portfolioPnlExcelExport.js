@@ -1,5 +1,5 @@
 /**
- * PRD version 2.22.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.24.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Portfolio P&L Excel export (feature 031).
  * Builds a temporary Spreadsheet from a client-supplied outline tree
@@ -60,10 +60,9 @@ function buildPortfolioPnlExcelExport_(request) {
 
     SpreadsheetApp.flush();
 
-    var blob = ss.getAs(
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    );
-    blob.setName(fileName);
+    // SpreadsheetApp.getAs(xlsx) is unsupported (native blob is PDF). Export via
+    // the Sheets export endpoint with an OAuth bearer token instead.
+    var blob = portfolioPnlExcelFetchXlsxBlob_(ss.getId(), fileName);
     var bytes = blob.getBytes();
     var contentBase64 = Utilities.base64Encode(bytes);
 
@@ -89,6 +88,37 @@ function buildPortfolioPnlExcelExport_(request) {
       }
     }
   }
+}
+
+/**
+ * Export a Google Sheet as a true .xlsx blob.
+ *
+ * @param {string} spreadsheetId
+ * @param {string} fileName
+ * @return {!GoogleAppsScript.Base.Blob}
+ * @private
+ */
+function portfolioPnlExcelFetchXlsxBlob_(spreadsheetId, fileName) {
+  var url =
+    'https://docs.google.com/spreadsheets/d/' +
+    String(spreadsheetId) +
+    '/export?format=xlsx';
+  var resp = UrlFetchApp.fetch(url, {
+    method: 'get',
+    headers: {
+      Authorization: 'Bearer ' + ScriptApp.getOAuthToken(),
+    },
+    muteHttpExceptions: true,
+  });
+  var code = resp.getResponseCode();
+  if (code < 200 || code >= 300) {
+    throw new Error(
+      'Excel export download failed (HTTP ' + code + '). Try again or contact an admin.'
+    );
+  }
+  var blob = resp.getBlob();
+  blob.setName(fileName || 'Portfolio-PnL.xlsx');
+  return blob;
 }
 
 /**

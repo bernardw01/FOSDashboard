@@ -1,5 +1,5 @@
 /**
- * PRD version 2.22.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.24.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Daily historical dashboard snapshot job. Fetches live Fibery payloads,
  * writes JSON artifacts to Google Drive (`dashboardSnapshotStore.js`),
@@ -17,14 +17,19 @@
  *   SNAPSHOT_INCLUDE_EXPENSES          - default true
  *   SNAPSHOT_INCLUDE_PIPELINE          - default true
  *   SNAPSHOT_INCLUDE_RESOURCE_ASSIGNMENTS - default true
+ *   SNAPSHOT_AUTO_UPGRADE_STALE           - default false; after finalize, enqueue stale upgrades
  *   AUTH_SPREADSHEET_ID                - same spreadsheet as Users tab
  *
  * Public (editor / trigger):
  *   runDailyDashboardSnapshot_()
  *   processSnapshotPnlBatch_()
+ *   processSnapshotSchemaUpgrade_()
  *   installDailySnapshotTrigger()
  *   removeDailySnapshotTriggers()
  *   ensureSnapshotDriveFolder()
+ *   _diag_listStaleSnapshots()
+ *   _diag_startSnapshotSchemaUpgrade()
+ *   _diag_cancelSnapshotSchemaUpgrade()
  */
 
 /** @const {string} */
@@ -59,6 +64,15 @@ var SNAPSHOT_QUEUE_INDEX_PROP_ = 'SNAPSHOT_QUEUE_INDEX';
 
 /** @const {string} */
 var SNAPSHOT_QUEUE_FAILED_PROP_ = 'SNAPSHOT_QUEUE_FAILED_IDS';
+
+/** @const {string} JSON array of YYYY-MM-DD awaiting schema regeneration. */
+var SNAPSHOT_UPGRADE_QUEUE_PROP_ = 'SNAPSHOT_UPGRADE_QUEUE';
+
+/** @const {string} 'true' while a schema-upgrade pass is active. */
+var SNAPSHOT_UPGRADE_ACTIVE_PROP_ = 'SNAPSHOT_UPGRADE_ACTIVE';
+
+/** @const {string} When true, finalize enqueues remaining stale dates for upgrade. */
+var SNAPSHOT_AUTO_UPGRADE_STALE_PROP_ = 'SNAPSHOT_AUTO_UPGRADE_STALE';
 
 /** @const {number} */
 var SNAPSHOT_DEFAULT_UTIL_LOOKBACK_ = 90;
@@ -705,6 +719,8 @@ function finalizeSnapshotManifest_(snapshotDate, manifest) {
   manifest.completedAt = new Date().toISOString();
   writePortfolioPnlSnapshotBundle_(snapshotDate, manifest);
   writeSnapshotManifest_(snapshotDate, manifest);
+  maybeEnqueueAutoSnapshotSchemaUpgrade_();
+  maybeContinueSnapshotSchemaUpgrade_();
 }
 
 /**
@@ -824,7 +840,11 @@ function removeDailySnapshotTriggers() {
   var triggers = ScriptApp.getProjectTriggers();
   for (var i = 0; i < triggers.length; i++) {
     var fn = triggers[i].getHandlerFunction();
-    if (fn === 'runDailyDashboardSnapshot_' || fn === 'processSnapshotPnlBatch_') {
+    if (
+      fn === 'runDailyDashboardSnapshot_' ||
+      fn === 'processSnapshotPnlBatch_' ||
+      fn === 'processSnapshotSchemaUpgrade_'
+    ) {
       ScriptApp.deleteTrigger(triggers[i]);
       deleted++;
     }
@@ -920,4 +940,282 @@ function getSnapshotRunsSheetOrNull_() {
     console.warn('getSnapshotRunsSheetOrNull_: ' + (e && e.message ? e.message : e));
     return null;
   }
+}
+
+/* ------------------------------------------------------------------------- */
+/* Schema upgrade job (regenerate Drive dates whose cacheSchemaVersion lags). */
+/* ------------------------------------------------------------------------- */
+
+/**
+ * Editor: list snapshot dates that fail current schema expectations.
+ * @return {!Object}
+ */
+function _diag_listStaleSnapshots() {
+  var scan = listStaleSnapshotDates_();
+  console.log('_diag_listStaleSnapshots -> ', JSON.stringify(scan));
+  return scan;
+}
+
+/**
+ * Editor: scan Drive and start regenerating stale dates (queued + continuation triggers).
+ * Re-runs the normal snapshot builders for each date (Fibery as-of that date; expenses /
+ * pipeline reflect sheet/Fibery state at upgrade run time).
+ *
+ * @return {!Object}
+ */
+function _diag_startSnapshotSchemaUpgrade() {
+  var result = startSnapshotSchemaUpgrade_();
+  console.log('_diag_startSnapshotSchemaUpgrade -> ', JSON.stringify(result));
+  return result;
+}
+
+/**
+ * Editor: stop schema-upgrade queue and delete its continuation triggers.
+ * @return {!Object}
+ */
+function _diag_cancelSnapshotSchemaUpgrade() {
+  clearSnapshotSchemaUpgradeState_();
+  deleteSnapshotSchemaUpgradeTriggers_();
+  var out = { ok: true, message: 'Snapshot schema upgrade cancelled.' };
+  console.log('_diag_cancelSnapshotSchemaUpgrade -> ', JSON.stringify(out));
+  return out;
+}
+
+/**
+ * Scan for stale dates and begin upgrade queue processing.
+ * @return {!Object}
+ */
+function startSnapshotSchemaUpgrade_() {
+  var scan = listStaleSnapshotDates_();
+  if (!scan.ok) {
+    return {
+      ok: false,
+      message: scan.message || 'Could not scan snapshots.',
+      currentSchemas: scan.currentSchemas,
+      stale: [],
+    };
+  }
+  if (!scan.stale.length) {
+    clearSnapshotSchemaUpgradeState_();
+    deleteSnapshotSchemaUpgradeTriggers_();
+    return {
+      ok: true,
+      message: 'No stale snapshots. All scanned dates match current schemas.',
+      currentSchemas: scan.currentSchemas,
+      queued: 0,
+      scanned: scan.scanned,
+    };
+  }
+  var dates = [];
+  for (var i = 0; i < scan.stale.length; i++) {
+    dates.push(scan.stale[i].snapshotDate);
+  }
+  var props = PropertiesService.getScriptProperties();
+  props.setProperty(SNAPSHOT_UPGRADE_QUEUE_PROP_, JSON.stringify(dates));
+  props.setProperty(SNAPSHOT_UPGRADE_ACTIVE_PROP_, 'true');
+  console.warn(
+    'startSnapshotSchemaUpgrade_: queued ' + dates.length + ' date(s): ' + dates.join(', ')
+  );
+  return processSnapshotSchemaUpgrade_();
+}
+
+/**
+ * Continuation / trigger entry: regenerate next stale snapshot date.
+ * Waits if Delivery P&L batch queue is busy.
+ * @return {!Object}
+ */
+function processSnapshotSchemaUpgrade_() {
+  var props = PropertiesService.getScriptProperties();
+  if (props.getProperty(SNAPSHOT_UPGRADE_ACTIVE_PROP_) !== 'true') {
+    deleteSnapshotSchemaUpgradeTriggers_();
+    return { ok: true, message: 'No active schema upgrade.' };
+  }
+  if (props.getProperty(SNAPSHOT_QUEUE_DATE_PROP_)) {
+    scheduleSnapshotSchemaUpgradeContinuation_();
+    return {
+      ok: true,
+      message: 'Waiting for Delivery P&L batch queue before next schema upgrade.',
+    };
+  }
+
+  var queue = readSnapshotUpgradeQueue_();
+  if (!queue.length) {
+    clearSnapshotSchemaUpgradeState_();
+    deleteSnapshotSchemaUpgradeTriggers_();
+    return { ok: true, message: 'Schema upgrade queue empty.' };
+  }
+
+  var nextDate = String(queue.shift());
+  writeSnapshotUpgradeQueue_(queue);
+  console.warn(
+    'processSnapshotSchemaUpgrade_: regenerating ' +
+      nextDate +
+      ' (' +
+      queue.length +
+      ' remaining)'
+  );
+
+  var result = runDashboardSnapshotForDate_(nextDate, false);
+  if (result && result.status === 'skipped') {
+    queue.unshift(nextDate);
+    writeSnapshotUpgradeQueue_(queue);
+    scheduleSnapshotSchemaUpgradeContinuation_();
+    return {
+      ok: true,
+      current: nextDate,
+      remaining: queue.length,
+      status: 'skipped',
+      message: result.message || 'Snapshot lock busy; will retry.',
+      result: result,
+    };
+  }
+
+  if (props.getProperty(SNAPSHOT_QUEUE_DATE_PROP_)) {
+    return {
+      ok: true,
+      current: nextDate,
+      remaining: queue.length,
+      status: 'pnl_running',
+      message: 'Core rewrite started; waiting for P&L batches before next date.',
+      result: result,
+    };
+  }
+
+  scheduleSnapshotSchemaUpgradeContinuation_();
+  return {
+    ok: true,
+    current: nextDate,
+    remaining: queue.length,
+    status: (result && result.status) || 'done',
+    message: 'Processed ' + nextDate + '; scheduling next.',
+    result: result,
+  };
+}
+
+/**
+ * @private
+ */
+function maybeContinueSnapshotSchemaUpgrade_() {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    if (props.getProperty(SNAPSHOT_UPGRADE_ACTIVE_PROP_) !== 'true') {
+      return;
+    }
+    if (props.getProperty(SNAPSHOT_QUEUE_DATE_PROP_)) {
+      return;
+    }
+    scheduleSnapshotSchemaUpgradeContinuation_();
+  } catch (e) {
+    console.warn(
+      'maybeContinueSnapshotSchemaUpgrade_: ' + (e && e.message ? e.message : e)
+    );
+  }
+}
+
+/**
+ * When enabled, scan after finalize and enqueue any remaining stale dates.
+ * @private
+ */
+function maybeEnqueueAutoSnapshotSchemaUpgrade_() {
+  try {
+    if (!resolveSnapshotAutoUpgradeStale_()) {
+      return;
+    }
+    var props = PropertiesService.getScriptProperties();
+    if (props.getProperty(SNAPSHOT_QUEUE_DATE_PROP_)) {
+      return;
+    }
+    var existing = readSnapshotUpgradeQueue_();
+    if (props.getProperty(SNAPSHOT_UPGRADE_ACTIVE_PROP_) === 'true' && existing.length) {
+      return;
+    }
+    var scan = listStaleSnapshotDates_();
+    if (!scan.ok || !scan.stale.length) {
+      return;
+    }
+    var dates = [];
+    for (var i = 0; i < scan.stale.length; i++) {
+      dates.push(scan.stale[i].snapshotDate);
+    }
+    props.setProperty(SNAPSHOT_UPGRADE_QUEUE_PROP_, JSON.stringify(dates));
+    props.setProperty(SNAPSHOT_UPGRADE_ACTIVE_PROP_, 'true');
+    console.warn(
+      'maybeEnqueueAutoSnapshotSchemaUpgrade_: queued ' + dates.length + ' stale date(s)'
+    );
+    scheduleSnapshotSchemaUpgradeContinuation_();
+  } catch (e) {
+    console.warn(
+      'maybeEnqueueAutoSnapshotSchemaUpgrade_: ' + (e && e.message ? e.message : e)
+    );
+  }
+}
+
+/**
+ * @return {!Array<string>}
+ * @private
+ */
+function readSnapshotUpgradeQueue_() {
+  try {
+    var raw = PropertiesService.getScriptProperties().getProperty(SNAPSHOT_UPGRADE_QUEUE_PROP_);
+    var parsed = JSON.parse(raw || '[]');
+    return parsed && parsed.length ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+/**
+ * @param {!Array<string>} dates
+ * @private
+ */
+function writeSnapshotUpgradeQueue_(dates) {
+  PropertiesService.getScriptProperties().setProperty(
+    SNAPSHOT_UPGRADE_QUEUE_PROP_,
+    JSON.stringify(dates || [])
+  );
+}
+
+/**
+ * @private
+ */
+function clearSnapshotSchemaUpgradeState_() {
+  var props = PropertiesService.getScriptProperties();
+  props.deleteProperty(SNAPSHOT_UPGRADE_QUEUE_PROP_);
+  props.deleteProperty(SNAPSHOT_UPGRADE_ACTIVE_PROP_);
+}
+
+/**
+ * @private
+ */
+function scheduleSnapshotSchemaUpgradeContinuation_() {
+  deleteSnapshotSchemaUpgradeTriggers_();
+  ScriptApp.newTrigger('processSnapshotSchemaUpgrade_')
+    .timeBased()
+    .after(60 * 1000)
+    .create();
+}
+
+/**
+ * @private
+ */
+function deleteSnapshotSchemaUpgradeTriggers_() {
+  var triggers = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === 'processSnapshotSchemaUpgrade_') {
+      ScriptApp.deleteTrigger(triggers[i]);
+    }
+  }
+}
+
+/**
+ * @return {boolean}
+ * @private
+ */
+function resolveSnapshotAutoUpgradeStale_() {
+  var raw = PropertiesService.getScriptProperties().getProperty(SNAPSHOT_AUTO_UPGRADE_STALE_PROP_);
+  if (raw === null || raw === undefined) {
+    return false;
+  }
+  var t = String(raw).trim().toLowerCase();
+  return t === 'true' || t === '1' || t === 'yes';
 }

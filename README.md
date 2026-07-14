@@ -1,8 +1,8 @@
-# Harpin FOS Dashboard
+# FinOps Performance Hub
 
-**FOS** (Finance & Operations Snapshot) is a **Google Apps Script** web application that gives authorized harpin Workspace users a single place to review **ops, delivery, finance, and sales** metrics drawn from systems the company already uses (primarily **Fibery**, curated **Google Sheets**, and sync pipelines such as Clockify → Fibery).
+**FinOps Performance Hub** (formerly harpin FOS / Finance & Operations Snapshot) is a **Google Apps Script** web application that gives authorized harpin Workspace users a single place to review **ops, delivery, finance, and sales** metrics drawn from systems the company already uses (primarily **Fibery**, curated **Google Sheets**, and sync pipelines such as Clockify → Fibery).
 
-**Current product version:** **2.22.0** (`FOS_PRD_VERSION` in [`src/Code.js`](src/Code.js))  
+**Current product version:** **2.24.0** (`FOS_PRD_VERSION` in [`src/Code.js`](src/Code.js))  
 **Product PRD:** [`docs/FOS-Dashboard-PRD.md`](docs/FOS-Dashboard-PRD.md)  
 **Feature map:** [`docs/features/000-overview.md`](docs/features/000-overview.md)
 
@@ -23,7 +23,7 @@ FOS is a published **Apps Script Web App** (`DashboardShell.html`) with:
 | **Admin Settings** | **ADMIN** users edit Script Properties, view usage analytics, and run operator actions (for example AI usage sync) from the in-app Settings panel. |
 | **Mobile shell** | Below **768px**: bottom nav, data-source pill, filter bottom sheets, and mobile layouts for Home, Agreements, and Pipeline. |
 
-App title in the browser: **harpin AI Ops Dashboards**.
+App title in the browser: **FinOps Performance Hub**.
 
 ---
 
@@ -31,7 +31,7 @@ App title in the browser: **harpin AI Ops Dashboards**.
 
 ### Access
 
-1. Open the **published Web App URL** for the FOS deployment (shared by harpin ops / your admin).
+1. Open the **published Web App URL** for the FinOps Performance Hub deployment (shared by harpin ops / your admin).
 2. Sign in with a **Google Workspace** account that appears on the authorization **Users** sheet.
 3. Deployment must run as **User accessing the web app** so Apps Script can resolve your email.
 

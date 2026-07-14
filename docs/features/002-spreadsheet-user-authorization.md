@@ -1,6 +1,6 @@
 # Feature: Spreadsheet user authorization (users tab)
 
-> **PRD version 2.8.0** - keep in sync with `docs/FOS-Dashboard-PRD.md` (**FR-05** - **FR-08a**, **FR-83**, **FR-106**, **FR-109**, **FR-110**).
+> **PRD version 2.23.2** - keep in sync with `docs/FOS-Dashboard-PRD.md` (**FR-05** - **FR-08a**, **FR-83**, **FR-106**, **FR-109**, **FR-110**). **v2.23.2** distinct not-authorized denial reasons + operator codes.
 
 ## Goal
 
@@ -17,12 +17,13 @@ Authorize FOS Dashboard users by **looking up their Google account email** in a 
 - [ ] **Given** Script Properties define a valid **`AUTH_SPREADSHEET_ID`** and users tab name, **when** a signed-in user’s email **matches** a row (case-insensitive, trimmed), **then** `doGet` serves the **main dashboard** and server-side code has **`role`** and **`team`** from that row.
 - [ ] **Given** the same conditions but the user’s email **does not** match any row, **when** they open the Web App, **then** they receive **only** the **not authorized** HTML page (no sidebar/nav from the main shell, no sensitive metrics).
 - [ ] **Given** `getDashboardNavigation` (or any future privileged `google.script.run` handler) is invoked, **when** the caller is **not** on the users sheet, **then** the handler **does not** return the normal navigation model (throws or returns a safe error shape documented in code).
-- [ ] **Given** required authorization properties are **missing**, **when** `doGet` runs, **then** the user sees a **fail-closed** outcome (not authorized or a generic configuration error page **without** exposing property keys or stack traces to the browser).
+- [ ] **Given** required authorization properties are **missing**, **when** `doGet` runs, **then** the user sees **MISSING_CONFIG** copy (not the generic “list could not be read” message shared with sheet errors).
+- [ ] **Given** the Users tab or required headers are wrong, **when** `doGet` runs, **then** the user sees a **SHEET_ERROR** message matching the sub-code (`USERS_TAB_NOT_FOUND`, `REQUIRED_HEADERS_MISSING`, or `SPREADSHEET_OPEN_FAILED`) and the footer shows `reason:detail`.
 - [ ] **Given** the users tab has a **header row**, **when** columns are renamed via Script Properties (optional overrides), **then** the script still reads **Email**, **Role**, and **Team** (or configured equivalents) as documented.
 
 ## UI Notes
 
-- **New file**: `src/NotAuthorized.html` - static or templated HtmlService page: short title, explanation (“You are signed in but not authorized…”), optional link to internal IT / request access channel (configurable copy only, no secrets).
+- **New file**: `src/NotAuthorized.html` - templated HtmlService page with **distinct copy** per denial reason (`MISSING_CONFIG`, `SHEET_ERROR` sub-codes, `NOT_LISTED`, `NO_EMAIL`) and a footer showing signed-in email (when known) plus **`reason:detail`** for operators (**v2.23.2**, **AC-86**). No spreadsheet IDs or stack traces in the browser.
 - **Update**: `src/Code.js` - `doGet` branches on authorization result; extract sheet lookup into a dedicated function or `src/authUsersSheet.js` (or equivalent) for reuse by `doGet` and `google.script.run` handlers.
 - **Update**: `src/DashboardShell.html` - optionally show **team** (and/or **role**) in the user chip area once passed from server (template evaluate or first `google.script.run` response); must not trust client-submitted role/team.
 
@@ -51,6 +52,20 @@ Authorize FOS Dashboard users by **looking up their Google account email** in a 
 | `AUTH_COL_ROLE` | Optional; default `Role`. |
 | `AUTH_COL_TEAM` | Optional; default `Team`. |
 | `AUTH_COL_FIBERY_ACCESS` *(v1.15.0)* | Optional; default `fibery_access`. Header lookup for the per-user Fibery-access gate. When the header is absent, `getAuthorizationForActiveUser_()` MUST emit a one-time `console.warn` and treat every user as `fiberyAccess = false`. |
+
+### Denial reasons (`getAuthorizationForActiveUser_`, v2.23.2)
+
+| `reason` | `detail` | User-facing meaning |
+| --- | --- | --- |
+| `MISSING_CONFIG` | `AUTH_SPREADSHEET_ID_MISSING` | Script Property not set |
+| `SHEET_ERROR` | `USERS_TAB_NOT_FOUND` | Tab name mismatch / missing |
+| `SHEET_ERROR` | `REQUIRED_HEADERS_MISSING:Email,Role` | Example: missing column headers (list varies) |
+| `SHEET_ERROR` | `SPREADSHEET_OPEN_FAILED` | `openById` threw (bad ID, permissions, deleted sheet) |
+| `NOT_LISTED` | `USER_NOT_ON_LIST` | Email not in data rows |
+| `NOT_LISTED` | `USERS_SHEET_EMPTY` | Headers only, no user rows |
+| `NO_EMAIL` | `SESSION_EMAIL_EMPTY` | `Session.getActiveUser().getEmail()` empty |
+
+Every denial logs `authUsersSheet: access denied reason=… detail=… email=…` via `console.warn`.
 
 ## Permissions matrix (shipped)
 

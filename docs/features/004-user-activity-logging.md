@@ -1,6 +1,6 @@
 # Feature: User activity logging (User Activity tab)
 
-> **PRD version 2.1.0** - see `docs/FOS-Dashboard-PRD.md` (`§3.8`, **FR-60 - FR-66**, **NFR-08**, **AC-15 - AC-17**).
+> **PRD version 2.23.4** - see `docs/FOS-Dashboard-PRD.md` (`§3.8`, **FR-60 - FR-66**, **FR-64a**, **NFR-08**, **AC-15 - AC-17**, **AC-87**). **v2.23.3** logs `access_denied` from unauthorized `doGet`.
 
 ## Goal
 
@@ -11,7 +11,8 @@ Log every authorized **page request** the FOS Dashboard handles - initial Web Ap
 - As an **admin / ops owner**, I want a **single Sheet tab** that records every dashboard page request (timestamp, user, role, team, route) so I can later report on dashboard adoption per team and per view.
 - As a **product owner**, I want the **same email/role/team** that authorization already resolves to be stored alongside each event so reports don't need to re-join against the Users tab.
 - As an **authorized user**, I want navigation to feel instant - **logging must be fire-and-forget** and must never delay a panel switch or block on the spreadsheet.
-- As an **unauthorized visitor**, I want **no activity row** written for me - the not-authorized page must not generate dashboard usage data.
+- As an **admin**, I want **failed access attempts** recorded on the **User Activity** tab (email + denial reason) so I can troubleshoot users who cannot open the dashboard (**v2.23.3**).
+- As an **unauthorized visitor**, I want **client-forged** `logUserActivity` calls to still be rejected - only the server `doGet` denial path may write **`access_denied`**.
 - As an **admin**, I want a **kill-switch** Script Property so I can disable logging immediately (without a deploy) if quota or PII concerns require it.
 
 ## Acceptance Criteria (testable)
@@ -20,7 +21,8 @@ Log every authorized **page request** the FOS Dashboard handles - initial Web Ap
 - [ ] **Given** the conditions above, **when** the user clicks **Home**, **Agreement Dashboard**, **Operations**, or **Delivery** in the sidebar, **then** a row is appended with `Event Type = nav_view` and `Route` equal to the nav id of the clicked entry (e.g. `agreement-dashboard` for the Agreement Dashboard entry; rows tagged `finance` in this `Route` column are pre-v1.11.0 historical data).
 - [ ] **Given** the user is on the **Agreement Dashboard** panel and clicks the agreement-dashboard **Refresh** control, **when** the click completes, **then** a row is appended with `Event Type = refresh` and `Route = agreement-dashboard`.
 - [ ] **Given** the user is on the **Agreement Dashboard** panel and clicks a tab in the Financial Performance table, **when** the click completes, **then** a row is appended with `Event Type = agreement_table_tab` (renamed from `finance_table_tab` in v1.11.0) and `Route = agreement-dashboard`.
-- [ ] **Given** an **unauthorized** session, **when** the visitor lands on the Web App, **then** **no** row is written to the `User Activity` tab (the `NotAuthorized.html` path does not log).
+- [ ] **Given** an **unauthorized** session where the auth spreadsheet **can** be opened (e.g. `NOT_LISTED`), **when** the visitor lands on the Web App, **then** a **`access_denied`** row is appended with **Email**, empty Role/Team, **Route = access-denied**, and **Label** = the denial `reason:detail` code (**v2.23.3**, **FR-64a**).
+- [ ] **Given** an unauthorized session where **`SpreadsheetApp.openById` fails** (`SPREADSHEET_OPEN_FAILED`), **when** the visitor lands on the Web App, **then** the activity row MAY be missing (same permission failure); Apps Script Executions MUST still show `console.warn` for the denial and write attempt.
 - [ ] **Given** an unauthorized session, **when** the visitor invokes `google.script.run.logUserActivity({...})` directly from the browser console, **then** the handler throws / returns the same `NOT_AUTHORIZED` shape used elsewhere and **no row is written**.
 - [ ] **Given** `USER_ACTIVITY_LOGGING_ENABLED` is set to `false`, **when** any of the above events occur, **then** no rows are written and the UI continues to function normally (no banners, no client errors).
 - [ ] **Given** the `User Activity` tab is **missing** from the spreadsheet, **when** events occur, **then** the user sees no error, no row is written, and a single Apps Script `console.warn` (or `Logger.log`) line per process surface explains the missing tab.
@@ -31,7 +33,7 @@ Log every authorized **page request** the FOS Dashboard handles - initial Web Ap
 
 - **No new visible UI** for end users. Logging is purely a server-side side-effect of existing nav and refresh interactions.
 - **Components to edit**:
- - `src/Code.js` - `doGet` calls `recordPageLoad_(auth)` after successful authorization (best-effort, swallowed errors); expose `logUserActivity(event)` re-export (or import) so the client can call it via `google.script.run`.
+ - `src/Code.js` - `doGet` calls `recordPageLoad_(auth)` after successful authorization and `recordAccessDenied_(auth)` on denial (best-effort, swallowed errors); expose `logUserActivity(event)` so the client can call it via `google.script.run`.
  - `src/DashboardShell.html` - generate a per-tab **Session ID** in `sessionStorage` (key `fos_session_id_v1`), forward `userAgent` and `sessionId` on every nav click and on the agreement-dashboard **Refresh** click, fire-and-forget via `google.script.run.logUserActivity(...)`. No UI loading state; no error banner on logging failure.
 - **Components to create**:
  - `src/userActivityLog.js` - pure module: header constants, `logUserActivity(event)`, `recordPageLoad_(auth, requestMeta)`, `appendActivityRow_(values)`, `getUserActivitySheetOrNull_()`, `truncate_(s, max)`, `safeEventType_(s)`, `normalizeRoute_(s)`.
@@ -47,7 +49,7 @@ Log every authorized **page request** the FOS Dashboard handles - initial Web Ap
 | **Email** | Yes | Server (`Session.getActiveUser().getEmail()`) | Trimmed; case preserved as returned by Google. |
 | **Role** | Yes | Server (Users-tab lookup snapshot) | Empty string if the row no longer matches (event still drops by FR-64). |
 | **Team** | Yes | Server (Users-tab lookup snapshot) | Same as above. |
-| **Event Type** | Yes | Server-validated enum | Core set: `page_load`, `nav_view`, `refresh`, `server_call`. **As of v1.24.0**, Labor hours also emits first-class types: `labor_hours_week_change`, `labor_hours_refresh`, `labor_hours_export`, `labor_hours_kpi_nav`, `labor_hours_sort` (see **AC-59**). **As of v1.25.0**, Revenue review emits **`revenue_review_refresh`**. **As of v1.26.0**, Revenue review also emits **`revenue_review_sort`**, **`revenue_review_export`**, **`revenue_review_expand`**, **`revenue_review_kpi_nav`**, **`revenue_review_print`**. **As of v1.27.0**, Revenue review also emits **`revenue_review_drawer_open`** and **`revenue_review_drawer_fibery_click`**. Any other unknown value → coerced to `server_call` with a warning logged. |
+| **Event Type** | Yes | Server-validated enum | Core set: `page_load`, `nav_view`, `refresh`, `server_call`, **`access_denied`** (v2.23.3, server `doGet` only). **As of v1.24.0**, Labor hours also emits first-class types: `labor_hours_week_change`, `labor_hours_refresh`, `labor_hours_export`, `labor_hours_kpi_nav`, `labor_hours_sort` (see **AC-59**). **As of v1.25.0**, Revenue review emits **`revenue_review_refresh`**. **As of v1.26.0**, Revenue review also emits **`revenue_review_sort`**, **`revenue_review_export`**, **`revenue_review_expand`**, **`revenue_review_kpi_nav`**, **`revenue_review_print`**. **As of v1.27.0**, Revenue review also emits **`revenue_review_drawer_open`** and **`revenue_review_drawer_fibery_click`**. Any other unknown value → coerced to `server_call` with a warning logged. |
 | **Route** | Yes (for nav/refresh) | Server-normalized | Kebab-case token from a server-side allowlist (e.g. `home`, `agreement-dashboard`, `operations`, `labor-hours`, `delivery`, `doGet`); the legacy `finance` value is retained in the allowlist so historical rows remain queryable. Arbitrary client strings are sanitized to `[a-z0-9_\-]{1,40}`. |
 | **Label** | No | Client | Short context (≤ 120 chars). Free text but bounded; do not include form input contents. |
 | **Session ID** | No | Client (`sessionStorage`) | Random ID generated client-side (e.g. `crypto.randomUUID()` with fallback). Best-effort; empty allowed. |
@@ -100,7 +102,7 @@ Constraints on this payload:
 
 - After `getAuthorizationForActiveUser_()` returns `{ ok: true, ... }`, but **before** rendering the dashboard, call `recordPageLoad_(auth)`.
  - `recordPageLoad_` wraps the append call in `try/catch`; **never** throws back to `doGet`.
- - `Route = 'doGet'`, `Event Type = 'page_load'`, `Label = ''`, `Session ID = ''`, `User Agent = ''` (the browser UA is not available server-side; if needed later, capture it on the very first client `nav_view` after page load).
+- After `{ ok: false, ... }`, call `recordAccessDenied_(auth)` before rendering `NotAuthorized.html` (**v2.23.3**). Label = `reason` or `reason:detail`. Role/Team blank. If open of the auth spreadsheet fails, the write is skipped and `console.warn` records both the denial and the write failure.
 
 ### Client wiring
 
@@ -143,9 +145,10 @@ Constraints on this payload:
 - [ ] Confirm with ops the exact header spellings and tab name; create the `User Activity` tab in the production / dev spreadsheets.
 - [ ] Add Script Properties `AUTH_USER_ACTIVITY_SHEET_NAME` (optional override) and `USER_ACTIVITY_LOGGING_ENABLED` (optional override) to the deployment runbook.
 - [x] ~~Extract `findHeaderIndex_` from `authUsersSheet.js` into a shared helper~~ - Apps Script globals: `userActivityLog.js` reuses the existing `findHeaderIndex_` directly (no extraction needed).
-- [x] Create `src/userActivityLog.js` with `logUserActivity(event)`, `recordPageLoad_(auth)`, `writeActivityRow_(...)`, `getUserActivitySheetOrNull_()`, `isActivityLoggingEnabled_()`, `truncate_`, `safeEventType_`, `normalizeRoute_`, `activityWarn_`.
+- [x] Create `src/userActivityLog.js` with `logUserActivity(event)`, `recordPageLoad_(auth)`, `recordAccessDenied_(deny)`, `writeActivityRow_(...)`, `getUserActivitySheetOrNull_()`, `isActivityLoggingEnabled_()`, `truncate_`, `safeEventType_`, `normalizeRoute_`, `activityWarn_`.
 - [x] Update `src/Code.js`:
  - In `doGet`, after a successful `getAuthorizationForActiveUser_()`, call `recordPageLoad_(auth)` inside a `try/catch` (swallow + `console.warn`).
+ - In `doGet`, on authorization failure, call `recordAccessDenied_(auth)` before serving `NotAuthorized.html` (**v2.23.3**).
  - `logUserActivity` is a top-level function in `userActivityLog.js` and is therefore in the Apps Script global namespace; `google.script.run.logUserActivity(...)` resolves without further wiring.
 - [x] Update `src/DashboardShell.html`:
  - Add `sessionStorage` session-ID generation (key `fos_session_id_v1`) via `getOrCreateSessionId()`.

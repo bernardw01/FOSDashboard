@@ -1,11 +1,11 @@
 /**
- * PRD version 2.22.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.24.0 - sync with docs/FOS-Dashboard-PRD.md
  *
- * FOS Dashboard - Apps Script entry points.
+ * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.22.0';
+var FOS_PRD_VERSION = '2.24.0';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '2.22.0';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'Portfolio P&L: Export Excel with outline groups from loaded panel data.';
+  'Snapshot schema upgrade job regenerates stale Drive dates to current cacheSchemaVersion.';
 
 /**
  * @return {string}
@@ -56,9 +56,26 @@ function doGet(e) {
 
   var auth = getAuthorizationForActiveUser_();
   if (!auth.ok) {
+    // Best-effort: append access_denied to User Activity (may fail when the
+    // denial itself is inability to open AUTH_SPREADSHEET_ID).
+    try {
+      recordAccessDenied_(auth);
+    } catch (denyLogErr) {
+      try {
+        console.warn(
+          'doGet: recordAccessDenied_ threw: ' +
+            (denyLogErr && denyLogErr.message ? denyLogErr.message : denyLogErr)
+        );
+      } catch (_) {
+        /* ignore */
+      }
+    }
     var deny = HtmlService.createTemplateFromFile('NotAuthorized');
     deny.reason = auth.reason;
+    deny.reasonDetail = auth.detail || '';
+    deny.userEmail = auth.email || '';
     deny.prdVersion = getFosPrdVersion_();
+    deny.brandLogoUrl = getBrandLogoDataUrl_();
     return applyWebAppHtmlChrome_(deny.evaluate(), 'Access not granted');
   }
 
@@ -89,7 +106,8 @@ function doGet(e) {
   var template = HtmlService.createTemplateFromFile('DashboardShell');
   template.prdVersion = getFosPrdVersion_();
   template.homeHeroImageUrl = getHomeHeroImageDataUrl_();
-  return applyWebAppHtmlChrome_(template.evaluate(), 'harpin AI Ops Dashboards');
+  template.brandLogoUrl = getBrandLogoDataUrl_();
+  return applyWebAppHtmlChrome_(template.evaluate(), 'FinOps Performance Hub');
 }
 
 /**

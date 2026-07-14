@@ -1,5 +1,5 @@
 /**
- * PRD version 2.22.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.24.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -654,6 +654,14 @@ function getAdminSettingsCatalog_() {
       'When false, the daily job skips resource-assignments.json (live panel still works).',
       'boolean',
       true
+    ),
+    adminSettingEntry_(
+      'SNAPSHOT_AUTO_UPGRADE_STALE',
+      'snapshots',
+      'Auto-upgrade stale snapshot schemas',
+      'When true, after a snapshot finalizes the job scans Drive for dates whose cacheSchemaVersion lags live constants and queues regeneration (Fibery re-fetch as-of each date). Default false; use _diag_startSnapshotSchemaUpgrade() for a one-shot run after schema bumps.',
+      'boolean',
+      false
     ),
     adminSettingEntry_(
       'RESOURCE_ASSIGNMENTS_MAX_ROWS',
