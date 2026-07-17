@@ -1,9 +1,9 @@
 # Feature: User profile and alert email notifications
 
-> **Status:** In development / implemented in code (Teamwork In-progress; sync notebooks at ship).  
+> **Status:** Shipped (**v2.25.0** feature; **v2.25.1** Users-tab Profile column; **v2.25.2** save toast; **v2.25.3** ADMIN Run hourly now).  
 > **PRD version:** 2.25.3  
+> **Release task (shipped):** [v2.25.3 - User profile and alert email notifications](https://win.godeap.io/app/tasks/40497529).  
 > **Inbox / customer request:** [Feature Request - Notifications for users who subscribe to alerts](https://godeap.teamwork.com/app/tasks/40228889) (task id `40228889`, Inbox).  
-> **Release task:** [Feature 033 - User profile and alert email notifications](https://godeap.teamwork.com/app/tasks/40497529).  
 > **Teamwork notebooks:** [Feature 033](https://win.godeap.io/app/projects/1615262/notebooks/312624) · [Implementation plan](https://win.godeap.io/app/projects/1615262/notebooks/312625).  
 > **Related:** [001 - Dashboard shell](001-dashboard-shell-navigation.md); [002 - Spreadsheet auth](002-spreadsheet-user-authorization.md); [003 - Agreement dashboard / alerts](003-agreement-dashboard-fibery-client-cache.md); [005 - Utilization alerts](005-utilization-management-dashboard.md); [004 - User activity](004-user-activity-logging.md); [011 - Admin Settings](011-admin-settings-environment-panel.md); [029 - Mobile shell](029-mobile-shell-phase-ab.md); [009 - Historical snapshots](009-dashboard-historical-snapshots.md).  
 > **Implementation plan:** [033-user-profile-alert-email-notifications-implementation-plan.md](033-user-profile-alert-email-notifications-implementation-plan.md)
@@ -70,58 +70,58 @@ Source description (task `40228889`):
 
 ### Sidebar identity and Profile entry
 
-- [ ] **Given** an authorized session on desktop (≥ 768px), **when** the shell renders, **then** the signed-in user display name/email is in the **sidebar footer**, **above Settings**, not in the top brand/user-chip area (or the top chip is removed/relocated per UI Notes).
-- [ ] **Given** the footer identity block, **when** the user views it, **then** a **Profile** control (icon + text link) appears **directly under** the user name.
-- [ ] **Given** the user clicks **Profile**, **when** navigation completes, **then** `#panel-profile` (or equivalent) is shown and the route/activity event is logged (for example `nav_view` / `profile_open`).
-- [ ] **Given** ADMIN **Settings**, **when** Profile ships, **then** Settings remains ADMIN-only and separate from Profile (non-admins still have Profile; only admins see Settings).
+- [x] **Given** an authorized session on desktop (≥ 768px), **when** the shell renders, **then** the signed-in user display name/email is in the **sidebar footer**, **above Settings**, not in the top brand/user-chip area (or the top chip is removed/relocated per UI Notes).
+- [x] **Given** the footer identity block, **when** the user views it, **then** a **Profile** control (icon + text link) appears **directly under** the user name.
+- [x] **Given** the user clicks **Profile**, **when** navigation completes, **then** `#panel-profile` (or equivalent) is shown and the route/activity event is logged (for example `nav_view` / `profile_open`).
+- [x] **Given** ADMIN **Settings**, **when** Profile ships, **then** Settings remains ADMIN-only and separate from Profile (non-admins still have Profile; only admins see Settings).
 
 ### Profile panel and persistence
 
-- [ ] **Given** the Profile panel, **when** the user changes notification toggles / frequency and saves, **then** the server updates the caller’s existing **Users**-tab row, writing JSON into the **Profile** column (keyed by the same Email used for authorization).
-- [ ] **Given** a Users-tab row with an empty Profile cell, **when** they open Profile or save defaults, **then** the system treats missing JSON as an empty/default profile (`schemaVersion` current, `emailEnabled: false`, empty subscriptions) and writes JSON into Profile on first save (does **not** create a new Users row).
-- [ ] **Given** an unauthorized caller, **when** they call profile read/write APIs, **then** the server denies (`NOT_AUTHORIZED` / equivalent) and does not write.
-- [ ] **Given** Profile → Notifications, **when** the user views the catalog, **then** **no extra profile fields** appear beyond notifications (no display name / phone / etc. in v1).
-- [ ] **Given** saved preferences, **when** JSON is read back, **then** it validates against **Profile JSON schema v1** below (`schemaVersion: 1`).
-- [ ] **Given** a later schema bump (`schemaVersion` N → N+1), **when** code ships, **then** an ops/migration path **rewrites every Users-tab Profile cell** to the new shape (see Schema migration rule).
+- [x] **Given** the Profile panel, **when** the user changes notification toggles / frequency and saves, **then** the server updates the caller’s existing **Users**-tab row, writing JSON into the **Profile** column (keyed by the same Email used for authorization).
+- [x] **Given** a Users-tab row with an empty Profile cell, **when** they open Profile or save defaults, **then** the system treats missing JSON as an empty/default profile (`schemaVersion` current, `emailEnabled: false`, empty subscriptions) and writes JSON into Profile on first save (does **not** create a new Users row).
+- [x] **Given** an unauthorized caller, **when** they call profile read/write APIs, **then** the server denies (`NOT_AUTHORIZED` / equivalent) and does not write.
+- [x] **Given** Profile → Notifications, **when** the user views the catalog, **then** **no extra profile fields** appear beyond notifications (no display name / phone / etc. in v1).
+- [x] **Given** saved preferences, **when** JSON is read back, **then** it validates against **Profile JSON schema v1** below (`schemaVersion: 1`).
+- [x] **Given** a later schema bump (`schemaVersion` N → N+1), **when** code ships, **then** an ops/migration path **rewrites every Users-tab Profile cell** to the new shape (see Schema migration rule).
 
 ### Lazy profile load
 
-- [ ] **Given** a successful `doGet` / first nav payload, **when** the shell paints, **then** page load is **not** blocked on reading the Users-tab Profile column.
-- [ ] **Given** shell init, **when** after auth nav is available, **then** the client **starts** a background `google.script.run` (or equivalent) to fetch the active user’s profile and stores it in memory (and optionally `sessionStorage` with schema version).
-- [ ] **Given** the user opens Profile before the lazy fetch completes, **when** the panel shows, **then** a short loading state appears and resolves from the in-flight request (no duplicate confusing writes).
+- [x] **Given** a successful `doGet` / first nav payload, **when** the shell paints, **then** page load is **not** blocked on reading the Users-tab Profile column.
+- [x] **Given** shell init, **when** after auth nav is available, **then** the client **starts** a background `google.script.run` (or equivalent) to fetch the active user’s profile and stores it in memory (and optionally `sessionStorage` with schema version).
+- [x] **Given** the user opens Profile before the lazy fetch completes, **when** the panel shows, **then** a short loading state appears and resolves from the in-flight request (no duplicate confusing writes).
 
 ### Notification schema and preference UX
 
-- [ ] **Given** Profile → Notifications, **when** the user views subscriptions, **then** they can **opt in or out** of each **fine-grained catalog entry** covering **all current platform alerts**, and set frequency to **`hourly`**, **`daily`**, or **`weekly`** only (no Immediate UI or enum value).
-- [ ] **Given** a new profile / defaults, **when** loaded, **then** `notifications.emailEnabled` is **`false`** until the user explicitly enables email.
+- [x] **Given** Profile → Notifications, **when** the user views subscriptions, **then** they can **opt in or out** of each **fine-grained catalog entry** covering **all current platform alerts**, and set frequency to **`hourly`**, **`daily`**, or **`weekly`** only (no Immediate UI or enum value).
+- [x] **Given** a new profile / defaults, **when** loaded, **then** `notifications.emailEnabled` is **`false`** until the user explicitly enables email.
 
 ### Email content
 
-- [ ] **Given** an Hourly / Daily / Weekly run finds **one or more** subscribed alerts for a user, **when** email is sent, **then** it is **one HTML summarized message** listing each alert (severity + title at minimum), not a separate email per alert.
-- [ ] **Given** any notification email, **when** the user reads it, **then** it includes **working deep links** into FinOps Performance Hub for the panel(s) that surface those alerts (Agreements Attention and/or Utilization Attention as applicable).
-- [ ] **Given** email send succeeds, **when** the job finishes the user, **then** a **Notification Log** row is written so the in-app tray can show the same send.
+- [x] **Given** an Hourly / Daily / Weekly run finds **one or more** subscribed alerts for a user, **when** email is sent, **then** it is **one HTML summarized message** listing each alert (severity + title at minimum), not a separate email per alert.
+- [x] **Given** any notification email, **when** the user reads it, **then** it includes **working deep links** into FinOps Performance Hub for the panel(s) that surface those alerts (Agreements Attention and/or Utilization Attention as applicable).
+- [x] **Given** email send succeeds, **when** the job finishes the user, **then** a **Notification Log** row is written so the in-app tray can show the same send.
 
 ### In-app notification tray
 
-- [ ] **Given** an authorized shell, **when** the top chrome renders, **then** a **notification icon** appears in the **upper right**.
-- [ ] **Given** the user clicks the icon, **when** the tray opens, **then** a **slide-out** lists notifications from the Notification Log for that user’s email (newest first), including title/summary and sent time.
-- [ ] **Given** a listed notification, **when** the user clicks **Clear**, **then** that notification is marked dismissed for the user and no longer appears in the tray (soft-delete / dismissed flag; do not erase audit history unless product later requires purge).
-- [ ] **Given** unread or undismissed notifications, **when** the icon is shown, **then** a badge/count reflects undismissed items (exact visual TBD in UI Notes).
-- [ ] **Given** mobile width **&lt; 768px**, **when** the tray opens, **then** it uses a full-width sheet or equivalent (feature **029** patterns) with ≥ 44px clear targets.
+- [x] **Given** an authorized shell, **when** the top chrome renders, **then** a **notification icon** appears in the **upper right**.
+- [x] **Given** the user clicks the icon, **when** the tray opens, **then** a **slide-out** lists notifications from the Notification Log for that user’s email (newest first), including title/summary and sent time.
+- [x] **Given** a listed notification, **when** the user clicks **Clear**, **then** that notification is marked dismissed for the user and no longer appears in the tray (soft-delete / dismissed flag; do not erase audit history unless product later requires purge).
+- [x] **Given** unread or undismissed notifications, **when** the icon is shown, **then** a badge/count reflects undismissed items (exact visual TBD in UI Notes).
+- [x] **Given** mobile width **&lt; 768px**, **when** the tray opens, **then** it uses a full-width sheet or equivalent (feature **029** patterns) with ≥ 44px clear targets.
 
 ### Scheduled notification jobs
 
-- [ ] **Given** Script Properties / install helpers documented in Operations, **when** operators install triggers, **then** the project can run **Hourly**, **Daily**, and **Weekly** notifiers (Tuesday morning for Weekly) without Web App interaction.
-- [ ] **Given** a user subscribed to an alert at frequency F, **when** the F job runs and qualifying alerts exist for them, **then** they receive an HTML email (subject to dedupe / access rules).
-- [ ] **Given** any notification job, **when** it evaluates alerts, **then** it uses **live Fibery** data only (not the user’s historical snapshot Data source selection).
-- [ ] **Given** a user without nav access to a dashboard that owns an alert family, **when** jobs run, **then** those catalog entries are **excluded** for that recipient even if toggled on in stale JSON.
-- [ ] **Given** an **ADMIN** session on **Settings → Notifications**, **when** they click **Run hourly now** and `NOTIFICATIONS_ENABLED` is true, **then** the same Hourly digest pipeline runs on demand and a toast reports sent/skipped counts (v2.25.3; FR-129).
-- [ ] **Given** `NOTIFICATIONS_ENABLED` is false, **when** ADMIN opens Notifications or attempts Run hourly now, **then** the action is disabled or returns a clear error without sending mail.
+- [x] **Given** Script Properties / install helpers documented in Operations, **when** operators install triggers, **then** the project can run **Hourly**, **Daily**, and **Weekly** notifiers (Tuesday morning for Weekly) without Web App interaction.
+- [x] **Given** a user subscribed to an alert at frequency F, **when** the F job runs and qualifying alerts exist for them, **then** they receive an HTML email (subject to dedupe / access rules).
+- [x] **Given** any notification job, **when** it evaluates alerts, **then** it uses **live Fibery** data only (not the user’s historical snapshot Data source selection).
+- [x] **Given** a user without nav access to a dashboard that owns an alert family, **when** jobs run, **then** those catalog entries are **excluded** for that recipient even if toggled on in stale JSON.
+- [x] **Given** an **ADMIN** session on **Settings → Notifications**, **when** they click **Run hourly now** and `NOTIFICATIONS_ENABLED` is true, **then** the same Hourly digest pipeline runs on demand and a toast reports sent/skipped counts (v2.25.3; FR-129).
+- [x] **Given** `NOTIFICATIONS_ENABLED` is false, **when** ADMIN opens Notifications or attempts Run hourly now, **then** the action is disabled or returns a clear error without sending mail.
 
 ### Mobile
 
-- [ ] **Given** viewport width **&lt; 768px**, **when** the user opens the mobile sidebar / More menu, **then** user name + Profile link appear above Settings with ≥ 44px touch targets.
-- [ ] **Given** Profile on mobile, **when** the user edits notification preferences, **then** controls are stacked/scannable (no horizontal-only UI).
+- [x] **Given** viewport width **&lt; 768px**, **when** the user opens the mobile sidebar / More menu, **then** user name + Profile link appear above Settings with ≥ 44px touch targets.
+- [x] **Given** Profile on mobile, **when** the user edits notification preferences, **then** controls are stacked/scannable (no horizontal-only UI).
 
 ## UI Notes
 
@@ -481,13 +481,12 @@ flowchart LR
 
 - [x] Feature reviewed; decisions locked (this doc)
 - [x] Teamwork notebook / release task intake (Feature 033)
-- [ ] Implementation plan phases executed
-- [ ] Mobile UI same change set as desktop
-- [ ] Profile schema migration helper + all-rows ops path (Users tab Profile column)
-- [ ] PRD FR/AC + version bump at ship
-- [ ] Docs: 000-overview shipped line; registry + Ops runbook
-- [ ] Commit / `clasp push` / ship checklist
-
+- [x] Implementation plan phases executed (A Profile shell, B Daily + tray, C Hourly/Weekly)
+- [x] Mobile UI same change set as desktop
+- [x] Profile schema migration helper + all-rows ops path (Users tab Profile column)
+- [x] PRD FR/AC + version bump at ship (**2.25.0**–**2.25.3**)
+- [x] Docs: 000-overview shipped line; registry + Ops runbook
+- [x] Commit / `clasp push` / Teamwork ship ritual + notebook sync
 ## Open questions (remaining)
 
 1. **Daily send hour** exact value (property default `8` OK?) and whether all users share script timezone vs per-profile timezone for the Daily trigger (Weekly confirmed Tuesday AM).

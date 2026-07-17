@@ -258,7 +258,7 @@
       "url": "https://win.godeap.io/app/projects/1615262/notebooks/312624",
       "featureId": "033",
       "publishedAt": "2026-07-15",
-      "lastSyncedAt": "2026-07-15"
+      "lastSyncedAt": "2026-07-17"
     },
     "feature_033_implementation_plan": {
       "id": 312625,
@@ -266,7 +266,7 @@
       "url": "https://win.godeap.io/app/projects/1615262/notebooks/312625",
       "featureId": "033",
       "publishedAt": "2026-07-15",
-      "lastSyncedAt": "2026-07-15"
+      "lastSyncedAt": "2026-07-17"
     },
     "feature_034": {
       "id": 312664,
@@ -806,22 +806,6 @@
       "renameAtShip": "v{FOS_PRD_VERSION} - FinOps Ask (panel-scoped AI Q&A)",
       "workflowStage": "Spec Draft"
     },
-    "Feature 033 - User profile and alert email notifications": {
-      "id": 40497529,
-      "tasklist": "Platform and shell",
-      "featureId": "033",
-      "releaseType": "Enhancement",
-      "releaseTitle": "User profile and alert email notifications",
-      "provisionalTaskName": true,
-      "shippedVersion": null,
-      "notebookKey": "feature_033",
-      "implementationPlanNotebookKey": "feature_033_implementation_plan",
-      "inboxTaskId": 40228889,
-      "inboxTaskUrl": "https://godeap.teamwork.com/app/tasks/40228889",
-      "url": "https://win.godeap.io/app/tasks/40497529",
-      "renameAtShip": "v{FOS_PRD_VERSION} - User profile and alert email notifications",
-      "workflowStage": "In-progress"
-    },
     "v2.26.1 - Live dashboard warm cache and Portfolio batch builds": {
       "id": 40507567,
       "tasklist": "Data platform",
@@ -855,6 +839,28 @@
         "Total (rounded to nearest 0.5h): 20.5h"
       ],
       "estDevHoursGitBase": "37927841ffb47cc1a2655a555c0f1e5bea3f347a"
+    },
+    "v2.25.3 - User profile and alert email notifications": {
+      "id": 40497529,
+      "tasklist": "Platform and shell",
+      "featureId": "033",
+      "releaseType": "Enhancement",
+      "releaseTitle": "User profile and alert email notifications",
+      "provisionalTaskName": false,
+      "shippedVersion": "v2.25.3",
+      "notebookKey": "feature_033",
+      "implementationPlanNotebookKey": "feature_033_implementation_plan",
+      "inboxTaskId": 40228889,
+      "inboxTaskUrl": "https://godeap.teamwork.com/app/tasks/40228889",
+      "url": "https://win.godeap.io/app/tasks/40497529",
+      "renameAtShip": "v{FOS_PRD_VERSION} - User profile and alert email notifications",
+      "workflowStage": "Shipped",
+      "shippedAt": "2026-07-17",
+      "estDevHours": 18,
+      "estDevHoursRationale": [
+        "Explicit --est-dev-hours: 18.0h"
+      ],
+      "estDevHoursGitBase": "(manual)"
     }
   },
   "lastBootstrappedAt": "2026-06-10"

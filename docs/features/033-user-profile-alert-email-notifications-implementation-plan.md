@@ -2,11 +2,11 @@
 
 > **Feature spec:** [033-user-profile-alert-email-notifications.md](033-user-profile-alert-email-notifications.md)  
 > **Inbox:** [Feature Request - Notifications…](https://godeap.teamwork.com/app/tasks/40228889) (`40228889`)  
-> **Release task:** [Feature 033…](https://godeap.teamwork.com/app/tasks/40497529)  
+> **Release task (shipped):** [v2.25.3 - User profile and alert email notifications](https://win.godeap.io/app/tasks/40497529)  
 > **Teamwork notebooks:** [Feature](https://win.godeap.io/app/projects/1615262/notebooks/312624) · [Plan](https://win.godeap.io/app/projects/1615262/notebooks/312625)  
-> **Status:** In-progress in Teamwork (Profile JSON on Users tab **Profile** column)  
+> **Status:** Shipped (**v2.25.0**–**v2.25.3**)  
 > **PRD version:** 2.25.3  
-> **Expected ship type:** MINOR (new Profile surface + scheduled notification jobs + in-app tray)  
+> **Ship type:** MINOR (**2.25.0**) + patches (**2.25.1**–**2.25.3**)  
 > **Depends on:** Auth Users sheet (**002**); Agreement alerts (**003**); Utilization alerts (**005**); Mobile shell (**029**); Admin Settings remains separate (**011**)
 
 ## Summary
@@ -276,9 +276,9 @@ If a user somehow has a catalog toggle enabled but loses access, skip those aler
 
 - [x] Decisions locked in feature + plan (done for Spec Draft)
 - [x] Teamwork Feature 033 notebook + release task published (Spec Draft)
-- [ ] Phase A
-- [ ] Phase B (Daily + tray MVP)
-- [ ] Phase C (Hourly / Weekly)
-- [ ] Mobile AC verified
-- [ ] Schema migration helper documented
-- [ ] PRD bump + ship
+- [x] Phase A
+- [x] Phase B (Daily + tray MVP)
+- [x] Phase C (Hourly / Weekly)
+- [x] Mobile AC verified
+- [x] Schema migration helper documented
+- [x] PRD bump + ship (**v2.25.0**–**v2.25.3**; Teamwork release task renamed **v2.25.3**)
