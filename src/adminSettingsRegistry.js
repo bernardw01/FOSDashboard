@@ -1,5 +1,5 @@
 /**
- * PRD version 2.24.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.26.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -8,6 +8,7 @@
 /** @const {!Array<{ id: string, title: string }>} */
 var ADMIN_SETTINGS_GROUPS_ = [
   { id: 'platform-auth', title: 'Platform - Authorization & sheets' },
+  { id: 'notifications', title: 'Notifications (email digests)' },
   { id: 'platform-activity', title: 'Platform - User activity logging' },
   { id: 'fibery-api', title: 'Fibery - API connection' },
   { id: 'fibery-deeplinks', title: 'Fibery - Deep link templates' },
@@ -72,6 +73,64 @@ function getAdminSettingsCatalog_() {
     adminSettingEntry_('AUTH_COL_EMAIL', 'platform-auth', 'Email column header', 'Header in row 1 for the email column.', 'string', 'Email'),
     adminSettingEntry_('AUTH_COL_ROLE', 'platform-auth', 'Role column header', 'Header for role; use ADMIN for settings access.', 'string', 'Role'),
     adminSettingEntry_('AUTH_COL_TEAM', 'platform-auth', 'Team column header', 'Header for team.', 'string', 'Team'),
+    adminSettingEntry_(
+      'AUTH_COL_PROFILE',
+      'platform-auth',
+      'Profile JSON column header',
+      'Users-tab column that stores each user’s Profile JSON (Feature 033). Default Profile.',
+      'string',
+      'Profile'
+    ),
+    adminSettingEntry_(
+      'NOTIFICATIONS_ENABLED',
+      'notifications',
+      'Notifications enabled',
+      'Kill switch for Hourly / Daily / Weekly alert email jobs and the Settings Run hourly now action.',
+      'boolean',
+      true
+    ),
+    adminSettingEntry_(
+      'NOTIFICATIONS_LOG_SHEET_NAME',
+      'notifications',
+      'Notification Log tab',
+      'Sheet tab for sent notification audit and in-app tray.',
+      'string',
+      'Notification Log'
+    ),
+    adminSettingEntry_(
+      'NOTIFICATIONS_DAILY_HOUR',
+      'notifications',
+      'Daily digest hour',
+      'Local script timezone hour (0-23) for daily notification emails. Default 8.',
+      'number',
+      8,
+      { min: 0, max: 23 }
+    ),
+    adminSettingEntry_(
+      'NOTIFICATIONS_WEEKLY_HOUR',
+      'notifications',
+      'Weekly digest hour (Tuesday)',
+      'Local script timezone hour (0-23) for weekly digests sent on Tuesday. Default 8.',
+      'number',
+      8,
+      { min: 0, max: 23 }
+    ),
+    adminSettingEntry_(
+      'NOTIFICATIONS_DEFAULT_TIMEZONE',
+      'notifications',
+      'Default timezone',
+      'IANA timezone used when a user profile has no timezone (digest buckets).',
+      'string',
+      'America/Chicago'
+    ),
+    adminSettingEntry_(
+      'NOTIFICATIONS_FROM_NAME',
+      'notifications',
+      'Email from name',
+      'Display name on outbound notification emails.',
+      'string',
+      'FinOps Performance Hub'
+    ),
     adminSettingEntry_(
       'AUTH_COL_FIBERY_ACCESS',
       'platform-auth',
@@ -246,6 +305,14 @@ function getAdminSettingsCatalog_() {
       'number',
       10,
       { min: 0, max: 1440 }
+    ),
+    adminSettingEntry_(
+      'AGREEMENT_DRIVE_CACHE_ENABLED',
+      'agreement',
+      'Agreement Drive daily cache',
+      'When true and FOS_SNAPSHOT_DRIVE_FOLDER_ID is set, first Live Agreement load each day writes agreement-cache/YYYY-MM-DD/ on Drive; later loads read Drive until Refresh (feature 034).',
+      'boolean',
+      true
     ),
     adminSettingEntry_(
       'AGREEMENT_THRESHOLD_LOW_MARGIN',
@@ -569,6 +636,15 @@ function getAdminSettingsCatalog_() {
       'When true and FOS_SNAPSHOT_DRIVE_FOLDER_ID is set, first Portfolio P&L load each day writes portfolio-pnl-cache/YYYY-MM-DD/ on Drive; later loads read Drive until Refresh.',
       'boolean',
       true
+    ),
+    adminSettingEntry_(
+      'PORTFOLIO_PNL_LIVE_BUILD_BATCH_SIZE',
+      'delivery',
+      'Portfolio live cache batch size',
+      'Projects processed per continuation execution while building today’s Portfolio P&L Drive cache (feature 034).',
+      'number',
+      8,
+      { min: 1, max: 25 }
     ),
     adminSettingEntry_(
       'FOS_SNAPSHOT_DRIVE_FOLDER_ID',

@@ -1,5 +1,5 @@
 /**
- * PRD version 2.24.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.26.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement status updates on Delivery P&L (feature 018).
  * Reads and creates rows in Fibery `Agreement Management/Status Updates`.

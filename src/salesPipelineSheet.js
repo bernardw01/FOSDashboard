@@ -1,5 +1,5 @@
 /**
- * PRD version 2.24.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.26.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Sales opportunity tracker spreadsheet reader (feature 030). Reads the sales
  * team's Opportunity Tracker tab and optional Stage Definitions tab.

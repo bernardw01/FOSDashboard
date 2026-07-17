@@ -251,6 +251,40 @@
       "url": "https://win.godeap.io/app/projects/1615262/notebooks/312389",
       "featureId": "032",
       "publishedAt": "2026-07-08"
+    },
+    "feature_033": {
+      "id": 312624,
+      "title": "Feature 033 - User profile and alert email notifications",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/312624",
+      "featureId": "033",
+      "publishedAt": "2026-07-15",
+      "lastSyncedAt": "2026-07-15"
+    },
+    "feature_033_implementation_plan": {
+      "id": 312625,
+      "title": "Feature 033 - Implementation plan (profile + alert emails)",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/312625",
+      "featureId": "033",
+      "publishedAt": "2026-07-15",
+      "lastSyncedAt": "2026-07-15"
+    },
+    "feature_034": {
+      "id": 312664,
+      "title": "Feature 034 - Live dashboard warm cache and Portfolio batch builds",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/312664",
+      "featureId": "034",
+      "publishedAt": "2026-07-16",
+      "lastSyncedAt": "2026-07-16",
+      "gitMirror": "docs/features/034-live-dashboard-warm-cache-and-portfolio-batching.md"
+    },
+    "feature_034_implementation_plan": {
+      "id": 312665,
+      "title": "Feature 034 - Implementation plan (warm cache + Portfolio batches)",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/312665",
+      "featureId": "034",
+      "publishedAt": "2026-07-16",
+      "lastSyncedAt": "2026-07-16",
+      "gitMirror": "docs/features/034-live-dashboard-warm-cache-and-portfolio-batching-implementation-plan.md"
     }
   },
   "tasks": {
@@ -771,6 +805,56 @@
       "url": "https://win.godeap.io/app/tasks/40429663",
       "renameAtShip": "v{FOS_PRD_VERSION} - FinOps Ask (panel-scoped AI Q&A)",
       "workflowStage": "Spec Draft"
+    },
+    "Feature 033 - User profile and alert email notifications": {
+      "id": 40497529,
+      "tasklist": "Platform and shell",
+      "featureId": "033",
+      "releaseType": "Enhancement",
+      "releaseTitle": "User profile and alert email notifications",
+      "provisionalTaskName": true,
+      "shippedVersion": null,
+      "notebookKey": "feature_033",
+      "implementationPlanNotebookKey": "feature_033_implementation_plan",
+      "inboxTaskId": 40228889,
+      "inboxTaskUrl": "https://godeap.teamwork.com/app/tasks/40228889",
+      "url": "https://win.godeap.io/app/tasks/40497529",
+      "renameAtShip": "v{FOS_PRD_VERSION} - User profile and alert email notifications",
+      "workflowStage": "In-progress"
+    },
+    "v2.26.1 - Live dashboard warm cache and Portfolio batch builds": {
+      "id": 40507567,
+      "tasklist": "Data platform",
+      "featureId": "034",
+      "releaseType": "Enhancement",
+      "releaseTitle": "Live dashboard warm cache and Portfolio batch builds",
+      "provisionalTaskName": false,
+      "shippedVersion": "v2.26.1",
+      "notebookKey": "feature_034",
+      "implementationPlanNotebookKey": "feature_034_implementation_plan",
+      "url": "https://win.godeap.io/app/tasks/40507567",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Live dashboard warm cache and Portfolio batch builds",
+      "workflowStage": "Shipped",
+      "shippedAt": "2026-07-16",
+      "estDevHours": 20,
+      "estDevHoursRationale": [
+        "Git range: 37927841..HEAD (63 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Apps Script module `src/Code.js`: +0.9h",
+        "Client chart/UI (`src/DashboardShell.html`, +631 lines): +4.5h",
+        "Apps Script module `src/authUsersSheet.js`: +1.1h",
+        "Apps Script module `src/dashboardSnapshotJob.js`: +2.2h",
+        "Apps Script module `src/dashboardSnapshotStore.js`: +1.8h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +1 lines): +2.0h",
+        "Apps Script module `src/portfolioPnlExcelExport.js`: +2.2h",
+        "Apps Script module `src/userActivityLog.js`: +1.0h",
+        "Feature spec / docs (+563 lines): +2.0h",
+        "Teamwork / automation scripts (+536 lines): +1.6h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 20.5h"
+      ],
+      "estDevHoursGitBase": "37927841ffb47cc1a2655a555c0f1e5bea3f347a"
     }
   },
   "lastBootstrappedAt": "2026-06-10"

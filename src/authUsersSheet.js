@@ -1,10 +1,11 @@
 /**
- * PRD version 2.24.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.26.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Spreadsheet-backed user authorization (Users tab).
  * Script Properties: AUTH_SPREADSHEET_ID (required), AUTH_USERS_SHEET_NAME (default Users),
  * AUTH_COL_EMAIL, AUTH_COL_ROLE, AUTH_COL_TEAM (defaults Email, Role, Team),
- * AUTH_COL_FIBERY_ACCESS (default `fibery_access`).
+ * AUTH_COL_FIBERY_ACCESS (default `fibery_access`),
+ * AUTH_COL_PROFILE (default `Profile`) - Feature 033 Profile JSON on this same tab.
  *
  * The `fibery_access` column is OPTIONAL. When the header is missing the whole
  * deployment is treated as "no Fibery access for anyone" (deny by default).

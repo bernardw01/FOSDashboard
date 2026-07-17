@@ -1,6 +1,6 @@
 # Feature: Delivery Dashboard - Active Projects + Per-Project P&L
 
-> **PRD version 2.12.0** - Phase A shipped in v1.19.0; **Phase B** in v1.20.0; **Phase C (pacing strip, delivery signals, portfolio Sankey)** in v1.21.0; **forecast revenue patch** in v2.6.2; **P&L chart labor-by-role patch** in v2.6.8; **P&L chart month tooltip + click modal** in v2.6.9; **client-side customer / type / status filters** in v2.11.2; **agreement status updates on P&L** in v2.12.0 ([018](018-agreement-status-updates-delivery-pnl.md)).
+> **PRD version 2.26.0** - Feature **034** adds browser/Drive Agreement reuse for the Active Projects list; per-project P&L behavior is unchanged.
 > `src/Code.js` `FOS_PRD_VERSION` and every `src/*` file header MUST match the
 > version line in `docs/FOS-Dashboard-PRD.md`.
 
@@ -14,6 +14,7 @@
 | **Status updates on P&L** | Latest Fibery **Status Updates** chip + **Add status update** modal; `statusUpdates` on P&L payload; cache **`_v5`** | v2.12.0 | **Shipped** |
 | **Resource allocation cost on chart** | Planned labor from Fibery **Resource Allocations** as dashed line on P&L chart; `resourceAllocations` on payload; cache **`_v6`** | v2.12.6 | **Shipped** |
 | **P&L month modal allocation + variance** | Chart click modal: **Actual / Allocated / Variance** by role; `allocatedByRole`; cache **`_v7`** | v2.12.8 | **Shipped** |
+| **Agreement payload reuse** | Active Projects derives from a fresh browser Agreement payload when safe, otherwise today's Agreement Drive cache before Fibery; source labels propagate. | v2.26.0 | **Shipped** ([034](034-live-dashboard-warm-cache-and-portfolio-batching.md)) |
 
 ## Goal
 
@@ -27,8 +28,9 @@ current month, the labor cost, expenses (Materials & ODC), revenue
 recognized, gross profit ($), and margin (%).
 
 The Active Projects table is a thin presentation layer over the existing
-Agreement Dashboard server payload (`getAgreementDashboardData()`) - no
-new Fibery query is required for it. The **monthly P&L is lazy-fetched
+Agreement Dashboard payload. It reuses a fresh browser payload when safely
+below the RPC cap, otherwise the shared same-day Drive/Fibery Agreement path,
+so no duplicate Agreement Fibery query is required. The **monthly P&L is lazy-fetched
 per project on selection** so the initial Delivery panel open stays
 lightweight: each click triggers three small Fibery queries all scoped to
 the clicked agreement (no date filter, full project lifetime) - Labor

@@ -1,5 +1,5 @@
 /**
- * PRD version 2.24.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.26.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Portfolio Project P&L (Finance route `portfolio-pnl`, features 022 + 025).
  * Returns the in-scope project index and bundled monthly P&L payloads
@@ -141,16 +141,27 @@ function getPortfolioPnLDashboardData(forceRefresh) {
         cacheDateKey
       );
     }
+    if (cacheResult.ok && cacheResult.building) {
+      return cacheResult;
+    }
     if (!cacheResult.ok && cacheResult.message) {
       return cacheResult;
     }
+  } else {
+    // Explicit safe fallback for deployments without a configured/enabled Drive cache.
+    // This retains the legacy synchronous builder because continuation state requires Drive.
+    var fallbackBuilt = buildPortfolioPnlBundleFromFibery_();
+    if (!fallbackBuilt.ok) {
+      return fallbackBuilt;
+    }
+    return portfolioPnlDashboardPayloadFromBundle_(fallbackBuilt, false, null);
   }
 
-  var built = buildPortfolioPnlBundleFromFibery_();
-  if (!built.ok) {
-    return built;
-  }
-  return portfolioPnlDashboardPayloadFromBundle_(built, false, null);
+  return {
+    ok: false,
+    source: 'fibery',
+    message: 'Portfolio P&L Drive build did not return a bundle or build progress.',
+  };
 }
 
 /**

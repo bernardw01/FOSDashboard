@@ -1,6 +1,6 @@
 # Dashboard historical snapshots
 
-> **PRD version 2.24.0** - see `docs/FOS-Dashboard-PRD.md` (**FR-42**, **FR-40**, **FR-104**, **FR-126**, **AC-60**, **AC-88**). **v2.24.0** schema upgrade job for stale Drive snapshots.
+> **PRD version 2.26.0** - see `docs/FOS-Dashboard-PRD.md` (**FR-42**, **FR-40**, **FR-104**, **FR-126**, **FR-130**, **AC-60**, **AC-88**, **AC-92**). Feature **034** reuses the snapshot root for Live daily caches without changing historical snapshot artifacts.
 
 ## Goal
 
@@ -17,6 +17,8 @@ Root folder: Script Property **`FOS_SNAPSHOT_DRIVE_FOLDER_ID`** (create via **`e
 ```
 <root>/
  index.json # rolling catalog of recent snapshot dates
+ agreement-cache/YYYY-MM-DD/ # Live warm cache (feature 034; not a snapshot dataset)
+ portfolio-pnl-cache/YYYY-MM-DD/ # Live daily bundle + build state
  YYYY-MM-DD/
  manifest.json
  agreement.json
@@ -28,6 +30,8 @@ Root folder: Script Property **`FOS_SNAPSHOT_DRIVE_FOLDER_ID`** (create via **`e
  delivery-pnl/
  <agreementId>.json
 ```
+
+The `agreement-cache/` and `portfolio-pnl-cache/` folders are **Live-mode daily caches**, not historical date artifacts and not entries in the snapshot `manifest.json`. Historical snapshot builders continue to call `buildAgreementDashboardPayload_(snapshotDate)` directly and remain isolated from Live cache reads.
 
 ### Manifest (`snapshotManifestVersion: 1`)
 

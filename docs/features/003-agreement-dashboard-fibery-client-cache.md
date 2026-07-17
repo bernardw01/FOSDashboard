@@ -1,6 +1,6 @@
 # Feature: Agreement Dashboard (Fibery + client cache)
 
-> **PRD version 2.23.0** - see `docs/FOS-Dashboard-PRD.md`. Brand logo note updated for v2.23.0 FinOps Performance Hub rebrand.
+> **PRD version 2.26.0** - see `docs/FOS-Dashboard-PRD.md`. Feature **034** adds the Live same-day Drive warm cache.
 
 ## Status
 
@@ -12,10 +12,11 @@
 | **Cosmetic (v1.13.0)** | Removed the duplicate in-panel harpin logo + `.agreement-logo-sep` divider from the panel header - the app sidebar (`.fos-brand-logo`) is now the single rendered brand mark. **Page heading + subtitle stay** in `#panel-agreement-dashboard` (panel structure unchanged). Cross-reference: shipped jointly with the Utilization Management Dashboard Phase B cleanup in `docs/features/005-utilization-management-dashboard.md`. | **Delivered v1.13.0** |
 | **UX polish (v1.13.1)** | (1) Semi-transparent **`.fos-loading-overlay`** added inside `#panel-agreement-dashboard .fos-agreement-inner` - toggled on at the start of every `fetchAgreementFromServer()` call and off in both handlers, covering initial load / Refresh / background stale-refresh. (2) **Sticky panel render** - navigating away and back no longer re-runs `applyAgreementPayload(cached)` when the cached payload's `fetchedAt` matches what the DOM already shows, preserving Chart.js + Sankey + Financial-Performance table state. Stale-detection + background fetch logic (FR-56b) still fires. See main PRD **FR-54**, **AC-27**. | **Delivered v1.13.1** |
 | **Agreement milestones modal (v1.18.0)** | Every row in the Financial performance table (across all three tabs) is now a focusable button (`role="button"`, `tabindex="0"`); click + Enter / Space open `#finAgreementModal` listing the agreement's Revenue Items as **Milestone · Target amount · Target date · Invoice status**. Backed by a new server-supplied `payload.revenueItemsByAgreement` map built by re-keying the existing historical + future revenue-item arrays - **no new Fibery queries**. Within each agreement, items are sorted by `targetDate` ascending (null-date items pushed to the bottom). The Invoice-status pill color is keyed off the Revenue Item's workflow `state` via substring match (paid / invoiced / recognized → green, scheduled / planned → amber, pending → orange, cancelled / void → red, fallback → gray). The modal emits an `agreement_milestones_open` activity-log event on every open. See main PRD **FR-86**, **AC-41**. | **Delivered v1.18.0** |
+| **Live Drive warm cache (v2.26.0)** | Same-day `agreement-cache/YYYY-MM-DD/` manifest + bundle under the snapshot root; schema validation, LockService build dedupe, 14-day retention, Drive source labels; manual Refresh bypasses and rewrites. | **Delivered v2.26.0** ([034](034-live-dashboard-warm-cache-and-portfolio-batching.md)) |
 
 ## Goal
 
-Deliver the **Agreement Management / revenue-style dashboard** in the FOS Web App as the **Agreement Dashboard** left-nav entry (route id `agreement-dashboard`, panel id `panel-agreement-dashboard`; the legacy `finance` route id was retired in v1.11.0): visuals and semantics aligned with `docs/agreement-dashboard-prd-v2.md` **§7 (components), §8 (thresholds/colors), and §9.5 - §9.7 (design system / brand / layout)**, with **data live from Fibery** via authorized server handlers and **no persistent server-side datastore** for dashboard payloads. Use a **browser cache** (`sessionStorage`) for speed, plus a **Refresh** control that re-fetches from the server and a **configurable TTL** (5 / 10 / 30 / Off, default 10 min) that drives a quiet refresh-on-open when the cache is stale.
+Deliver the **Agreement Management / revenue-style dashboard** in the FOS Web App as the **Agreement Dashboard** left-nav entry (route id `agreement-dashboard`, panel id `panel-agreement-dashboard`; the legacy `finance` route id was retired in v1.11.0): visuals and semantics aligned with `docs/agreement-dashboard-prd-v2.md` **§7 (components), §8 (thresholds/colors), and §9.5 - §9.7 (design system / brand / layout)**, with **Fibery authoritative** behind authorized server handlers. Use a **same-day Drive warm cache** for cross-user responsiveness, a **browser cache** (`sessionStorage`) for repeat navigation, plus a **Refresh** control that bypasses Drive and re-fetches Fibery. A configurable browser TTL (5 / 10 / 30 / Off, default 10 min) drives a quiet refresh-on-open when the browser cache is stale.
 
 ## User stories
 
@@ -70,9 +71,9 @@ Copy **`agreement-dashboard-prd-v2.md` §9.5 - §9.7** into the Agreement Dashbo
 
 ## Server contract
 
-- **`getAgreementDashboardData()`** - `requireAuthForApi_()`; runs four batched Fibery queries in one `/api/commands` POST, normalizes results, enriches each agreement with revenue-item counts + §5.6 scheduling status, computes KPIs / alerts / chart view models / financial table rows, and returns the full payload. On Fibery errors (missing host/token, 4xx, network), returns `{ ok: false, message, warnings }` and the client keeps the prior cache rendered.
+- **`getAgreementDashboardData(forceRefresh?)`** - `requireAuthForApi_()`; reads today's schema-valid Drive bundle when enabled, otherwise runs four batched Fibery queries in one `/api/commands` POST, normalizes results, and writes the successful payload to Drive. `forceRefresh=true` bypasses and rewrites Drive. On Fibery errors (missing host/token, 4xx, network), returns `{ ok: false, message, warnings }` and the client keeps the prior cache rendered.
 - **`getAgreementCacheTtlMinutes()`** - `requireAuthForApi_()`; returns the server-side TTL seed (default 10, override via Script Property `AGREEMENT_CACHE_TTL_MINUTES`).
-- **No** writing dashboard payloads to Script Properties / Sheet / Drive for this feature.
+- **`AGREEMENT_DRIVE_CACHE_ENABLED`** - defaults true when `FOS_SNAPSHOT_DRIVE_FOLDER_ID` is configured; set false to restore Fibery-on-every-server-call behavior.
 
 ## Required Script Properties
 

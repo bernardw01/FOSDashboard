@@ -1,6 +1,6 @@
 # Feature: Portfolio P&L performance and load-source UX
 
-> **PRD version 2.22.1** - **FR-120** / **AC-79** (Released v2.16.0; load-overlay progress copy patched v2.22.1)  
+> **PRD version 2.26.0** - **FR-120** / **AC-79** (Released v2.16.0; load-overlay progress copy patched v2.22.1; continuation build added v2.26.0)
 > **Feature id:** 025 | **Task list:** Finance  
 > **Teamwork notebook:** [Feature 025](https://win.godeap.io/app/projects/1615262/notebooks/311911)  
 > **Release task:** [Feature 025 - Portfolio P&L performance and load source](https://win.godeap.io/app/tasks/40203349)  
@@ -196,6 +196,7 @@ Extend **`dashboardSnapshotJob.js`**; feature **009** dataset table row; client 
 - [x] Phase B: batch size + slim portfolio builder
 - [x] Phase C: Drive daily portfolio cache
 - [x] Phase D: snapshot `portfolio-pnl.json`
+- [x] Feature **034** follow-on: cold Live daily cache builds persist progress and continue in bounded server batches (`PORTFOLIO_PNL_LIVE_BUILD_BATCH_SIZE`)
 - [x] PRD **FR-120**, **AC-79** released; version **2.16.0**
 - [ ] Teamwork release task at ship
 
@@ -203,6 +204,7 @@ Extend **`dashboardSnapshotJob.js`**; feature **009** dataset table row; client 
 
 | Version | Date | Notes |
 | --- | --- | --- |
+| 2.26.0 | 2026-07-16 | Feature **034** replaces the Drive-enabled cold all-project loop with persistent `build-state.json`, continuation triggers, and sequential client progress polling. |
 | 2.22.1 | 2026-07-08 | Portfolio load overlay always shows animated progress + current-activity statement during single-bundle Fibery/Drive/snapshot waits (paired with feature **031** export UX). |
 | 2.16.0 | 2026-06-09 | Shipped Phases A–D: load-source UX, slim builder, **`getPortfolioPnLDashboardData`**, Drive **`portfolio-pnl-cache/`**, snapshot **`portfolio-pnl.json`**. **FR-120**, **AC-79**. |
 | (draft) | 2026-06-09 | Initial spec: performance evaluation + load-source UX plan |

@@ -1,20 +1,26 @@
 /**
- * PRD version 2.24.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.26.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement Dashboard orchestrator (route id `agreement-dashboard`, panel
- * `#panel-agreement-dashboard`). No persistent server-side cache
- * of payloads - Fibery is source of truth. The browser owns presentation cache
- * (`sessionStorage`) with a configurable TTL surfaced through
+ * `#panel-agreement-dashboard`). Live loads use same-day Drive warm cache
+ * when `AGREEMENT_DRIVE_CACHE_ENABLED` and the snapshot folder are set
+ * (feature 034 / `agreementDashboardCache.js`). The browser still owns
+ * presentation cache (`sessionStorage`) with TTL from
  * `getAgreementCacheTtlMinutes()` (Script Property `AGREEMENT_CACHE_TTL_MINUTES`,
  * default 10).
  *
  * Public surface (client-callable via google.script.run):
- *   getAgreementDashboardData()      - returns the full view-model payload.
- *   getAgreementCacheTtlMinutes()    - returns the configured default TTL.
+ *   getAgreementDashboardData(forceRefresh?) - full view-model; Drive or Fibery.
+ *   getAgreementCacheTtlMinutes()            - configured default TTL.
+ *
+ * Internal builder (snapshots / jobs; no Drive read/write):
+ *   buildAgreementDashboardPayload_(asOfDateIso)
  *
  * Internal diagnostics (run from the Apps Script editor):
  *   _diag_pingFibery()               - verifies host + token reach Fibery.
  *   _diag_sampleAgreementPayload()   - dumps a 1-agreement / 1-company sample.
+ *   _diag_readAgreementDriveCache()  - today's Drive warm cache (feature 034).
+ *   _diag_loadOrBuildAgreementDriveCache(forceRefresh?)
  */
 
 /** @const {number} Bumped when the client cache shape changes. */
@@ -46,10 +52,19 @@ function getAgreementCacheTtlMinutes() {
  * Returns normalized agreement dashboard JSON for the Agreement Dashboard panel.
  * Re-checks spreadsheet authorization via requireAuthForApi_().
  *
+ * When Drive warm cache is enabled (feature 034), serves today's Drive bundle
+ * unless `forceRefresh` is true (then Fibery rebuild + Drive rewrite).
+ * Payload includes `loadSource` / `source` / `fromDrive` / `cacheDateKey` for
+ * FR-120 client labels.
+ *
+ * @param {boolean=} forceRefresh Bypass Drive cache and rebuild from Fibery.
  * @return {{
  *   ok: boolean,
  *   partial?: boolean,
  *   source: string,
+ *   loadSource?: string,
+ *   fromDrive?: boolean,
+ *   cacheDateKey?: ?string,
  *   fetchedAt: string,
  *   cacheSchemaVersion: number,
  *   ttlMinutes: number,
@@ -65,9 +80,39 @@ function getAgreementCacheTtlMinutes() {
  *   message?: string
  * }}
  */
-function getAgreementDashboardData() {
+function getAgreementDashboardData(forceRefresh) {
   requireAuthForApi_();
-  return buildAgreementDashboardPayload_(null);
+  return getAgreementDashboardDataInternal_(forceRefresh === true);
+}
+
+/**
+ * Agreement load shared by Delivery (already authorized). Drive warm cache
+ * when enabled; otherwise Fibery. Snapshot jobs must keep calling
+ * `buildAgreementDashboardPayload_` directly.
+ *
+ * @param {boolean} forceRefresh
+ * @return {!Object}
+ */
+function getAgreementDashboardDataInternal_(forceRefresh) {
+  var refresh = forceRefresh === true;
+  var cacheDateKey = resolveSnapshotDateKey_(new Date());
+
+  if (isAgreementDriveCacheEnabled_()) {
+    var cacheResult = loadOrBuildAgreementDriveCache_(cacheDateKey, refresh);
+    if (cacheResult && cacheResult.ok && cacheResult.bundle) {
+      return agreementDashboardPayloadFromDriveBundle_(
+        cacheResult.bundle,
+        !!cacheResult.fromDrive,
+        cacheDateKey
+      );
+    }
+    if (cacheResult && cacheResult.ok === false) {
+      return agreementDashboardPayloadFromDriveBundle_(cacheResult, false, null);
+    }
+  }
+
+  var built = buildAgreementDashboardPayload_(null);
+  return agreementDashboardPayloadFromDriveBundle_(built, false, null);
 }
 
 /**

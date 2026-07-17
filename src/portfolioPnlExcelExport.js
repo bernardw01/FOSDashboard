@@ -1,5 +1,5 @@
 /**
- * PRD version 2.24.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.26.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Portfolio P&L Excel export (feature 031).
  * Builds a temporary Spreadsheet from a client-supplied outline tree

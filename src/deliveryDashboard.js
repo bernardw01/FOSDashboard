@@ -1,15 +1,23 @@
 /**
- * PRD version 2.24.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.26.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `delivery`, panel
- * `#panel-delivery`). Two public endpoints, both authorized via
+ * `#panel-delivery`). Public endpoints, all authorized via
  * `requireAuthForApi_()`:
  *
- *   getDeliveryDashboardData()
- *     Returns the active-projects list. Reuses the existing Agreement
- *     Dashboard payload (`getAgreementDashboardData()`) - no extra Fibery
- *     queries - and re-projects each agreement into a Delivery row with
+ *   getDeliveryDashboardData(forceRefresh?)
+ *     Returns the active-projects list. Reuses Agreement via
+ *     `getAgreementDashboardData` (Drive warm cache or Fibery; feature 034)
+ *     and re-projects each agreement into a Delivery row with
  *     completion %, margin variance, and lifetime cost rollups precomputed.
+ *     Propagates Agreement `source` / `loadSource` / `fromDrive` /
+ *     `cacheDateKey` for FR-120 labels.
+ *
+ *   getDeliveryDashboardDataFromAgreementPayload(agreementPayload)
+ *     Thin RPC: auth + validate browser Agreement JSON, then
+ *     `buildDeliveryDashboardPayloadFromAgreement_` with no Fibery.
+ *     Returns `{ ok: false, fallback: true }` when unsafe / too large
+ *     so the client can fall back to `getDeliveryDashboardData`.
  *
  *   getDeliveryProjectMonthlyPnL(agreementId)
  *     Returns a per-project monthly P&L time-series. Issues THREE small
@@ -109,6 +117,14 @@ var DELIVERY_PNL_DEFAULT_MAX_LABOR_ROWS_ = 10000;
 var DELIVERY_QUERY_LIMIT_ = 1000;
 
 /**
+ * Max serialized Agreement JSON accepted by
+ * `getDeliveryDashboardDataFromAgreementPayload` (google.script.run arg size).
+ * Over this, return fallback so the client uses Drive/Fibery path.
+ * @const {number}
+ */
+var DELIVERY_FROM_AGREEMENT_PAYLOAD_MAX_CHARS_ = 1500000;
+
+/**
  * Returns the configured default TTL (minutes) for the Delivery dashboard
  * client cache. Floored at 1 minute; falsy / non-positive values fall back
  * to the 10-minute default. The browser may override per-user via a
@@ -124,10 +140,16 @@ function getDeliveryCacheTtlMinutes() {
 /**
  * Returns the Delivery Dashboard view model.
  * Re-checks spreadsheet authorization via `requireAuthForApi_()`.
+ * Uses Agreement Drive warm cache when available (feature 034); optional
+ * `forceRefresh` rebuilds Agreement from Fibery and rewrites Drive.
  *
+ * @param {boolean=} forceRefresh Bypass Agreement Drive cache.
  * @return {{
  *   ok: boolean,
  *   source: string,
+ *   loadSource?: string,
+ *   fromDrive?: boolean,
+ *   cacheDateKey?: ?string,
  *   fetchedAt: string,
  *   cacheSchemaVersion: number,
  *   ttlMinutes: number,
@@ -137,7 +159,7 @@ function getDeliveryCacheTtlMinutes() {
  *   warnings?: !Array<string>
  * }}
  */
-function getDeliveryDashboardData() {
+function getDeliveryDashboardData(forceRefresh) {
   requireAuthForApi_();
 
   var fetchedAtIso = new Date().toISOString();
@@ -145,11 +167,14 @@ function getDeliveryDashboardData() {
 
   var raw;
   try {
-    raw = getAgreementDashboardData();
+    raw = getAgreementDashboardDataInternal_(forceRefresh === true);
   } catch (e) {
     return {
       ok: false,
       source: 'fibery',
+      loadSource: 'fibery',
+      fromDrive: false,
+      cacheDateKey: null,
       fetchedAt: fetchedAtIso,
       cacheSchemaVersion: DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_,
       ttlMinutes: ttlMinutes,
@@ -160,6 +185,106 @@ function getDeliveryDashboardData() {
     };
   }
   return buildDeliveryDashboardPayloadFromAgreement_(raw, fetchedAtIso, ttlMinutes);
+}
+
+/**
+ * Derives Delivery from a client-supplied Agreement payload (feature 034 B1).
+ * Does not call Fibery. Returns `fallback: true` when the payload is missing,
+ * schema-mismatched, or too large for a safe google.script.run argument.
+ *
+ * @param {?Object} agreementPayload
+ * @return {!Object}
+ */
+function getDeliveryDashboardDataFromAgreementPayload(agreementPayload) {
+  requireAuthForApi_();
+  var fetchedAtIso = new Date().toISOString();
+  var ttlMinutes = resolveDeliveryCacheTtlMinutes_();
+  var validation = validateAgreementPayloadForDelivery_(agreementPayload);
+  if (!validation.ok) {
+    return {
+      ok: false,
+      fallback: true,
+      reason: validation.reason,
+      source: 'agreement-payload',
+      loadSource: 'agreement-payload',
+      fromDrive: false,
+      cacheDateKey: null,
+      fetchedAt: fetchedAtIso,
+      cacheSchemaVersion: DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_,
+      ttlMinutes: ttlMinutes,
+      projects: [],
+      filtersApplied: {},
+      message: validation.message,
+      warnings: [validation.reason || 'INVALID_AGREEMENT_PAYLOAD'],
+    };
+  }
+  return buildDeliveryDashboardPayloadFromAgreement_(
+    agreementPayload,
+    fetchedAtIso,
+    ttlMinutes
+  );
+}
+
+/**
+ * @param {?Object} payload
+ * @return {{ ok: boolean, reason?: string, message?: string }}
+ * @private
+ */
+function validateAgreementPayloadForDelivery_(payload) {
+  if (!payload || typeof payload !== 'object') {
+    return {
+      ok: false,
+      reason: 'INVALID_PAYLOAD',
+      message: 'Agreement payload is missing or not an object.',
+    };
+  }
+  if (payload.ok === false) {
+    return {
+      ok: false,
+      reason: 'AGREEMENT_NOT_OK',
+      message: payload.message || 'Agreement payload is not ok.',
+    };
+  }
+  if (payload.cacheSchemaVersion !== AGREEMENT_DASHBOARD_CACHE_SCHEMA_VERSION_) {
+    return {
+      ok: false,
+      reason: 'SCHEMA_MISMATCH',
+      message:
+        'Agreement cache schema mismatch (got ' +
+        payload.cacheSchemaVersion +
+        ', expected ' +
+        AGREEMENT_DASHBOARD_CACHE_SCHEMA_VERSION_ +
+        ').',
+    };
+  }
+  if (!payload.agreements || typeof payload.agreements.length !== 'number') {
+    return {
+      ok: false,
+      reason: 'INVALID_AGREEMENTS',
+      message: 'Agreement payload missing agreements array.',
+    };
+  }
+  var size;
+  try {
+    size = JSON.stringify(payload).length;
+  } catch (e) {
+    return {
+      ok: false,
+      reason: 'SERIALIZE_FAILED',
+      message: 'Could not serialize Agreement payload for size check.',
+    };
+  }
+  if (size > DELIVERY_FROM_AGREEMENT_PAYLOAD_MAX_CHARS_) {
+    return {
+      ok: false,
+      reason: 'PAYLOAD_TOO_LARGE',
+      message:
+        'Agreement payload too large for Delivery RPC (' +
+        size +
+        ' chars); use Drive or Fibery path.',
+    };
+  }
+  return { ok: true };
 }
 
 /**
@@ -176,11 +301,19 @@ function buildDeliveryDashboardPayloadFromAgreement_(agreementPayload, fetchedAt
   var fetchedAt = fetchedAtIso || new Date().toISOString();
   var ttl = ttlMinutes != null ? ttlMinutes : resolveDeliveryCacheTtlMinutes_();
   var raw = agreementPayload;
+  var agrSource = (raw && raw.source) || 'fibery';
+  var fromDrive = !!(raw && (raw.fromDrive || agrSource === 'drive-cache'));
+  var cacheDateKey = (raw && raw.cacheDateKey) || null;
+  var loadSource =
+    (raw && raw.loadSource) || (fromDrive ? 'drive-cache' : agrSource);
 
   if (!raw || raw.ok === false) {
     return {
       ok: false,
-      source: 'fibery',
+      source: agrSource,
+      loadSource: loadSource,
+      fromDrive: fromDrive,
+      cacheDateKey: fromDrive ? cacheDateKey : null,
       fetchedAt: fetchedAt,
       cacheSchemaVersion: DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_,
       ttlMinutes: ttl,
@@ -197,7 +330,10 @@ function buildDeliveryDashboardPayloadFromAgreement_(agreementPayload, fetchedAt
 
   return {
     ok: true,
-    source: 'fibery',
+    source: agrSource,
+    loadSource: loadSource,
+    fromDrive: fromDrive,
+    cacheDateKey: cacheDateKey,
     fetchedAt: raw.fetchedAt || fetchedAt,
     cacheSchemaVersion: DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_,
     ttlMinutes: ttl,
@@ -397,6 +533,10 @@ function _diag_sampleDeliveryPayload() {
   var payload = getDeliveryDashboardData();
   var summary = {
     ok: payload.ok,
+    source: payload.source,
+    loadSource: payload.loadSource,
+    fromDrive: !!payload.fromDrive,
+    cacheDateKey: payload.cacheDateKey || null,
     projectCount: (payload.projects || []).length,
     filtersApplied: payload.filtersApplied,
     sample: (payload.projects || [])[0] || null,

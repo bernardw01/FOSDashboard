@@ -1,11 +1,11 @@
 /**
- * PRD version 2.24.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.26.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.24.0';
+var FOS_PRD_VERSION = '2.26.1';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '2.24.0';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'Snapshot schema upgrade job regenerates stale Drive dates to current cacheSchemaVersion.';
+  'Feature 034 reliability: nested ScriptLock safety and Portfolio batch self-healing.';
 
 /**
  * @return {string}

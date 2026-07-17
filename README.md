@@ -1,27 +1,40 @@
 # FinOps Performance Hub
 
-**FinOps Performance Hub** (formerly harpin FOS / Finance & Operations Snapshot) is a **Google Apps Script** web application that gives authorized harpin Workspace users a single place to review **ops, delivery, finance, and sales** metrics drawn from systems the company already uses (primarily **Fibery**, curated **Google Sheets**, and sync pipelines such as Clockify → Fibery).
+**FinOps Performance Hub** (formerly harpin FOS / Finance & Operations Snapshot) is a **Google Apps Script** web application that gives authorized harpin Workspace users a **single pane of glass** for **ops, delivery, finance, and sales** performance. It aggregates curated metrics from systems the company already uses (primarily **Fibery**, **Google Sheets**, and sync pipelines such as Clockify → Fibery) and presents them with clear freshness indicators, role-based access, and optional historical browse.
 
-**Current product version:** **2.24.0** (`FOS_PRD_VERSION` in [`src/Code.js`](src/Code.js))  
-**Product PRD:** [`docs/FOS-Dashboard-PRD.md`](docs/FOS-Dashboard-PRD.md)  
+**Current product version:** **2.26.0** (`FOS_PRD_VERSION` in [`src/Code.js`](src/Code.js))
+**Product PRD:** [`docs/FOS-Dashboard-PRD.md`](docs/FOS-Dashboard-PRD.md)
 **Feature map:** [`docs/features/000-overview.md`](docs/features/000-overview.md)
+**Feature template:** [`docs/FEATURE_TEMPLATE.md`](docs/FEATURE_TEMPLATE.md)
+**Teamwork workflow:** [`docs/teamwork-workflow.md`](docs/teamwork-workflow.md)
 
-The app **reads and presents** data. It does **not** replace systems of record or upstream sync jobs (for example the Clockify ↔ Fibery work in [`docs/PRD.md`](docs/PRD.md)).
+### Intent (what this product is)
+
+| In scope | Out of scope |
+| --- | --- |
+| **Read and present** KPIs, tables, charts, and alerts from configured sources | Full BI / ad-hoc “slice any dimension” explorer |
+| Google Workspace-native **published Web App** (HtmlService + `clasp`) | Replacing Fibery, Sheets, Clockify, or the ledger as system of record |
+| Spreadsheet-based **authorization** (Role / Team / optional Fibery access) | Mobile-native apps (responsive web is the mobile surface) |
+| **Live** Fibery/Sheets loads plus **historical Drive snapshots** and same-day Drive caches where shipped | Unscoped write-back to external systems (except explicitly specified features such as Delivery status updates) |
+| Personal **Profile** for opt-in alert email digests and an in-app notification tray | SMS / push / Slack channels (v1) |
+
+The app sits **alongside** upstream sync jobs; it does not replace them. Related Clockify ↔ Fibery sync product notes live in [`docs/PRD.md`](docs/PRD.md).
 
 ---
 
 ## What the solution is
 
-FOS is a published **Apps Script Web App** (`DashboardShell.html`) with:
+FinOps Performance Hub is a published **Apps Script Web App** (`DashboardShell.html`) with:
 
 | Layer | What it does |
 | --- | --- |
-| **Authorization** | Matches the signed-in Google account to a **Users** sheet row (`AUTH_SPREADSHEET_ID`). Denied users see `NotAuthorized.html`. |
+| **Authorization** | Matches the signed-in Google account to a **Users** sheet row (`AUTH_SPREADSHEET_ID`). Denied users see `NotAuthorized.html` with distinct reason codes. |
 | **Role / team entitlements** | Sidebar routes and `google.script.run` APIs are gated by **Role** and **Team** (plus optional **`fibery_access`** for “Open in Fibery” links). |
-| **Live dashboards** | Server modules fetch Fibery (or Sheets), normalize payloads, and the browser caches them in `sessionStorage` with configurable TTL. |
-| **Historical mode** | A daily job writes dashboard JSON to **Google Drive**. Users can switch the sidebar **Data source** from **Live** to a dated snapshot and browse without Fibery calls. |
-| **Admin Settings** | **ADMIN** users edit Script Properties, view usage analytics, and run operator actions (for example AI usage sync) from the in-app Settings panel. |
-| **Mobile shell** | Below **768px**: bottom nav, data-source pill, filter bottom sheets, and mobile layouts for Home, Agreements, and Pipeline. |
+| **Live dashboards** | Server modules fetch Fibery (or Sheets), normalize payloads, and the browser caches them in `sessionStorage` with configurable TTL. **Agreements**, **Portfolio P&L**, and **AI Usage** also use same-day Drive caches; Portfolio cold builds continue in bounded server batches. |
+| **Historical mode** | A daily job writes dashboard JSON to **Google Drive**. Users switch **Data source** from **Live** to a dated snapshot and browse without Fibery calls. Stale snapshot schemas can be upgraded via an operator job. |
+| **Profile and notifications** | Every authorized user has a **Profile** panel (sidebar, above Settings) for opt-in **Hourly / Daily / Weekly** HTML alert digests; a header **bell** opens the in-app notification tray backed by a Notification Log. |
+| **Admin Settings** | **ADMIN** users edit Script Properties, view usage analytics, manage App Versions, and run operator actions (AI usage sync, hourly digest) from Settings. |
+| **Mobile shell** | Below **768px**: bottom nav, data-source pill, filter bottom sheets, and mobile layouts for Home, Agreements, Pipeline, Profile, and the notification tray. |
 
 App title in the browser: **FinOps Performance Hub**.
 
@@ -39,14 +52,14 @@ If your email is missing, blank, or the sheet is misconfigured, you see the **Ac
 
 | Access rule | Who sees it |
 | --- | --- |
-| **Home**, **Operations** (Agreements, Utilization, Labor hours), **Delivery** | All authorized users |
+| **Home**, **Operations** (Agreements, Utilization, Labor hours), **Delivery**, **Profile**, notification bell | All authorized users |
 | **Sales → Pipeline** | `Team = CLIENT-ENGAGEMENT`, or `Role = EXEC` / `ADMIN` |
 | **Operations → Resource assignments** | Same as Pipeline (CLIENT-ENGAGEMENT / EXEC / ADMIN) |
 | **Finance** (Portfolio P&L, Expenses, AI Usage) | `Team = FINANCE`, or `Role = EXEC` / `ADMIN` |
 | **Settings** | `Role = ADMIN` only |
 | **Open in Fibery** deep links | Users with truthy **`fibery_access`** on the Users sheet |
 
-Admins control roster and entitlements in the auth spreadsheet; most Script Properties are editable in **Settings**.
+Admins control roster and entitlements in the auth spreadsheet (including optional **Profile** JSON on the Users tab). Most Script Properties are editable in **Settings**.
 
 ### Day-to-day use
 
@@ -54,8 +67,9 @@ Admins control roster and entitlements in the auth spreadsheet; most Script Prop
 2. **Data source** (sidebar on desktop; top-bar pill on mobile) - Choose **Live data** or a **historical snapshot** date. Snapshot mode disables live Refresh / Fibery writes where applicable.
 3. Open a dashboard from the left nav (or mobile bottom nav: Home, Agreements, Ops, Delivery, More).
 4. Use **Refresh** when you need a fresh Fibery/Sheets pull (Live mode only, subject to that panel’s cache TTL).
-5. Use filters, charts, tables, **Copy CSV**, and drill-downs as documented per panel below.
-6. **ADMIN**: open **Settings** for environment keys, usage (last 30 days), App Versions registry, and AI usage sync controls.
+5. Use filters, charts, tables, **Copy CSV** / **Export Excel** (where shipped), and drill-downs as documented per panel below.
+6. **Profile** (sidebar footer, above Settings) - Opt in to alert email digests; open the header **bell** to review and clear in-app notifications.
+7. **ADMIN**: open **Settings** for environment keys, usage (last 30 days), App Versions registry, AI usage sync, and digest operator controls.
 
 Loading overlays show a **Source:** line (Live Fibery, Browser cache, Snapshot, Drive cache, Spreadsheet) so you know where the numbers came from.
 
@@ -63,7 +77,7 @@ Loading overlays show a **Source:** line (Live Fibery, Browser cache, Snapshot, 
 
 ## Features in the solution (by nav area)
 
-Routes and panels below match `buildNavigationModel_()` in [`src/Code.js`](src/Code.js).
+Routes and panels below match `buildNavigationModel_()` in [`src/Code.js`](src/Code.js) plus Profile / Settings affordances in the shell.
 
 ### Home
 
@@ -98,38 +112,48 @@ Routes and panels below match `buildNavigationModel_()` in [`src/Code.js`](src/C
 
 | Route | Capability | Spec |
 | --- | --- | --- |
-| **`portfolio-pnl`** | **Portfolio P&L**: Portfolio → Customer → Project grid (Subscription + Services), type filters, projected months, Drive daily cache + snapshot bundle, load **Source:** UX; negative cost/margin styling | [022](docs/features/022-portfolio-project-pnl.md) · [025](docs/features/025-portfolio-pnl-performance-and-load-source-ux.md) |
+| **`portfolio-pnl`** | **Portfolio P&L**: Portfolio → Customer → Project grid (Subscription + Services), type filters, projected months, Drive daily cache + snapshot bundle, load **Source:** UX; negative cost/margin styling; **Export Excel** with row outline groups | [022](docs/features/022-portfolio-project-pnl.md) · [025](docs/features/025-portfolio-pnl-performance-and-load-source-ux.md) · [031](docs/features/031-portfolio-pnl-excel-export.md) |
 | **`expenses`** | **Expenses**: Spreadsheet-backed lines, Sankey, charts (department/category/software risk/submission cycle), filters, drilldown modal, CSV; snapshot `expenses.json` | [015](docs/features/015-expenses-dashboard.md) |
 | **`ai-usage`** | **AI Usage**: Fibery Claude API Costs (Anthropic), filters, charts, CSV; Drive daily `ai-usage-cache/`; Refresh rebuilds from Fibery | [023](docs/features/023-ai-usage-dashboard.md) |
+
+### Account and notifications
+
+| Capability | Notes | Spec |
+| --- | --- | --- |
+| **Profile** (`#panel-profile`) | Sidebar identity above Settings; opt-in fine-grained alert subscriptions (Hourly / Daily / Weekly); preferences on Users-tab **Profile** JSON | [033](docs/features/033-user-profile-alert-email-notifications.md) |
+| **Notification tray** | Header bell + slide-out list; dismiss per item; backed by Notification Log | [033](docs/features/033-user-profile-alert-email-notifications.md) |
+| **Email digests** | HTML digests with deep links for subscribed Agreement + Utilization alerts; scheduled jobs (+ ADMIN Run hourly now) | [033](docs/features/033-user-profile-alert-email-notifications.md) |
 
 ### Platform (cross-cutting)
 
 | Capability | Spec |
 | --- | --- |
-| Shell navigation, branding, Settings link affordance | [001](docs/features/001-dashboard-shell-navigation.md) |
+| Shell navigation, branding, Settings / Profile affordances | [001](docs/features/001-dashboard-shell-navigation.md) |
 | Spreadsheet user authorization + Fibery access gate | [002](docs/features/002-spreadsheet-user-authorization.md) |
 | User Activity logging | [004](docs/features/004-user-activity-logging.md) |
-| Daily Drive historical snapshots (+ Expenses, Pipeline, Resource assignments, Portfolio P&L) | [009](docs/features/009-dashboard-historical-snapshots.md) |
+| Daily Drive historical snapshots (+ Expenses, Pipeline, Resource assignments, Portfolio P&L) and schema upgrade for stale dates | [009](docs/features/009-dashboard-historical-snapshots.md) |
 | Live vs snapshot **Data source** selector | [010](docs/features/010-dashboard-historical-data-source.md) |
 | ADMIN Settings (Script Properties) | [011](docs/features/011-admin-settings-environment-panel.md) |
 | Settings usage analytics + collapsible groups | [012](docs/features/012-admin-settings-usage-analytics-collapsible.md) |
 | App Versions registry + update banner (**Available** column) | [013](docs/features/013-app-versions-registry.md) |
 | AI platform usage sync (Anthropic → Fibery) + Settings **Run sync now** | [017](docs/features/017-ai-platform-usage-fibery-sync.md) |
 | Mobile shell Phase A + B | [029](docs/features/029-mobile-shell-phase-ab.md) |
+| User Profile + alert email notifications + notification tray | [033](docs/features/033-user-profile-alert-email-notifications.md) |
+| Live Agreement warm cache, Delivery Agreement reuse, Portfolio continuation builds | [034](docs/features/034-live-dashboard-warm-cache-and-portfolio-batching.md) |
 
 ### Planned (not yet shipped)
 
 | Feature | Spec |
 | --- | --- |
-| Portfolio P&L Excel export | [031](docs/features/031-portfolio-pnl-excel-export.md) |
-| Scenario Planning (R1) | [014](docs/features/014-scenario-planning.md) |
-| AI usage: OpenAI ingest / allocation rules (beyond Anthropic) | [017](docs/features/017-ai-platform-usage-fibery-sync.md) |
+| FinOps Ask (panel-scoped AI Q&A) | [032](docs/features/032-finops-ai-ask-panel.md) |
+| Scenario Planning (R1) | [014](docs/features/014-scenario-planning.md) ([plan](docs/features/014-scenario-planning-implementation-plan.md)) |
+| AI usage: OpenAI ingest / allocation rules (beyond Anthropic) | [017](docs/features/017-ai-platform-usage-fibery-sync.md) ([plan](docs/features/017-ai-platform-usage-fibery-sync-implementation-plan.md)) |
 
 ---
 
 ## Feature specs index
 
-Numbered files under [`docs/features/`](docs/features/). Prefer the overview for “what shipped”; use individual specs for acceptance detail.
+Numbered files under [`docs/features/`](docs/features/). Prefer the [overview](docs/features/000-overview.md) for “what shipped”; use individual specs for acceptance detail. Implementation plans (where present) sit beside the matching `0NN-*.md` file.
 
 | Doc | Scope |
 | --- | --- |
@@ -142,7 +166,7 @@ Numbered files under [`docs/features/`](docs/features/). Prefer the overview for
 | [006-delivery-project-pnl.md](docs/features/006-delivery-project-pnl.md) | Delivery Projects & P&L |
 | [007-labor-hours-dashboard.md](docs/features/007-labor-hours-dashboard.md) | Labor hours |
 | [008-revenue-review-dashboard.md](docs/features/008-revenue-review-dashboard.md) | Revenue review |
-| [009-dashboard-historical-snapshots.md](docs/features/009-dashboard-historical-snapshots.md) | Daily Drive snapshots |
+| [009-dashboard-historical-snapshots.md](docs/features/009-dashboard-historical-snapshots.md) | Daily Drive snapshots + schema upgrade |
 | [010-dashboard-historical-data-source.md](docs/features/010-dashboard-historical-data-source.md) | Data source selector |
 | [011-admin-settings-environment-panel.md](docs/features/011-admin-settings-environment-panel.md) | Settings Script Properties UI |
 | [012-admin-settings-usage-analytics-collapsible.md](docs/features/012-admin-settings-usage-analytics-collapsible.md) | Settings usage analytics |
@@ -164,7 +188,12 @@ Numbered files under [`docs/features/`](docs/features/). Prefer the overview for
 | [028-resource-assignments-plan-vs-actual.md](docs/features/028-resource-assignments-plan-vs-actual.md) | Plan vs actual |
 | [029-mobile-shell-phase-ab.md](docs/features/029-mobile-shell-phase-ab.md) | Mobile shell |
 | [030-sales-os-pipeline.md](docs/features/030-sales-os-pipeline.md) | Sales OS pipeline |
-| [031-portfolio-pnl-excel-export.md](docs/features/031-portfolio-pnl-excel-export.md) | Portfolio Excel export (planned) |
+| [031-portfolio-pnl-excel-export.md](docs/features/031-portfolio-pnl-excel-export.md) | Portfolio Excel export |
+| [032-finops-ai-ask-panel.md](docs/features/032-finops-ai-ask-panel.md) | FinOps Ask (planned) |
+| [033-user-profile-alert-email-notifications.md](docs/features/033-user-profile-alert-email-notifications.md) | Profile + alert emails + tray |
+| [034-live-dashboard-warm-cache-and-portfolio-batching.md](docs/features/034-live-dashboard-warm-cache-and-portfolio-batching.md) | Live warm cache + Portfolio continuation batches |
+
+Supporting / engineering notes (not full feature specs): [017 Fibery schema API](docs/features/017-fibery-schema-api.md), [017 Fibery schema setup](docs/features/017-fibery-schema-setup.md), [017 phase-0 gap memo](docs/features/017-phase0-gap-memo.md).
 
 ---
 
@@ -182,6 +211,7 @@ Configuration lives in **Project settings → Script properties** (`PropertiesSe
 | `AUTH_USERS_SHEET_NAME` | No | Authorized users tab | `Users` |
 | `AUTH_COL_EMAIL` / `AUTH_COL_ROLE` / `AUTH_COL_TEAM` | No | Column headers | `Email` / `Role` / `Team` |
 | `AUTH_COL_FIBERY_ACCESS` | No | Fibery deep-link gate column | `fibery_access` |
+| `AUTH_COL_PROFILE` | No | Per-user Profile JSON (notifications) | `Profile` |
 
 ### Common connector keys
 
@@ -197,7 +227,7 @@ Configuration lives in **Project settings → Script properties** (`PropertiesSe
 | `AUTH_APP_VERSIONS_SHEET_NAME` | No | App Versions tab (default `App Versions`) |
 | `USER_ACTIVITY_LOGGING_ENABLED` | No | Kill-switch (`false` / `no` / `0`) |
 
-Panel-specific thresholds (Agreement, Utilization, Labor hours, Delivery, Pipeline, Expenses, AI usage, Portfolio, snapshots, Sales OS sheet IDs) are documented in the feature specs above and editable in **Settings**. **Never** commit tokens or spreadsheet IDs to git.
+Panel-specific thresholds (Agreement, Utilization, Labor hours, Delivery, Pipeline, Expenses, AI usage, Portfolio, snapshots, Sales OS sheet IDs, notification jobs) are documented in the feature specs above and editable in **Settings**. **Never** commit tokens or spreadsheet IDs to git.
 
 ---
 
@@ -209,7 +239,9 @@ Panel-specific thresholds (Agreement, Utilization, Labor hours, Delivery, Pipeli
 | [`src/assets/`](src/assets/) | Binaries (favicon, Home hero); embed scripts write data URLs into `src/` |
 | [`scripts/`](scripts/) | Embed helpers, Teamwork workflow utilities |
 | [`docs/`](docs/) | PRDs and feature specs (**not** uploaded; see [`.claspignore`](.claspignore)) |
+| [`docs/teamwork-manifest.json`](docs/teamwork-manifest.json) | Teamwork project ids, notebooks, release tasks |
 | [`.clasp.json`](.clasp.json) | Apps Script `scriptId` + `"rootDir": "src"` |
+| [`.cursor/rules/`](.cursor/rules/) | Cursor agent rules (PRD versioning, snapshots, mobile, Teamwork) |
 
 ---
 
@@ -268,7 +300,9 @@ In Apps Script: **Project settings → Script properties**. Set at least `AUTH_S
 | Task | How |
 | --- | --- |
 | Install daily snapshot trigger | Run `installDailySnapshotTrigger()` / `ensureSnapshotDriveFolder()` (feature [009](docs/features/009-dashboard-historical-snapshots.md)) |
+| Upgrade stale snapshot schemas | `_diag_listStaleSnapshots()` / `_diag_startSnapshotSchemaUpgrade()` ([009](docs/features/009-dashboard-historical-snapshots.md)) |
 | AI usage sync | Daily trigger and/or Settings **Run sync now** ([017](docs/features/017-ai-platform-usage-fibery-sync.md)) |
+| Alert email digests | Hourly / Daily / Weekly jobs + Settings **Run hourly now** ([033](docs/features/033-user-profile-alert-email-notifications.md)) |
 | Snapshot diagnostics | `_diag_snapshotPreflight()`, `_diag_runSnapshotForDate('YYYY-MM-DD')` |
 
 ---
@@ -279,6 +313,7 @@ In Apps Script: **Project settings → Script properties**. Set at least `AUTH_S
 2. **`clasp push`** to upload.
 3. Retest the Web App URL (or a Test deployment).
 4. On every product change: bump [`docs/FOS-Dashboard-PRD.md`](docs/FOS-Dashboard-PRD.md), `FOS_PRD_VERSION` / `FOS_RELEASE_DESCRIPTION` in [`src/Code.js`](src/Code.js), and PRD version headers on all clasp-pushed `src/*` files (see [`.cursor/rules/google-apps-script-core.mdc`](.cursor/rules/google-apps-script-core.mdc)).
+5. For customer-facing features: follow [`docs/teamwork-workflow.md`](docs/teamwork-workflow.md) (Teamwork notebook + release task; sync to `docs/features/` at approval and ship).
 
 If someone edited code in the browser:
 
@@ -299,8 +334,27 @@ Review diffs carefully; pull overwrites matching local `src/` files.
 
 ## Related documents
 
+### Product and features
+
 - [`docs/FOS-Dashboard-PRD.md`](docs/FOS-Dashboard-PRD.md) - main product PRD (FR/AC, changelog).
 - [`docs/features/000-overview.md`](docs/features/000-overview.md) - shipped summary vs planned work.
+- [`docs/FEATURE_TEMPLATE.md`](docs/FEATURE_TEMPLATE.md) - template for new feature notebooks / specs.
 - [`docs/agreement-dashboard-prd-v2.md`](docs/agreement-dashboard-prd-v2.md) - Agreement visuals / Fibery model notes.
-- [`docs/PRD.md`](docs/PRD.md) - Clockify ↔ Fibery sync (related pipeline, separate product).
+- [`docs/release-highlights-since-2.8.md`](docs/release-highlights-since-2.8.md) - narrative release highlights since v2.8.
+
+### Process and adjacent products
+
 - [`docs/teamwork-workflow.md`](docs/teamwork-workflow.md) - Teamwork-first release workflow for this repo.
+- [`docs/teamwork-manifest.json`](docs/teamwork-manifest.json) - notebook and release-task ids.
+- [`docs/PRD.md`](docs/PRD.md) - Clockify ↔ Fibery sync (related pipeline, separate product).
+- [`docs/financial_scenario_modeling_prd.md`](docs/financial_scenario_modeling_prd.md) - scenario / FP&A modeling notes (feeds planned feature [014](docs/features/014-scenario-planning.md)).
+- [`docs/ai-spend-impact-measurement.md`](docs/ai-spend-impact-measurement.md) - AI spend impact measurement guide (related to [017](docs/features/017-ai-platform-usage-fibery-sync.md) / [023](docs/features/023-ai-usage-dashboard.md)).
+
+### Engineering conventions
+
+- [`docs/cursor-apps-script-rules.md`](docs/cursor-apps-script-rules.md) - Apps Script conventions for this codebase.
+- [`.cursor/rules/google-apps-script-core.mdc`](.cursor/rules/google-apps-script-core.mdc) - PRD version bump + `src/` header sync.
+- [`.cursor/rules/dashboard-snapshot-cache-sync.mdc`](.cursor/rules/dashboard-snapshot-cache-sync.mdc) - live cache ↔ historical snapshot alignment.
+- [`.cursor/rules/mobile-ui-shell.mdc`](.cursor/rules/mobile-ui-shell.mdc) - mobile accommodations for shell UI.
+- [`.cursor/rules/teamwork-product-workflow.mdc`](.cursor/rules/teamwork-product-workflow.mdc) - Teamwork ↔ git sync rules.
+- [`.cursor/rules/documentation-style.mdc`](.cursor/rules/documentation-style.mdc) - docs style (no em dashes).

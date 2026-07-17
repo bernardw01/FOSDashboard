@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.24.0 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.26.1 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -2709,6 +2709,174 @@
       color: var(--text) !important;
     }
 
+    .fos-notification-bell {
+      min-width: 44px;
+      min-height: 44px;
+      border-radius: 9999px;
+      border-color: rgba(82, 201, 229, 0.35);
+      color: var(--accent);
+      padding: 0.35rem 0.65rem;
+    }
+
+    .fos-notification-bell:hover,
+    .fos-notification-bell[aria-expanded='true'] {
+      border-color: var(--accent);
+      color: var(--bg);
+      background-color: var(--accent);
+    }
+
+    .fos-notification-badge {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      min-width: 1.1rem;
+      height: 1.1rem;
+      padding: 0 0.25rem;
+      border-radius: 9999px;
+      background: #fc5c65;
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 700;
+      line-height: 1.1rem;
+      text-align: center;
+    }
+
+    .fos-notification-tray-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 1080;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .fos-notification-tray-backdrop.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .fos-notification-tray {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: min(400px, 100vw);
+      height: 100vh;
+      z-index: 1085;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      box-shadow: -8px 0 24px rgba(0, 0, 0, 0.35);
+      transform: translateX(100%);
+      transition: transform 0.22s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .fos-notification-tray.is-open {
+      transform: translateX(0);
+    }
+
+    .fos-notification-tray-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 1rem 1rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .fos-notification-tray-list {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      padding: 0.75rem;
+    }
+
+    .fos-notification-item {
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 0.75rem;
+      margin-bottom: 0.75rem;
+      background: var(--surface2);
+    }
+
+    .fos-notification-item-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.65rem;
+    }
+
+    .fos-notification-item-actions .btn {
+      min-height: 44px;
+    }
+
+    .fos-profile-sub-card {
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 0.85rem;
+      margin-bottom: 0.75rem;
+      background: var(--surface2);
+    }
+
+    #profile-link.active {
+      background: rgba(82, 201, 229, 0.12);
+      color: var(--accent);
+    }
+
+    .fos-toast-host {
+      position: fixed;
+      right: 1rem;
+      bottom: 1rem;
+      z-index: 1095;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.5rem;
+      pointer-events: none;
+      max-width: min(360px, calc(100vw - 2rem));
+    }
+
+    .fos-toast {
+      pointer-events: auto;
+      min-width: 220px;
+      max-width: 100%;
+      padding: 0.75rem 1rem;
+      border-radius: 0.75rem;
+      border: 1px solid rgba(82, 201, 229, 0.35);
+      background: var(--surface2);
+      color: var(--text);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      font-size: 0.875rem;
+      line-height: 1.35;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .fos-toast.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .fos-toast.is-leaving {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    @media (max-width: 767.98px) {
+      .fos-toast-host {
+        bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+        right: 0.75rem;
+        left: 0.75rem;
+        align-items: stretch;
+        max-width: none;
+      }
+
+      .fos-notification-tray {
+        width: 100vw;
+      }
+    }
+
     .btn-menu-mobile {
       border-color: rgba(82, 201, 229, 0.35);
       color: var(--accent);
@@ -3747,7 +3915,6 @@
             />
             <p id="fos-app-title" class="fos-app-headline mb-0">FinOps Performance Hub</p>
           </div>
-          <div id="user-chip" class="small text-secondary text-break">Loading…</div>
         </div>
 
         <div class="px-3 pb-2 border-bottom border-secondary border-opacity-25 flex-shrink-0 fos-sidebar-data-source">
@@ -3769,9 +3936,24 @@
 
         <div class="fos-sidebar-footer mt-auto flex-shrink-0">
           <div
-            id="settings-link-wrap"
-            class="px-2 pt-2 pb-2 border-top d-none"
+            id="fos-sidebar-identity"
+            class="px-2 pt-2 pb-1 border-top"
             style="border-color: var(--border) !important"
+          >
+            <div id="user-chip" class="small text-secondary text-break">Loading…</div>
+            <a
+              href="#"
+              role="button"
+              id="profile-link"
+              class="btn fos-nav-btn w-100 border-0 rounded-3 py-2 d-flex align-items-center gap-2 text-start mt-1"
+            >
+              <i class="bi bi-person-circle" aria-hidden="true"></i>
+              <span class="flex-grow-1">Profile</span>
+            </a>
+          </div>
+          <div
+            id="settings-link-wrap"
+            class="px-2 pt-1 pb-2 d-none"
           >
             <a
               href="#"
@@ -3804,17 +3986,30 @@
           <span class="fos-menu-label ms-1">Menu</span>
         </button>
         <span id="topbar-title" class="navbar-brand mb-0 h6 fw-semibold fos-topbar-title text-truncate">Home</span>
-        <div class="fos-mobile-only ms-auto flex-shrink-0">
+        <div class="ms-auto d-flex align-items-center gap-2 flex-shrink-0">
           <button
             type="button"
-            id="fos-mobile-data-source-btn"
-            class="fos-mobile-ds-pill"
-            aria-label="Change data source"
-            aria-haspopup="dialog"
+            id="fos-notification-bell"
+            class="btn btn-outline-secondary fos-notification-bell position-relative"
+            aria-label="Notifications"
+            aria-expanded="false"
+            aria-controls="fos-notification-tray"
           >
-            <i class="bi bi-database" aria-hidden="true"></i>
-            <span id="fos-mobile-data-source-label">Live</span>
+            <i class="bi bi-bell" aria-hidden="true"></i>
+            <span id="fos-notification-badge" class="fos-notification-badge d-none" aria-hidden="true">0</span>
           </button>
+          <div class="fos-mobile-only">
+            <button
+              type="button"
+              id="fos-mobile-data-source-btn"
+              class="fos-mobile-ds-pill"
+              aria-label="Change data source"
+              aria-haspopup="dialog"
+            >
+              <i class="bi bi-database" aria-hidden="true"></i>
+              <span id="fos-mobile-data-source-label">Live</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -3850,7 +4045,7 @@
         style="background: rgba(94, 234, 212, 0.06)"
         role="note"
       >
-        <strong class="text-info">Tip:</strong> Use the <strong class="text-white">bottom navigation</strong> for Home, Agreements, Ops, and Delivery. Tap <strong class="text-white">More</strong> or <strong class="text-white">Menu</strong> for the full dashboard list and Settings.
+        <strong class="text-info">Tip:</strong> Use the <strong class="text-white">bottom navigation</strong> for Home, Agreements, Ops, and Delivery. Tap <strong class="text-white">More</strong> or <strong class="text-white">Menu</strong> for the full dashboard list, <strong class="text-white">Profile</strong>, and Settings.
       </div>
 
       <div id="load-banner" class="flex-shrink-0 px-3 py-2 small text-secondary border-bottom border-secondary border-opacity-25" role="status">
@@ -3927,6 +4122,44 @@
             <button type="button" class="btn btn-fos-primary" id="settings-save-btn" disabled>Save changes</button>
             <button type="button" class="btn btn-outline-secondary" id="settings-discard-btn" disabled>Discard</button>
             <span id="settings-dirty-hint" class="small text-secondary ms-auto d-none">Unsaved changes</span>
+          </div>
+        </div>
+
+        <div id="panel-profile" class="d-none fos-profile-root">
+          <div class="card fos-card rounded-4 mb-3">
+            <div class="card-body p-4">
+              <h1 class="h4 mb-2 fw-bold text-white">Profile</h1>
+              <p class="text-muted small mb-0">
+                Opt in to email digests for existing Agreement and Utilization alerts. Emails are off until you enable them.
+              </p>
+            </div>
+          </div>
+          <div id="profile-fetch-error" class="alert alert-danger d-none mb-3" role="alert"></div>
+          <div id="profile-save-status" class="alert alert-success d-none mb-3" role="status"></div>
+          <div id="profile-loading" class="text-secondary small py-4 text-center">Loading profile…</div>
+          <div id="profile-form" class="d-none">
+            <div class="card fos-card rounded-4 mb-3">
+              <div class="card-body p-4">
+                <h2 class="h6 fw-semibold text-white mb-3">Email notifications</h2>
+                <div class="form-check form-switch mb-3">
+                  <input class="form-check-input" type="checkbox" role="switch" id="profile-email-enabled" />
+                  <label class="form-check-label" for="profile-email-enabled">Enable alert email digests</label>
+                </div>
+                <label for="profile-timezone" class="form-label small text-secondary">Timezone</label>
+                <input
+                  type="text"
+                  id="profile-timezone"
+                  class="form-control form-control-sm mb-3"
+                  placeholder="America/Chicago"
+                  autocomplete="off"
+                />
+                <div id="profile-subscriptions" class="fos-profile-subscriptions"></div>
+              </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2 pb-4">
+              <button type="button" class="btn btn-fos-primary" id="profile-save-btn" style="min-height: 44px">Save</button>
+              <button type="button" class="btn btn-outline-secondary" id="profile-discard-btn" style="min-height: 44px">Discard</button>
+            </div>
           </div>
         </div>
 
@@ -5935,6 +6168,8 @@
     </div>
   </div>
 
+  <div id="fos-toast-host" class="fos-toast-host" aria-live="polite" aria-relevant="additions"></div>
+
   <nav id="fos-mobile-bottom-nav" class="fos-mobile-bottom-nav d-none" aria-label="Primary navigation"></nav>
   <div id="fos-mobile-filter-backdrop" class="fos-mobile-filter-backdrop d-none" aria-hidden="true"></div>
   <div
@@ -5950,6 +6185,24 @@
     <div id="fos-mobile-filter-list" class="fos-mobile-filter-list"></div>
     <button type="button" class="btn btn-outline-secondary w-100 mt-3" id="fos-mobile-filter-close">Close</button>
   </div>
+
+  <div id="fos-notification-tray-backdrop" class="fos-notification-tray-backdrop" aria-hidden="true"></div>
+  <aside
+    id="fos-notification-tray"
+    class="fos-notification-tray"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="fos-notification-tray-title"
+    aria-hidden="true"
+  >
+    <div class="fos-notification-tray-header">
+      <h2 id="fos-notification-tray-title" class="h6 mb-0 fw-bold text-white">Notifications</h2>
+      <button type="button" class="btn btn-outline-secondary btn-sm" id="fos-notification-tray-close" aria-label="Close notifications" style="min-height: 44px; min-width: 44px">
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
+      </button>
+    </div>
+    <div id="fos-notification-tray-list" class="fos-notification-tray-list" aria-live="polite"></div>
+  </aside>
 
   <!-- Phase C - Row-detail drawer (off-canvas right). Opened from the Detail
        Table or the Pending Approvals widget; populated by openDetailDrawer(). -->
@@ -6608,6 +6861,50 @@
         return div.innerHTML;
       }
 
+      /** Duration for save-success toasts (ms). */
+      var FOS_TOAST_DURATION_MS_ = 5000;
+      var fosToastTimer_ = null;
+
+      /**
+       * Bottom-right temporary toast (success feedback after Save).
+       * @param {string} message
+       * @param {{ durationMs?: number }=} opts
+       */
+      function showToast_(message, opts) {
+        opts = opts || {};
+        var host = document.getElementById('fos-toast-host');
+        if (!host) {
+          return;
+        }
+        var duration =
+          typeof opts.durationMs === 'number' && opts.durationMs > 0
+            ? opts.durationMs
+            : FOS_TOAST_DURATION_MS_;
+        host.innerHTML = '';
+        if (fosToastTimer_) {
+          clearTimeout(fosToastTimer_);
+          fosToastTimer_ = null;
+        }
+        var toast = document.createElement('div');
+        toast.className = 'fos-toast';
+        toast.setAttribute('role', 'status');
+        toast.textContent = message == null ? '' : String(message);
+        host.appendChild(toast);
+        // Force reflow so the enter transition runs.
+        void toast.offsetWidth;
+        toast.classList.add('is-visible');
+        fosToastTimer_ = setTimeout(function () {
+          toast.classList.add('is-leaving');
+          toast.classList.remove('is-visible');
+          setTimeout(function () {
+            if (toast.parentNode) {
+              toast.parentNode.removeChild(toast);
+            }
+            fosToastTimer_ = null;
+          }, 220);
+        }, duration);
+      }
+
       /** HTML attribute escape for `data-*` values (e.g. customer names with quotes). */
       function escapeAttr_(s) {
         return String(s == null ? '' : s)
@@ -6625,6 +6922,23 @@
         sidebar: document.getElementById('fosSidebar'),
         navList: document.getElementById('nav-list'),
         userChip: document.getElementById('user-chip'),
+        profileLink: document.getElementById('profile-link'),
+        panelProfile: document.getElementById('panel-profile'),
+        profileLoading: document.getElementById('profile-loading'),
+        profileForm: document.getElementById('profile-form'),
+        profileFetchError: document.getElementById('profile-fetch-error'),
+        profileSaveStatus: document.getElementById('profile-save-status'),
+        profileEmailEnabled: document.getElementById('profile-email-enabled'),
+        profileTimezone: document.getElementById('profile-timezone'),
+        profileSubscriptions: document.getElementById('profile-subscriptions'),
+        profileSaveBtn: document.getElementById('profile-save-btn'),
+        profileDiscardBtn: document.getElementById('profile-discard-btn'),
+        notificationBell: document.getElementById('fos-notification-bell'),
+        notificationBadge: document.getElementById('fos-notification-badge'),
+        notificationTray: document.getElementById('fos-notification-tray'),
+        notificationTrayBackdrop: document.getElementById('fos-notification-tray-backdrop'),
+        notificationTrayList: document.getElementById('fos-notification-tray-list'),
+        notificationTrayClose: document.getElementById('fos-notification-tray-close'),
         topbarTitle: document.getElementById('topbar-title'),
         loadBanner: document.getElementById('load-banner'),
         navHint: document.getElementById('nav-hint'),
@@ -7577,6 +7891,13 @@
           }
           return;
         }
+        if (id === 'profile') {
+          if (typeof showProfilePanel === 'function') {
+            setActiveProfileNav_();
+            showProfilePanel();
+          }
+          return;
+        }
         var item = navItemById_(id);
         if (!item) {
           showComingSoon('That dashboard is not available for your account.');
@@ -8019,6 +8340,10 @@
         aiUsageSyncUseCustomRange: false,
         aiUsageSyncStartYmd: '',
         aiUsageSyncEndYmd: '',
+        notificationJobStatus: null,
+        notificationJobError: null,
+        notificationJobRunning: false,
+        notificationJobLastResult: null,
       };
       var settingsUsageChart_ = null;
       var settingsUsageChartRendered_ = false;
@@ -8035,6 +8360,16 @@
         '#636e72',
       ];
 
+      function hidePanelProfile_() {
+        if (els.panelProfile) {
+          els.panelProfile.classList.add('d-none');
+        }
+        if (els.profileLink) {
+          els.profileLink.classList.remove('active');
+          els.profileLink.removeAttribute('aria-current');
+        }
+      }
+
       function hidePanelSettings_() {
         if (els.panelSettings) {
           els.panelSettings.classList.add('d-none');
@@ -8045,12 +8380,39 @@
         }
       }
 
+      function hideAccountChromePanels_() {
+        hidePanelSettings_();
+        hidePanelProfile_();
+      }
+
+      function setActiveProfileNav_() {
+        navState.activeNavId = 'profile';
+        var buttons = els.navList.querySelectorAll('.fos-nav-btn');
+        for (var i = 0; i < buttons.length; i++) {
+          buttons[i].classList.remove('active');
+          buttons[i].removeAttribute('aria-current');
+        }
+        if (els.settingsLink) {
+          els.settingsLink.classList.remove('active');
+          els.settingsLink.removeAttribute('aria-current');
+        }
+        if (els.profileLink) {
+          els.profileLink.classList.add('active');
+          els.profileLink.setAttribute('aria-current', 'page');
+        }
+        setMobileBottomNavActive_('__more__');
+      }
+
       function setActiveSettingsNav_() {
         navState.activeNavId = 'settings';
         var buttons = els.navList.querySelectorAll('.fos-nav-btn');
         for (var i = 0; i < buttons.length; i++) {
           buttons[i].classList.remove('active');
           buttons[i].removeAttribute('aria-current');
+        }
+        if (els.profileLink) {
+          els.profileLink.classList.remove('active');
+          els.profileLink.removeAttribute('aria-current');
         }
         if (els.settingsLink) {
           els.settingsLink.classList.add('active');
@@ -8554,6 +8916,9 @@
               if (grp.id === 'ai-usage-sync') {
                 renderAdminAiUsageSyncOperator_(body);
               }
+              if (grp.id === 'notifications') {
+                renderAdminNotificationsOperator_(body);
+              }
               var settings = grp.settings || [];
               for (var s = 0; s < settings.length; s++) {
                 body.appendChild(buildAdminSettingsRow_(settings[s]));
@@ -8572,6 +8937,134 @@
         if (s === 'failed') return 'is-failed';
         if (s === 'running') return 'is-partial';
         return 'is-muted';
+      }
+
+      function renderAdminNotificationsOperator_(body) {
+        var wrap = document.createElement('div');
+        wrap.className = 'fos-ai-usage-sync-operator mb-3';
+        wrap.id = 'settings-notifications-operator';
+
+        var title = document.createElement('div');
+        title.className = 'fw-semibold text-white mb-2';
+        title.textContent = 'On-demand hourly digest';
+        wrap.appendChild(title);
+
+        var help = document.createElement('p');
+        help.className = 'small text-secondary mb-2';
+        help.textContent =
+          'Evaluates live Fibery alerts and emails users who opted in with frequency Hourly. Results are written to the Notification Log tab.';
+        wrap.appendChild(help);
+
+        var status = adminSettingsState_.notificationJobStatus;
+        var statusErr = adminSettingsState_.notificationJobError;
+        var statusLine = document.createElement('p');
+        statusLine.className = 'small mb-2';
+        statusLine.style.color = 'var(--text-muted)';
+        if (statusErr) {
+          statusLine.style.color = 'var(--danger)';
+          statusLine.textContent = statusErr;
+        } else if (status && status.message) {
+          statusLine.textContent = status.message;
+        } else {
+          statusLine.textContent = 'Loading notification job status…';
+        }
+        wrap.appendChild(statusLine);
+
+        var last = adminSettingsState_.notificationJobLastResult;
+        if (last) {
+          var lastLine = document.createElement('p');
+          lastLine.className = 'small mb-2';
+          lastLine.style.color =
+            last.ok === false ? 'var(--danger)' : 'var(--accent)';
+          lastLine.textContent =
+            last.ok === false
+              ? 'Last run: ' + (last.message || 'failed')
+              : 'Last run: sent ' +
+                String(last.sent != null ? last.sent : 0) +
+                ', skipped ' +
+                String(last.skipped != null ? last.skipped : 0) +
+                (last.message ? ' (' + last.message + ')' : '');
+          wrap.appendChild(lastLine);
+        }
+
+        var actions = document.createElement('div');
+        actions.className = 'd-flex flex-wrap align-items-center gap-2';
+        var runBtn = document.createElement('button');
+        runBtn.type = 'button';
+        runBtn.className = 'btn btn-sm btn-fos-primary';
+        runBtn.id = 'settings-notifications-hourly-run-btn';
+        runBtn.style.minHeight = '44px';
+        runBtn.textContent = adminSettingsState_.notificationJobRunning
+          ? 'Running…'
+          : 'Run hourly now';
+        var enabled =
+          status &&
+          status.ok !== false &&
+          status.notificationsEnabled === true &&
+          !adminSettingsState_.notificationJobRunning &&
+          !adminSettingsState_.loading;
+        runBtn.disabled = !enabled;
+        runBtn.addEventListener('click', function () {
+          runAdminHourlyNotifications_();
+        });
+        actions.appendChild(runBtn);
+        wrap.appendChild(actions);
+        body.appendChild(wrap);
+      }
+
+      function runAdminHourlyNotifications_() {
+        if (adminSettingsState_.notificationJobRunning) {
+          return;
+        }
+        adminSettingsState_.notificationJobRunning = true;
+        adminSettingsState_.notificationJobError = null;
+        renderAdminSettingsGroups_();
+        logActivity_('notification_job_run_start', 'settings', 'hourly');
+        google.script.run
+          .withSuccessHandler(function (res) {
+            adminSettingsState_.notificationJobRunning = false;
+            adminSettingsState_.notificationJobLastResult = res || null;
+            if (!res || res.ok === false) {
+              var failMsg = (res && res.message) || 'Hourly notification run failed.';
+              adminSettingsState_.notificationJobError = failMsg;
+              logActivity_('notification_job_run_error', 'settings', failMsg);
+              renderAdminSettingsGroups_();
+              return;
+            }
+            showToast_(
+              'Hourly digests: sent ' +
+                String(res.sent != null ? res.sent : 0) +
+                ', skipped ' +
+                String(res.skipped != null ? res.skipped : 0) +
+                '.'
+            );
+            logActivity_(
+              'notification_job_run_done',
+              'settings',
+              'sent=' + String(res.sent || 0) + ',skipped=' + String(res.skipped || 0)
+            );
+            google.script.run
+              .withSuccessHandler(function (st) {
+                adminSettingsState_.notificationJobStatus = st || null;
+                adminSettingsState_.notificationJobError = null;
+                renderAdminSettingsGroups_();
+              })
+              .withFailureHandler(function () {
+                renderAdminSettingsGroups_();
+              })
+              .getNotificationJobStatusForSettings();
+          })
+          .withFailureHandler(function (err) {
+            adminSettingsState_.notificationJobRunning = false;
+            var msg = err && err.message ? err.message : 'Hourly notification run failed.';
+            if (msg === 'FORBIDDEN' || msg === 'NOT_AUTHORIZED') {
+              msg = 'Administrator access required.';
+            }
+            adminSettingsState_.notificationJobError = msg;
+            logActivity_('notification_job_run_error', 'settings', msg);
+            renderAdminSettingsGroups_();
+          })
+          .runHourlyNotificationsForSettings();
       }
 
       function seedAdminAiUsageSyncCustomDates_() {
@@ -9098,6 +9591,10 @@
         adminSettingsState_.aiUsageSync = null;
         adminSettingsState_.aiUsageSyncError = null;
         adminSettingsState_.aiUsageSyncRunning = false;
+        adminSettingsState_.notificationJobStatus = null;
+        adminSettingsState_.notificationJobError = null;
+        adminSettingsState_.notificationJobRunning = false;
+        adminSettingsState_.notificationJobLastResult = null;
         if (els.settingsVersionsHost) els.settingsVersionsHost.innerHTML = '';
         if (els.settingsUsageHost) els.settingsUsageHost.innerHTML = '';
         if (els.settingsLoading) els.settingsLoading.classList.remove('d-none');
@@ -9105,7 +9602,7 @@
         if (els.settingsSaveStatus) els.settingsSaveStatus.classList.add('d-none');
         markAdminSettingsDirty_();
 
-        var pending = 3;
+        var pending = 4;
         var settingsOk = false;
 
         function tick() {
@@ -9193,6 +9690,30 @@
             tick();
           })
           .getAiUsageSyncStatus();
+
+        google.script.run
+          .withSuccessHandler(function (jobStatus) {
+            if (!jobStatus || jobStatus.ok === false) {
+              adminSettingsState_.notificationJobStatus = jobStatus || null;
+              adminSettingsState_.notificationJobError =
+                (jobStatus && jobStatus.message) || null;
+            } else {
+              adminSettingsState_.notificationJobStatus = jobStatus;
+              adminSettingsState_.notificationJobError = null;
+            }
+            tick();
+          })
+          .withFailureHandler(function (err) {
+            var nmsg =
+              err && err.message ? err.message : 'Could not load notification job status.';
+            if (nmsg === 'NOT_AUTHORIZED' || nmsg === 'FORBIDDEN') {
+              nmsg = 'Administrator access required.';
+            }
+            adminSettingsState_.notificationJobStatus = null;
+            adminSettingsState_.notificationJobError = nmsg;
+            tick();
+          })
+          .getNotificationJobStatusForSettings();
       }
 
       function showSettingsPanel() {
@@ -9207,9 +9728,453 @@
         if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
+        hidePanelProfile_();
         if (els.panelSettings) els.panelSettings.classList.remove('d-none');
         els.topbarTitle.textContent = 'Settings';
         loadAdminSettingsPanel_();
+      }
+
+      var profileState_ = {
+        loading: false,
+        loaded: false,
+        profile: null,
+        catalog: [],
+        baselineJson: null,
+        promise: null,
+      };
+
+      var notificationTrayState_ = {
+        open: false,
+        loading: false,
+        items: [],
+        undismissedCount: 0,
+      };
+
+      function ensureProfileLoaded_(cb) {
+        if (profileState_.loaded && profileState_.profile) {
+          if (cb) cb(null, profileState_);
+          return profileState_.promise;
+        }
+        if (profileState_.promise) {
+          if (cb) {
+            profileState_.promise.then(
+              function () {
+                cb(null, profileState_);
+              },
+              function (err) {
+                cb(err);
+              }
+            );
+          }
+          return profileState_.promise;
+        }
+        profileState_.loading = true;
+        profileState_.promise = new Promise(function (resolve, reject) {
+          google.script.run
+            .withSuccessHandler(function (res) {
+              profileState_.loading = false;
+              if (!res || res.ok === false) {
+                var msg = (res && res.message) || 'Could not load profile.';
+                reject(new Error(msg));
+                if (cb) cb(new Error(msg));
+                return;
+              }
+              profileState_.profile = res.profile || null;
+              profileState_.catalog = res.catalog || [];
+              profileState_.baselineJson = JSON.stringify(res.profile || {});
+              profileState_.loaded = true;
+              resolve(profileState_);
+              if (cb) cb(null, profileState_);
+            })
+            .withFailureHandler(function (err) {
+              profileState_.loading = false;
+              profileState_.promise = null;
+              reject(err);
+              if (cb) cb(err);
+            })
+            .getMyUserProfile();
+        });
+        return profileState_.promise;
+      }
+
+      function renderProfileSubscriptions_() {
+        if (!els.profileSubscriptions) return;
+        var profile = profileState_.profile || {};
+        var n = profile.notifications || {};
+        var subs = n.subscriptions || [];
+        var byId = {};
+        for (var i = 0; i < subs.length; i++) {
+          byId[subs[i].catalogId] = subs[i];
+        }
+        var html = '';
+        var catalog = profileState_.catalog || [];
+        for (var c = 0; c < catalog.length; c++) {
+          var entry = catalog[c];
+          var sub = byId[entry.catalogId] || { enabled: false, frequency: 'daily' };
+          var freq = sub.frequency || 'daily';
+          html +=
+            '<div class="fos-profile-sub-card" data-catalog-id="' +
+            escapeHtml(entry.catalogId) +
+            '">' +
+            '<div class="form-check form-switch mb-2">' +
+            '<input class="form-check-input profile-sub-enabled" type="checkbox" role="switch" id="sub-' +
+            escapeHtml(entry.catalogId) +
+            '"' +
+            (sub.enabled ? ' checked' : '') +
+            ' />' +
+            '<label class="form-check-label text-white" for="sub-' +
+            escapeHtml(entry.catalogId) +
+            '">' +
+            escapeHtml(entry.label) +
+            '</label>' +
+            '</div>' +
+            '<p class="small text-secondary mb-2">' +
+            escapeHtml(entry.description || '') +
+            '</p>' +
+            '<label class="form-label small text-secondary mb-1" for="freq-' +
+            escapeHtml(entry.catalogId) +
+            '">Frequency</label>' +
+            '<select class="form-select form-select-sm profile-sub-frequency" id="freq-' +
+            escapeHtml(entry.catalogId) +
+            '" style="min-height:44px">' +
+            '<option value="hourly"' +
+            (freq === 'hourly' ? ' selected' : '') +
+            '>Hourly</option>' +
+            '<option value="daily"' +
+            (freq === 'daily' ? ' selected' : '') +
+            '>Daily</option>' +
+            '<option value="weekly"' +
+            (freq === 'weekly' ? ' selected' : '') +
+            '>Weekly (Tuesday)</option>' +
+            '</select>' +
+            '</div>';
+        }
+        els.profileSubscriptions.innerHTML = html ||
+          '<p class="text-secondary small mb-0">No alert catalog entries are available.</p>';
+      }
+
+      function bindProfileFormFromState_() {
+        var profile = profileState_.profile || {};
+        var n = profile.notifications || {};
+        if (els.profileEmailEnabled) {
+          els.profileEmailEnabled.checked = n.emailEnabled === true;
+        }
+        if (els.profileTimezone) {
+          els.profileTimezone.value = n.timezone || 'America/Chicago';
+        }
+        renderProfileSubscriptions_();
+      }
+
+      function collectProfilePatch_() {
+        var subscriptions = [];
+        if (els.profileSubscriptions) {
+          var cards = els.profileSubscriptions.querySelectorAll('.fos-profile-sub-card');
+          for (var i = 0; i < cards.length; i++) {
+            var card = cards[i];
+            var catalogId = card.getAttribute('data-catalog-id');
+            var en = card.querySelector('.profile-sub-enabled');
+            var fr = card.querySelector('.profile-sub-frequency');
+            subscriptions.push({
+              catalogId: catalogId,
+              enabled: !!(en && en.checked),
+              frequency: fr ? fr.value : 'daily',
+            });
+          }
+        }
+        return {
+          notifications: {
+            emailEnabled: !!(els.profileEmailEnabled && els.profileEmailEnabled.checked),
+            timezone: els.profileTimezone ? String(els.profileTimezone.value || '').trim() : 'America/Chicago',
+            subscriptions: subscriptions,
+          },
+        };
+      }
+
+      function showProfilePanel() {
+        els.panelHome.classList.add('d-none');
+        if (els.panelAgreementDashboard) els.panelAgreementDashboard.classList.add('d-none');
+        if (els.panelOperations) els.panelOperations.classList.add('d-none');
+        if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
+        if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
+        if (els.panelResourceAssignments) els.panelResourceAssignments.classList.add('d-none');
+        if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
+        if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
+        if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
+        hidePanelSettings_();
+        if (els.panelProfile) els.panelProfile.classList.remove('d-none');
+        els.topbarTitle.textContent = 'Profile';
+        if (els.profileFetchError) els.profileFetchError.classList.add('d-none');
+        if (els.profileSaveStatus) els.profileSaveStatus.classList.add('d-none');
+        if (els.profileLoading) els.profileLoading.classList.remove('d-none');
+        if (els.profileForm) els.profileForm.classList.add('d-none');
+        ensureProfileLoaded_(function (err) {
+          if (els.profileLoading) els.profileLoading.classList.add('d-none');
+          if (err) {
+            if (els.profileFetchError) {
+              els.profileFetchError.textContent =
+                err.message === 'NOT_AUTHORIZED'
+                  ? 'Your session is not authorized.'
+                  : err.message || 'Could not load profile.';
+              els.profileFetchError.classList.remove('d-none');
+            }
+            return;
+          }
+          bindProfileFormFromState_();
+          if (els.profileForm) els.profileForm.classList.remove('d-none');
+        });
+      }
+
+      function updateNotificationBadge_() {
+        if (!els.notificationBadge) return;
+        var n = notificationTrayState_.undismissedCount || 0;
+        if (n > 0) {
+          els.notificationBadge.textContent = n > 99 ? '99+' : String(n);
+          els.notificationBadge.classList.remove('d-none');
+        } else {
+          els.notificationBadge.classList.add('d-none');
+        }
+      }
+
+      function renderNotificationTrayList_() {
+        if (!els.notificationTrayList) return;
+        var items = notificationTrayState_.items || [];
+        if (!items.length) {
+          els.notificationTrayList.innerHTML =
+            '<p class="text-secondary small px-1 mb-0">No notifications yet. Opt in under Profile to receive digests.</p>';
+          return;
+        }
+        var html = '';
+        for (var i = 0; i < items.length; i++) {
+          var it = items[i];
+          html +=
+            '<div class="fos-notification-item" data-notification-id="' +
+            escapeHtml(it.id) +
+            '">' +
+            '<div class="fw-semibold text-white">' +
+            escapeHtml(it.subject || 'Notification') +
+            '</div>' +
+            '<div class="small text-secondary mt-1">' +
+            escapeHtml(it.timestamp || '') +
+            (it.frequency ? ' · ' + escapeHtml(it.frequency) : '') +
+            '</div>' +
+            (it.summary
+              ? '<div class="small mt-2" style="color:var(--text-muted)">' +
+                escapeHtml(it.summary) +
+                '</div>'
+              : '') +
+            '<div class="fos-notification-item-actions">' +
+            (it.deepLink
+              ? '<button type="button" class="btn btn-sm btn-fos-primary fos-notification-open" data-deep-link="' +
+                escapeHtml(it.deepLink) +
+                '">Open</button>'
+              : '') +
+            '<button type="button" class="btn btn-sm btn-outline-secondary fos-notification-clear">Clear</button>' +
+            '</div></div>';
+        }
+        els.notificationTrayList.innerHTML = html;
+      }
+
+      function closeNotificationTray_() {
+        notificationTrayState_.open = false;
+        if (els.notificationTray) {
+          els.notificationTray.classList.remove('is-open');
+          els.notificationTray.setAttribute('aria-hidden', 'true');
+        }
+        if (els.notificationTrayBackdrop) {
+          els.notificationTrayBackdrop.classList.remove('is-open');
+          els.notificationTrayBackdrop.setAttribute('aria-hidden', 'true');
+        }
+        if (els.notificationBell) {
+          els.notificationBell.setAttribute('aria-expanded', 'false');
+        }
+      }
+
+      function openNotificationTray_() {
+        notificationTrayState_.open = true;
+        if (els.notificationTray) {
+          els.notificationTray.classList.add('is-open');
+          els.notificationTray.setAttribute('aria-hidden', 'false');
+        }
+        if (els.notificationTrayBackdrop) {
+          els.notificationTrayBackdrop.classList.add('is-open');
+          els.notificationTrayBackdrop.setAttribute('aria-hidden', 'false');
+        }
+        if (els.notificationBell) {
+          els.notificationBell.setAttribute('aria-expanded', 'true');
+        }
+        logActivity_('notification_tray_open', 'shell', '');
+        if (els.notificationTrayList) {
+          els.notificationTrayList.innerHTML =
+            '<p class="text-secondary small mb-0">Loading…</p>';
+        }
+        google.script.run
+          .withSuccessHandler(function (res) {
+            notificationTrayState_.items = (res && res.notifications) || [];
+            notificationTrayState_.undismissedCount =
+              (res && res.undismissedCount) || notificationTrayState_.items.length;
+            updateNotificationBadge_();
+            renderNotificationTrayList_();
+          })
+          .withFailureHandler(function () {
+            if (els.notificationTrayList) {
+              els.notificationTrayList.innerHTML =
+                '<p class="text-danger small mb-0">Could not load notifications.</p>';
+            }
+          })
+          .getMyNotifications({ includeDismissed: false, limit: 50 });
+      }
+
+      function refreshNotificationBadgeLazy_() {
+        google.script.run
+          .withSuccessHandler(function (res) {
+            notificationTrayState_.undismissedCount = (res && res.undismissedCount) || 0;
+            notificationTrayState_.items = (res && res.notifications) || [];
+            updateNotificationBadge_();
+          })
+          .withFailureHandler(function () {
+            /* best-effort */
+          })
+          .getMyNotifications({ includeDismissed: false, limit: 50 });
+      }
+
+      function applyDeepLinkPanelFromHash_() {
+        try {
+          var hash = String(window.location.hash || '');
+          var m = hash.match(/panel=([a-z0-9-]+)/i);
+          if (!m) return;
+          var panelId = m[1];
+          if (panelId === 'agreement-dashboard' || panelId === 'operations' || panelId === 'profile') {
+            navigateToNavId_(panelId);
+          }
+        } catch (e) {
+          /* ignore */
+        }
+      }
+
+      if (els.profileSaveBtn) {
+        els.profileSaveBtn.addEventListener('click', function () {
+          if (els.profileSaveStatus) els.profileSaveStatus.classList.add('d-none');
+          if (els.profileFetchError) els.profileFetchError.classList.add('d-none');
+          var patch = collectProfilePatch_();
+          google.script.run
+            .withSuccessHandler(function (res) {
+              if (!res || res.ok === false) {
+                var msg = (res && res.message) || 'Save failed.';
+                if (els.profileFetchError) {
+                  els.profileFetchError.textContent = msg;
+                  els.profileFetchError.classList.remove('d-none');
+                }
+                logActivity_('profile_save_error', 'profile', msg);
+                return;
+              }
+              profileState_.profile = res.profile;
+              profileState_.baselineJson = JSON.stringify(res.profile || {});
+              profileState_.loaded = true;
+              bindProfileFormFromState_();
+              if (els.profileSaveStatus) {
+                els.profileSaveStatus.textContent = 'Profile saved.';
+                els.profileSaveStatus.classList.remove('d-none');
+              }
+              showToast_('Profile saved.');
+              logActivity_('profile_save', 'profile', '');
+            })
+            .withFailureHandler(function (err) {
+              var msg = err && err.message ? err.message : 'Save failed.';
+              if (els.profileFetchError) {
+                els.profileFetchError.textContent = msg;
+                els.profileFetchError.classList.remove('d-none');
+              }
+              logActivity_('profile_save_error', 'profile', msg);
+            })
+            .saveMyUserProfile(patch);
+        });
+      }
+
+      if (els.profileDiscardBtn) {
+        els.profileDiscardBtn.addEventListener('click', function () {
+          if (!profileState_.baselineJson) return;
+          try {
+            profileState_.profile = JSON.parse(profileState_.baselineJson);
+          } catch (e) {
+            /* ignore */
+          }
+          bindProfileFormFromState_();
+          if (els.profileSaveStatus) els.profileSaveStatus.classList.add('d-none');
+          if (els.profileFetchError) els.profileFetchError.classList.add('d-none');
+        });
+      }
+
+      if (els.profileLink) {
+        els.profileLink.addEventListener('click', function (event) {
+          event.preventDefault();
+          if (!isLargeViewport()) hideMobileSidebar();
+          logActivity_('profile_open', 'profile', '');
+          setActiveProfileNav_();
+          showProfilePanel();
+        });
+      }
+
+      if (els.notificationBell) {
+        els.notificationBell.addEventListener('click', function () {
+          if (notificationTrayState_.open) {
+            closeNotificationTray_();
+          } else {
+            openNotificationTray_();
+          }
+        });
+      }
+      if (els.notificationTrayClose) {
+        els.notificationTrayClose.addEventListener('click', closeNotificationTray_);
+      }
+      if (els.notificationTrayBackdrop) {
+        els.notificationTrayBackdrop.addEventListener('click', closeNotificationTray_);
+      }
+      if (els.notificationTrayList) {
+        els.notificationTrayList.addEventListener('click', function (event) {
+          var t = event.target;
+          if (!t) return;
+          var clearBtn = t.closest ? t.closest('.fos-notification-clear') : null;
+          var openBtn = t.closest ? t.closest('.fos-notification-open') : null;
+          var item = t.closest ? t.closest('.fos-notification-item') : null;
+          if (openBtn) {
+            var link = openBtn.getAttribute('data-deep-link') || '';
+            var panelMatch = link.match(/panel=([a-z0-9-]+)/i);
+            closeNotificationTray_();
+            if (panelMatch) {
+              navigateToNavId_(panelMatch[1]);
+            }
+            return;
+          }
+          if (clearBtn && item) {
+            var nid = item.getAttribute('data-notification-id');
+            if (!nid) return;
+            google.script.run
+              .withSuccessHandler(function (res) {
+                if (!res || res.ok === false) return;
+                logActivity_('notification_dismiss', 'shell', nid);
+                item.parentNode && item.parentNode.removeChild(item);
+                notificationTrayState_.undismissedCount = Math.max(
+                  0,
+                  (notificationTrayState_.undismissedCount || 1) - 1
+                );
+                updateNotificationBadge_();
+                if (
+                  els.notificationTrayList &&
+                  !els.notificationTrayList.querySelector('.fos-notification-item')
+                ) {
+                  renderNotificationTrayList_();
+                  notificationTrayState_.items = [];
+                  renderNotificationTrayList_();
+                }
+              })
+              .withFailureHandler(function () {
+                /* ignore */
+              })
+              .dismissMyNotification(nid);
+          }
+        });
       }
 
       if (els.settingsSaveBtn) {
@@ -9241,6 +10206,7 @@
                   'Settings saved. Refresh open dashboards to apply changes.';
                 els.settingsSaveStatus.classList.remove('d-none');
               }
+              showToast_('Settings saved.');
               logActivity_('admin_settings_save', 'settings', (res.saved || []).join(','));
               loadAdminSettingsPanel_();
             })
@@ -9361,6 +10327,9 @@
 
       function loadSourceFromPayload_(data) {
         if (!data) return { transport: 'fibery' };
+        if (data.loadSource === 'browser-cache' || data.source === 'browser-cache') {
+          return { transport: 'browserCache' };
+        }
         if (data.loadSource === 'drive-cache' || data.source === 'drive-cache' || data.fromDrive) {
           return { transport: 'driveDailyCache', cacheDateKey: data.cacheDateKey || '' };
         }
@@ -9507,6 +10476,13 @@
         } catch (e) {
           return 'Last refreshed:  - ';
         }
+      }
+
+      function formatPayloadLastRefresh_(data) {
+        var base = formatLastRefresh(data && data.fetchedAt);
+        var ctx = loadSourceFromPayload_(data);
+        var label = formatLoadSourceLabel_(ctx);
+        return label ? (base + ' · ' + label.replace(/^Source:\s*/, '')) : base;
       }
 
       function injectScript_(url) {
@@ -10489,7 +11465,7 @@
         var dateStr = when.toLocaleDateString(undefined, { dateStyle: 'long' });
         els.agreementSubtitle.textContent =
           'Portfolio state as of ' + dateStr + ' · ' + agreements.length + ' agreements · ' + companies.length + ' customers';
-        els.agreementLastRefresh.textContent = formatLastRefresh(data.fetchedAt);
+        els.agreementLastRefresh.textContent = formatPayloadLastRefresh_(data);
 
         if (data.warnings && data.warnings.length) {
           els.agreementWarn.textContent = data.warnings.join(' ');
@@ -10562,11 +11538,12 @@
         }
       }
 
-      function fetchAgreementFromServer(loadingTarget) {
+      function fetchAgreementFromServer(loadingTarget, forceRefresh) {
         if (!isLiveDataSource_()) {
           return;
         }
         loadingTarget = loadingTarget || 'agreement';
+        forceRefresh = forceRefresh === true;
         var isRr = loadingTarget === 'revenue-review';
         if (isRr) {
           if (els.rrRefreshBtn) {
@@ -10639,13 +11616,13 @@
               els.agreementFetchError.classList.remove('d-none');
             }
           })
-          .getAgreementDashboardData();
+          .getAgreementDashboardData(forceRefresh);
       }
 
       if (els.agreementRefreshBtn) {
         els.agreementRefreshBtn.addEventListener('click', function () {
           logActivity_('refresh', 'agreement-dashboard', '');
-          fetchAgreementFromServer();
+          fetchAgreementFromServer('agreement', true);
         });
       }
 
@@ -10684,7 +11661,7 @@
       if (els.rrRefreshBtn) {
         els.rrRefreshBtn.addEventListener('click', function () {
           logActivity_('revenue_review_refresh', 'revenue-review', '');
-          fetchAgreementFromServer('revenue-review');
+          fetchAgreementFromServer('revenue-review', true);
         });
       }
       if (els.rrTtlSelect) {
@@ -10781,7 +11758,7 @@
         if (els.panelPipeline) {
           els.panelPipeline.classList.add('d-none');
         }
-        hidePanelSettings_();
+        hideAccountChromePanels_();
         els.topbarTitle.textContent = 'Home';
         refreshHomeMobileGlance_();
       }
@@ -10808,7 +11785,7 @@
         if (els.panelPipeline) {
           els.panelPipeline.classList.add('d-none');
         }
-        hidePanelSettings_();
+        hideAccountChromePanels_();
         if (els.panelAgreementDashboard) {
           els.panelAgreementDashboard.classList.remove('d-none');
           els.panelAgreementDashboard.classList.remove('fos-agreement-charts-open');
@@ -13480,7 +14457,7 @@
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         if (els.panelOperations) els.panelOperations.classList.remove('d-none');
-        hidePanelSettings_();
+        hideAccountChromePanels_();
         els.topbarTitle.textContent = 'Operations';
         if (els.utilFetchError) els.utilFetchError.classList.add('d-none');
         if (!isLiveDataSource_()) {
@@ -14649,7 +15626,7 @@
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         if (els.panelResourceAssignments) els.panelResourceAssignments.classList.add('d-none');
         if (els.panelLaborHours) els.panelLaborHours.classList.remove('d-none');
-        hidePanelSettings_();
+        hideAccountChromePanels_();
         els.topbarTitle.textContent = 'Labor hours';
         if (els.lhFetchError) els.lhFetchError.classList.add('d-none');
         wireLaborHoursControlsOnce_();
@@ -16003,7 +16980,7 @@
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         els.panelResourceAssignments.classList.remove('d-none');
-        hidePanelSettings_();
+        hideAccountChromePanels_();
         els.topbarTitle.textContent = 'Resource assignments';
         if (els.raFetchError) els.raFetchError.classList.add('d-none');
         wireResourceAssignmentControlsOnce_();
@@ -16637,7 +17614,7 @@
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.remove('d-none');
-        hidePanelSettings_();
+        hideAccountChromePanels_();
         els.topbarTitle.textContent = 'Delivery';
         if (els.deliveryFetchError) els.deliveryFetchError.classList.add('d-none');
         logActivity_('delivery_panel_open', 'delivery', '');
@@ -17401,7 +18378,7 @@
         var todayStart = new Date(reportDay.getFullYear(), reportDay.getMonth(), reportDay.getDate());
 
         if (els.rrLastRefresh) {
-          els.rrLastRefresh.textContent = 'Last refreshed: ' + formatLastRefresh(data.fetchedAt);
+          els.rrLastRefresh.textContent = formatPayloadLastRefresh_(data);
         }
         if (els.rrSubtitle) {
           var asOf = data.fetchedAt ? new Date(data.fetchedAt).toLocaleString() : ' - ';
@@ -17681,7 +18658,7 @@
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         els.panelRevenueReview.classList.remove('d-none');
-        hidePanelSettings_();
+        hideAccountChromePanels_();
         els.topbarTitle.textContent = 'Revenue review';
         if (els.rrFetchError) els.rrFetchError.classList.add('d-none');
         if (els.rrTtlSelect) els.rrTtlSelect.value = String(readTtlMinutes());
@@ -20723,7 +21700,7 @@
         if (els.pipelineMobileChartsBtn) {
           els.pipelineMobileChartsBtn.textContent = 'Show charts';
         }
-        hidePanelSettings_();
+        hideAccountChromePanels_();
         els.topbarTitle.textContent = 'Sales Pipeline';
         if (els.pipelineFetchError) els.pipelineFetchError.classList.add('d-none');
         wirePipelinePanelOnce_();
@@ -21388,6 +22365,74 @@
           .getDeliveryDashboardData();
       }
 
+      function portfolioPnlFetchLiveBundle_(token, forceRefresh, startedAt) {
+        if (token !== portfolioPnlLoadToken_) return;
+        var began = startedAt || Date.now();
+        google.script.run
+          .withSuccessHandler(function (data) {
+            if (token !== portfolioPnlLoadToken_) return;
+            if (data && data.ok !== false && data.building === true) {
+              var done = Math.max(0, Number(data.done) || 0);
+              var total = Math.max(done, Number(data.total) || 0);
+              var buildCtx = { transport: 'fibery' };
+              portfolioPnlSetLoading_(
+                true,
+                done,
+                total,
+                buildCtx,
+                null,
+                'Building today’s Drive cache in server batches…'
+              );
+              if (Date.now() - began > 10 * 60 * 1000) {
+                portfolioPnlState.loading = false;
+                portfolioPnlSetLoading_(false, 0, 0);
+                if (els.ppnlFetchError) {
+                  els.ppnlFetchError.textContent =
+                    'Portfolio P&L is still building. Try again in a minute; completed batches are preserved.';
+                  els.ppnlFetchError.classList.remove('d-none');
+                }
+                renderPortfolioPnlGrid_();
+                return;
+              }
+              setTimeout(function () {
+                portfolioPnlFetchLiveBundle_(token, false, began);
+              }, 2500);
+              return;
+            }
+
+            portfolioPnlState.loading = false;
+            portfolioPnlSetLoading_(false, 0, 0);
+            if (!data || data.ok === false) {
+              if (els.ppnlFetchError) {
+                els.ppnlFetchError.textContent =
+                  (data && data.message) || 'Could not load portfolio P&L.';
+                els.ppnlFetchError.classList.remove('d-none');
+              }
+              renderPortfolioPnlGrid_();
+              return;
+            }
+            var loadCtx = loadSourceFromPayload_(data);
+            portfolioPnlApplyServerBundle_(data, loadCtx);
+            portfolioPnlFinishLoad_(
+              token,
+              (data.projects || []).length,
+              (data.projects || []).length,
+              loadCtx
+            );
+          })
+          .withFailureHandler(function (err) {
+            if (token !== portfolioPnlLoadToken_) return;
+            portfolioPnlState.loading = false;
+            portfolioPnlSetLoading_(false, 0, 0);
+            if (els.ppnlFetchError) {
+              els.ppnlFetchError.textContent = String(err);
+              els.ppnlFetchError.classList.remove('d-none');
+            }
+            renderPortfolioPnlGrid_();
+          })
+          .getPortfolioPnLDashboardData(forceRefresh === true);
+      }
+
       function loadPortfolioPnlAll_(forceRefresh) {
         var token = ++portfolioPnlLoadToken_;
         portfolioPnlState.loading = true;
@@ -21415,6 +22460,16 @@
 
         if (!forceRefresh) {
           var cached = portfolioPnlReadCache_();
+          var expectedCacheMode = liveMode ? 'live' : 'snapshot';
+          if (
+            cached &&
+            (
+              cached.dataSourceMode !== expectedCacheMode ||
+              (!liveMode && cached.snapshotDate !== getActiveSnapshotDate_())
+            )
+          ) {
+            cached = null;
+          }
           if (cached && cached.pnlById && cached.projects && cached.projects.length) {
             portfolioPnlState.projects = cached.projects;
             portfolioPnlState.pnlById = cached.pnlById;
@@ -21502,39 +22557,7 @@
             ? 'Refreshing portfolio from Fibery (skipping daily Drive cache)…'
             : 'Checking Drive daily cache, then Fibery for any missing project P&L…'
         );
-        google.script.run
-          .withSuccessHandler(function (data) {
-            if (token !== portfolioPnlLoadToken_) return;
-            portfolioPnlState.loading = false;
-            portfolioPnlSetLoading_(false, 0, 0);
-            if (!data || data.ok === false) {
-              if (els.ppnlFetchError) {
-                els.ppnlFetchError.textContent = (data && data.message) || 'Could not load portfolio P&L.';
-                els.ppnlFetchError.classList.remove('d-none');
-              }
-              renderPortfolioPnlGrid_();
-              return;
-            }
-            var loadCtx = loadSourceFromPayload_(data);
-            portfolioPnlApplyServerBundle_(data, loadCtx);
-            portfolioPnlFinishLoad_(
-              token,
-              (data.projects || []).length,
-              (data.projects || []).length,
-              loadCtx
-            );
-          })
-          .withFailureHandler(function (err) {
-            if (token !== portfolioPnlLoadToken_) return;
-            portfolioPnlState.loading = false;
-            portfolioPnlSetLoading_(false, 0, 0);
-            if (els.ppnlFetchError) {
-              els.ppnlFetchError.textContent = String(err);
-              els.ppnlFetchError.classList.remove('d-none');
-            }
-            renderPortfolioPnlGrid_();
-          })
-          .getPortfolioPnLDashboardData(!!forceRefresh);
+        portfolioPnlFetchLiveBundle_(token, !!forceRefresh, Date.now());
       }
 
       function portfolioPnlFinishLoad_(token, loaded, total, loadCtx) {
@@ -21544,6 +22567,8 @@
         portfolioPnlSetLoading_(false, loaded, total);
         portfolioPnlWriteCache_({
           cacheSchemaVersion: PORTFOLIO_PNL_CACHE_SCHEMA,
+          dataSourceMode: isLiveDataSource_() ? 'live' : 'snapshot',
+          snapshotDate: isLiveDataSource_() ? null : getActiveSnapshotDate_(),
           calendarYear: portfolioPnlState.calendarYear,
           projects: portfolioPnlState.projects,
           pnlById: portfolioPnlState.pnlById,
@@ -22304,7 +23329,7 @@
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
         if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
         els.panelPortfolioPnl.classList.remove('d-none');
-        hidePanelSettings_();
+        hideAccountChromePanels_();
         els.topbarTitle.textContent = 'Portfolio P&L';
         if (els.ppnlFetchError) els.ppnlFetchError.classList.add('d-none');
         wirePortfolioPnlOnce_();
@@ -22937,7 +23962,7 @@
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
         els.panelAiUsage.classList.remove('d-none');
-        hidePanelSettings_();
+        hideAccountChromePanels_();
         els.topbarTitle.textContent = 'AI Usage';
         if (els.aiuFetchError) els.aiuFetchError.classList.add('d-none');
         wireAiUsagePanelOnce_();
@@ -22961,7 +23986,7 @@
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
         els.panelExpenses.classList.remove('d-none');
-        hidePanelSettings_();
+        hideAccountChromePanels_();
         els.topbarTitle.textContent = 'Expenses';
         if (els.expFetchError) els.expFetchError.classList.add('d-none');
         wireExpensesPanelOnce_();
@@ -23071,11 +24096,47 @@
           return;
         }
         opts = opts || {};
+        var forceRefresh = opts.manual === true;
+        var agreementPayload = null;
+        if (!forceRefresh && !opts.skipBrowserAgreement) {
+          var agreementCached = readAgreementCache();
+          var agreementTtl = readTtlMinutes();
+          if (
+            agreementCached &&
+            agreementCached.ok !== false &&
+            !(agreementTtl > 0 && isCacheStale(agreementCached, agreementTtl))
+          ) {
+            try {
+              // Keep well below Apps Script's practical google.script.run
+              // argument ceiling; larger payloads use the server Drive cache.
+              var agreementSerialized = JSON.stringify(agreementCached);
+              if (agreementSerialized.length <= 1500000) {
+                agreementPayload = JSON.parse(agreementSerialized);
+                agreementPayload.source = 'browser-cache';
+                agreementPayload.loadSource = 'browser-cache';
+                agreementPayload.fromDrive = false;
+                agreementPayload.cacheDateKey = null;
+              }
+            } catch (_) {
+              agreementPayload = null;
+            }
+          }
+        }
         if (els.deliveryRefreshBtn) els.deliveryRefreshBtn.disabled = true;
         if (els.deliveryFetchError) els.deliveryFetchError.classList.add('d-none');
-        setDeliveryLoading(true, { transport: 'fibery' });
-        google.script.run
+        setDeliveryLoading(
+          true,
+          agreementPayload ? { transport: 'browserCache' } : { transport: 'fibery' }
+        );
+        var runner = google.script.run
           .withSuccessHandler(function (data) {
+            if (data && data.fallback === true && !opts.skipBrowserAgreement) {
+              fetchDeliveryFromServer({
+                manual: forceRefresh,
+                skipBrowserAgreement: true,
+              });
+              return;
+            }
             setDeliveryLoading(false);
             if (els.deliveryRefreshBtn) els.deliveryRefreshBtn.disabled = false;
             if (!data || data.ok === false) {
@@ -23099,15 +24160,19 @@
               els.deliveryFetchError.textContent = msg;
               els.deliveryFetchError.classList.remove('d-none');
             }
-          })
-          .getDeliveryDashboardData();
+          });
+        if (agreementPayload) {
+          runner.getDeliveryDashboardDataFromAgreementPayload(agreementPayload);
+        } else {
+          runner.getDeliveryDashboardData(forceRefresh);
+        }
       }
 
       function applyDeliveryPayload(data) {
         var projects = (data && data.projects) || [];
         deliveryRenderState.lastRenderedFetchedAt = data && data.fetchedAt ? data.fetchedAt : null;
         if (els.deliveryLastRefresh) {
-          els.deliveryLastRefresh.textContent = formatLastRefresh(data && data.fetchedAt);
+          els.deliveryLastRefresh.textContent = formatPayloadLastRefresh_(data);
         }
         if (els.deliverySubtitle) {
           var ts = data && data.fetchedAt ? new Date(data.fetchedAt).toLocaleString() : ' - ';
@@ -23832,6 +24897,7 @@
             writeDeliveryPnlCache(agreementId, merged);
             renderDeliveryStatusChip_(merged);
             refreshDeliveryStatusHistoryDrawer_();
+            showToast_('Status update saved.');
           })
           .withFailureHandler(function (err) {
             var msg = err && err.message ? err.message : 'Submit failed.';
@@ -25101,7 +26167,7 @@
           }
         }
         var mobileId = id;
-        if (id === 'settings') {
+        if (id === 'settings' || id === 'profile') {
           mobileId = '__more__';
         } else if (MOBILE_BOTTOM_NAV_ITEMS_.every(function (spec) { return spec.id !== id; })) {
           mobileId = '';
@@ -25285,7 +26351,12 @@
           })
           .getAppVersionStatus();
         google.script.run
-          .withSuccessHandler(renderNav)
+          .withSuccessHandler(function (model) {
+            renderNav(model);
+            ensureProfileLoaded_();
+            refreshNotificationBadgeLazy_();
+            applyDeepLinkPanelFromHash_();
+          })
           .withFailureHandler(function (err) {
             var msg = err && err.message ? err.message : 'Could not load navigation.';
             if (msg === 'NOT_AUTHORIZED') {
