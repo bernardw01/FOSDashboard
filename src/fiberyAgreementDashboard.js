@@ -1,5 +1,5 @@
 /**
- * PRD version 2.26.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.26.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement Dashboard orchestrator (route id `agreement-dashboard`, panel
  * `#panel-agreement-dashboard`). Live loads use same-day Drive warm cache

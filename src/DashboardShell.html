@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.26.1 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 2.26.2 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -361,6 +361,49 @@
     .fos-nav-btn.fos-nav-child {
       padding-left: 2.25rem;
       font-size: 0.95rem;
+    }
+
+    /* Feature 035 - collapsible sidebar nav groups */
+    .fos-nav-group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.35rem;
+      width: 100%;
+      min-height: 44px;
+      padding: 0.35rem 0.5rem;
+      margin: 0;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-muted, #a0aec0);
+      background: transparent;
+      border: none;
+      border-radius: 0.5rem;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .fos-nav-group-header:hover {
+      color: var(--text);
+      background-color: rgba(82, 201, 229, 0.08);
+    }
+
+    .fos-nav-group-header:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .fos-nav-group-header .fos-nav-chevron {
+      flex-shrink: 0;
+      font-size: 0.75rem;
+      opacity: 0.75;
+      transition: transform 0.15s ease;
+    }
+
+    .fos-nav-group-header[aria-expanded='true'] .fos-nav-chevron {
+      transform: rotate(90deg);
     }
 
     .fos-lh-kpi-jump {
@@ -6685,6 +6728,9 @@
       var RA_EXPAND_PROJ_PERSON_SESSION_KEY = 'fos_resource_assignments_expanded_proj_persons_v1';
       var RA_TAB_SESSION_KEY = 'fos_resource_assignments_active_tab_v1';
       var SESSION_ID_KEY = 'fos_session_id_v1';
+      /** Feature 035 - which sidebar nav groups are expanded this tab session. */
+      var NAV_GROUP_COLLAPSE_KEY_ = 'fos_nav_group_collapse_v1';
+      var NAV_GROUP_COLLAPSE_SCHEMA_ = 1;
       var ACTIVITY_THROTTLE_MS = 250;
       var CHARTJS_URL = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';
       var D3_URL = 'https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js';
@@ -26153,8 +26199,101 @@
         });
       }
 
+      function readNavGroupCollapseState_() {
+        var empty = { schemaVersion: NAV_GROUP_COLLAPSE_SCHEMA_, expanded: {} };
+        try {
+          var raw = sessionStorage.getItem(NAV_GROUP_COLLAPSE_KEY_);
+          if (!raw) return empty;
+          var parsed = JSON.parse(raw);
+          if (!parsed || typeof parsed !== 'object') return empty;
+          if (parsed.schemaVersion !== NAV_GROUP_COLLAPSE_SCHEMA_) return empty;
+          var expanded = parsed.expanded && typeof parsed.expanded === 'object' ? parsed.expanded : {};
+          return { schemaVersion: NAV_GROUP_COLLAPSE_SCHEMA_, expanded: expanded };
+        } catch (e) {
+          return empty;
+        }
+      }
+
+      function writeNavGroupCollapseState_(state) {
+        try {
+          sessionStorage.setItem(
+            NAV_GROUP_COLLAPSE_KEY_,
+            JSON.stringify(state || { schemaVersion: NAV_GROUP_COLLAPSE_SCHEMA_, expanded: {} })
+          );
+        } catch (e) {
+          /* quota / private mode - collapse still works in-memory for this paint */
+        }
+      }
+
+      function isNavGroupExpanded_(groupId) {
+        if (!groupId) return false;
+        var state = readNavGroupCollapseState_();
+        return !!(state.expanded && state.expanded[groupId]);
+      }
+
+      function setNavGroupExpanded_(groupId, expanded) {
+        if (!groupId) return;
+        var state = readNavGroupCollapseState_();
+        if (!state.expanded) state.expanded = {};
+        if (expanded) {
+          state.expanded[groupId] = true;
+        } else {
+          delete state.expanded[groupId];
+        }
+        writeNavGroupCollapseState_(state);
+      }
+
+      function navGroupIdForRoute_(routeId) {
+        if (!routeId || !navState || !navState.items) return null;
+        var items = navState.items || [];
+        for (var i = 0; i < items.length; i++) {
+          var item = items[i];
+          if (item.type !== 'group' || !item.children) continue;
+          for (var j = 0; j < item.children.length; j++) {
+            if (item.children[j] && item.children[j].id === routeId) {
+              return item.id || null;
+            }
+          }
+        }
+        return null;
+      }
+
+      function ensureNavGroupExpandedForRoute_(routeId) {
+        var groupId = navGroupIdForRoute_(routeId);
+        if (!groupId || !els.navList) return;
+        var body = els.navList.querySelector('[data-nav-group-body="' + groupId + '"]');
+        var header = els.navList.querySelector(
+          '.fos-nav-group-header[data-nav-group-id="' + groupId + '"]'
+        );
+        if (!body) return;
+        setNavGroupExpanded_(groupId, true);
+        if (body.classList.contains('show')) {
+          if (header) header.setAttribute('aria-expanded', 'true');
+          return;
+        }
+        if (typeof bootstrap !== 'undefined' && bootstrap.Collapse) {
+          bootstrap.Collapse.getOrCreateInstance(body, { toggle: false }).show();
+        } else {
+          body.classList.add('show');
+          if (header) header.setAttribute('aria-expanded', 'true');
+        }
+      }
+
+      function wireNavGroupCollapse_(bodyEl, headerBtn, groupId) {
+        if (!bodyEl || !headerBtn || !groupId) return;
+        bodyEl.addEventListener('shown.bs.collapse', function () {
+          headerBtn.setAttribute('aria-expanded', 'true');
+          setNavGroupExpanded_(groupId, true);
+        });
+        bodyEl.addEventListener('hidden.bs.collapse', function () {
+          headerBtn.setAttribute('aria-expanded', 'false');
+          setNavGroupExpanded_(groupId, false);
+        });
+      }
+
       function setActiveNav(id) {
         navState.activeNavId = id;
+        ensureNavGroupExpandedForRoute_(id);
         var buttons = els.navList.querySelectorAll('.fos-nav-btn');
         for (var i = 0; i < buttons.length; i++) {
           var b = buttons[i];
@@ -26268,14 +26407,34 @@
         for (var i = 0; i < items.length; i++) {
           var item = items[i];
           if (item.type === 'group' && item.children && item.children.length) {
+            var groupId = item.id || 'nav-group-' + i;
+            var bodyId = 'nav-group-body-' + groupId;
+            var expanded = isNavGroupExpanded_(groupId);
             var wrap = document.createElement('div');
             wrap.className = 'mb-2 fos-nav-group';
-            var gl = document.createElement('div');
-            gl.className = 'small text-secondary text-uppercase px-2 py-1 fw-semibold';
-            gl.style.fontSize = '0.7rem';
-            gl.style.letterSpacing = '0.04em';
-            gl.textContent = item.label || 'Group';
-            wrap.appendChild(gl);
+            wrap.setAttribute('data-nav-group-id', groupId);
+
+            var hdr = document.createElement('button');
+            hdr.type = 'button';
+            hdr.className = 'fos-nav-group-header';
+            hdr.setAttribute('data-nav-group-id', groupId);
+            hdr.setAttribute('data-bs-toggle', 'collapse');
+            hdr.setAttribute('data-bs-target', '#' + bodyId);
+            hdr.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+            hdr.setAttribute('aria-controls', bodyId);
+            var titleSpan = document.createElement('span');
+            titleSpan.textContent = item.label || 'Group';
+            hdr.appendChild(titleSpan);
+            var chev = document.createElement('i');
+            chev.className = 'bi bi-chevron-right fos-nav-chevron';
+            chev.setAttribute('aria-hidden', 'true');
+            hdr.appendChild(chev);
+            wrap.appendChild(hdr);
+
+            var body = document.createElement('div');
+            body.id = bodyId;
+            body.className = 'collapse fos-nav-group-body' + (expanded ? ' show' : '');
+            body.setAttribute('data-nav-group-body', groupId);
             for (var j = 0; j < item.children.length; j++) {
               var ch = item.children[j];
               var cbtn = document.createElement('button');
@@ -26291,8 +26450,10 @@
                 escapeHtml(ch.label) +
                 '</span>';
               cbtn.addEventListener('click', onNavClick(ch));
-              wrap.appendChild(cbtn);
+              body.appendChild(cbtn);
             }
+            wrap.appendChild(body);
+            wireNavGroupCollapse_(body, hdr, groupId);
             els.navList.appendChild(wrap);
             continue;
           }

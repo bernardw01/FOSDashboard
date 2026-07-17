@@ -1,6 +1,6 @@
 # Feature: Dashboard shell and navigation (FinOps Performance Hub Web App)
 
-> **PRD version 2.23.0** - see `docs/FOS-Dashboard-PRD.md`. **v2.23.0** FinOps Performance Hub rebrand (name + bundled logo).
+> **PRD version 2.26.2** - see `docs/FOS-Dashboard-PRD.md`. **v2.26.2** collapsible sidebar nav groups (feature **035**). **v2.23.0** FinOps Performance Hub rebrand (name + bundled logo).
 
 ## Goal
 
@@ -90,3 +90,4 @@ Deliver a **responsive** Google Apps Script Web App shell: **left navigation** (
 - Real **dashboard modules** (separate HTML partials or client routes) and **Settings** page content.
 - **Authorization source** (Sheet, Fibery, Groups, or Directory API) replacing stub filter.
 - **Audit logging** of page views if required by security policy.
+- **Collapsible nav groups** (Sales / Operations / Delivery / Finance) with session persistence: see **[035](035-collapsible-sidebar-nav-sections.md)**.

@@ -1,11 +1,11 @@
 /**
- * PRD version 2.26.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.26.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.26.1';
+var FOS_PRD_VERSION = '2.26.2';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '2.26.1';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'Feature 034 reliability: nested ScriptLock safety and Portfolio batch self-healing.';
+  'Collapsible sidebar nav sections (Sales/Operations/Delivery/Finance) with session persistence.';
 
 /**
  * @return {string}

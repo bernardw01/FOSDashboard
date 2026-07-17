@@ -1,5 +1,5 @@
 /**
- * PRD version 2.26.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 2.26.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub sidebar logo as a data URL (HtmlService template).
  * Source: src/assets/finops-performance-hub-icon-source.png (128px display width)

@@ -285,6 +285,24 @@
       "publishedAt": "2026-07-16",
       "lastSyncedAt": "2026-07-16",
       "gitMirror": "docs/features/034-live-dashboard-warm-cache-and-portfolio-batching-implementation-plan.md"
+    },
+    "feature_035": {
+      "id": 312686,
+      "title": "Feature 035 - Collapsible sidebar navigation sections",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/312686",
+      "featureId": "035",
+      "publishedAt": "2026-07-17",
+      "lastSyncedAt": "2026-07-17",
+      "gitMirror": "docs/features/035-collapsible-sidebar-nav-sections.md"
+    },
+    "feature_035_implementation_plan": {
+      "id": 312687,
+      "title": "Feature 035 - Implementation plan (collapsible nav sections)",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/312687",
+      "featureId": "035",
+      "publishedAt": "2026-07-17",
+      "lastSyncedAt": "2026-07-17",
+      "gitMirror": "docs/features/035-collapsible-sidebar-nav-sections-implementation-plan.md"
     }
   },
   "tasks": {
@@ -859,6 +877,26 @@
       "estDevHours": 18,
       "estDevHoursRationale": [
         "Explicit --est-dev-hours: 18.0h"
+      ],
+      "estDevHoursGitBase": "(manual)"
+    },
+    "v2.26.2 - Collapsible sidebar navigation sections": {
+      "id": 40521287,
+      "tasklist": "Platform and shell",
+      "featureId": "035",
+      "releaseType": "Enhancement",
+      "releaseTitle": "Collapsible sidebar navigation sections",
+      "provisionalTaskName": false,
+      "shippedVersion": "v2.26.2",
+      "notebookKey": "feature_035",
+      "implementationPlanNotebookKey": "feature_035_implementation_plan",
+      "url": "https://win.godeap.io/app/tasks/40521287",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Collapsible sidebar navigation sections",
+      "workflowStage": "Shipped",
+      "shippedAt": "2026-07-17",
+      "estDevHours": 3,
+      "estDevHoursRationale": [
+        "Explicit --est-dev-hours: 3.0h"
       ],
       "estDevHoursGitBase": "(manual)"
     }
