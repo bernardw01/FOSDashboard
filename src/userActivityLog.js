@@ -1,5 +1,5 @@
 /**
- * PRD version 2.26.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
  *
  * User activity logging - append-only event rows to the "User Activity" tab
  * in the Users spreadsheet (AUTH_SPREADSHEET_ID). Implements Section 3.8 / FR-60-FR-66.
@@ -98,12 +98,18 @@ var ACTIVITY_VALID_EVENT_TYPES_ = {
   profile_open: true,
   profile_save: true,
   profile_save_error: true,
+  finops_ask_open: true,
+  finops_ask_submit: true,
+  finops_ask_error: true,
   notification_tray_open: true,
   notification_dismiss: true,
   settings_usage_view: true,
   ai_usage_sync_start: true,
   ai_usage_sync_done: true,
   ai_usage_sync_error: true,
+  supabase_sync_start: true,
+  supabase_sync_done: true,
+  supabase_sync_error: true,
   notification_job_run_start: true,
   notification_job_run_done: true,
   notification_job_run_error: true,
@@ -131,8 +137,8 @@ var ACTIVITY_VALID_EVENT_TYPES_ = {
   pipeline_mobile_charts_toggle: true,
 };
 
-/** @const {number} */
-var ACTIVITY_MAX_LABEL_ = 120;
+/** @const {number} Allow FinOps Ask question text (Feature 032). */
+var ACTIVITY_MAX_LABEL_ = 500;
 
 /** @const {number} */
 var ACTIVITY_MAX_UA_ = 200;

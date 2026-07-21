@@ -1,5 +1,5 @@
 /**
- * PRD version 2.26.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement Dashboard orchestrator (route id `agreement-dashboard`, panel
  * `#panel-agreement-dashboard`). Live loads use same-day Drive warm cache
@@ -57,7 +57,7 @@ function getAgreementCacheTtlMinutes() {
  * Payload includes `loadSource` / `source` / `fromDrive` / `cacheDateKey` for
  * FR-120 client labels.
  *
- * @param {boolean=} forceRefresh Bypass Drive cache and rebuild from Fibery.
+ * @param {boolean=} forceRefresh Bypass Drive cache when not on Supabase; ignored for Supabase serve.
  * @return {{
  *   ok: boolean,
  *   partial?: boolean,
@@ -96,6 +96,15 @@ function getAgreementDashboardData(forceRefresh) {
 function getAgreementDashboardDataInternal_(forceRefresh) {
   var refresh = forceRefresh === true;
   var cacheDateKey = resolveSnapshotDateKey_(new Date());
+
+  // Feature 036: Live serve from Supabase when cut over (including Refresh).
+  // Panel Refresh re-reads Postgres; Fibery rebuild is ADMIN Pull / nightly hydrate.
+  if (shouldServeFromSupabase_()) {
+    var sb = loadSupabasePanelPayload_('agreement');
+    if (sb.ok && sb.payload) {
+      return tagPayloadFromSupabase_(sb.payload, sb.asOf || sb.syncedAt);
+    }
+  }
 
   if (isAgreementDriveCacheEnabled_()) {
     var cacheResult = loadOrBuildAgreementDriveCache_(cacheDateKey, refresh);

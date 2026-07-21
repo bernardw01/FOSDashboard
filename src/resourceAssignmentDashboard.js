@@ -1,5 +1,5 @@
 /**
- * PRD version 2.26.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Resource assignment dashboard (feature 027): portfolio-wide Fibery
  * Resource Allocations by ISO week with alerts.
@@ -80,6 +80,16 @@ function getResourceAssignmentDashboardData(rangeStart, rangeEnd) {
     };
   }
   try {
+    if (
+      shouldServeFromSupabase_() &&
+      (rangeStart == null || rangeStart === '') &&
+      (rangeEnd == null || rangeEnd === '')
+    ) {
+      var sb = loadSupabasePanelPayload_('resource-assignments');
+      if (sb.ok && sb.payload) {
+        return tagPayloadFromSupabase_(sb.payload, sb.asOf || sb.syncedAt);
+      }
+    }
     return buildResourceAssignmentDashboardPayload_(rangeStart, rangeEnd);
   } catch (e) {
     var msg = e && e.message ? String(e.message) : 'Could not load resource assignments.';

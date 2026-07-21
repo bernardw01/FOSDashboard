@@ -1,5 +1,5 @@
 /**
- * PRD version 2.26.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -21,6 +21,8 @@ var ADMIN_SETTINGS_GROUPS_ = [
   { id: 'pipeline-dashboard', title: 'Pipeline dashboard (Sales)' },
   { id: 'ai-usage-sync', title: 'AI usage sync (Fibery)' },
   { id: 'ai-usage-dashboard', title: 'AI usage dashboard' },
+  { id: 'finops-ask', title: 'FinOps Ask AI' },
+  { id: 'supabase-data', title: 'Data platform - Supabase' },
 ];
 
 /**
@@ -80,6 +82,72 @@ function getAdminSettingsCatalog_() {
       'Users-tab column that stores each user’s Profile JSON (Feature 033). Default Profile.',
       'string',
       'Profile'
+    ),
+    adminSettingEntry_(
+      'AUTH_COL_AI_QUERY_COUNT',
+      'platform-auth',
+      'Ask AI query count column',
+      'Users-tab column for today’s FinOps Ask question count (Feature 032). Default ai_query_count.',
+      'string',
+      'ai_query_count'
+    ),
+    adminSettingEntry_(
+      'AUTH_COL_AI_QUERY_DATE',
+      'platform-auth',
+      'Ask AI query date column',
+      'Users-tab column for the calendar day of ai_query_count (YYYY-MM-DD). Default ai_query_date.',
+      'string',
+      'ai_query_date'
+    ),
+    adminSettingEntry_(
+      'FINOPS_ASK_ENABLED',
+      'finops-ask',
+      'Ask AI enabled',
+      'Master switch for FinOps Ask companion pane and askFinOpsQuestion.',
+      'boolean',
+      false
+    ),
+    adminSettingEntry_(
+      'FINOPS_ASK_ANTHROPIC_API_KEY',
+      'finops-ask',
+      'Anthropic Messages API key',
+      'Standard API key (sk-ant-api…) for Messages API. Not the Admin usage key.',
+      'secret',
+      null,
+      { sensitive: true }
+    ),
+    adminSettingEntry_(
+      'FINOPS_ASK_MODEL',
+      'finops-ask',
+      'Ask AI model id',
+      'Anthropic model id for Ask answers. Default claude-sonnet-4-6 (Sonnet 4 was retired 2026-06-15).',
+      'string',
+      'claude-sonnet-4-6'
+    ),
+    adminSettingEntry_(
+      'FINOPS_ASK_DAILY_CAP',
+      'finops-ask',
+      'Daily questions per user',
+      'Max Ask questions per user per calendar day (Users ai_query_count). Default 20.',
+      'number',
+      20,
+      { min: 1, max: 500 }
+    ),
+    adminSettingEntry_(
+      'FINOPS_ASK_TIMEZONE',
+      'finops-ask',
+      'Ask quota timezone',
+      'IANA timezone for daily quota date boundaries. Falls back to Notifications timezone.',
+      'string',
+      'America/Chicago'
+    ),
+    adminSettingEntry_(
+      'FINOPS_ASK_DRIVE_FOLDER_ID',
+      'finops-ask',
+      'Ask chat log Drive folder',
+      'Optional root folder for finops-ask-chats/YYYY/MM logs. Defaults to a subfolder under the snapshot Drive root.',
+      'string',
+      null
     ),
     adminSettingEntry_(
       'NOTIFICATIONS_ENABLED',
@@ -895,6 +963,57 @@ function getAdminSettingsCatalog_() {
       'number',
       365,
       { min: 7, max: 365 }
+    ),
+    adminSettingEntry_(
+      'SUPABASE_URL',
+      'supabase-data',
+      'Supabase project URL',
+      'https://YOUR_PROJECT.supabase.co (no trailing slash). Feature 036 Live query store.',
+      'string',
+      null
+    ),
+    adminSettingEntry_(
+      'SUPABASE_SERVICE_ROLE_KEY',
+      'supabase-data',
+      'Supabase service role key',
+      'Server-only service role key for PostgREST. Never exposed to the browser.',
+      'secret',
+      null,
+      { sensitive: true }
+    ),
+    adminSettingEntry_(
+      'DASHBOARD_READ_SOURCE',
+      'supabase-data',
+      'Live dashboard read source',
+      'fibery (default until cutover) or supabase. When supabase, Live panels read hydrated Postgres payloads (Expenses stay on Sheets).',
+      'string',
+      'fibery'
+    ),
+    adminSettingEntry_(
+      'SUPABASE_SYNC_ENABLED',
+      'supabase-data',
+      'Fibery → Supabase sync enabled',
+      'Kill switch for nightly and on-demand hydrate jobs.',
+      'boolean',
+      true
+    ),
+    adminSettingEntry_(
+      'SUPABASE_SYNC_BATCH_SIZE',
+      'supabase-data',
+      'Sync datasets per continuation',
+      'How many panel datasets to hydrate per Apps Script continuation (1-3).',
+      'number',
+      1,
+      { min: 1, max: 3 }
+    ),
+    adminSettingEntry_(
+      'SUPABASE_SYNC_TRIGGER_HOUR',
+      'supabase-data',
+      'Nightly sync hour',
+      'Local script timezone hour (0-23) for runDailySupabaseSync_. Default 4 (after AI usage sync).',
+      'number',
+      4,
+      { min: 0, max: 23 }
     ),
   ];
 }

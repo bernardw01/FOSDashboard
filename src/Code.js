@@ -1,11 +1,11 @@
 /**
- * PRD version 2.26.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '2.26.2';
+var FOS_PRD_VERSION = '3.0.5';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '2.26.2';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'Collapsible sidebar nav sections (Sales/Operations/Delivery/Finance) with session persistence.';
+  'v3.0.5 FinOps Ask AI: default model claude-sonnet-4-6 (retired Sonnet 4 id no longer works).';
 
 /**
  * @return {string}
@@ -107,6 +107,8 @@ function doGet(e) {
   template.prdVersion = getFosPrdVersion_();
   template.homeHeroImageUrl = getHomeHeroImageDataUrl_();
   template.brandLogoUrl = getBrandLogoDataUrl_();
+  // Feature 036: client loading overlays use this before the first payload returns.
+  template.dashboardReadSource = dashboardReadSource_();
   return applyWebAppHtmlChrome_(template.evaluate(), 'FinOps Performance Hub');
 }
 

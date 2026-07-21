@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 2.26.2 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -2418,6 +2418,126 @@
       -webkit-overflow-scrolling: touch;
     }
 
+    .fos-main-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      min-width: 0;
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+    }
+
+    .fos-ask-pane {
+      flex: 0 0 min(400px, 42vw);
+      width: min(400px, 42vw);
+      max-width: 100%;
+      border-left: 1px solid var(--border);
+      background: var(--surface, #12181f);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .fos-ask-pane.is-open {
+      display: flex !important;
+    }
+
+    .fos-ask-pane-header {
+      flex-shrink: 0;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .fos-ask-context {
+      flex-shrink: 0;
+      padding: 0.5rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .fos-ask-transcript {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 0.75rem 1rem;
+    }
+
+    .fos-ask-bubble {
+      margin-bottom: 0.75rem;
+      padding: 0.65rem 0.75rem;
+      border-radius: 0.75rem;
+      font-size: 0.875rem;
+      line-height: 1.45;
+    }
+
+    .fos-ask-bubble-user {
+      background: rgba(94, 234, 212, 0.12);
+      border: 1px solid rgba(94, 234, 212, 0.25);
+    }
+
+    .fos-ask-bubble-assistant {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+    }
+
+    .fos-ask-bubble-assistant .fos-ask-md p {
+      margin-bottom: 0.5rem;
+    }
+
+    .fos-ask-bubble-assistant .fos-ask-md p:last-child {
+      margin-bottom: 0;
+    }
+
+    .fos-ask-bubble-assistant .fos-ask-md ul,
+    .fos-ask-bubble-assistant .fos-ask-md ol {
+      margin: 0 0 0.5rem 1.1rem;
+      padding: 0;
+    }
+
+    .fos-ask-composer {
+      flex-shrink: 0;
+      padding: 0.75rem 1rem 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .fos-ask-composer textarea {
+      min-height: 44px;
+      resize: vertical;
+      max-height: 140px;
+    }
+
+    #ask-ai-nav-link.active {
+      background: rgba(94, 234, 212, 0.12);
+      color: #fff;
+    }
+
+    @media (max-width: 767.98px) {
+      .fos-ask-pane {
+        position: fixed;
+        inset: auto 0 0 0;
+        height: min(78vh, 640px);
+        width: 100%;
+        max-width: none;
+        flex: none;
+        z-index: 1080;
+        border-left: none;
+        border-top: 1px solid var(--border);
+        border-radius: 1rem 1rem 0 0;
+        box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.45);
+      }
+
+      .fos-ask-pane-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        z-index: 1075;
+      }
+    }
+
     #fosSidebar.offcanvas-md {
       --bs-offcanvas-width: min(280px, 88vw);
     }
@@ -3971,6 +4091,19 @@
         </div>
 
         <div class="fos-sidebar-nav flex-grow-1 min-h-0 overflow-y-auto px-2 py-3">
+          <div class="px-2 mb-2">
+            <a
+              href="#"
+              role="button"
+              id="ask-ai-nav-link"
+              class="btn fos-nav-btn w-100 border-0 rounded-3 py-2 d-flex align-items-center gap-2 text-start"
+              aria-controls="fos-ask-pane"
+              aria-expanded="false"
+            >
+              <i class="bi bi-stars" aria-hidden="true"></i>
+              <span class="flex-grow-1">Ask AI</span>
+            </a>
+          </div>
           <div class="text-uppercase small text-secondary px-2 mb-2 fw-semibold" style="letter-spacing: 0.06em">
             Dashboards
           </div>
@@ -4096,6 +4229,7 @@
       </div>
       <div id="error-banner" class="alert alert-danger flex-shrink-0 mx-3 mt-2 mb-0 d-none" role="alert"></div>
 
+      <div class="fos-main-body flex-grow-1 min-h-0">
       <div class="fos-main-scroll flex-grow-1 min-h-0 overflow-y-auto">
       <main id="main-panel" class="px-3 px-lg-4 py-4" aria-live="polite">
         <div id="panel-home-root">
@@ -5342,7 +5476,7 @@
                 </table>
               </div>
               <p class="small mb-0 mt-2 d-none" id="delivery-projects-empty" style="color: var(--ag-text-muted)">
-                No active projects in the current cache. Refresh to check Fibery.
+                No active projects in the current cache. Reload to check Datastore, or ask an admin to Pull from Fibery.
               </p>
               <!-- v1.20.0 (Phase B) - surfaced when the search input filters
                    all rows out of view. Distinct copy from the "no projects
@@ -6207,6 +6341,54 @@
           </div>
         </div>
       </main>
+      </div>
+      <div id="fos-ask-pane-backdrop" class="fos-ask-pane-backdrop d-none" aria-hidden="true"></div>
+      <aside
+        id="fos-ask-pane"
+        class="fos-ask-pane d-none"
+        aria-label="Ask AI"
+        aria-hidden="true"
+      >
+        <div class="fos-ask-pane-header">
+          <h2 class="h6 mb-0 fw-bold text-white flex-grow-1">Ask AI</h2>
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            id="fos-ask-clear-btn"
+            style="min-height: 44px"
+          >
+            Clear
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            id="fos-ask-close-btn"
+            aria-label="Close Ask AI"
+            style="min-height: 44px; min-width: 44px"
+          >
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div id="fos-ask-context" class="fos-ask-context">Select a dashboard, then ask a question.</div>
+        <div id="fos-ask-transcript" class="fos-ask-transcript" aria-live="polite"></div>
+        <div class="fos-ask-composer">
+          <label for="fos-ask-input" class="visually-hidden">Ask a question</label>
+          <textarea
+            id="fos-ask-input"
+            class="form-control mb-2"
+            rows="2"
+            maxlength="500"
+            placeholder="Ask about the data on this dashboard…"
+          ></textarea>
+          <div class="d-flex gap-2 align-items-center">
+            <button type="button" class="btn btn-fos-primary flex-grow-1" id="fos-ask-send-btn" style="min-height: 44px">
+              Send
+            </button>
+            <span id="fos-ask-quota" class="small text-secondary"></span>
+          </div>
+          <p id="fos-ask-status" class="small text-secondary mb-0 mt-2 d-none" role="status"></p>
+        </div>
+      </aside>
       </div>
     </div>
   </div>
@@ -7431,7 +7613,11 @@
 
       /* Historical data source (v2.1.0 - FR-105) */
       var FOS_DATA_SOURCE_STORAGE_KEY = 'fos_data_source_v1';
-      var SNAPSHOT_REFRESH_TITLE_ = 'Switch to Live data to refresh from Fibery.';
+      var SNAPSHOT_REFRESH_TITLE_ = 'Switch to Live data to refresh.';
+      /** Feature 036: injected from doGet (`dashboardReadSource_`). */
+      var DASHBOARD_READ_SOURCE_HINT_ = String('<?!= dashboardReadSource ?>' || '')
+        .trim()
+        .toLowerCase();
       var dataSourceState = {
         mode: 'live',
         snapshotDate: null,
@@ -7449,6 +7635,14 @@
 
       function isLiveDataSource_() {
         return dataSourceState.mode !== 'snapshot';
+      }
+
+      /** Expected Live transport while a server fetch is in flight (Feature 036). */
+      function liveLoadSourceHint_() {
+        if (DASHBOARD_READ_SOURCE_HINT_ === 'supabase') {
+          return { transport: 'supabase' };
+        }
+        return { transport: 'fibery' };
       }
 
       function getSnapshotDate_() {
@@ -7527,9 +7721,10 @@
           el.disabled = !!disabled;
           if (disabled) {
             el.setAttribute('title', SNAPSHOT_REFRESH_TITLE_);
-          } else {
-            el.removeAttribute('title');
           }
+        }
+        if (!disabled) {
+          applyLiveDataModeChrome_();
         }
       }
 
@@ -8386,6 +8581,10 @@
         aiUsageSyncUseCustomRange: false,
         aiUsageSyncStartYmd: '',
         aiUsageSyncEndYmd: '',
+        supabaseSync: null,
+        supabaseSyncError: null,
+        supabaseSyncRunning: false,
+        supabaseSyncPollTimer: null,
         notificationJobStatus: null,
         notificationJobError: null,
         notificationJobRunning: false,
@@ -8962,6 +9161,9 @@
               if (grp.id === 'ai-usage-sync') {
                 renderAdminAiUsageSyncOperator_(body);
               }
+              if (grp.id === 'supabase-data') {
+                renderAdminSupabaseSyncOperator_(body);
+              }
               if (grp.id === 'notifications') {
                 renderAdminNotificationsOperator_(body);
               }
@@ -9365,6 +9567,210 @@
         body.appendChild(wrap);
       }
 
+      function renderAdminSupabaseSyncOperator_(body) {
+        var wrap = document.createElement('div');
+        wrap.className = 'fos-ai-usage-sync-operator mb-3';
+        wrap.id = 'settings-supabase-sync-operator';
+
+        var title = document.createElement('div');
+        title.className = 'fw-semibold text-white mb-2';
+        title.textContent = 'Fibery → Supabase hydrate';
+        wrap.appendChild(title);
+
+        var help = document.createElement('p');
+        help.className = 'small text-secondary mb-2';
+        help.textContent =
+          'Pull dashboard datasets from Fibery into Supabase (continuation batches). Nightly job uses the same path. Set DASHBOARD_READ_SOURCE to supabase after a successful hydrate.';
+        wrap.appendChild(help);
+
+        var status = adminSettingsState_.supabaseSync;
+        var statusErr = adminSettingsState_.supabaseSyncError;
+        var statusLine = document.createElement('p');
+        statusLine.className = 'small mb-2';
+        statusLine.style.color = 'var(--text-muted)';
+        if (statusErr) {
+          statusLine.style.color = 'var(--danger)';
+          statusLine.textContent = statusErr;
+        } else if (!status) {
+          statusLine.textContent = 'Loading Supabase sync status…';
+        } else if (status.ok === false) {
+          statusLine.style.color = 'var(--danger)';
+          statusLine.textContent = status.message || 'Could not load status.';
+        } else {
+          var st = status.state || {};
+          var pingOk = status.ping && status.ping.ok;
+          statusLine.textContent =
+            'Read source: ' +
+            (status.readSource || 'fibery') +
+            ' · Configured: ' +
+            (status.configured ? 'yes' : 'no') +
+            ' · Ping: ' +
+            (pingOk ? 'ok' : 'fail') +
+            ' · Sync: ' +
+            (st.status || 'idle') +
+            (st.datasetsDone != null
+              ? ' (' + st.datasetsDone + '/' + (st.datasetsTotal || '?') + ')'
+              : '');
+        }
+        wrap.appendChild(statusLine);
+
+        if (status && status.state && status.state.notes && status.state.notes.length) {
+          var notes = document.createElement('p');
+          notes.className = 'small text-secondary mb-2';
+          notes.textContent = String(status.state.notes.slice(-3).join(' · ')).slice(0, 400);
+          wrap.appendChild(notes);
+        }
+
+        var actions = document.createElement('div');
+        actions.className = 'd-flex flex-wrap align-items-center gap-2';
+        var runBtn = document.createElement('button');
+        runBtn.type = 'button';
+        runBtn.className = 'btn btn-sm btn-fos-primary';
+        runBtn.id = 'settings-supabase-sync-run-btn';
+        runBtn.style.minHeight = '44px';
+        runBtn.textContent = adminSettingsState_.supabaseSyncRunning
+          ? 'Pulling…'
+          : 'Pull from Fibery';
+        var canRun =
+          status &&
+          status.ok !== false &&
+          status.syncEnabled &&
+          status.configured &&
+          !adminSettingsState_.supabaseSyncRunning &&
+          !adminSettingsState_.loading;
+        runBtn.disabled = !canRun;
+        runBtn.addEventListener('click', function () {
+          runAdminSupabaseSync_();
+        });
+        actions.appendChild(runBtn);
+
+        var resultEl = document.createElement('span');
+        resultEl.className = 'small';
+        resultEl.id = 'settings-supabase-sync-result';
+        resultEl.style.color = 'var(--text-muted)';
+        actions.appendChild(resultEl);
+        wrap.appendChild(actions);
+
+        body.appendChild(wrap);
+      }
+
+      function refreshAdminSupabaseSyncStatus_(callback) {
+        google.script.run
+          .withSuccessHandler(function (data) {
+            adminSettingsState_.supabaseSync = data;
+            adminSettingsState_.supabaseSyncError = null;
+            if (typeof callback === 'function') callback(data);
+          })
+          .withFailureHandler(function (err) {
+            var msg = err && err.message ? err.message : 'Could not load Supabase sync status.';
+            if (msg === 'NOT_AUTHORIZED' || msg === 'FORBIDDEN') {
+              msg = 'Administrator access required.';
+            }
+            adminSettingsState_.supabaseSync = null;
+            adminSettingsState_.supabaseSyncError = msg;
+            if (typeof callback === 'function') callback(null);
+          })
+          .getSupabaseSyncStatus();
+      }
+
+      function clearAdminSupabaseSyncTimers_() {
+        if (adminSettingsState_.supabaseSyncPollTimer) {
+          clearInterval(adminSettingsState_.supabaseSyncPollTimer);
+          adminSettingsState_.supabaseSyncPollTimer = null;
+        }
+      }
+
+      function finishAdminSupabaseSyncUi_(resultEl, errMsg) {
+        clearAdminSupabaseSyncTimers_();
+        adminSettingsState_.supabaseSyncRunning = false;
+        if (resultEl && errMsg) {
+          resultEl.style.color = '#fc5c65';
+          resultEl.textContent = errMsg;
+        }
+        refreshAdminSupabaseSyncStatus_(function () {
+          renderAdminSettingsGroups_();
+        });
+      }
+
+      function runAdminSupabaseSync_() {
+        var resultEl = document.getElementById('settings-supabase-sync-result');
+        if (adminSettingsState_.supabaseSyncRunning) {
+          return;
+        }
+        adminSettingsState_.supabaseSyncRunning = true;
+        if (resultEl) {
+          resultEl.style.color = 'var(--text-muted)';
+          resultEl.textContent = 'Starting hydrate…';
+        }
+        renderAdminSettingsGroups_();
+        try {
+          logActivity_('supabase_sync_start', 'settings', 'Pull from Fibery');
+        } catch (_) {
+          /* ignore */
+        }
+        google.script.run
+          .withSuccessHandler(function (res) {
+            if (!res || res.ok === false) {
+              try {
+                logActivity_('supabase_sync_error', 'settings', (res && res.message) || 'failed');
+              } catch (_) {
+                /* ignore */
+              }
+              finishAdminSupabaseSyncUi_(
+                resultEl,
+                (res && res.message) || 'Supabase sync failed to start.'
+              );
+              return;
+            }
+            if (resultEl) {
+              resultEl.textContent = res.message || 'Sync running…';
+            }
+            adminSettingsState_.supabaseSyncPollTimer = setInterval(function () {
+              refreshAdminSupabaseSyncStatus_(function (data) {
+                var st = data && data.state;
+                if (!st) {
+                  return;
+                }
+                if (st.status === 'complete') {
+                  try {
+                    logActivity_('supabase_sync_done', 'settings', 'complete');
+                  } catch (_) {
+                    /* ignore */
+                  }
+                  if (resultEl) {
+                    resultEl.style.color = 'var(--accent)';
+                    resultEl.textContent = 'Hydrate complete.';
+                  }
+                  finishAdminSupabaseSyncUi_(resultEl, null);
+                } else if (st.status === 'failed' || st.status === 'cancelled') {
+                  try {
+                    logActivity_('supabase_sync_error', 'settings', st.lastError || st.status);
+                  } catch (_) {
+                    /* ignore */
+                  }
+                  finishAdminSupabaseSyncUi_(
+                    resultEl,
+                    st.lastError || 'Supabase sync ' + st.status
+                  );
+                } else if (resultEl && st.datasetsDone != null) {
+                  resultEl.textContent =
+                    'Hydrating… ' + st.datasetsDone + '/' + (st.datasetsTotal || '?');
+                }
+              });
+            }, 5000);
+          })
+          .withFailureHandler(function (err) {
+            var msg = err && err.message ? err.message : 'Supabase sync failed.';
+            try {
+              logActivity_('supabase_sync_error', 'settings', msg);
+            } catch (_) {
+              /* ignore */
+            }
+            finishAdminSupabaseSyncUi_(resultEl, msg);
+          })
+          .runSupabaseSyncForSettings();
+      }
+
       function refreshAdminAiUsageSyncStatus_(callback) {
         google.script.run
           .withSuccessHandler(function (data) {
@@ -9637,6 +10043,9 @@
         adminSettingsState_.aiUsageSync = null;
         adminSettingsState_.aiUsageSyncError = null;
         adminSettingsState_.aiUsageSyncRunning = false;
+        adminSettingsState_.supabaseSync = null;
+        adminSettingsState_.supabaseSyncError = null;
+        adminSettingsState_.supabaseSyncRunning = false;
         adminSettingsState_.notificationJobStatus = null;
         adminSettingsState_.notificationJobError = null;
         adminSettingsState_.notificationJobRunning = false;
@@ -9648,7 +10057,7 @@
         if (els.settingsSaveStatus) els.settingsSaveStatus.classList.add('d-none');
         markAdminSettingsDirty_();
 
-        var pending = 4;
+        var pending = 5;
         var settingsOk = false;
 
         function tick() {
@@ -9736,6 +10145,30 @@
             tick();
           })
           .getAiUsageSyncStatus();
+
+        google.script.run
+          .withSuccessHandler(function (sbStatus) {
+            if (!sbStatus || sbStatus.ok === false) {
+              adminSettingsState_.supabaseSync = sbStatus || null;
+              adminSettingsState_.supabaseSyncError =
+                (sbStatus && sbStatus.message) || null;
+            } else {
+              adminSettingsState_.supabaseSync = sbStatus;
+              adminSettingsState_.supabaseSyncError = null;
+            }
+            tick();
+          })
+          .withFailureHandler(function (err) {
+            var sbmsg =
+              err && err.message ? err.message : 'Could not load Supabase sync status.';
+            if (sbmsg === 'NOT_AUTHORIZED' || sbmsg === 'FORBIDDEN') {
+              sbmsg = 'Administrator access required.';
+            }
+            adminSettingsState_.supabaseSync = null;
+            adminSettingsState_.supabaseSyncError = sbmsg;
+            tick();
+          })
+          .getSupabaseSyncStatus();
 
         google.script.run
           .withSuccessHandler(function (jobStatus) {
@@ -10162,6 +10595,373 @@
         });
       }
 
+      var askAiState_ = {
+        open: false,
+        busy: false,
+        turns: [],
+      };
+
+      var FINOPS_ASK_SUPPORTED_PANELS_CLIENT_ = {
+        home: true,
+        'agreement-dashboard': true,
+        operations: true,
+        'labor-hours': true,
+        'resource-assignments': true,
+        delivery: true,
+        'revenue-review': true,
+        'portfolio-pnl': true,
+        expenses: true,
+        pipeline: true,
+        'ai-usage': true,
+      };
+
+      function askAiEls_() {
+        return {
+          link: document.getElementById('ask-ai-nav-link'),
+          pane: document.getElementById('fos-ask-pane'),
+          backdrop: document.getElementById('fos-ask-pane-backdrop'),
+          context: document.getElementById('fos-ask-context'),
+          transcript: document.getElementById('fos-ask-transcript'),
+          input: document.getElementById('fos-ask-input'),
+          send: document.getElementById('fos-ask-send-btn'),
+          clear: document.getElementById('fos-ask-clear-btn'),
+          close: document.getElementById('fos-ask-close-btn'),
+          status: document.getElementById('fos-ask-status'),
+          quota: document.getElementById('fos-ask-quota'),
+        };
+      }
+
+      function renderAskMarkdown_(md) {
+        var raw = String(md == null ? '' : md);
+        var escaped = escapeHtml(raw);
+        escaped = escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        escaped = escaped.replace(/`([^`]+)`/g, '<code>$1</code>');
+        var lines = escaped.split(/\n/);
+        var html = '';
+        var inList = false;
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i];
+          var m = line.match(/^\s*[-*]\s+(.+)$/);
+          if (m) {
+            if (!inList) {
+              html += '<ul>';
+              inList = true;
+            }
+            html += '<li>' + m[1] + '</li>';
+          } else {
+            if (inList) {
+              html += '</ul>';
+              inList = false;
+            }
+            if (line.trim()) {
+              html += '<p>' + line + '</p>';
+            }
+          }
+        }
+        if (inList) html += '</ul>';
+        return html || '<p></p>';
+      }
+
+      function renderAskTranscript_() {
+        var a = askAiEls_();
+        if (!a.transcript) return;
+        a.transcript.innerHTML = '';
+        for (var i = 0; i < askAiState_.turns.length; i++) {
+          var t = askAiState_.turns[i];
+          var div = document.createElement('div');
+          div.className =
+            'fos-ask-bubble ' +
+            (t.role === 'assistant' ? 'fos-ask-bubble-assistant' : 'fos-ask-bubble-user');
+          if (t.role === 'assistant') {
+            var wrap = document.createElement('div');
+            wrap.className = 'fos-ask-md';
+            wrap.innerHTML = renderAskMarkdown_(t.content);
+            div.appendChild(wrap);
+          } else {
+            div.textContent = t.content;
+          }
+          a.transcript.appendChild(div);
+        }
+        a.transcript.scrollTop = a.transcript.scrollHeight;
+      }
+
+      function buildAskContextSummary_(panelId) {
+        var summary = { panelId: panelId, kpis: {}, rowsTopN: [], notes: [] };
+        try {
+          if (panelId === 'operations' || panelId === 'labor-hours') {
+            if (typeof utilState !== 'undefined' && utilState && utilState.payload) {
+              summary.payloadOk = utilState.payload.ok !== false;
+              summary.kpis = utilState.payload.kpis || utilState.payload.summary || {};
+              summary.alerts = utilState.payload.alerts || [];
+              summary.filters = utilState.filters || {};
+              var people = utilState.payload.people || utilState.payload.persons || [];
+              summary.rowsTopN = people.slice(0, 40);
+              if (panelId === 'labor-hours' && utilState.payload.laborHours) {
+                summary.laborHours = utilState.payload.laborHours;
+              }
+            } else {
+              summary.notes.push('Utilization payload not loaded.');
+            }
+          } else if (
+            panelId === 'agreement-dashboard' ||
+            panelId === 'revenue-review' ||
+            panelId === 'delivery'
+          ) {
+            if (typeof currentTablePayload !== 'undefined' && currentTablePayload) {
+              summary.kpis = currentTablePayload.kpis || currentTablePayload.summary || {};
+              summary.alerts = currentTablePayload.alerts || [];
+              summary.agreementsTopN = (currentTablePayload.agreements || []).slice(0, 40);
+              summary.tab = typeof currentTab !== 'undefined' ? currentTab : null;
+            } else {
+              summary.notes.push('Agreement-family payload not loaded.');
+            }
+            if (panelId === 'delivery' && typeof deliveryState !== 'undefined' && deliveryState) {
+              summary.deliverySelectedId = deliveryState.selectedId || null;
+              summary.deliverySearch = deliveryState.searchTerm || '';
+              if (deliveryState.pnlById) {
+                var pnlKeys = Object.keys(deliveryState.pnlById).slice(0, 8);
+                summary.loadedProjectPnL = {};
+                for (var pi = 0; pi < pnlKeys.length; pi++) {
+                  summary.loadedProjectPnL[pnlKeys[pi]] = deliveryState.pnlById[pnlKeys[pi]];
+                }
+              }
+            }
+          } else if (panelId === 'portfolio-pnl' && typeof portfolioPnlState !== 'undefined') {
+            summary.filters = {
+              calendarYear: portfolioPnlState.calendarYear,
+              includeSubscription: portfolioPnlState.includeSubscription,
+              includeServices: portfolioPnlState.includeServices,
+            };
+            summary.projectCount = (portfolioPnlState.projects || []).length;
+            summary.rowsTopN = (portfolioPnlState.projects || []).slice(0, 30);
+          } else if (panelId === 'expenses' && typeof expensesState !== 'undefined' && expensesState.payload) {
+            summary.kpis = expensesState.payload.kpis || {};
+            summary.rowsTopN = (expensesState.payload.rows || expensesState.payload.expenses || []).slice(0, 40);
+          } else if (panelId === 'pipeline' && typeof pipelineState !== 'undefined' && pipelineState.payload) {
+            summary.kpis = pipelineState.payload.kpis || {};
+            summary.rowsTopN = (pipelineState.payload.deals || []).slice(0, 40);
+          } else if (panelId === 'ai-usage' && typeof aiUsageState !== 'undefined' && aiUsageState.payload) {
+            summary.kpis = aiUsageState.payload.kpis || {};
+            summary.rowsTopN = (aiUsageState.payload.rows || []).slice(0, 40);
+          } else if (panelId === 'resource-assignments') {
+            if (typeof raState !== 'undefined' && raState && raState.payload) {
+              summary.payloadOk = raState.payload.ok !== false;
+              summary.kpis = raState.payload.kpis || raState.payload.summary || {};
+              summary.alerts = raState.payload.alerts || [];
+              summary.filters = raState.filters || {};
+              summary.activeTab = raState.activeTab || 'person';
+              summary.range = {
+                start: raState.payload.startDate || raState.payload.start || null,
+                end: raState.payload.endDate || raState.payload.end || null,
+              };
+              var persons = raState.payload.persons || raState.payload.people || [];
+              var projects = raState.payload.projects || [];
+              summary.rowsTopN =
+                summary.activeTab === 'project'
+                  ? projects.slice(0, 40)
+                  : persons.slice(0, 40);
+            } else {
+              summary.notes.push('Resource assignments payload not loaded. Open the panel and wait for data.');
+            }
+          } else if (panelId === 'home') {
+            summary.quickNav = typeof HOME_QUICK_NAV_ITEMS_ !== 'undefined' ? HOME_QUICK_NAV_ITEMS_ : [];
+            var homeCached =
+              typeof readAgreementCache === 'function' ? readAgreementCache() : null;
+            if (homeCached && homeCached.alerts) {
+              summary.alerts = (homeCached.alerts || []).slice(0, 15);
+              summary.kpis = homeCached.kpis || homeCached.summary || {};
+              summary.notes.push('Home uses cached agreement alerts/KPIs when present.');
+            } else {
+              summary.notes.push(
+                'Home glance context limited until agreement cache is warm; ask about navigation or load Agreements first.'
+              );
+            }
+            if (typeof notificationTrayState_ !== 'undefined' && notificationTrayState_) {
+              summary.notificationCount = notificationTrayState_.undismissedCount || 0;
+            }
+          } else {
+            summary.notes.push('No compact context builder for this panel yet.');
+          }
+        } catch (e) {
+          summary.notes.push('Context build error.');
+        }
+        return summary;
+      }
+
+      function updateAskContextStrip_() {
+        var a = askAiEls_();
+        if (!a.context) return;
+        var panelId = navState.activeNavId || 'home';
+        var live = typeof isLiveDataSource_ === 'function' ? isLiveDataSource_() : true;
+        var snap =
+          typeof dataSourceState !== 'undefined' && dataSourceState ? dataSourceState.snapshotDate : null;
+        var label =
+          (panelId || 'home') +
+          ' · ' +
+          (live ? 'Live' : 'Snapshot' + (snap ? ' ' + snap : ''));
+        if (!FINOPS_ASK_SUPPORTED_PANELS_CLIENT_[panelId]) {
+          label += ' · Ask not available on this screen';
+        }
+        a.context.textContent = label;
+      }
+
+      function setAskStatus_(msg, isError) {
+        var a = askAiEls_();
+        if (!a.status) return;
+        if (!msg) {
+          a.status.classList.add('d-none');
+          a.status.textContent = '';
+          return;
+        }
+        a.status.classList.remove('d-none');
+        a.status.classList.toggle('text-danger', !!isError);
+        a.status.classList.toggle('text-secondary', !isError);
+        a.status.textContent = msg;
+      }
+
+      function openAskAiPane_() {
+        var a = askAiEls_();
+        if (!a.pane) return;
+        askAiState_.open = true;
+        a.pane.classList.remove('d-none');
+        a.pane.classList.add('is-open');
+        a.pane.setAttribute('aria-hidden', 'false');
+        if (a.link) {
+          a.link.classList.add('active');
+          a.link.setAttribute('aria-expanded', 'true');
+        }
+        if (a.backdrop && !isLargeViewport()) {
+          a.backdrop.classList.remove('d-none');
+          a.backdrop.setAttribute('aria-hidden', 'false');
+        }
+        updateAskContextStrip_();
+        renderAskTranscript_();
+        logActivity_('finops_ask_open', navState.activeNavId || 'home', '');
+        if (!isLargeViewport()) hideMobileSidebar();
+      }
+
+      function closeAskAiPane_() {
+        var a = askAiEls_();
+        askAiState_.open = false;
+        if (a.pane) {
+          a.pane.classList.add('d-none');
+          a.pane.classList.remove('is-open');
+          a.pane.setAttribute('aria-hidden', 'true');
+        }
+        if (a.link) {
+          a.link.classList.remove('active');
+          a.link.setAttribute('aria-expanded', 'false');
+        }
+        if (a.backdrop) {
+          a.backdrop.classList.add('d-none');
+          a.backdrop.setAttribute('aria-hidden', 'true');
+        }
+      }
+
+      function submitAskAiQuestion_() {
+        var a = askAiEls_();
+        if (!a.input || askAiState_.busy) return;
+        var question = String(a.input.value || '').trim();
+        if (!question) {
+          setAskStatus_('Enter a question.', true);
+          return;
+        }
+        var panelId = navState.activeNavId || 'home';
+        if (!FINOPS_ASK_SUPPORTED_PANELS_CLIENT_[panelId]) {
+          setAskStatus_('Ask AI is not available on this screen. Open a dashboard first.', true);
+          return;
+        }
+        askAiState_.busy = true;
+        if (a.send) a.send.disabled = true;
+        setAskStatus_('Thinking…', false);
+        askAiState_.turns.push({ role: 'user', content: question });
+        a.input.value = '';
+        renderAskTranscript_();
+
+        var dataSource = {
+          mode: typeof isLiveDataSource_ === 'function' && isLiveDataSource_() ? 'live' : 'snapshot',
+          snapshotDate:
+            typeof dataSourceState !== 'undefined' && dataSourceState && dataSourceState.snapshotDate
+              ? dataSourceState.snapshotDate
+              : null,
+        };
+        var request = {
+          panelId: panelId,
+          question: question,
+          dataSource: dataSource,
+          filters: {},
+          fetchedAt: new Date().toISOString(),
+          contextSummary: buildAskContextSummary_(panelId),
+          conversationTurns: askAiState_.turns.slice(0, -1).slice(-8),
+        };
+
+        google.script.run
+          .withSuccessHandler(function (res) {
+            askAiState_.busy = false;
+            if (a.send) a.send.disabled = false;
+            res = res || {};
+            if (res.ok) {
+              askAiState_.turns.push({ role: 'assistant', content: res.answer || '' });
+              renderAskTranscript_();
+              setAskStatus_(res.contextLabel || '', false);
+              if (a.quota && res.quotaRemaining != null) {
+                a.quota.textContent = res.quotaRemaining + ' left today';
+              }
+            } else {
+              askAiState_.turns.push({
+                role: 'assistant',
+                content: res.error || 'Ask AI could not answer.',
+              });
+              renderAskTranscript_();
+              setAskStatus_(res.error || 'Ask failed.', true);
+              if (a.quota && res.quotaRemaining != null) {
+                a.quota.textContent = res.quotaRemaining + ' left today';
+              }
+            }
+          })
+          .withFailureHandler(function (err) {
+            askAiState_.busy = false;
+            if (a.send) a.send.disabled = false;
+            var msg = err && err.message ? err.message : 'Ask AI request failed.';
+            askAiState_.turns.push({ role: 'assistant', content: msg });
+            renderAskTranscript_();
+            setAskStatus_(msg, true);
+          })
+          .askFinOpsQuestion(request);
+      }
+
+      (function bindAskAiUi_() {
+        var a = askAiEls_();
+        if (a.link) {
+          a.link.addEventListener('click', function (event) {
+            event.preventDefault();
+            if (askAiState_.open) {
+              closeAskAiPane_();
+            } else {
+              openAskAiPane_();
+            }
+          });
+        }
+        if (a.close) a.close.addEventListener('click', closeAskAiPane_);
+        if (a.backdrop) a.backdrop.addEventListener('click', closeAskAiPane_);
+        if (a.clear) {
+          a.clear.addEventListener('click', function () {
+            askAiState_.turns = [];
+            renderAskTranscript_();
+            setAskStatus_('', false);
+          });
+        }
+        if (a.send) a.send.addEventListener('click', submitAskAiQuestion_);
+        if (a.input) {
+          a.input.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault();
+              submitAskAiQuestion_();
+            }
+          });
+        }
+      })();
+
       if (els.notificationBell) {
         els.notificationBell.addEventListener('click', function () {
           if (notificationTrayState_.open) {
@@ -10342,6 +11142,11 @@
       }
 
       function isCacheStale(cache, ttlMinutes) {
+        // Datastore (Supabase hydrate): browser TTL does not apply. Freshness is
+        // the hydrate watermark (ADMIN Pull / nightly), shown as "Data as of".
+        if (isDatastorePayload_(cache)) {
+          return false;
+        }
         if (!cache || !cache.fetchedAt || !ttlMinutes) {
           return false;
         }
@@ -10354,6 +11159,14 @@
         } catch (e) {
           return false;
         }
+      }
+
+      function isDatastorePayload_(data) {
+        if (!data) return false;
+        if (data.fromSupabase === true) return true;
+        if (data.loadSource === 'supabase' || data.source === 'supabase') return true;
+        if (data.loadSource && data.loadSource.transport === 'supabase') return true;
+        return false;
       }
 
       // Tracks the fetchedAt timestamp that each dashboard's DOM currently
@@ -10376,6 +11189,16 @@
         if (data.loadSource === 'browser-cache' || data.source === 'browser-cache') {
           return { transport: 'browserCache' };
         }
+        if (
+          data.loadSource === 'supabase' ||
+          data.source === 'supabase' ||
+          data.fromSupabase
+        ) {
+          return {
+            transport: 'supabase',
+            cacheDateKey: data.cacheDateKey || String(data.supabaseSyncedAt || '').slice(0, 10),
+          };
+        }
         if (data.loadSource === 'drive-cache' || data.source === 'drive-cache' || data.fromDrive) {
           return { transport: 'driveDailyCache', cacheDateKey: data.cacheDateKey || '' };
         }
@@ -10391,6 +11214,11 @@
         if (t === 'fibery') return 'Source: Live Fibery';
         if (t === 'browserCache') return 'Source: Browser cache';
         if (t === 'mixed') return 'Source: Mixed (cache + Fibery)';
+        if (t === 'supabase') {
+          // Customer-facing: do not name the vendor; show Datastore only.
+          var sk = ctx.cacheDateKey || '';
+          return sk ? ('Source: Datastore · synced ' + sk) : 'Source: Datastore';
+        }
         if (t === 'snapshot') {
           var sd = ctx.snapshotDate || getActiveSnapshotDate_() || '';
           return sd ? ('Source: Snapshot · ' + sd) : 'Source: Snapshot';
@@ -10401,6 +11229,16 @@
         }
         if (t === 'spreadsheet') return 'Source: Spreadsheet';
         return '';
+      }
+
+      function isDatastoreTransport_(ctx) {
+        var t = ctx && (ctx.transport || ctx);
+        return t === 'supabase';
+      }
+
+      /** In-flight Datastore reloads: customer-facing phrase (no vendor name). */
+      function datastoreReloadPhrase_() {
+        return 'Reloading from Datastore…';
       }
 
       function ensureLoadingSourceEl_(overlayEl, id) {
@@ -10416,7 +11254,12 @@
       }
 
       function setOverlayLoadSource_(overlayEl, sourceId, ctx) {
-        var label = formatLoadSourceLabel_(ctx);
+        var label = '';
+        if (isDatastoreTransport_(ctx) && !(ctx && ctx.cacheDateKey)) {
+          label = 'Reloading from Datastore';
+        } else {
+          label = formatLoadSourceLabel_(ctx);
+        }
         var el = sourceId ? document.getElementById(sourceId) : null;
         if (!el) el = ensureLoadingSourceEl_(overlayEl, sourceId);
         if (!el) return;
@@ -10440,8 +11283,12 @@
           }
         }
         if (els.fosLoadingBody && message && on) {
-          var srcLine = formatLoadSourceLabel_(sourceCtx);
-          els.fosLoadingBody.textContent = srcLine ? (message + '\n' + srcLine) : message;
+          if (isDatastoreTransport_(sourceCtx)) {
+            els.fosLoadingBody.textContent = datastoreReloadPhrase_();
+          } else {
+            var srcLine = formatLoadSourceLabel_(sourceCtx);
+            els.fosLoadingBody.textContent = srcLine ? (message + '\n' + srcLine) : message;
+          }
         }
         if (!els.fosLoadingModal || typeof bootstrap === 'undefined' || !bootstrap.Modal) return;
         var modal = bootstrap.Modal.getOrCreateInstance(els.fosLoadingModal);
@@ -10524,11 +11371,89 @@
         }
       }
 
+      function formatIsoLocalShort_(iso) {
+        if (!iso) return '';
+        try {
+          var s = String(iso);
+          if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+          return new Date(s).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+        } catch (e) {
+          return String(iso).slice(0, 10);
+        }
+      }
+
+      /**
+       * Datastore: Reloaded (this serve) · Data as of (hydrate) · Datastore.
+       * Other sources: Last refreshed + Source label.
+       */
       function formatPayloadLastRefresh_(data) {
+        if (isDatastorePayload_(data)) {
+          var reloadedIso = data.servedAt || data.fetchedAt;
+          var asOfIso = data.dataAsOf || data.supabaseSyncedAt || data.cacheDateKey || '';
+          var parts = [];
+          parts.push(
+            reloadedIso
+              ? 'Reloaded: ' + formatIsoLocalShort_(reloadedIso)
+              : 'Reloaded: -'
+          );
+          if (asOfIso) {
+            parts.push('Data as of ' + formatIsoLocalShort_(asOfIso));
+          }
+          parts.push('Datastore');
+          return parts.join(' · ');
+        }
         var base = formatLastRefresh(data && data.fetchedAt);
         var ctx = loadSourceFromPayload_(data);
         var label = formatLoadSourceLabel_(ctx);
         return label ? (base + ' · ' + label.replace(/^Source:\s*/, '')) : base;
+      }
+
+      /** Apply Reload vs Refresh button labels for Datastore cutover (Feature 036). */
+      function applyLiveDataModeChrome_() {
+        var ds = DASHBOARD_READ_SOURCE_HINT_ === 'supabase';
+        var reloadTip =
+          'Reload from Datastore. Does not pull Fibery; newer data arrives after ADMIN Pull from Fibery or the nightly sync.';
+        var refreshTip = 'Refresh from the live data source.';
+        var datastoreBtns = [
+          els.agreementRefreshBtn,
+          els.rrRefreshBtn,
+          els.deliveryRefreshBtn,
+          els.ppnlRefreshBtn,
+          els.pipelineRefreshBtn,
+          els.utilRefreshBtn,
+          els.raRefreshBtn,
+          els.aiuRefreshBtn,
+        ];
+        var i;
+        for (i = 0; i < datastoreBtns.length; i++) {
+          var btn = datastoreBtns[i];
+          if (!btn) continue;
+          btn.textContent = ds ? 'Reload' : 'Refresh';
+          btn.title = ds ? reloadTip : refreshTip;
+        }
+        if (els.expRefreshBtn) {
+          els.expRefreshBtn.textContent = 'Refresh';
+          els.expRefreshBtn.title = 'Re-read expenses from the spreadsheet.';
+        }
+        if (els.lhRefreshBtn) {
+          els.lhRefreshBtn.textContent = 'Refresh';
+          els.lhRefreshBtn.title = 'Refresh labor hours from the live source.';
+        }
+        var ttlTip = ds
+          ? 'Auto-reload from Datastore (same hydrate until the next Fibery Pull).'
+          : 'Auto-refresh interval for browser cache staleness.';
+        var ttlIds = [
+          'agreement-ttl-select',
+          'delivery-ttl-select',
+          'util-ttl-select',
+          'rr-ttl-select',
+          'ra-ttl-select',
+          'aiu-ttl-select',
+        ];
+        for (i = 0; i < ttlIds.length; i++) {
+          var sel = document.getElementById(ttlIds[i]);
+          if (sel) sel.title = ttlTip;
+        }
       }
 
       function injectScript_(url) {
@@ -11598,13 +12523,13 @@
           if (els.rrFetchError) {
             els.rrFetchError.classList.add('d-none');
           }
-          setRrLoading(true, { transport: 'fibery' });
+          setRrLoading(true, liveLoadSourceHint_());
         } else {
           if (els.agreementRefreshBtn) {
             els.agreementRefreshBtn.disabled = true;
           }
           els.agreementFetchError.classList.add('d-none');
-          setAgreementLoading(true, { transport: 'fibery' });
+          setAgreementLoading(true, liveLoadSourceHint_());
         }
         google.script.run
           .withSuccessHandler(function (data) {
@@ -14216,7 +15141,7 @@
         // Role multi-select; scopes the heatmap without disturbing the rest
         // of the dashboard).
         populateHeatmapRoleMenu(dim && dim.roles ? dim.roles : []);
-        els.utilLastRefresh.textContent = formatLastRefresh(data && data.fetchedAt);
+        els.utilLastRefresh.textContent = formatPayloadLastRefresh_(data);
         if (data && data.warnings && data.warnings.length) {
           els.utilWarn.textContent = data.warnings.join(' ');
           els.utilWarn.classList.remove('d-none');
@@ -14241,7 +15166,7 @@
         }
         if (els.utilRefreshBtn) els.utilRefreshBtn.disabled = true;
         els.utilFetchError.classList.add('d-none');
-        setUtilLoading(true, { transport: 'fibery' });
+        setUtilLoading(true, liveLoadSourceHint_());
         google.script.run
           .withSuccessHandler(function (data) {
             setUtilLoading(false);
@@ -16757,7 +17682,7 @@
         var end = els.raRangeEnd && els.raRangeEnd.value ? els.raRangeEnd.value : def.end;
         if (els.raRangeStart && !els.raRangeStart.value) els.raRangeStart.value = start;
         if (els.raRangeEnd && !els.raRangeEnd.value) els.raRangeEnd.value = end;
-        setRaLoading(true, { transport: 'fibery' });
+        setRaLoading(true, liveLoadSourceHint_());
         if (els.raFetchError) els.raFetchError.classList.add('d-none');
         google.script.run
           .withSuccessHandler(function (payload) {
@@ -20516,7 +21441,7 @@
       };
 
       function setPipelineLoading(on, sourceCtx) {
-        setGlobalLoading_('pipeline', on, 'Loading data…', on ? (sourceCtx || { transport: 'fibery' }) : null);
+        setGlobalLoading_('pipeline', on, 'Loading data…', on ? (sourceCtx || liveLoadSourceHint_()) : null);
       }
 
       function readPipelineCache() {
@@ -21331,7 +22256,7 @@
           }
         }
         if (els.pipelineLastRefresh && payload.fetchedAt) {
-          els.pipelineLastRefresh.textContent = formatLastRefresh(payload.fetchedAt);
+          els.pipelineLastRefresh.textContent = formatPayloadLastRefresh_(payload);
         }
         if (els.pipelineSubtitle && payload.meta) {
           var m = payload.meta;
@@ -21348,7 +22273,7 @@
         if (!isLiveDataSource_()) return;
         if (els.pipelineRefreshBtn) els.pipelineRefreshBtn.disabled = true;
         if (els.pipelineFetchError) els.pipelineFetchError.classList.add('d-none');
-        setPipelineLoading(true, { transport: 'fibery' });
+        setPipelineLoading(true, liveLoadSourceHint_());
         google.script.run
           .withSuccessHandler(function (data) {
             setPipelineLoading(false);
@@ -21837,6 +22762,7 @@
         expandedRevenue: {},
         expandedCosts: {},
         fetchedAt: null,
+        dataAsOf: null,
         loadSource: null,
         loading: false,
         dataReady: false,
@@ -22178,7 +23104,8 @@
         portfolioPnlState.pnlById = data.pnlById || {};
         portfolioPnlState.failedIds = data.failedIds || [];
         portfolioPnlState.failedDetails = data.failedDetails || [];
-        portfolioPnlState.fetchedAt = data.fetchedAt || new Date().toISOString();
+        portfolioPnlState.fetchedAt = data.servedAt || data.fetchedAt || new Date().toISOString();
+        portfolioPnlState.dataAsOf = data.dataAsOf || data.supabaseSyncedAt || null;
         portfolioPnlState.calendarYear = data.calendarYear || new Date().getFullYear();
         portfolioPnlState.loadSource = loadCtx || loadSourceFromPayload_(data);
       }
@@ -22225,7 +23152,12 @@
           return 'Loading portfolio P&L from snapshot…';
         }
         if (phase === 'drive') {
-          return 'Checking Drive daily cache, then Fibery if needed…';
+          return transport === 'supabase'
+            ? datastoreReloadPhrase_()
+            : 'Checking Drive daily cache, then Fibery if needed…';
+        }
+        if (transport === 'supabase') {
+          return datastoreReloadPhrase_();
         }
         if (transport === 'snapshot') {
           return 'Reading snapshot portfolio-pnl.json…';
@@ -22491,17 +23423,21 @@
 
         var liveMode = isLiveDataSource_();
         var initialSource = liveMode
-          ? { transport: 'fibery' }
+          ? liveLoadSourceHint_()
           : { transport: 'snapshot', snapshotDate: getActiveSnapshotDate_() };
+        var liveActivity =
+          initialSource.transport === 'supabase'
+            ? datastoreReloadPhrase_()
+            : forceRefresh
+              ? 'Refreshing portfolio from Fibery (skipping daily Drive cache)…'
+              : 'Contacting server for Drive cache / Fibery portfolio bundle…';
         portfolioPnlSetLoading_(
           true,
           0,
           0,
           initialSource,
           null,
-          liveMode
-            ? 'Contacting server for Drive cache / Fibery portfolio bundle…'
-            : 'Loading portfolio P&L from the selected snapshot…'
+          liveMode ? liveActivity : 'Loading portfolio P&L from the selected snapshot…'
         );
 
         if (!forceRefresh) {
@@ -22522,6 +23458,7 @@
             portfolioPnlState.failedIds = cached.failedIds || [];
             portfolioPnlState.failedDetails = cached.failedDetails || [];
             portfolioPnlState.fetchedAt = cached.fetchedAt;
+            portfolioPnlState.dataAsOf = cached.dataAsOf || null;
             portfolioPnlState.calendarYear = cached.calendarYear || new Date().getFullYear();
             portfolioPnlState.includeSubscription = cached.includeSubscription !== false;
             portfolioPnlState.includeServices = cached.includeServices !== false;
@@ -22593,16 +23530,7 @@
         }
         if (els.ppnlLiveOnly) els.ppnlLiveOnly.classList.add('d-none');
 
-        portfolioPnlSetLoading_(
-          true,
-          0,
-          0,
-          initialSource,
-          null,
-          forceRefresh
-            ? 'Refreshing portfolio from Fibery (skipping daily Drive cache)…'
-            : 'Checking Drive daily cache, then Fibery for any missing project P&L…'
-        );
+        portfolioPnlSetLoading_(true, 0, 0, initialSource, null, liveActivity);
         portfolioPnlFetchLiveBundle_(token, !!forceRefresh, Date.now());
       }
 
@@ -22621,6 +23549,7 @@
           failedIds: portfolioPnlState.failedIds,
           failedDetails: portfolioPnlState.failedDetails,
           fetchedAt: portfolioPnlState.fetchedAt || new Date().toISOString(),
+          dataAsOf: portfolioPnlState.dataAsOf || null,
           loadSource: portfolioPnlState.loadSource,
           includeProjected: portfolioPnlState.includeProjected,
           includeSubscription: portfolioPnlState.includeSubscription !== false,
@@ -22656,10 +23585,17 @@
             (projects.length === 1 ? '' : 's');
         }
         if (els.ppnlLastRefresh && portfolioPnlState.fetchedAt) {
-          els.ppnlLastRefresh.textContent = formatLastRefreshWithSource_(
-            portfolioPnlState.fetchedAt,
-            portfolioPnlState.loadSource
-          );
+          var ls = portfolioPnlState.loadSource || {};
+          els.ppnlLastRefresh.textContent = formatPayloadLastRefresh_({
+            fetchedAt: portfolioPnlState.fetchedAt,
+            servedAt: portfolioPnlState.fetchedAt,
+            dataAsOf: portfolioPnlState.dataAsOf,
+            supabaseSyncedAt: portfolioPnlState.dataAsOf,
+            cacheDateKey: ls.cacheDateKey || (portfolioPnlState.dataAsOf ? String(portfolioPnlState.dataAsOf).slice(0, 10) : ''),
+            fromSupabase: ls.transport === 'supabase',
+            loadSource: ls.transport === 'supabase' ? 'supabase' : ls.transport || null,
+            source: ls.transport === 'supabase' ? 'supabase' : null,
+          });
         }
 
         if (els.ppnlPartialNote) {
@@ -23787,7 +24723,7 @@
         aiUsageState.payload = data;
         populateAiUsageFilterMenus_(data && data.filterOptions);
         if (els.aiuLastRefresh) {
-          els.aiuLastRefresh.textContent = 'Last refreshed: ' + formatLastRefresh(data && data.fetchedAt);
+          els.aiuLastRefresh.textContent = formatPayloadLastRefresh_(data);
         }
         if (els.aiuWarn) {
           if (data && data.warnings && data.warnings.length) {
@@ -23830,7 +24766,7 @@
         var range = resolveAiUsageRangeFromPreset_();
         if (els.aiuRefreshBtn) els.aiuRefreshBtn.disabled = true;
         if (els.aiuFetchError) els.aiuFetchError.classList.add('d-none');
-        setAiUsageLoading(true, { transport: 'fibery' });
+        setAiUsageLoading(true, liveLoadSourceHint_());
         google.script.run
           .withSuccessHandler(function (data) {
             setAiUsageLoading(false);
@@ -24172,7 +25108,7 @@
         if (els.deliveryFetchError) els.deliveryFetchError.classList.add('d-none');
         setDeliveryLoading(
           true,
-          agreementPayload ? { transport: 'browserCache' } : { transport: 'fibery' }
+          agreementPayload ? { transport: 'browserCache' } : liveLoadSourceHint_()
         );
         var runner = google.script.run
           .withSuccessHandler(function (data) {
@@ -25000,7 +25936,7 @@
         var snapshotDate = getSnapshotDate_();
         var pnlSourceCtx = !isLiveDataSource_() && snapshotDate
           ? { transport: 'snapshot', snapshotDate: snapshotDate }
-          : { transport: 'fibery' };
+          : liveLoadSourceHint_();
         setDeliveryPnLLoading(true, pnlSourceCtx);
         if (els.deliveryPnlGridWrap) els.deliveryPnlGridWrap.classList.add('d-none');
         if (els.deliveryPnlEmpty) els.deliveryPnlEmpty.classList.add('d-none');
@@ -26312,6 +27248,9 @@
           mobileId = '';
         }
         setMobileBottomNavActive_(mobileId);
+        if (typeof updateAskContextStrip_ === 'function') {
+          updateAskContextStrip_();
+        }
       }
 
       function onNavClick(item) {

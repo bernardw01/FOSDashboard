@@ -2,7 +2,7 @@
 
 **FinOps Performance Hub** (formerly harpin FOS / Finance & Operations Snapshot) is a **Google Apps Script** web application that gives authorized harpin Workspace users a **single pane of glass** for **ops, delivery, finance, and sales** performance. It aggregates curated metrics from systems the company already uses (primarily **Fibery**, **Google Sheets**, and sync pipelines such as Clockify → Fibery) and presents them with clear freshness indicators, role-based access, and optional historical browse.
 
-**Current product version:** **2.26.0** (`FOS_PRD_VERSION` in [`src/Code.js`](src/Code.js))
+**Current product version:** **3.0.0** (`FOS_PRD_VERSION` in [`src/Code.js`](src/Code.js))
 **Product PRD:** [`docs/FOS-Dashboard-PRD.md`](docs/FOS-Dashboard-PRD.md)
 **Feature map:** [`docs/features/000-overview.md`](docs/features/000-overview.md)
 **Feature template:** [`docs/FEATURE_TEMPLATE.md`](docs/FEATURE_TEMPLATE.md)
@@ -15,10 +15,84 @@
 | **Read and present** KPIs, tables, charts, and alerts from configured sources | Full BI / ad-hoc “slice any dimension” explorer |
 | Google Workspace-native **published Web App** (HtmlService + `clasp`) | Replacing Fibery, Sheets, Clockify, or the ledger as system of record |
 | Spreadsheet-based **authorization** (Role / Team / optional Fibery access) | Mobile-native apps (responsive web is the mobile surface) |
-| **Live** Fibery/Sheets loads plus **historical Drive snapshots** and same-day Drive caches where shipped | Unscoped write-back to external systems (except explicitly specified features such as Delivery status updates) |
+| **Live** loads from **Supabase** (when cut over) or Fibery/Sheets, plus **historical Drive snapshots** | Unscoped write-back to external systems (except explicitly specified features such as Delivery status updates) |
 | Personal **Profile** for opt-in alert email digests and an in-app notification tray | SMS / push / Slack channels (v1) |
 
 The app sits **alongside** upstream sync jobs; it does not replace them. Related Clockify ↔ Fibery sync product notes live in [`docs/PRD.md`](docs/PRD.md).
+
+---
+
+## Data architecture (high level)
+
+FinOps Performance Hub is a **presentation and orchestration** layer. Systems of record stay upstream. Live panels (except Expenses) can serve from **Supabase** after Fibery hydrate ([feature 036](docs/features/036-supabase-dashboard-data-layer.md)); historical browse still uses **Drive** snapshots ([009](docs/features/009-dashboard-historical-snapshots.md) / [010](docs/features/010-dashboard-historical-data-source.md)).
+
+```mermaid
+flowchart TB
+  subgraph external [Upstream systems]
+    Clockify[Clockify]
+    Anthropic[Anthropic Admin API]
+    HubSpot[HubSpot]
+    Fibery[Fibery]
+    SalesSheet[Sales Opportunity Tracker sheet]
+    ExpensesSheet[Expenses sheet]
+    AuthSheet[Auth Users spreadsheet]
+  end
+
+  subgraph hydrate [Hydrate and sync jobs]
+    ClockifySync[Clockify sync pipelines]
+    AiUsageSync[AI usage sync job]
+    FiberyHydrate[Fibery to Supabase hydrate nightly plus ADMIN Pull]
+  end
+
+  subgraph stores [Stores used by the Hub]
+    Supabase[(Supabase Postgres)]
+    DriveSnaps[Google Drive snapshots and warm caches]
+    ScriptProps[Apps Script Script Properties]
+  end
+
+  subgraph hub [FinOps Performance Hub]
+    WebApp[Published Web App DashboardShell]
+    GasApi[Apps Script builders and APIs]
+    BrowserCache[Browser sessionStorage TTL]
+  end
+
+  Clockify --> ClockifySync
+  ClockifySync --> Fibery
+  ClockifySync -.->|labor costs out of Hub scope| Supabase
+  Anthropic --> AiUsageSync
+  AiUsageSync --> Fibery
+  HubSpot -->|synced deals| Fibery
+
+  Fibery --> FiberyHydrate
+  FiberyHydrate --> Supabase
+
+  Fibery -->|kill-switch Live Fibery path| GasApi
+  Supabase -->|Live panels when DASHBOARD_READ_SOURCE is supabase| GasApi
+  SalesSheet -->|Pipeline merge sheet wins stage ACV| GasApi
+  ExpensesSheet -->|Expenses panel only| GasApi
+  AuthSheet -->|auth Profile activity logs| GasApi
+  DriveSnaps -->|historical Data source mode| GasApi
+  ScriptProps -->|secrets and feature flags| GasApi
+
+  GasApi --> WebApp
+  WebApp --> BrowserCache
+
+  WebApp -->|status updates dual-write| Fibery
+  WebApp -->|status updates dual-write| Supabase
+  GasApi -->|daily snapshot job| DriveSnaps
+```
+
+| Flow | Direction | Notes |
+| --- | --- | --- |
+| Clockify / HubSpot → Fibery | Upstream sync | Outside or alongside this repo; Fibery remains SoR for most ops entities |
+| Anthropic → Fibery | Hub AI usage sync | ADMIN Settings **Run sync now** / nightly ([017](docs/features/017-ai-platform-usage-fibery-sync.md)) |
+| Fibery → Supabase | Hub hydrate | Nightly + ADMIN **Pull from Fibery** ([036](docs/features/036-supabase-dashboard-data-layer.md)) |
+| Supabase → Hub Live | Serve | When `DASHBOARD_READ_SOURCE=supabase`; Expenses stay on Sheets |
+| Sheets → Hub | Serve / control plane | Auth Users, Expenses, Sales Opportunity Tracker, activity / notification logs |
+| Hub → Drive | Snapshot job | Historical as-of browse; Live Drive warm caches used when not on Supabase |
+| Hub → Fibery + Supabase | Write | Delivery Agreement status updates dual-write |
+
+Loading overlays show **Source:** (`Live Fibery`, `Supabase · synced …`, `Browser cache`, `Snapshot · date`, `Drive cache · date`, `Spreadsheet`) so operators can see which path served the payload.
 
 ---
 
@@ -30,7 +104,7 @@ FinOps Performance Hub is a published **Apps Script Web App** (`DashboardShell.h
 | --- | --- |
 | **Authorization** | Matches the signed-in Google account to a **Users** sheet row (`AUTH_SPREADSHEET_ID`). Denied users see `NotAuthorized.html` with distinct reason codes. |
 | **Role / team entitlements** | Sidebar routes and `google.script.run` APIs are gated by **Role** and **Team** (plus optional **`fibery_access`** for “Open in Fibery” links). |
-| **Live dashboards** | Server modules fetch Fibery (or Sheets), normalize payloads, and the browser caches them in `sessionStorage` with configurable TTL. **Agreements**, **Portfolio P&L**, and **AI Usage** also use same-day Drive caches; Portfolio cold builds continue in bounded server batches. |
+| **Live dashboards** | Server modules serve from **Supabase** (when cut over) or Fibery/Sheets, normalize payloads, and the browser caches them in `sessionStorage` with configurable TTL. When not on Supabase, Agreements / Portfolio / AI Usage may still use same-day Drive warm caches. |
 | **Historical mode** | A daily job writes dashboard JSON to **Google Drive**. Users switch **Data source** from **Live** to a dated snapshot and browse without Fibery calls. Stale snapshot schemas can be upgraded via an operator job. |
 | **Profile and notifications** | Every authorized user has a **Profile** panel (sidebar, above Settings) for opt-in **Hourly / Daily / Weekly** HTML alert digests; a header **bell** opens the in-app notification tray backed by a Notification Log. |
 | **Admin Settings** | **ADMIN** users edit Script Properties, view usage analytics, manage App Versions, and run operator actions (AI usage sync, hourly digest) from Settings. |
@@ -71,7 +145,7 @@ Admins control roster and entitlements in the auth spreadsheet (including option
 6. **Profile** (sidebar footer, above Settings) - Opt in to alert email digests; open the header **bell** to review and clear in-app notifications.
 7. **ADMIN**: open **Settings** for environment keys, usage (last 30 days), App Versions registry, AI usage sync, and digest operator controls.
 
-Loading overlays show a **Source:** line (Live Fibery, Browser cache, Snapshot, Drive cache, Spreadsheet) so you know where the numbers came from.
+Loading overlays show a **Source:** line (Live Fibery, Supabase, Browser cache, Snapshot, Drive cache, Spreadsheet) so you know where the numbers came from.
 
 ---
 

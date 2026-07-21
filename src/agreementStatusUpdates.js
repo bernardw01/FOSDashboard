@@ -1,5 +1,5 @@
 /**
- * PRD version 2.26.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement status updates on Delivery P&L (feature 018).
  * Reads and creates rows in Fibery `Agreement Management/Status Updates`.
@@ -164,6 +164,31 @@ function createAgreementStatusUpdate(agreementId, statusKey, updateContent) {
     updatePlain: plain,
     agreementId: agreementId,
   }, agreementId);
+
+  // Feature 036: dual-write to Supabase after Fibery success (non-blocking).
+  if (isSupabaseConfigured_()) {
+    try {
+      var sbWrite = upsertSupabaseStatusUpdate_(createdRow, agreementId);
+      if (!sbWrite || !sbWrite.ok) {
+        enqueueSupabaseStatusRetry_(
+          createdRow,
+          agreementId,
+          (sbWrite && sbWrite.message) || 'Supabase status upsert failed'
+        );
+        console.warn(
+          'createAgreementStatusUpdate: Supabase dual-write failed; Fibery write kept.'
+        );
+      }
+    } catch (sbErr) {
+      enqueueSupabaseStatusRetry_(
+        createdRow,
+        agreementId,
+        sbErr && sbErr.message ? sbErr.message : String(sbErr)
+      );
+      console.warn('createAgreementStatusUpdate: Supabase dual-write threw; Fibery write kept.');
+    }
+  }
+
   return {
     ok: true,
     id: id,

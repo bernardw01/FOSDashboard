@@ -1,5 +1,5 @@
 /**
- * PRD version 2.26.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Profile JSON lives on the same **Users** auth tab used for authorization
  * (Feature 033). Column header default: **Profile** (overridable).

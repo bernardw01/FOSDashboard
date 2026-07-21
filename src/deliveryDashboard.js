@@ -1,5 +1,5 @@
 /**
- * PRD version 2.26.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `delivery`, panel
  * `#panel-delivery`). Public endpoints, all authorized via
@@ -164,6 +164,14 @@ function getDeliveryDashboardData(forceRefresh) {
 
   var fetchedAtIso = new Date().toISOString();
   var ttlMinutes = resolveDeliveryCacheTtlMinutes_();
+
+  // Feature 036: Refresh re-reads Supabase; Fibery rebuild is hydrate/Pull only.
+  if (shouldServeFromSupabase_()) {
+    var sbDel = loadSupabasePanelPayload_('delivery');
+    if (sbDel.ok && sbDel.payload) {
+      return tagPayloadFromSupabase_(sbDel.payload, sbDel.asOf || sbDel.syncedAt);
+    }
+  }
 
   var raw;
   try {
@@ -365,6 +373,12 @@ function buildDeliveryDashboardPayloadFromAgreement_(agreementPayload, fetchedAt
  */
 function getDeliveryProjectMonthlyPnL(agreementId) {
   requireAuthForApi_();
+  if (shouldServeFromSupabase_()) {
+    var sb = loadSupabaseDeliveryPnL_(agreementId);
+    if (sb.ok && sb.payload) {
+      return tagPayloadFromSupabase_(sb.payload, sb.asOf || sb.syncedAt);
+    }
+  }
   return buildDeliveryProjectMonthlyPnLInternal_(agreementId);
 }
 

@@ -1,5 +1,5 @@
 /**
- * PRD version 2.26.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Fine-grained notification catalog for Feature 033. Maps existing alert
  * id prefixes / kinds to stable catalogId values for Profile subscriptions

@@ -1,5 +1,5 @@
 /**
- * PRD version 2.26.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Portfolio Project P&L (Finance route `portfolio-pnl`, features 022 + 025).
  * Returns the in-scope project index and bundled monthly P&L payloads
@@ -131,6 +131,14 @@ function getPortfolioPnLDashboardData(forceRefresh) {
   requirePortfolioPnlAccess_(auth);
   var refresh = forceRefresh === true;
   var cacheDateKey = resolveSnapshotDateKey_(new Date());
+
+  // Feature 036: Refresh re-reads Supabase; Fibery rebuild is hydrate/Pull only.
+  if (shouldServeFromSupabase_()) {
+    var sb = loadSupabasePanelPayload_('portfolio-pnl');
+    if (sb.ok && sb.payload) {
+      return tagPayloadFromSupabase_(sb.payload, sb.asOf || sb.syncedAt);
+    }
+  }
 
   if (isPortfolioPnlDriveCacheEnabled_()) {
     var cacheResult = loadOrBuildPortfolioPnlDriveCache_(cacheDateKey, refresh);

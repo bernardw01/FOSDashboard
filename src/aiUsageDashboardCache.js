@@ -1,5 +1,5 @@
 /**
- * PRD version 2.26.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Daily Drive cache for AI Usage dashboard (feature 023). First Fibery fetch
  * each calendar day writes JSON under the snapshot root; later reads slice
@@ -37,6 +37,9 @@ var AI_USAGE_DRIVE_CACHE_RETENTION_DAYS_ = 14;
  * @return {boolean}
  */
 function isAiUsageDriveCacheEnabled_() {
+  if (typeof shouldServeFromSupabase_ === 'function' && shouldServeFromSupabase_()) {
+    return false;
+  }
   if (!isAiUsageDriveCacheConfigured_()) {
     return false;
   }

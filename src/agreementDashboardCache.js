@@ -1,5 +1,5 @@
 /**
- * PRD version 2.26.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Daily Drive warm cache for Agreement Dashboard (feature 034 Phase A).
  * First Fibery build each calendar day writes agreement-cache/YYYY-MM-DD/
@@ -36,6 +36,10 @@ var AGREEMENT_DRIVE_CACHE_RETENTION_DAYS_ = 14;
  * @return {boolean}
  */
 function isAgreementDriveCacheEnabled_() {
+  // Feature 036: Live Drive warm cache retired when serving from Supabase.
+  if (typeof shouldServeFromSupabase_ === 'function' && shouldServeFromSupabase_()) {
+    return false;
+  }
   if (!isAgreementDriveCacheConfigured_()) {
     return false;
   }
