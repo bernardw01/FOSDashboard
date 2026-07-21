@@ -1,10 +1,10 @@
 # Implementation plan: Feature 032 - FinOps Ask (panel-scoped AI Q&A)
 
 > **Feature spec:** [032-finops-ai-ask-panel.md](032-finops-ai-ask-panel.md)  
-> **Release task:** [Feature 032 - FinOps Ask (panel-scoped AI Q&A)](https://win.godeap.io/app/tasks/40429663)  
+> **Release task:** [v2.27.0 - FinOps Ask (panel-scoped AI Q&A)](https://win.godeap.io/app/tasks/40429663)  
 > **Teamwork notebook:** [Feature 032](https://win.godeap.io/app/projects/1615262/notebooks/312389)  
-> **Status:** In development (Phases A–C in code; Phase D ops + verify + ship remaining)  
-> **PRD version (at ship):** **2.27.0**  
+> **Status:** Shipped (**v2.27.0**; Ask model default patch **v3.0.5**)  
+> **PRD version (at ship):** **2.27.0** (product now **3.0.5**)  
 > **Expected ship type:** MINOR  
 > **Depends on:** Shell + nav (**001**); mobile shell (**029**); Anthropic property patterns (**017**); Live vs snapshot (**009** / **010**); Users sheet auth (**002** / **033** Profile column patterns); access gates in `Code.js` / dashboard modules
 
@@ -300,9 +300,9 @@ Before Phase A:
 - [x] Phase B (Messages API, Activity, Drive log, Utilization path)
 - [x] Phase C (remaining supported panels + Home / RA / project P&L slices)
 - [x] PRD FR-132 / AC-94 + headers → **2.27.0**
-- [ ] Ops: Users columns + Settings props + `clasp push`
-- [ ] Mobile AC verified (~390px)
-- [ ] Teamwork ship ritual
+- [x] Ops: Users columns + Settings props + `clasp push`
+- [x] Mobile AC verified (~390px)
+- [x] Teamwork ship ritual
 
 ## Risk notes
 

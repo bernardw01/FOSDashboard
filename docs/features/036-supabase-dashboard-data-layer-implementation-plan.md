@@ -1,13 +1,13 @@
 # Implementation plan: Feature 036 - Supabase dashboard data layer
 
-> **Status:** Implemented in code (v3.0.0); staging cutover pending Supabase migration + secrets.  
+> **Status:** Shipped (**v3.0.0**; follow-on patches through **v3.0.4**). Staging cutover still needs Supabase migration + secrets in each environment.
 > **PRD version:** 3.0.0  
 > **Feature spec:** [036-supabase-dashboard-data-layer.md](036-supabase-dashboard-data-layer.md)  
 > **Parent patterns:** [034 Drive warm cache](034-live-dashboard-warm-cache-and-portfolio-batching.md) (Live Drive path superseded), [017 AI usage sync](017-ai-platform-usage-fibery-sync.md), [009 snapshot batches](009-dashboard-historical-snapshots.md), [018 status updates](018-agreement-status-updates-delivery-pnl.md)  
 > **PRD:** Add focused FR/AC at ship (extend **FR-120**; new Supabase serve / sync / dual-write FRs). Version chosen at deploy.
 > **Teamwork notebook:** [Feature 036 - Implementation plan (Supabase data layer)](https://win.godeap.io/app/projects/1615262/notebooks/312759)  
 > **Feature notebook:** [Feature 036 - Supabase dashboard data layer](https://win.godeap.io/app/projects/1615262/notebooks/312758)  
-> **Release task:** [Feature 036 - Supabase dashboard data layer](https://win.godeap.io/app/tasks/40552222)
+> **Release task:** [v3.0.0 - Supabase dashboard data layer](https://win.godeap.io/app/tasks/40552222)
 
 ## Summary
 

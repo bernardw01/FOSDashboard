@@ -1,14 +1,14 @@
 # Feature: Supabase dashboard data layer
 
-> **Status:** Implemented in code (v3.0.4); apply SQL migration + configure Supabase secrets before cutover.  
-> **PRD version:** 3.0.4  
+> **Status:** Shipped (**v3.0.0**; follow-on patches through **v3.0.4**).  
+> **PRD version:** 3.0.5  
 > **Feature id:** 036 | **Task list:** Data platform  
 > **Release type:** Enhancement  
 > **Extends:** [003 - Agreement client cache](003-agreement-dashboard-fibery-client-cache.md), [005 - Utilization](005-utilization-management-dashboard.md), [006 - Delivery P&L](006-delivery-project-pnl.md), [009 - Historical snapshots](009-dashboard-historical-snapshots.md), [010 - Historical data source](010-dashboard-historical-data-source.md), [016 / 030 - Pipeline](030-sales-os-pipeline.md), [017 / 023 - AI usage](023-ai-usage-dashboard.md), [022 / 025 - Portfolio](025-portfolio-pnl-performance-and-load-source-ux.md), [027 / 028 - Resource assignments](027-resource-assignment-dashboard.md), [034 - Live Drive warm cache](034-live-dashboard-warm-cache-and-portfolio-batching.md) (live Drive path superseded by this feature).  
 > **Implementation plan:** [036-supabase-dashboard-data-layer-implementation-plan.md](036-supabase-dashboard-data-layer-implementation-plan.md)
 > **Teamwork notebook:** [Feature 036 - Supabase dashboard data layer](https://win.godeap.io/app/projects/1615262/notebooks/312758)  
 > **Implementation plan notebook:** [Feature 036 - Implementation plan (Supabase data layer)](https://win.godeap.io/app/projects/1615262/notebooks/312759)  
-> **Release task:** [Feature 036 - Supabase dashboard data layer](https://win.godeap.io/app/tasks/40552222)
+> **Release task:** [v3.0.0 - Supabase dashboard data layer](https://win.godeap.io/app/tasks/40552222)
 
 ## Goal
 

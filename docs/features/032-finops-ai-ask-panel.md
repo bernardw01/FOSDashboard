@@ -1,8 +1,8 @@
 # Feature: FinOps Ask (panel-scoped AI Q&A)
 
-> **Status:** In development (Spec Approved; Phase A/B implemented in code).  
+> **Status:** Shipped (**v2.27.0**; Ask model default patch **v3.0.5**).  
 > **PRD version:** 3.0.5  
-> **Release task:** [Feature 032 - FinOps Ask (panel-scoped AI Q&A)](https://win.godeap.io/app/tasks/40429663)  
+> **Release task:** [v2.27.0 - FinOps Ask (panel-scoped AI Q&A)](https://win.godeap.io/app/tasks/40429663)  
 > **Teamwork notebook:** [Feature 032](https://win.godeap.io/app/projects/1615262/notebooks/312389)  
 > **Implementation plan:** [032-finops-ai-ask-panel-implementation-plan.md](032-finops-ai-ask-panel-implementation-plan.md)  
 > **Related:** [001 - Dashboard shell and navigation](001-dashboard-shell-navigation.md); [029 - Mobile shell](029-mobile-shell-phase-ab.md); [017 - AI platform usage sync](017-ai-platform-usage-fibery-sync.md) (Anthropic key patterns); [009 - Historical snapshots](009-dashboard-historical-snapshots.md); [002](002-spreadsheet-user-authorization.md) / [033](033-user-profile-alert-email-notifications.md) Users tab columns.

@@ -251,7 +251,7 @@
       "url": "https://win.godeap.io/app/projects/1615262/notebooks/312389",
       "featureId": "032",
       "publishedAt": "2026-07-08",
-      "lastSyncedAt": "2026-07-17"
+      "lastSyncedAt": "2026-07-21"
     },
     "feature_033": {
       "id": 312624,
@@ -830,20 +830,6 @@
       ],
       "estDevHoursGitBase": "c223947"
     },
-    "Feature 032 - FinOps Ask (panel-scoped AI Q&A)": {
-      "id": 40429663,
-      "tasklist": "Platform and shell",
-      "featureId": "032",
-      "releaseType": "Enhancement",
-      "releaseTitle": "FinOps Ask (panel-scoped AI Q&A)",
-      "provisionalTaskName": true,
-      "shippedVersion": null,
-      "notebookKey": "feature_032",
-      "url": "https://win.godeap.io/app/tasks/40429663",
-      "renameAtShip": "v{FOS_PRD_VERSION} - FinOps Ask (panel-scoped AI Q&A)",
-      "workflowStage": "In-progress",
-      "implementationPlanGit": "docs/features/032-finops-ai-ask-panel-implementation-plan.md"
-    },
     "v2.26.1 - Live dashboard warm cache and Portfolio batch builds": {
       "id": 40507567,
       "tasklist": "Data platform",
@@ -920,19 +906,79 @@
       ],
       "estDevHoursGitBase": "(manual)"
     },
-    "Feature 036 - Supabase dashboard data layer": {
+    "v2.27.0 - FinOps Ask (panel-scoped AI Q&A)": {
+      "id": 40429663,
+      "tasklist": "Platform and shell",
+      "featureId": "032",
+      "releaseType": "Enhancement",
+      "releaseTitle": "FinOps Ask (panel-scoped AI Q&A)",
+      "provisionalTaskName": false,
+      "shippedVersion": "v2.27.0",
+      "notebookKey": "feature_032",
+      "url": "https://win.godeap.io/app/tasks/40429663",
+      "renameAtShip": "v{FOS_PRD_VERSION} - FinOps Ask (panel-scoped AI Q&A)",
+      "workflowStage": "Shipped",
+      "implementationPlanGit": "docs/features/032-finops-ai-ask-panel-implementation-plan.md",
+      "shippedAt": "2026-07-21",
+      "estDevHours": 26,
+      "estDevHoursRationale": [
+        "Git range: f9d05453..HEAD (64 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +980 lines): +4.5h",
+        "Apps Script module `src/adminSettingsRegistry.js`: +1.4h",
+        "Apps Script module `src/agreementStatusUpdates.js`: +0.9h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +15 lines): +2.1h",
+        "Apps Script module `src/finopsAsk.js`: +2.2h",
+        "Apps Script module `src/finopsAskAnthropic.js`: +1.2h",
+        "Apps Script module `src/finopsAskChatLog.js`: +1.2h",
+        "Apps Script module `src/finopsAskQuota.js`: +1.7h",
+        "Apps Script module `src/supabaseClient.js`: +2.2h",
+        "Apps Script module `src/supabaseDashboard.js`: +2.1h",
+        "Apps Script module `src/supabaseSyncJob.js`: +2.2h",
+        "Feature spec / docs (+822 lines): +2.0h",
+        "Teamwork / automation scripts (+273 lines): +1.0h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 26.0h"
+      ],
+      "estDevHoursGitBase": "f9d054538cacae99054148f386e2ee91281867d6"
+    },
+    "v3.0.0 - Supabase dashboard data layer": {
       "id": 40552222,
       "tasklist": "Data platform",
       "featureId": "036",
       "releaseType": "Enhancement",
       "releaseTitle": "Supabase dashboard data layer",
-      "provisionalTaskName": true,
-      "shippedVersion": null,
+      "provisionalTaskName": false,
+      "shippedVersion": "v3.0.0",
       "notebookKey": "feature_036",
       "implementationPlanNotebookKey": "feature_036_implementation_plan",
       "url": "https://win.godeap.io/app/tasks/40552222",
       "renameAtShip": "v{FOS_PRD_VERSION} - Supabase dashboard data layer",
-      "workflowStage": "Spec Draft"
+      "workflowStage": "Shipped",
+      "shippedAt": "2026-07-21",
+      "estDevHours": 26,
+      "estDevHoursRationale": [
+        "Git range: f9d05453..HEAD (64 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +980 lines): +4.5h",
+        "Apps Script module `src/adminSettingsRegistry.js`: +1.4h",
+        "Apps Script module `src/agreementStatusUpdates.js`: +0.9h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +15 lines): +2.1h",
+        "Apps Script module `src/finopsAsk.js`: +2.2h",
+        "Apps Script module `src/finopsAskAnthropic.js`: +1.2h",
+        "Apps Script module `src/finopsAskChatLog.js`: +1.2h",
+        "Apps Script module `src/finopsAskQuota.js`: +1.7h",
+        "Apps Script module `src/supabaseClient.js`: +2.2h",
+        "Apps Script module `src/supabaseDashboard.js`: +2.1h",
+        "Apps Script module `src/supabaseSyncJob.js`: +2.2h",
+        "Feature spec / docs (+822 lines): +2.0h",
+        "Teamwork / automation scripts (+273 lines): +1.0h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 26.0h"
+      ],
+      "estDevHoursGitBase": "f9d054538cacae99054148f386e2ee91281867d6"
     }
   },
   "lastBootstrappedAt": "2026-06-10"
