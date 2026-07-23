@@ -1,5 +1,5 @@
 /**
- * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036: read/write dashboard panel payloads and status rows in Supabase.
  */
@@ -197,6 +197,85 @@ function tagPayloadFromSupabase_(payload, asOfIso) {
   // Back-compat: Last refreshed / TTL helpers historically used fetchedAt.
   payload.fetchedAt = servedAt;
   return payload;
+}
+
+/**
+ * Live serve failure (no Fibery / Drive warm fallback).
+ * @param {string} panelKey
+ * @param {?Object} loadResult
+ * @param {number=} cacheSchemaVersion
+ * @return {!Object}
+ */
+function supabaseLiveMissPayload_(panelKey, loadResult, cacheSchemaVersion) {
+  var configured = isSupabaseConfigured_();
+  var reason =
+    (loadResult && loadResult.reason) ||
+    (configured ? 'SUPABASE_PANEL_MISS' : 'SUPABASE_NOT_CONFIGURED');
+  var message =
+    (loadResult && loadResult.message) ||
+    (configured
+      ? 'No Datastore payload for ' +
+        panelKey +
+        '. Ask an ADMIN to run Pull from Fibery in Settings.'
+      : 'Datastore is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Settings.');
+  return {
+    ok: false,
+    source: 'supabase',
+    loadSource: 'supabase',
+    reason: reason,
+    message: message,
+    fetchedAt: new Date().toISOString(),
+    cacheSchemaVersion: cacheSchemaVersion != null ? cacheSchemaVersion : null,
+  };
+}
+
+/**
+ * Live panel serve: Datastore only. Never falls back to Fibery or Drive rebuild.
+ * @param {string} panelKey
+ * @param {number=} cacheSchemaVersion
+ * @return {!Object}
+ */
+function serveLivePanelFromSupabaseOrFail_(panelKey, cacheSchemaVersion) {
+  if (!isSupabaseConfigured_()) {
+    return supabaseLiveMissPayload_(panelKey, null, cacheSchemaVersion);
+  }
+  var sb = loadSupabasePanelPayload_(panelKey);
+  if (sb.ok && sb.payload) {
+    return tagPayloadFromSupabase_(sb.payload, sb.asOf || sb.syncedAt);
+  }
+  return supabaseLiveMissPayload_(panelKey, sb, cacheSchemaVersion);
+}
+
+/**
+ * Live Delivery project P&L: Datastore only.
+ * @param {string} agreementId
+ * @param {number=} cacheSchemaVersion
+ * @return {!Object}
+ */
+function serveLiveDeliveryPnLFromSupabaseOrFail_(agreementId, cacheSchemaVersion) {
+  var id = String(agreementId || '').trim();
+  if (!id) {
+    return supabaseLiveMissPayload_('delivery-pnl', {
+      reason: 'BAD_AGREEMENT_ID',
+      message: 'Missing agreement id.',
+    }, cacheSchemaVersion);
+  }
+  if (!isSupabaseConfigured_()) {
+    return supabaseLiveMissPayload_('delivery-pnl', null, cacheSchemaVersion);
+  }
+  var sb = loadSupabaseDeliveryPnL_(id);
+  if (sb.ok && sb.payload) {
+    return tagPayloadFromSupabase_(sb.payload, sb.asOf || sb.syncedAt);
+  }
+  return supabaseLiveMissPayload_(
+    'delivery-pnl',
+    sb || {
+      reason: 'SUPABASE_PNL_MISS',
+      message:
+        'No Datastore P&L for this project. Ask an ADMIN to run Pull from Fibery in Settings.',
+    },
+    cacheSchemaVersion
+  );
 }
 
 /**

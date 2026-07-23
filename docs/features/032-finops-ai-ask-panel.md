@@ -1,7 +1,7 @@
 # Feature: FinOps Ask (panel-scoped AI Q&A)
 
-> **Status:** Shipped (**v2.27.0**; Ask model default patch **v3.0.5**).  
-> **PRD version:** 3.0.5  
+> **Status:** Shipped (**v2.27.0**; Ask context patch **v3.0.7**; Ask UX patch **v3.0.6** markdown + in-transcript Thinking; model default **v3.0.5**).  
+> **PRD version:** 3.0.8  
 > **Release task:** [v2.27.0 - FinOps Ask (panel-scoped AI Q&A)](https://win.godeap.io/app/tasks/40429663)  
 > **Teamwork notebook:** [Feature 032](https://win.godeap.io/app/projects/1615262/notebooks/312389)  
 > **Implementation plan:** [032-finops-ai-ask-panel-implementation-plan.md](032-finops-ai-ask-panel-implementation-plan.md)  

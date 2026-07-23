@@ -1,11 +1,11 @@
 /**
- * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.0.5';
+var FOS_PRD_VERSION = '3.0.12';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.0.5';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.0.5 FinOps Ask AI: default model claude-sonnet-4-6 (retired Sonnet 4 id no longer works).';
+  'v3.0.12 fos_labor_costs Hub mirror of labor_costs; Pull auto-installs nightly hydrate.';
 
 /**
  * @return {string}
@@ -107,8 +107,8 @@ function doGet(e) {
   template.prdVersion = getFosPrdVersion_();
   template.homeHeroImageUrl = getHomeHeroImageDataUrl_();
   template.brandLogoUrl = getBrandLogoDataUrl_();
-  // Feature 036: client loading overlays use this before the first payload returns.
-  template.dashboardReadSource = dashboardReadSource_();
+  // Feature 036: client loading overlays use effective serve source (Datastore vs Fibery).
+  template.dashboardReadSource = shouldServeFromSupabase_() ? 'supabase' : 'unconfigured';
   return applyWebAppHtmlChrome_(template.evaluate(), 'FinOps Performance Hub');
 }
 

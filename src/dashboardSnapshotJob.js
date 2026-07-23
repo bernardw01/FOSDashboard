@@ -1,5 +1,5 @@
 /**
- * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Daily historical dashboard snapshot job. Fetches live Fibery payloads,
  * writes JSON artifacts to Google Drive (`dashboardSnapshotStore.js`),

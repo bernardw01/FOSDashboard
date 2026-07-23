@@ -2,9 +2,10 @@
 
 **FinOps Performance Hub** (formerly harpin FOS / Finance & Operations Snapshot) is a **Google Apps Script** web application that gives authorized harpin Workspace users a **single pane of glass** for **ops, delivery, finance, and sales** performance. It aggregates curated metrics from systems the company already uses (primarily **Fibery**, **Google Sheets**, and sync pipelines such as Clockify → Fibery) and presents them with clear freshness indicators, role-based access, and optional historical browse.
 
-**Current product version:** **3.0.0** (`FOS_PRD_VERSION` in [`src/Code.js`](src/Code.js))
+**Current product version:** **3.0.12** (`FOS_PRD_VERSION` in [`src/Code.js`](src/Code.js))
 **Product PRD:** [`docs/FOS-Dashboard-PRD.md`](docs/FOS-Dashboard-PRD.md)
 **Feature map:** [`docs/features/000-overview.md`](docs/features/000-overview.md)
+**Supabase data model:** [`docs/supabase-data-model.md`](docs/supabase-data-model.md)
 **Feature template:** [`docs/FEATURE_TEMPLATE.md`](docs/FEATURE_TEMPLATE.md)
 **Teamwork workflow:** [`docs/teamwork-workflow.md`](docs/teamwork-workflow.md)
 
@@ -66,8 +67,7 @@ flowchart TB
   Fibery --> FiberyHydrate
   FiberyHydrate --> Supabase
 
-  Fibery -->|kill-switch Live Fibery path| GasApi
-  Supabase -->|Live panels when DASHBOARD_READ_SOURCE is supabase| GasApi
+  Supabase -->|Live panels always when credentials set| GasApi
   SalesSheet -->|Pipeline merge sheet wins stage ACV| GasApi
   ExpensesSheet -->|Expenses panel only| GasApi
   AuthSheet -->|auth Profile activity logs| GasApi
@@ -87,12 +87,60 @@ flowchart TB
 | Clockify / HubSpot → Fibery | Upstream sync | Outside or alongside this repo; Fibery remains SoR for most ops entities |
 | Anthropic → Fibery | Hub AI usage sync | ADMIN Settings **Run sync now** / nightly ([017](docs/features/017-ai-platform-usage-fibery-sync.md)) |
 | Fibery → Supabase | Hub hydrate | Nightly + ADMIN **Pull from Fibery** ([036](docs/features/036-supabase-dashboard-data-layer.md)) |
-| Supabase → Hub Live | Serve | When `DASHBOARD_READ_SOURCE=supabase`; Expenses stay on Sheets |
+| Supabase → Hub Live | Serve | Always when credentials set (v3.0.11+); Expenses stay on Sheets |
 | Sheets → Hub | Serve / control plane | Auth Users, Expenses, Sales Opportunity Tracker, activity / notification logs |
 | Hub → Drive | Snapshot job | Historical as-of browse; Live Drive warm caches used when not on Supabase |
 | Hub → Fibery + Supabase | Write | Delivery Agreement status updates dual-write |
 
 Loading overlays show **Source:** (`Live Fibery`, `Supabase · synced …`, `Browser cache`, `Snapshot · date`, `Drive cache · date`, `Spreadsheet`) so operators can see which path served the payload.
+
+---
+
+## Supabase database
+
+Live panel serving (feature [036](docs/features/036-supabase-dashboard-data-layer.md)) uses **Postgres in Supabase**. Schema DDL lives in git and can be rebuilt on demand.
+
+| Resource | Path |
+| --- | --- |
+| **Data model** (tables, ERD, security) | [`docs/supabase-data-model.md`](docs/supabase-data-model.md) |
+| **Migrations** (source of truth) | [`supabase/migrations/`](supabase/migrations/) |
+| **Build script** | [`scripts/supabase_build_schema.py`](scripts/supabase_build_schema.py) |
+| **Combined SQL output** | `supabase/build/schema_all.sql` (generated) |
+| **Cutover / Script Properties** | [`docs/sql/036/README.md`](docs/sql/036/README.md) |
+
+### Build or rebuild the schema
+
+From the repo root (Python 3; no Supabase CLI required for generate):
+
+```bash
+# List migrations in apply order
+python scripts/supabase_build_schema.py --list
+
+# Write combined SQL → supabase/build/schema_all.sql
+python scripts/supabase_build_schema.py
+```
+
+**Apply** to a project (pick one):
+
+1. **SQL Editor:** open Supabase Dashboard → SQL → paste `supabase/build/schema_all.sql` → Run.
+2. **psql:** set `DATABASE_URL` (Project Settings → Database → URI), then:
+
+```bash
+python scripts/supabase_build_schema.py --apply
+```
+
+Migrations are idempotent (`IF NOT EXISTS`). After schema apply: set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`, run ADMIN **Pull from Fibery**, then smoke Live panels. Details: [`docs/supabase-data-model.md`](docs/supabase-data-model.md).
+
+### Migration files
+
+| File | Purpose |
+| --- | --- |
+| `035_labor_costs.sql` | Clockify time-entry facts (`labor_costs`) |
+| `036_fos_dashboard_schema.sql` | Hub `fos_*` serving, sync, and dimension tables |
+| `037_labor_costs_date_range_indexes.sql` | Date-range indexes on `labor_costs` |
+| `038_fos_labor_costs_time_entries.sql` | Hub `fos_labor_costs` time-entry mirror + trigger |
+
+Add new numbered `0NN_*.sql` files under `supabase/migrations/` for forward changes; re-run the build script; do not rewrite history casually.
 
 ---
 
@@ -214,12 +262,13 @@ Routes and panels below match `buildNavigationModel_()` in [`src/Code.js`](src/C
 | Mobile shell Phase A + B | [029](docs/features/029-mobile-shell-phase-ab.md) |
 | User Profile + alert email notifications + notification tray | [033](docs/features/033-user-profile-alert-email-notifications.md) |
 | Live Agreement warm cache, Delivery Agreement reuse, Portfolio continuation builds | [034](docs/features/034-live-dashboard-warm-cache-and-portfolio-batching.md) |
+| FinOps Ask (panel-scoped AI Q&A) | [032](docs/features/032-finops-ai-ask-panel.md) |
+| Supabase Live data layer (hydrate + serve) | [036](docs/features/036-supabase-dashboard-data-layer.md) · [data model](docs/supabase-data-model.md) |
 
 ### Planned (not yet shipped)
 
 | Feature | Spec |
 | --- | --- |
-| FinOps Ask (panel-scoped AI Q&A) | [032](docs/features/032-finops-ai-ask-panel.md) |
 | Scenario Planning (R1) | [014](docs/features/014-scenario-planning.md) ([plan](docs/features/014-scenario-planning-implementation-plan.md)) |
 | AI usage: OpenAI ingest / allocation rules (beyond Anthropic) | [017](docs/features/017-ai-platform-usage-fibery-sync.md) ([plan](docs/features/017-ai-platform-usage-fibery-sync-implementation-plan.md)) |
 
@@ -263,11 +312,12 @@ Numbered files under [`docs/features/`](docs/features/). Prefer the [overview](d
 | [029-mobile-shell-phase-ab.md](docs/features/029-mobile-shell-phase-ab.md) | Mobile shell |
 | [030-sales-os-pipeline.md](docs/features/030-sales-os-pipeline.md) | Sales OS pipeline |
 | [031-portfolio-pnl-excel-export.md](docs/features/031-portfolio-pnl-excel-export.md) | Portfolio Excel export |
-| [032-finops-ai-ask-panel.md](docs/features/032-finops-ai-ask-panel.md) | FinOps Ask (planned) |
+| [032-finops-ai-ask-panel.md](docs/features/032-finops-ai-ask-panel.md) | FinOps Ask (panel-scoped AI Q&A) |
 | [033-user-profile-alert-email-notifications.md](docs/features/033-user-profile-alert-email-notifications.md) | Profile + alert emails + tray |
 | [034-live-dashboard-warm-cache-and-portfolio-batching.md](docs/features/034-live-dashboard-warm-cache-and-portfolio-batching.md) | Live warm cache + Portfolio continuation batches |
+| [036-supabase-dashboard-data-layer.md](docs/features/036-supabase-dashboard-data-layer.md) | Supabase Live data layer |
 
-Supporting / engineering notes (not full feature specs): [017 Fibery schema API](docs/features/017-fibery-schema-api.md), [017 Fibery schema setup](docs/features/017-fibery-schema-setup.md), [017 phase-0 gap memo](docs/features/017-phase0-gap-memo.md).
+Supporting / engineering notes (not full feature specs): [Supabase data model](docs/supabase-data-model.md), [017 Fibery schema API](docs/features/017-fibery-schema-api.md), [017 Fibery schema setup](docs/features/017-fibery-schema-setup.md), [017 phase-0 gap memo](docs/features/017-phase0-gap-memo.md).
 
 ---
 
@@ -293,6 +343,9 @@ Configuration lives in **Project settings → Script properties** (`PropertiesSe
 | --- |:---:| --- |
 | `FIBERY_HOST` | **Yes** (Fibery panels) | Workspace host for `/api/commands` (no scheme), e.g. `harpin-ai.fibery.io` |
 | `FIBERY_API_TOKEN` | **Yes** (Fibery panels) | Server-only API token (never commit) |
+| `SUPABASE_URL` | **Yes** (Live Datastore) | Project URL `https://PROJECT.supabase.co` ([036](docs/features/036-supabase-dashboard-data-layer.md)) |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Yes** (Live Datastore) | Service role key (server only; never ship to the browser) |
+| `DASHBOARD_READ_SOURCE` | No (legacy) | Ignored for Live serve as of **v3.0.11**; Live panels always read Datastore when credentials are set |
 | `FIBERY_PUBLIC_SCHEME` / `FIBERY_DEEP_LINK_HOST` | No | Browser deep-link composition |
 | `FIBERY_LABOR_COST_PATH_TEMPLATE` | No | Labor Cost URLs (`{slug}`, `{publicId}`) |
 | `FIBERY_AGREEMENT_PATH_TEMPLATE` | No | Agreement URLs |
@@ -311,8 +364,10 @@ Panel-specific thresholds (Agreement, Utilization, Labor hours, Delivery, Pipeli
 | --- | --- |
 | [`src/`](src/) | **Only** what **clasp** pushes (`.js`, `.html`, `appsscript.json`) |
 | [`src/assets/`](src/assets/) | Binaries (favicon, Home hero); embed scripts write data URLs into `src/` |
-| [`scripts/`](scripts/) | Embed helpers, Teamwork workflow utilities |
+| [`scripts/`](scripts/) | Embed helpers, Teamwork workflow utilities, Supabase schema build |
+| [`supabase/`](supabase/) | Postgres migrations + generated combined schema ([README](supabase/README.md)) |
 | [`docs/`](docs/) | PRDs and feature specs (**not** uploaded; see [`.claspignore`](.claspignore)) |
+| [`docs/supabase-data-model.md`](docs/supabase-data-model.md) | Supabase table catalog, ERD, build instructions |
 | [`docs/teamwork-manifest.json`](docs/teamwork-manifest.json) | Teamwork project ids, notebooks, release tasks |
 | [`.clasp.json`](.clasp.json) | Apps Script `scriptId` + `"rootDir": "src"` |
 | [`.cursor/rules/`](.cursor/rules/) | Cursor agent rules (PRD versioning, snapshots, mobile, Teamwork) |
@@ -375,6 +430,8 @@ In Apps Script: **Project settings → Script properties**. Set at least `AUTH_S
 | --- | --- |
 | Install daily snapshot trigger | Run `installDailySnapshotTrigger()` / `ensureSnapshotDriveFolder()` (feature [009](docs/features/009-dashboard-historical-snapshots.md)) |
 | Upgrade stale snapshot schemas | `_diag_listStaleSnapshots()` / `_diag_startSnapshotSchemaUpgrade()` ([009](docs/features/009-dashboard-historical-snapshots.md)) |
+| Apply / rebuild Supabase schema | `python scripts/supabase_build_schema.py` then SQL Editor or `--apply` ([data model](docs/supabase-data-model.md)) |
+| Supabase Fibery hydrate | Settings **Pull from Fibery** (also installs nightly trigger as of v3.0.12) ([036](docs/features/036-supabase-dashboard-data-layer.md)) |
 | AI usage sync | Daily trigger and/or Settings **Run sync now** ([017](docs/features/017-ai-platform-usage-fibery-sync.md)) |
 | Alert email digests | Hourly / Daily / Weekly jobs + Settings **Run hourly now** ([033](docs/features/033-user-profile-alert-email-notifications.md)) |
 | Snapshot diagnostics | `_diag_snapshotPreflight()`, `_diag_runSnapshotForDate('YYYY-MM-DD')` |
@@ -412,6 +469,7 @@ Review diffs carefully; pull overwrites matching local `src/` files.
 
 - [`docs/FOS-Dashboard-PRD.md`](docs/FOS-Dashboard-PRD.md) - main product PRD (FR/AC, changelog).
 - [`docs/features/000-overview.md`](docs/features/000-overview.md) - shipped summary vs planned work.
+- [`docs/supabase-data-model.md`](docs/supabase-data-model.md) - Supabase Postgres schema, table catalog, build/apply.
 - [`docs/FEATURE_TEMPLATE.md`](docs/FEATURE_TEMPLATE.md) - template for new feature notebooks / specs.
 - [`docs/agreement-dashboard-prd-v2.md`](docs/agreement-dashboard-prd-v2.md) - Agreement visuals / Fibery model notes.
 - [`docs/release-highlights-since-2.8.md`](docs/release-highlights-since-2.8.md) - narrative release highlights since v2.8.

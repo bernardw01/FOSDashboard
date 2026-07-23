@@ -1,5 +1,5 @@
 /**
- * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Phase 0 diagnostics for AI usage Admin APIs (feature 017).
  * Editor-only helpers; logs redacted summaries (no secrets, no full payloads).

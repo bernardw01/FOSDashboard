@@ -1,5 +1,5 @@
 /**
- * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036: Fibery → Supabase hydrate (nightly + ADMIN Pull).
  * Builds panel payloads with existing Fibery builders, upserts into Supabase,
@@ -78,6 +78,12 @@ function runSupabaseSyncForSettings() {
   if (!isSupabaseConfigured_()) {
     return { ok: false, message: 'Supabase URL/key not configured.' };
   }
+  // Self-heal: first/any Pull installs (or refreshes) the nightly hydrate trigger.
+  try {
+    installSupabaseSyncTrigger_();
+  } catch (e) {
+    supabaseWarn_('installSupabaseSyncTrigger_ during Pull', e);
+  }
   return startSupabaseSync_('manual');
 }
 
@@ -98,6 +104,7 @@ function getSupabaseSyncStatus() {
   }
   var state = readSupabaseSyncState_();
   var ping = supabasePing_();
+  var nightly = getSupabaseNightlyTriggerStatus_();
   return {
     ok: true,
     syncEnabled: supabaseSyncIsEnabled_(),
@@ -105,6 +112,38 @@ function getSupabaseSyncStatus() {
     readSource: dashboardReadSource_(),
     ping: ping,
     state: state,
+    nightlyTrigger: nightly,
+  };
+}
+
+/**
+ * @return {!{ installed: boolean, handler: string, hour: number, count: number }}
+ */
+function getSupabaseNightlyTriggerStatus_() {
+  var hour = parseInt(
+    PropertiesService.getScriptProperties().getProperty('SUPABASE_SYNC_TRIGGER_HOUR') ||
+      '4',
+    10
+  );
+  if (isNaN(hour) || hour < 0 || hour > 23) {
+    hour = 4;
+  }
+  var count = 0;
+  try {
+    var triggers = ScriptApp.getProjectTriggers();
+    for (var i = 0; i < triggers.length; i++) {
+      if (triggers[i].getHandlerFunction() === 'runDailySupabaseSync_') {
+        count++;
+      }
+    }
+  } catch (_) {
+    /* ignore */
+  }
+  return {
+    installed: count > 0,
+    handler: 'runDailySupabaseSync_',
+    hour: hour,
+    count: count,
   };
 }
 

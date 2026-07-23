@@ -1,5 +1,5 @@
 /**
- * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 032 - FinOps Ask AI (panel-scoped Q&A).
  */
@@ -7,8 +7,11 @@
 /** @const {number} */
 var FINOPS_ASK_QUESTION_MAX_ = 500;
 
-/** @const {number} */
-var FINOPS_ASK_CONTEXT_MAX_CHARS_ = 80000;
+/** Soft budget for panel JSON context sent to the model (chars). */
+var FINOPS_ASK_CONTEXT_MAX_CHARS_ = 480000;
+
+/** Absolute ceiling after progressive trim (chars). */
+var FINOPS_ASK_CONTEXT_HARD_MAX_CHARS_ = 560000;
 
 /** @const {!Object<string, boolean>} */
 var FINOPS_ASK_SUPPORTED_PANELS_ = {
@@ -105,44 +108,187 @@ function finopsAskSanitizeContextSummary_(summary) {
       return { truncated: true, note: 'Context parse failed after stringify.' };
     }
   }
-  return {
-    truncated: true,
-    note: 'Context exceeded size budget; narrow filters and retry.',
-    preview: json.substring(0, Math.min(4000, FINOPS_ASK_CONTEXT_MAX_CHARS_)),
-  };
+
+  // Progressive trim: drop bulky optional keys, then hard-cap.
+  var trimmed = null;
+  try {
+    trimmed = JSON.parse(json);
+  } catch (_) {
+    return {
+      truncated: true,
+      note: 'Context exceeded size budget and could not be re-parsed.',
+      preview: json.substring(0, 4000),
+    };
+  }
+  var dropped = [];
+  var dropKeys = [
+    'charts',
+    'sankey',
+    'heatmap',
+    'historicalRevenueItems',
+    'futureRevenueItems',
+    'revenueItemsByAgreement',
+    'laborHours',
+    'pnlById',
+    'rawRows',
+    // Resource assignments: projects view duplicates person×week grids (+ actuals).
+    'projects',
+  ];
+
+  function noteDrop_(label) {
+    dropped.push(label);
+    if (!trimmed.notes) trimmed.notes = [];
+    if (trimmed.notes.push) {
+      trimmed.notes.push('Omitted ' + label + ' to fit Ask context budget.');
+    }
+  }
+
+  function measure_() {
+    try {
+      json = JSON.stringify(trimmed);
+      return json.length;
+    } catch (_) {
+      return FINOPS_ASK_CONTEXT_HARD_MAX_CHARS_ + 1;
+    }
+  }
+
+  var di;
+  for (di = 0; di < dropKeys.length; di++) {
+    if (measure_() <= FINOPS_ASK_CONTEXT_MAX_CHARS_) {
+      break;
+    }
+    if (trimmed && Object.prototype.hasOwnProperty.call(trimmed, dropKeys[di])) {
+      delete trimmed[dropKeys[di]];
+      noteDrop_(dropKeys[di]);
+    }
+    if (trimmed && trimmed.dataset && typeof trimmed.dataset === 'object') {
+      if (Object.prototype.hasOwnProperty.call(trimmed.dataset, dropKeys[di])) {
+        delete trimmed.dataset[dropKeys[di]];
+        noteDrop_('dataset.' + dropKeys[di]);
+      }
+    }
+  }
+
+  // Last resort for still-oversize person week grids: keep roster + totals, drop byWeek maps.
+  if (measure_() > FINOPS_ASK_CONTEXT_MAX_CHARS_ && trimmed && trimmed.dataset) {
+    finopsAskSlimWeekMapsInPlace_(trimmed.dataset);
+    noteDrop_('per-week detail maps');
+  } else if (measure_() > FINOPS_ASK_CONTEXT_MAX_CHARS_) {
+    finopsAskSlimWeekMapsInPlace_(trimmed);
+    noteDrop_('per-week detail maps');
+  }
+
+  if (measure_() > FINOPS_ASK_CONTEXT_HARD_MAX_CHARS_) {
+    return {
+      truncated: true,
+      note:
+        'Context still exceeded size budget after trim; Clear Ask and retry, or narrow panel filters.',
+      panelId: trimmed && trimmed.panelId ? trimmed.panelId : null,
+      kpis: trimmed && trimmed.kpis ? trimmed.kpis : null,
+      alerts: trimmed && trimmed.alerts ? trimmed.alerts : null,
+      notes: trimmed && trimmed.notes ? trimmed.notes : [],
+      preview: json.substring(0, Math.min(12000, FINOPS_ASK_CONTEXT_HARD_MAX_CHARS_)),
+    };
+  }
+
+  if (dropped.length) {
+    trimmed.truncated = true;
+    trimmed.truncateNote =
+      'Omitted: ' + dropped.join(', ') + '. Clear Ask after narrowing filters for fuller detail.';
+  }
+  return trimmed;
 }
 
 /**
- * @param {!Object} request
+ * Strip nested byWeek / byWeekTotalPercent maps to shrink Ask context.
+ * @param {?Object} root
+ */
+function finopsAskSlimWeekMapsInPlace_(root) {
+  if (!root || typeof root !== 'object') return;
+  var persons = root.persons || root.people;
+  if (persons && persons.length) {
+    for (var i = 0; i < persons.length; i++) {
+      var p = persons[i];
+      if (!p || typeof p !== 'object') continue;
+      delete p.byWeekTotalPercent;
+      delete p.byWeek;
+      var projs = p.projects;
+      if (projs && typeof projs === 'object') {
+        var list = projs.length != null ? projs : null;
+        if (list) {
+          for (var j = 0; j < list.length; j++) {
+            if (list[j]) delete list[j].byWeek;
+          }
+        } else {
+          for (var pk in projs) {
+            if (Object.prototype.hasOwnProperty.call(projs, pk) && projs[pk]) {
+              delete projs[pk].byWeek;
+            }
+          }
+        }
+      }
+    }
+  }
+  var projects = root.projects;
+  if (projects && projects.length) {
+    for (var pi = 0; pi < projects.length; pi++) {
+      var proj = projects[pi];
+      if (!proj || typeof proj !== 'object') continue;
+      delete proj.byWeekTotals;
+      var pm = proj.persons || proj.personsMap;
+      if (pm && typeof pm === 'object') {
+        var plist = pm.length != null ? pm : null;
+        if (plist) {
+          for (var pj = 0; pj < plist.length; pj++) {
+            if (plist[pj]) delete plist[pj].byWeek;
+          }
+        } else {
+          for (var mk in pm) {
+            if (Object.prototype.hasOwnProperty.call(pm, mk) && pm[mk]) {
+              delete pm[mk].byWeek;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * @param {!Object=} request
  * @return {string}
  */
 function finopsAskBuildSystemPrompt_(request) {
-  var panelId = String(request.panelId || '');
-  var ds = request.dataSource && typeof request.dataSource === 'object' ? request.dataSource : {};
-  var mode = String(ds.mode || 'live');
-  var snap = ds.snapshotDate ? String(ds.snapshotDate) : '';
+  // Keep this byte-stable across turns so Anthropic prompt cache can hit.
+  // Panel / Live vs snapshot grounding lives in the cached context JSON block.
   return [
     'You are FinOps Ask, a read-only assistant inside FinOps Performance Hub.',
-    'Answer ONLY using the provided JSON context for the current dashboard panel.',
+    'Answer ONLY using the provided JSON dashboard panel context.',
+    'The context JSON includes panelId, dataSource, filters, and contextSummary.dataset (panel data captured when the conversation started).',
     'Do not invent metrics, names, or dates that are not present in the context.',
-    'If the context is insufficient, say so plainly and suggest narrowing filters or refreshing the panel.',
-    'Always ground the answer with: panel "' +
-      panelId +
-      '", data source "' +
-      mode +
-      (snap ? ' ' + snap : '') +
-      '".',
-    'Use concise rich markdown (lists, bold). No HTML script tags.',
+    'If the context is insufficient or truncated, say so plainly and suggest refreshing the panel or clearing Ask to reload context.',
+    'Always ground answers with the panel id and data source from the context JSON.',
+    'Use concise rich markdown (lists, bold, headings). No HTML script tags.',
   ].join(' ');
 }
 
 /**
+ * Build Messages API turns with a stable cached panel-context prefix.
  * @param {!Object} request
  * @param {!Object} contextSummary
- * @return {!Array<!{ role: string, content: string }>}
+ * @return {!Array<!Object>}
  */
 function finopsAskBuildMessages_(request, contextSummary) {
-  var messages = [];
+  var useCache = finopsAskPromptCacheEnabled_();
+  var ttl = finopsAskPromptCacheTtl_();
+  var contextPayload = JSON.stringify({
+    panelId: request.panelId,
+    dataSource: request.dataSource || {},
+    filters: request.filters || {},
+    contextSummary: contextSummary,
+  });
+
+  var history = [];
   var turns = request.conversationTurns;
   if (turns && turns.length) {
     var start = Math.max(0, turns.length - 8);
@@ -152,21 +298,56 @@ function finopsAskBuildMessages_(request, contextSummary) {
         continue;
       }
       var role = String(t.role) === 'assistant' ? 'assistant' : 'user';
-      messages.push({ role: role, content: String(t.content).substring(0, 4000) });
+      history.push({ role: role, content: String(t.content).substring(0, 4000) });
     }
   }
-  var userPayload = {
-    question: request.question,
-    panelId: request.panelId,
-    dataSource: request.dataSource || {},
-    filters: request.filters || {},
-    fetchedAt: request.fetchedAt || null,
-    contextSummary: contextSummary,
+
+  var firstQuestion = String(request.question || '');
+  var rest = [];
+  if (history.length && history[0].role === 'user') {
+    firstQuestion = history[0].content;
+    rest = history.slice(1);
+  } else if (history.length) {
+    rest = history;
+  }
+
+  var contextBlock = {
+    type: 'text',
+    text:
+      'Dashboard panel context (JSON). Use only this data for answers.\n' + contextPayload,
   };
-  messages.push({
-    role: 'user',
-    content: JSON.stringify(userPayload),
-  });
+  if (useCache) {
+    contextBlock.cache_control = finopsAskCacheControl_(ttl);
+  }
+
+  var messages = [
+    {
+      role: 'user',
+      content: [
+        contextBlock,
+        {
+          type: 'text',
+          text: 'Question: ' + String(firstQuestion).substring(0, 4000),
+        },
+      ],
+    },
+  ];
+
+  for (var r = 0; r < rest.length; r++) {
+    messages.push({
+      role: rest[r].role,
+      content: rest[r].content,
+    });
+  }
+
+  // Follow-up turn: prior history already includes the first question; append the new one.
+  if (history.length > 0) {
+    messages.push({
+      role: 'user',
+      content: 'Question: ' + String(request.question || '').substring(0, 4000),
+    });
+  }
+
   return messages;
 }
 
@@ -269,7 +450,9 @@ function askFinOpsQuestion(request) {
       },
       contextSummary
     );
-    var llm = finopsAskCallMessages_(systemPrompt, messages);
+    var llm = finopsAskCallMessages_(systemPrompt, messages, {
+      promptCache: finopsAskPromptCacheEnabled_(),
+    });
     var answer = llm.text || 'No answer returned.';
     finopsAskLogActivity_(
       auth,
@@ -292,7 +475,15 @@ function askFinOpsQuestion(request) {
       answer: answer,
       contextLabel: contextLabel,
       citations: [],
-      warnings: contextSummary.truncated ? [String(contextSummary.note || 'Context truncated')] : [],
+      warnings: contextSummary.truncated
+        ? [
+            String(
+              contextSummary.truncateNote ||
+                contextSummary.note ||
+                'Context trimmed to fit size budget'
+            ),
+          ]
+        : [],
       usageMeta: llm.usageMeta || null,
       quotaRemaining: quota.remaining,
       quotaCount: quota.count,

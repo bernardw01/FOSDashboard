@@ -1,5 +1,5 @@
 /**
- * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `delivery`, panel
  * `#panel-delivery`). Public endpoints, all authorized via
@@ -161,38 +161,11 @@ function getDeliveryCacheTtlMinutes() {
  */
 function getDeliveryDashboardData(forceRefresh) {
   requireAuthForApi_();
-
-  var fetchedAtIso = new Date().toISOString();
-  var ttlMinutes = resolveDeliveryCacheTtlMinutes_();
-
-  // Feature 036: Refresh re-reads Supabase; Fibery rebuild is hydrate/Pull only.
-  if (shouldServeFromSupabase_()) {
-    var sbDel = loadSupabasePanelPayload_('delivery');
-    if (sbDel.ok && sbDel.payload) {
-      return tagPayloadFromSupabase_(sbDel.payload, sbDel.asOf || sbDel.syncedAt);
-    }
-  }
-
-  var raw;
-  try {
-    raw = getAgreementDashboardDataInternal_(forceRefresh === true);
-  } catch (e) {
-    return {
-      ok: false,
-      source: 'fibery',
-      loadSource: 'fibery',
-      fromDrive: false,
-      cacheDateKey: null,
-      fetchedAt: fetchedAtIso,
-      cacheSchemaVersion: DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_,
-      ttlMinutes: ttlMinutes,
-      projects: [],
-      filtersApplied: {},
-      message: 'Could not load delivery data: ' + (e && e.message ? e.message : e),
-      warnings: ['EXCEPTION'],
-    };
-  }
-  return buildDeliveryDashboardPayloadFromAgreement_(raw, fetchedAtIso, ttlMinutes);
+  // Live Datastore only. forceRefresh re-reads Postgres; Fibery is hydrate/Pull only.
+  return serveLivePanelFromSupabaseOrFail_(
+    'delivery',
+    DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_
+  );
 }
 
 /**
@@ -373,13 +346,10 @@ function buildDeliveryDashboardPayloadFromAgreement_(agreementPayload, fetchedAt
  */
 function getDeliveryProjectMonthlyPnL(agreementId) {
   requireAuthForApi_();
-  if (shouldServeFromSupabase_()) {
-    var sb = loadSupabaseDeliveryPnL_(agreementId);
-    if (sb.ok && sb.payload) {
-      return tagPayloadFromSupabase_(sb.payload, sb.asOf || sb.syncedAt);
-    }
-  }
-  return buildDeliveryProjectMonthlyPnLInternal_(agreementId);
+  return serveLiveDeliveryPnLFromSupabaseOrFail_(
+    agreementId,
+    DELIVERY_PNL_CACHE_SCHEMA_VERSION_
+  );
 }
 
 /**

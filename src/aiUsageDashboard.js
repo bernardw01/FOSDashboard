@@ -1,5 +1,5 @@
 /**
- * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * AI Usage dashboard (feature 023). Reads Fibery Claude API Costs via daily Drive
  * cache (`aiUsageDashboardCache.js`) with Clockify User join for classification.
@@ -60,17 +60,12 @@ function getAiUsageDashboardCacheTtlMinutes() {
  */
 function getAiUsageDashboardData(rangeStart, rangeEnd, forceRefresh) {
   requireAiUsageAccessForApi_();
-  var refresh = forceRefresh === true;
   try {
-    // Feature 036: Refresh re-reads Supabase; Fibery rebuild is hydrate/Pull only.
-    if (shouldServeFromSupabase_()) {
-      var sb = loadSupabasePanelPayload_('ai-usage');
-      if (sb.ok && sb.payload) {
-        // Prefer stored wide-window payload; client filters by range locally when present.
-        return tagPayloadFromSupabase_(sb.payload, sb.asOf || sb.syncedAt);
-      }
-    }
-    return buildAiUsageDashboardPayload_(rangeStart, rangeEnd, refresh);
+    // Live Datastore only. Client filters the hydrated window locally.
+    return serveLivePanelFromSupabaseOrFail_(
+      'ai-usage',
+      AI_USAGE_DASHBOARD_CACHE_SCHEMA_VERSION_
+    );
   } catch (e) {
     var msg = e && e.message ? String(e.message) : 'Could not load AI usage data.';
     if (msg === 'NOT_AUTHORIZED') {

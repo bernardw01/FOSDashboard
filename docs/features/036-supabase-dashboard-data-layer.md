@@ -1,7 +1,7 @@
 # Feature: Supabase dashboard data layer
 
-> **Status:** Shipped (**v3.0.0**; follow-on patches through **v3.0.4**).  
-> **PRD version:** 3.0.5  
+> **Status:** Shipped (**v3.0.0**; Live Datastore-only **v3.0.11**; labor mirror + nightly auto-install **v3.0.12**).  
+> **PRD version:** 3.0.12  
 > **Feature id:** 036 | **Task list:** Data platform  
 > **Release type:** Enhancement  
 > **Extends:** [003 - Agreement client cache](003-agreement-dashboard-fibery-client-cache.md), [005 - Utilization](005-utilization-management-dashboard.md), [006 - Delivery P&L](006-delivery-project-pnl.md), [009 - Historical snapshots](009-dashboard-historical-snapshots.md), [010 - Historical data source](010-dashboard-historical-data-source.md), [016 / 030 - Pipeline](030-sales-os-pipeline.md), [017 / 023 - AI usage](023-ai-usage-dashboard.md), [022 / 025 - Portfolio](025-portfolio-pnl-performance-and-load-source-ux.md), [027 / 028 - Resource assignments](027-resource-assignment-dashboard.md), [034 - Live Drive warm cache](034-live-dashboard-warm-cache-and-portfolio-batching.md) (live Drive path superseded by this feature).  
@@ -98,7 +98,7 @@ Live cold paths still depend on Fibery (or rebuild into same-day Drive warm cach
 
 ## Data model
 
-Logical domains (exact DDL in implementation plan / `supabase/migrations` or `docs/sql/036/`):
+Logical domains (exact DDL: [`docs/supabase-data-model.md`](../supabase-data-model.md), migrations in `supabase/migrations/`, build via `python scripts/supabase_build_schema.py`; cutover: [`docs/sql/036/README.md`](../sql/036/README.md)):
 
 | Domain | Example tables | Used by | Writer in 036 |
 | --- | --- | --- | --- |
@@ -107,7 +107,7 @@ Logical domains (exact DDL in implementation plan / `supabase/migrations` or `do
 | Delivery economics | revenue, ODC, allocation facts | Delivery P&L, Portfolio | Fibery hydrate |
 | Status updates | status update rows (+ doc metadata as needed) | Delivery P&L, dual-write | Fibery hydrate + dual-write path |
 | People / time | Clockify users, time aggregates | Utilization, Labor hours, Resource assignments | Fibery hydrate (where Fibery-sourced) |
-| Labor costs | `labor_costs` (or equivalent) | P&L / util cost | **External Clockify sync only** |
+| Labor costs | `labor_costs` (Clockify SoT) + `fos_labor_costs` (Hub mirror, 038) | P&L / util cost (future SQL) | **External Clockify sync** writes `labor_costs`; trigger mirrors to `fos_labor_costs`. Hydrate skips both. |
 | Pipeline | HubSpot deal mirror | Pipeline (merged with Sales sheet in GAS) | Fibery hydrate |
 | AI usage | usage / cost rows | AI Usage | Fibery hydrate |
 
@@ -173,6 +173,9 @@ See [implementation plan](036-supabase-dashboard-data-layer-implementation-plan.
 
 | Date | Note |
 | --- | --- |
+| 2026-07-22 | **v3.0.12:** `fos_labor_costs` is Hub time-entry mirror of `labor_costs` (migration 038). ADMIN Pull auto-installs nightly hydrate trigger; Settings shows trigger status. |
+| 2026-07-22 | **v3.0.11:** Live serve is Datastore-only (no Fibery / Drive warm fallback). Utilization and Resource assignments no longer skip Supabase when the client sends date ranges. |
+| 2026-07-21 | **v3.0.9:** Default `DASHBOARD_READ_SOURCE` is **supabase**; `fibery` remains the kill-switch. |
 | 2026-07-21 | **v3.0.4:** Datastore **Reload** (not Fibery pull): show Reloaded vs Data as of; disable browser TTL Stale for Datastore; button label Reload + tooltip. |
 | 2026-07-21 | **v3.0.2:** Customer-facing reload labels use **Datastore** / **Reloading from Datastore** (hide Supabase vendor name); ADMIN Settings still name Supabase. |
 | 2026-07-21 | **v3.0.1:** Panel Refresh no longer skips Supabase; loading overlays use `dashboardReadSource` hint from `doGet`. |

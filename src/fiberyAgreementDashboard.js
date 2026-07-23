@@ -1,5 +1,5 @@
 /**
- * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement Dashboard orchestrator (route id `agreement-dashboard`, panel
  * `#panel-agreement-dashboard`). Live loads use same-day Drive warm cache
@@ -10,7 +10,9 @@
  * default 10).
  *
  * Public surface (client-callable via google.script.run):
- *   getAgreementDashboardData(forceRefresh?) - full view-model; Drive or Fibery.
+ *   getAgreementDashboardData(forceRefresh?) - Live Datastore payload (Supabase).
+ *   getAgreementDashboardDataInternal_(forceRefresh) - shared Live serve (no Fibery).
+ *   buildAgreementDashboardPayload_(asOfDateIso) - Fibery builder for hydrate / snapshots.
  *   getAgreementCacheTtlMinutes()            - configured default TTL.
  *
  * Internal builder (snapshots / jobs; no Drive read/write):
@@ -86,42 +88,21 @@ function getAgreementDashboardData(forceRefresh) {
 }
 
 /**
- * Agreement load shared by Delivery (already authorized). Drive warm cache
- * when enabled; otherwise Fibery. Snapshot jobs must keep calling
+ * Agreement load shared by Delivery (already authorized).
+ * Live serve is Datastore-only (feature 036 / v3.0.11+); Fibery rebuild is
+ * ADMIN Pull / nightly hydrate only. Snapshot jobs keep calling
  * `buildAgreementDashboardPayload_` directly.
  *
- * @param {boolean} forceRefresh
+ * @param {boolean} forceRefresh Ignored for Live Datastore serve (Reload re-reads Postgres).
  * @return {!Object}
  */
 function getAgreementDashboardDataInternal_(forceRefresh) {
-  var refresh = forceRefresh === true;
-  var cacheDateKey = resolveSnapshotDateKey_(new Date());
-
-  // Feature 036: Live serve from Supabase when cut over (including Refresh).
-  // Panel Refresh re-reads Postgres; Fibery rebuild is ADMIN Pull / nightly hydrate.
-  if (shouldServeFromSupabase_()) {
-    var sb = loadSupabasePanelPayload_('agreement');
-    if (sb.ok && sb.payload) {
-      return tagPayloadFromSupabase_(sb.payload, sb.asOf || sb.syncedAt);
-    }
-  }
-
-  if (isAgreementDriveCacheEnabled_()) {
-    var cacheResult = loadOrBuildAgreementDriveCache_(cacheDateKey, refresh);
-    if (cacheResult && cacheResult.ok && cacheResult.bundle) {
-      return agreementDashboardPayloadFromDriveBundle_(
-        cacheResult.bundle,
-        !!cacheResult.fromDrive,
-        cacheDateKey
-      );
-    }
-    if (cacheResult && cacheResult.ok === false) {
-      return agreementDashboardPayloadFromDriveBundle_(cacheResult, false, null);
-    }
-  }
-
-  var built = buildAgreementDashboardPayload_(null);
-  return agreementDashboardPayloadFromDriveBundle_(built, false, null);
+  return serveLivePanelFromSupabaseOrFail_(
+    'agreement',
+    typeof AGREEMENT_DASHBOARD_CACHE_SCHEMA_VERSION_ !== 'undefined'
+      ? AGREEMENT_DASHBOARD_CACHE_SCHEMA_VERSION_
+      : null
+  );
 }
 
 /**

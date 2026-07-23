@@ -1,5 +1,5 @@
 /**
- * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -123,6 +123,22 @@ function getAdminSettingsCatalog_() {
       'Anthropic model id for Ask answers. Default claude-sonnet-4-6 (Sonnet 4 was retired 2026-06-15).',
       'string',
       'claude-sonnet-4-6'
+    ),
+    adminSettingEntry_(
+      'FINOPS_ASK_PROMPT_CACHE',
+      'finops-ask',
+      'Ask prompt caching',
+      'When true, cache the system prompt and panel context prefix via Anthropic prompt caching (cheaper/faster follow-ups). Default true.',
+      'boolean',
+      true
+    ),
+    adminSettingEntry_(
+      'FINOPS_ASK_PROMPT_CACHE_TTL',
+      'finops-ask',
+      'Ask prompt cache TTL',
+      'Cache lifetime for the panel-context breakpoint: 1h (default) or 5m.',
+      'string',
+      '1h'
     ),
     adminSettingEntry_(
       'FINOPS_ASK_DAILY_CAP',
@@ -984,10 +1000,10 @@ function getAdminSettingsCatalog_() {
     adminSettingEntry_(
       'DASHBOARD_READ_SOURCE',
       'supabase-data',
-      'Live dashboard read source',
-      'fibery (default until cutover) or supabase. When supabase, Live panels read hydrated Postgres payloads (Expenses stay on Sheets).',
+      'Live dashboard read source (legacy)',
+      'Deprecated. Live panels always read Datastore (Supabase) when credentials are set. Fibery is used only for ADMIN Pull / nightly hydrate and status dual-write. Expenses stay on Sheets; historical mode stays on Drive.',
       'string',
-      'fibery'
+      'supabase'
     ),
     adminSettingEntry_(
       'SUPABASE_SYNC_ENABLED',

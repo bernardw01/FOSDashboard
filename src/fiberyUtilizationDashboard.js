@@ -1,5 +1,5 @@
 /**
- * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard orchestrator (route id `operations`, panel
  * `#panel-operations`). Reads `Agreement Management/Labor Costs` from Fibery
@@ -72,15 +72,13 @@ function getUtilizationCacheTtlMinutes() {
  */
 function getUtilizationDashboardData(rangeStart, rangeEnd) {
   requireAuthForApi_();
-  // Feature 036: serve hydrated default-range payload from Supabase when cut over.
-  // Custom ranges still rebuild from Fibery until fact tables are queryable.
-  if (shouldServeFromSupabase_() && rangeStart == null && rangeEnd == null) {
-    var sb = loadSupabasePanelPayload_('utilization');
-    if (sb.ok && sb.payload) {
-      return tagPayloadFromSupabase_(sb.payload, sb.asOf || sb.syncedAt);
-    }
-  }
-  return buildUtilizationDashboardPayload_(rangeStart, rangeEnd);
+  // Live Datastore only (v3.0.11+). Client may pass a date range for UX;
+  // server always returns the hydrated utilization payload (no Fibery rebuild).
+  // Custom-range Fibery queries are retired for Live; hydrate owns the window.
+  return serveLivePanelFromSupabaseOrFail_(
+    'utilization',
+    UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_
+  );
 }
 
 /**

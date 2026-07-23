@@ -1,5 +1,5 @@
 /**
- * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Portfolio Project P&L (Finance route `portfolio-pnl`, features 022 + 025).
  * Returns the in-scope project index and bundled monthly P&L payloads
@@ -121,55 +121,20 @@ function getPortfolioProjectIndex() {
 }
 
 /**
- * Live Portfolio P&L bundle (Drive daily cache or Fibery slim builder).
+ * Live Portfolio P&L bundle from Datastore only (no Fibery / Drive rebuild).
  *
- * @param {boolean=} forceRefresh When true, rebuild today's Drive cache from Fibery.
+ * @param {boolean=} forceRefresh Ignored for Live Datastore serve (Reload re-reads Postgres).
  * @return {!Object}
  */
 function getPortfolioPnLDashboardData(forceRefresh) {
   var auth = requireAuthForApi_();
   requirePortfolioPnlAccess_(auth);
-  var refresh = forceRefresh === true;
-  var cacheDateKey = resolveSnapshotDateKey_(new Date());
-
-  // Feature 036: Refresh re-reads Supabase; Fibery rebuild is hydrate/Pull only.
-  if (shouldServeFromSupabase_()) {
-    var sb = loadSupabasePanelPayload_('portfolio-pnl');
-    if (sb.ok && sb.payload) {
-      return tagPayloadFromSupabase_(sb.payload, sb.asOf || sb.syncedAt);
-    }
-  }
-
-  if (isPortfolioPnlDriveCacheEnabled_()) {
-    var cacheResult = loadOrBuildPortfolioPnlDriveCache_(cacheDateKey, refresh);
-    if (cacheResult.ok && cacheResult.bundle) {
-      return portfolioPnlDashboardPayloadFromBundle_(
-        cacheResult.bundle,
-        !!cacheResult.fromDrive,
-        cacheDateKey
-      );
-    }
-    if (cacheResult.ok && cacheResult.building) {
-      return cacheResult;
-    }
-    if (!cacheResult.ok && cacheResult.message) {
-      return cacheResult;
-    }
-  } else {
-    // Explicit safe fallback for deployments without a configured/enabled Drive cache.
-    // This retains the legacy synchronous builder because continuation state requires Drive.
-    var fallbackBuilt = buildPortfolioPnlBundleFromFibery_();
-    if (!fallbackBuilt.ok) {
-      return fallbackBuilt;
-    }
-    return portfolioPnlDashboardPayloadFromBundle_(fallbackBuilt, false, null);
-  }
-
-  return {
-    ok: false,
-    source: 'fibery',
-    message: 'Portfolio P&L Drive build did not return a bundle or build progress.',
-  };
+  return serveLivePanelFromSupabaseOrFail_(
+    'portfolio-pnl',
+    typeof PORTFOLIO_PNL_BUNDLE_CACHE_SCHEMA_VERSION_ !== 'undefined'
+      ? PORTFOLIO_PNL_BUNDLE_CACHE_SCHEMA_VERSION_
+      : null
+  );
 }
 
 /**

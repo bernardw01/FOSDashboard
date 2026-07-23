@@ -1,5 +1,5 @@
 /**
- * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Sales **Pipeline** dashboard (features 016 + 030). Merges the sales opportunity
  * tracker spreadsheet with HubSpot deals synced into Fibery (`HubSpot/Deal`).
@@ -67,13 +67,7 @@ function canAccessPipelineDashboard_(auth) {
 function getPipelineDashboardData() {
   requirePipelineAccessForApi_();
   try {
-    if (shouldServeFromSupabase_()) {
-      var sb = loadSupabasePanelPayload_('pipeline');
-      if (sb.ok && sb.payload) {
-        return tagPayloadFromSupabase_(sb.payload, sb.asOf || sb.syncedAt);
-      }
-    }
-    return buildPipelineDashboardPayload_();
+    return serveLivePanelFromSupabaseOrFail_('pipeline', PIPELINE_CACHE_SCHEMA_VERSION_);
   } catch (e) {
     var msg = e && e.message ? String(e.message) : 'Could not load pipeline.';
     if (msg === 'NOT_AUTHORIZED') {
@@ -88,6 +82,8 @@ function getPipelineDashboardData() {
     return {
       ok: false,
       message: msg,
+      source: 'supabase',
+      loadSource: 'supabase',
       fetchedAt: new Date().toISOString(),
       cacheSchemaVersion: PIPELINE_CACHE_SCHEMA_VERSION_,
     };

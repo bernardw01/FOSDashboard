@@ -251,7 +251,7 @@
       "url": "https://win.godeap.io/app/projects/1615262/notebooks/312389",
       "featureId": "032",
       "publishedAt": "2026-07-08",
-      "lastSyncedAt": "2026-07-21"
+      "lastSyncedAt": "2026-07-23"
     },
     "feature_033": {
       "id": 312624,
@@ -311,7 +311,7 @@
       "url": "https://win.godeap.io/app/projects/1615262/notebooks/312758",
       "featureId": "036",
       "publishedAt": "2026-07-21",
-      "lastSyncedAt": "2026-07-21",
+      "lastSyncedAt": "2026-07-23",
       "gitMirror": "docs/features/036-supabase-dashboard-data-layer.md"
     },
     "feature_036_implementation_plan": {
@@ -320,7 +320,7 @@
       "url": "https://win.godeap.io/app/projects/1615262/notebooks/312759",
       "featureId": "036",
       "publishedAt": "2026-07-21",
-      "lastSyncedAt": "2026-07-21",
+      "lastSyncedAt": "2026-07-23",
       "gitMirror": "docs/features/036-supabase-dashboard-data-layer-implementation-plan.md"
     }
   },
@@ -941,7 +941,8 @@
         "Snapshot schema alignment: +0.25h",
         "Total (rounded to nearest 0.5h): 26.0h"
       ],
-      "estDevHoursGitBase": "f9d054538cacae99054148f386e2ee91281867d6"
+      "estDevHoursGitBase": "f9d054538cacae99054148f386e2ee91281867d6",
+      "followOnPatchesNote": "Ask patches 3.0.5-3.0.10; patch task Feature 032 - FinOps Ask UX..."
     },
     "v3.0.0 - Supabase dashboard data layer": {
       "id": 40552222,
@@ -978,7 +979,39 @@
         "Snapshot schema alignment: +0.25h",
         "Total (rounded to nearest 0.5h): 26.0h"
       ],
-      "estDevHoursGitBase": "f9d054538cacae99054148f386e2ee91281867d6"
+      "estDevHoursGitBase": "f9d054538cacae99054148f386e2ee91281867d6",
+      "followOnPatchesNote": "Patches through working tree 3.0.12; patch task Feature 036 - Live Datastore-only..."
+    },
+    "Feature 036 - Live Datastore-only and labor costs mirror": {
+      "id": 40576932,
+      "tasklist": "Data platform",
+      "featureId": "036",
+      "releaseType": "Bug Fix",
+      "releaseTitle": "Live Datastore-only and labor costs mirror",
+      "provisionalTaskName": true,
+      "workingVersionEstimate": "3.0.12",
+      "shippedVersion": null,
+      "notebookKey": "feature_036",
+      "implementationPlanNotebookKey": "feature_036_implementation_plan",
+      "url": "https://win.godeap.io/app/tasks/40576932",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Live Datastore-only and labor costs mirror",
+      "workflowStage": "In-progress",
+      "parentReleaseTaskId": 40552222
+    },
+    "Feature 032 - FinOps Ask UX context and prompt caching": {
+      "id": 40576933,
+      "tasklist": "Platform and shell",
+      "featureId": "032",
+      "releaseType": "Enhancement",
+      "releaseTitle": "FinOps Ask UX context and prompt caching",
+      "provisionalTaskName": true,
+      "workingVersionEstimate": "3.0.10",
+      "shippedVersion": null,
+      "notebookKey": "feature_032",
+      "url": "https://win.godeap.io/app/tasks/40576933",
+      "renameAtShip": "v{FOS_PRD_VERSION} - FinOps Ask UX context and prompt caching",
+      "workflowStage": "In-progress",
+      "parentReleaseTaskId": 40429663
     }
   },
   "lastBootstrappedAt": "2026-06-10"

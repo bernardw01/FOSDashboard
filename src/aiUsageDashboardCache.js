@@ -1,5 +1,5 @@
 /**
- * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Daily Drive cache for AI Usage dashboard (feature 023). First Fibery fetch
  * each calendar day writes JSON under the snapshot root; later reads slice

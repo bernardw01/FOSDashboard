@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -2496,6 +2496,96 @@
     .fos-ask-bubble-assistant .fos-ask-md ol {
       margin: 0 0 0.5rem 1.1rem;
       padding: 0;
+    }
+
+    .fos-ask-bubble-assistant .fos-ask-md h1,
+    .fos-ask-bubble-assistant .fos-ask-md h2,
+    .fos-ask-bubble-assistant .fos-ask-md h3,
+    .fos-ask-bubble-assistant .fos-ask-md h4 {
+      color: var(--ag-text, #e8eef5);
+      font-weight: 700;
+      margin: 0.65rem 0 0.35rem;
+      line-height: 1.3;
+    }
+
+    .fos-ask-bubble-assistant .fos-ask-md h1 { font-size: 1.05rem; }
+    .fos-ask-bubble-assistant .fos-ask-md h2 { font-size: 1rem; }
+    .fos-ask-bubble-assistant .fos-ask-md h3,
+    .fos-ask-bubble-assistant .fos-ask-md h4 { font-size: 0.92rem; }
+
+    .fos-ask-bubble-assistant .fos-ask-md code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.8em;
+      padding: 0.1em 0.35em;
+      border-radius: 0.25rem;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .fos-ask-bubble-assistant .fos-ask-md pre.fos-ask-pre {
+      margin: 0.5rem 0;
+      padding: 0.65rem 0.75rem;
+      overflow-x: auto;
+      border-radius: 0.5rem;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border);
+    }
+
+    .fos-ask-bubble-assistant .fos-ask-md pre.fos-ask-pre code {
+      padding: 0;
+      background: transparent;
+      font-size: 0.78rem;
+      white-space: pre;
+    }
+
+    .fos-ask-bubble-assistant .fos-ask-md a {
+      color: var(--ag-accent, #5eead4);
+      text-decoration: underline;
+    }
+
+    .fos-ask-bubble-assistant .fos-ask-md hr {
+      border: 0;
+      border-top: 1px solid var(--border);
+      margin: 0.65rem 0;
+    }
+
+    .fos-ask-bubble-assistant .fos-ask-md blockquote {
+      margin: 0.5rem 0;
+      padding: 0.25rem 0 0.25rem 0.75rem;
+      border-left: 3px solid rgba(94, 234, 212, 0.45);
+      color: var(--ag-text-muted, #9aa7b5);
+    }
+
+    .fos-ask-thinking {
+      border-style: dashed;
+      opacity: 0.95;
+    }
+
+    .fos-ask-thinking-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      color: var(--ag-accent, #5eead4);
+    }
+
+    .fos-ask-thinking-spinner {
+      width: 0.85rem;
+      height: 0.85rem;
+      border: 2px solid rgba(94, 234, 212, 0.25);
+      border-top-color: var(--ag-accent, #5eead4);
+      border-radius: 50%;
+      animation: fos-ask-spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes fos-ask-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .fos-ask-thinking-detail {
+      margin: 0.45rem 0 0;
+      color: var(--ag-text-muted, #9aa7b5);
+      min-height: 1.25em;
     }
 
     .fos-ask-composer {
@@ -7637,12 +7727,9 @@
         return dataSourceState.mode !== 'snapshot';
       }
 
-      /** Expected Live transport while a server fetch is in flight (Feature 036). */
+      /** Expected Live transport while a server fetch is in flight (Feature 036 / v3.0.11+). */
       function liveLoadSourceHint_() {
-        if (DASHBOARD_READ_SOURCE_HINT_ === 'supabase') {
-          return { transport: 'supabase' };
-        }
-        return { transport: 'fibery' };
+        return { transport: 'supabase' };
       }
 
       function getSnapshotDate_() {
@@ -9580,7 +9667,7 @@
         var help = document.createElement('p');
         help.className = 'small text-secondary mb-2';
         help.textContent =
-          'Pull dashboard datasets from Fibery into Supabase (continuation batches). Nightly job uses the same path. Set DASHBOARD_READ_SOURCE to supabase after a successful hydrate.';
+          'Pull dashboard datasets from Fibery into Supabase (continuation batches). The first Pull also installs the nightly hydrate trigger. Live panels always read Datastore after hydrate; Reload re-reads Postgres (Fibery updates require Pull or nightly).';
         wrap.appendChild(help);
 
         var status = adminSettingsState_.supabaseSync;
@@ -9599,18 +9686,29 @@
         } else {
           var st = status.state || {};
           var pingOk = status.ping && status.ping.ok;
+          var nightly = status.nightlyTrigger || {};
+          var nightlyLabel = nightly.installed
+            ? 'installed (hour ' +
+              (nightly.hour != null ? nightly.hour : '?') +
+              ')'
+            : 'missing (run Pull to install)';
           statusLine.textContent =
             'Read source: ' +
-            (status.readSource || 'fibery') +
+            (status.readSource || 'supabase') +
             ' · Configured: ' +
             (status.configured ? 'yes' : 'no') +
             ' · Ping: ' +
             (pingOk ? 'ok' : 'fail') +
+            ' · Nightly trigger: ' +
+            nightlyLabel +
             ' · Sync: ' +
             (st.status || 'idle') +
             (st.datasetsDone != null
               ? ' (' + st.datasetsDone + '/' + (st.datasetsTotal || '?') + ')'
               : '');
+          if (!nightly.installed) {
+            statusLine.style.color = 'var(--warning, #c9a227)';
+          }
         }
         wrap.appendChild(statusLine);
 
@@ -10599,7 +10697,24 @@
         open: false,
         busy: false,
         turns: [],
+        thinking: null,
+        thinkingTimer: null,
+        /** Frozen panel dataset for the open conversation (captured at start). */
+        conversationPanelId: null,
+        conversationDataset: null,
       };
+
+      /** In-memory last Agreement (RR) payload for Ask; sessionStorage may omit large fields. */
+      var lastAgreementPayload_ = null;
+      /** In-memory last Delivery list payload for Ask. */
+      var lastDeliveryPayload_ = null;
+
+      var FINOPS_ASK_THINKING_PHASES_ = [
+        'Reading the dashboard context…',
+        'Checking KPIs and filters…',
+        'Analyzing the numbers…',
+        'Drafting an answer…',
+      ];
 
       var FINOPS_ASK_SUPPORTED_PANELS_CLIENT_ = {
         home: true,
@@ -10631,35 +10746,163 @@
         };
       }
 
+      /** Inline markdown after HTML escape (bold, italic, code, safe links). */
+      function renderAskInlineMarkdown_(escapedLine) {
+        var s = String(escapedLine || '');
+        s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+        s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        s = s.replace(/__(.+?)__/g, '<strong>$1</strong>');
+        s = s.replace(/(^|[^\w*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
+        s = s.replace(/(^|[^\w_])_([^_\n]+)_(?!_)/g, '$1<em>$2</em>');
+        s = s.replace(
+          /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
+          '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+        );
+        return s;
+      }
+
+      /**
+       * Render assistant answer markdown to safe HTML (headers, lists, code,
+       * links, bold/italic). Escapes raw HTML first.
+       */
       function renderAskMarkdown_(md) {
-        var raw = String(md == null ? '' : md);
+        var raw = String(md == null ? '' : md).replace(/\r\n/g, '\n');
+        var fences = [];
+        raw = raw.replace(/```([\w-]*)\n?([\s\S]*?)```/g, function (_m, _lang, code) {
+          var idx = fences.length;
+          fences.push(String(code || '').replace(/\n$/, ''));
+          return '\n%%FOSASKCODE' + idx + '%%\n';
+        });
+
         var escaped = escapeHtml(raw);
-        escaped = escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-        escaped = escaped.replace(/`([^`]+)`/g, '<code>$1</code>');
-        var lines = escaped.split(/\n/);
-        var html = '';
-        var inList = false;
-        for (var i = 0; i < lines.length; i++) {
-          var line = lines[i];
-          var m = line.match(/^\s*[-*]\s+(.+)$/);
-          if (m) {
-            if (!inList) {
-              html += '<ul>';
-              inList = true;
-            }
-            html += '<li>' + m[1] + '</li>';
-          } else {
-            if (inList) {
-              html += '</ul>';
-              inList = false;
-            }
-            if (line.trim()) {
-              html += '<p>' + line + '</p>';
-            }
+        var lines = escaped.split('\n');
+        var html = [];
+        var listType = null; // 'ul' | 'ol' | null
+
+        function closeList_() {
+          if (listType) {
+            html.push('</' + listType + '>');
+            listType = null;
           }
         }
-        if (inList) html += '</ul>';
-        return html || '<p></p>';
+
+        function openList_(type) {
+          if (listType !== type) {
+            closeList_();
+            html.push('<' + type + '>');
+            listType = type;
+          }
+        }
+
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i];
+          var fenceMatch = line.match(/^%%FOSASKCODE(\d+)%%$/);
+          if (fenceMatch) {
+            closeList_();
+            var codeBody = fences[Number(fenceMatch[1])] || '';
+            html.push(
+              '<pre class="fos-ask-pre"><code>' + escapeHtml(codeBody) + '</code></pre>'
+            );
+            continue;
+          }
+
+          if (/^\s*---+\s*$/.test(line) || /^\s*\*\*\*+\s*$/.test(line)) {
+            closeList_();
+            html.push('<hr>');
+            continue;
+          }
+
+          var heading = line.match(/^(#{1,4})\s+(.+)$/);
+          if (heading) {
+            closeList_();
+            var level = heading[1].length;
+            html.push(
+              '<h' + level + '>' + renderAskInlineMarkdown_(heading[2]) + '</h' + level + '>'
+            );
+            continue;
+          }
+
+          var ul = line.match(/^\s*[-*+]\s+(.+)$/);
+          if (ul) {
+            openList_('ul');
+            html.push('<li>' + renderAskInlineMarkdown_(ul[1]) + '</li>');
+            continue;
+          }
+
+          var ol = line.match(/^\s*(\d+)[.)]\s+(.+)$/);
+          if (ol) {
+            openList_('ol');
+            html.push('<li>' + renderAskInlineMarkdown_(ol[2]) + '</li>');
+            continue;
+          }
+
+          var bq = line.match(/^\s*&gt;\s?(.*)$/);
+          if (bq) {
+            closeList_();
+            html.push('<blockquote><p>' + renderAskInlineMarkdown_(bq[1]) + '</p></blockquote>');
+            continue;
+          }
+
+          if (!line.trim()) {
+            closeList_();
+            continue;
+          }
+
+          closeList_();
+          html.push('<p>' + renderAskInlineMarkdown_(line) + '</p>');
+        }
+        closeList_();
+        return html.length ? html.join('') : '<p></p>';
+      }
+
+      function stopAskThinking_() {
+        if (askAiState_.thinkingTimer) {
+          clearInterval(askAiState_.thinkingTimer);
+          askAiState_.thinkingTimer = null;
+        }
+        askAiState_.thinking = null;
+      }
+
+      function startAskThinking_() {
+        stopAskThinking_();
+        askAiState_.thinking = {
+          phase: 0,
+          label: FINOPS_ASK_THINKING_PHASES_[0],
+        };
+        askAiState_.thinkingTimer = setInterval(function () {
+          if (!askAiState_.thinking) return;
+          askAiState_.thinking.phase =
+            (askAiState_.thinking.phase + 1) % FINOPS_ASK_THINKING_PHASES_.length;
+          askAiState_.thinking.label =
+            FINOPS_ASK_THINKING_PHASES_[askAiState_.thinking.phase];
+          var detail = document.getElementById('fos-ask-thinking-detail');
+          if (detail) {
+            detail.textContent = askAiState_.thinking.label;
+          }
+        }, 2200);
+      }
+
+      function appendAskThinkingBubble_(transcriptEl) {
+        if (!transcriptEl || !askAiState_.thinking) return;
+        var div = document.createElement('div');
+        div.className = 'fos-ask-bubble fos-ask-bubble-assistant fos-ask-thinking';
+        div.setAttribute('aria-live', 'polite');
+        var header = document.createElement('div');
+        header.className = 'fos-ask-thinking-header';
+        var spin = document.createElement('span');
+        spin.className = 'fos-ask-thinking-spinner';
+        spin.setAttribute('aria-hidden', 'true');
+        var title = document.createElement('span');
+        title.textContent = 'Thinking…';
+        header.appendChild(spin);
+        header.appendChild(title);
+        var detail = document.createElement('p');
+        detail.className = 'fos-ask-thinking-detail small mb-0';
+        detail.id = 'fos-ask-thinking-detail';
+        detail.textContent = askAiState_.thinking.label || FINOPS_ASK_THINKING_PHASES_[0];
+        div.appendChild(header);
+        div.appendChild(detail);
+        transcriptEl.appendChild(div);
       }
 
       function renderAskTranscript_() {
@@ -10682,110 +10925,313 @@
           }
           a.transcript.appendChild(div);
         }
+        appendAskThinkingBubble_(a.transcript);
         a.transcript.scrollTop = a.transcript.scrollHeight;
       }
 
       function buildAskContextSummary_(panelId) {
-        var summary = { panelId: panelId, kpis: {}, rowsTopN: [], notes: [] };
+        var summary = { panelId: panelId, kpis: {}, rowsTopN: [], notes: [], dataset: null };
         try {
-          if (panelId === 'operations' || panelId === 'labor-hours') {
-            if (typeof utilState !== 'undefined' && utilState && utilState.payload) {
-              summary.payloadOk = utilState.payload.ok !== false;
-              summary.kpis = utilState.payload.kpis || utilState.payload.summary || {};
-              summary.alerts = utilState.payload.alerts || [];
-              summary.filters = utilState.filters || {};
-              var people = utilState.payload.people || utilState.payload.persons || [];
-              summary.rowsTopN = people.slice(0, 40);
-              if (panelId === 'labor-hours' && utilState.payload.laborHours) {
-                summary.laborHours = utilState.payload.laborHours;
-              }
-            } else {
-              summary.notes.push('Utilization payload not loaded.');
+          summary.dataset = buildAskPanelDataset_(panelId);
+          if (summary.dataset) {
+            summary.payloadOk = summary.dataset.ok !== false;
+            summary.kpis = summary.dataset.kpis || summary.dataset.summary || {};
+            summary.alerts = summary.dataset.alerts || [];
+            summary.fetchedAt =
+              summary.dataset.fetchedAt ||
+              summary.dataset.servedAt ||
+              summary.dataset.dataAsOf ||
+              null;
+            summary.dataAsOf = summary.dataset.dataAsOf || summary.dataset.supabaseSyncedAt || null;
+            summary.loadSource = summary.dataset.loadSource || summary.dataset.source || null;
+            if (summary.dataset.agreements) {
+              summary.agreementCount = summary.dataset.agreements.length;
             }
-          } else if (
-            panelId === 'agreement-dashboard' ||
-            panelId === 'revenue-review' ||
-            panelId === 'delivery'
-          ) {
-            if (typeof currentTablePayload !== 'undefined' && currentTablePayload) {
-              summary.kpis = currentTablePayload.kpis || currentTablePayload.summary || {};
-              summary.alerts = currentTablePayload.alerts || [];
-              summary.agreementsTopN = (currentTablePayload.agreements || []).slice(0, 40);
-              summary.tab = typeof currentTab !== 'undefined' ? currentTab : null;
-            } else {
-              summary.notes.push('Agreement-family payload not loaded.');
+            if (summary.dataset.projects) {
+              summary.projectCount = summary.dataset.projects.length;
             }
-            if (panelId === 'delivery' && typeof deliveryState !== 'undefined' && deliveryState) {
-              summary.deliverySelectedId = deliveryState.selectedId || null;
-              summary.deliverySearch = deliveryState.searchTerm || '';
-              if (deliveryState.pnlById) {
-                var pnlKeys = Object.keys(deliveryState.pnlById).slice(0, 8);
-                summary.loadedProjectPnL = {};
-                for (var pi = 0; pi < pnlKeys.length; pi++) {
-                  summary.loadedProjectPnL[pnlKeys[pi]] = deliveryState.pnlById[pnlKeys[pi]];
-                }
-              }
+            if (summary.dataset.people || summary.dataset.persons) {
+              summary.peopleCount = (summary.dataset.people || summary.dataset.persons || []).length;
             }
-          } else if (panelId === 'portfolio-pnl' && typeof portfolioPnlState !== 'undefined') {
-            summary.filters = {
-              calendarYear: portfolioPnlState.calendarYear,
-              includeSubscription: portfolioPnlState.includeSubscription,
-              includeServices: portfolioPnlState.includeServices,
-            };
-            summary.projectCount = (portfolioPnlState.projects || []).length;
-            summary.rowsTopN = (portfolioPnlState.projects || []).slice(0, 30);
-          } else if (panelId === 'expenses' && typeof expensesState !== 'undefined' && expensesState.payload) {
-            summary.kpis = expensesState.payload.kpis || {};
-            summary.rowsTopN = (expensesState.payload.rows || expensesState.payload.expenses || []).slice(0, 40);
-          } else if (panelId === 'pipeline' && typeof pipelineState !== 'undefined' && pipelineState.payload) {
-            summary.kpis = pipelineState.payload.kpis || {};
-            summary.rowsTopN = (pipelineState.payload.deals || []).slice(0, 40);
-          } else if (panelId === 'ai-usage' && typeof aiUsageState !== 'undefined' && aiUsageState.payload) {
-            summary.kpis = aiUsageState.payload.kpis || {};
-            summary.rowsTopN = (aiUsageState.payload.rows || []).slice(0, 40);
-          } else if (panelId === 'resource-assignments') {
-            if (typeof raState !== 'undefined' && raState && raState.payload) {
-              summary.payloadOk = raState.payload.ok !== false;
-              summary.kpis = raState.payload.kpis || raState.payload.summary || {};
-              summary.alerts = raState.payload.alerts || [];
-              summary.filters = raState.filters || {};
-              summary.activeTab = raState.activeTab || 'person';
-              summary.range = {
-                start: raState.payload.startDate || raState.payload.start || null,
-                end: raState.payload.endDate || raState.payload.end || null,
-              };
-              var persons = raState.payload.persons || raState.payload.people || [];
-              var projects = raState.payload.projects || [];
-              summary.rowsTopN =
-                summary.activeTab === 'project'
-                  ? projects.slice(0, 40)
-                  : persons.slice(0, 40);
-            } else {
-              summary.notes.push('Resource assignments payload not loaded. Open the panel and wait for data.');
-            }
-          } else if (panelId === 'home') {
-            summary.quickNav = typeof HOME_QUICK_NAV_ITEMS_ !== 'undefined' ? HOME_QUICK_NAV_ITEMS_ : [];
-            var homeCached =
-              typeof readAgreementCache === 'function' ? readAgreementCache() : null;
-            if (homeCached && homeCached.alerts) {
-              summary.alerts = (homeCached.alerts || []).slice(0, 15);
-              summary.kpis = homeCached.kpis || homeCached.summary || {};
-              summary.notes.push('Home uses cached agreement alerts/KPIs when present.');
-            } else {
+            if (!summary.dataset || summary.dataset._askEmpty) {
               summary.notes.push(
-                'Home glance context limited until agreement cache is warm; ask about navigation or load Agreements first.'
+                'Panel data not loaded in the browser yet. Open the panel and wait for data, then Clear Ask and ask again.'
               );
             }
-            if (typeof notificationTrayState_ !== 'undefined' && notificationTrayState_) {
-              summary.notificationCount = notificationTrayState_.undismissedCount || 0;
-            }
           } else {
-            summary.notes.push('No compact context builder for this panel yet.');
+            summary.notes.push('No dataset builder for this panel.');
           }
         } catch (e) {
-          summary.notes.push('Context build error.');
+          summary.notes.push(
+            'Context build error: ' + (e && e.message ? String(e.message) : 'unknown')
+          );
         }
         return summary;
+      }
+
+      /** Deep-clone JSON-safe objects for Ask context. */
+      function askCloneJson_(obj) {
+        if (obj == null) return null;
+        try {
+          return JSON.parse(JSON.stringify(obj));
+        } catch (e) {
+          return null;
+        }
+      }
+
+      /** Remove visualization-only keys that inflate Ask context. */
+      function askStripVisualPayloadKeys_(obj) {
+        if (!obj || typeof obj !== 'object') return obj;
+        delete obj.charts;
+        delete obj.chart;
+        delete obj.sankey;
+        delete obj.heatmap;
+        delete obj.heatmapSvg;
+        delete obj._askEmpty;
+        return obj;
+      }
+
+      /** Compact project list for Ask when full projects week grids are omitted. */
+      function askBuildRaProjectIndex_(projects) {
+        var out = [];
+        for (var i = 0; i < (projects || []).length; i++) {
+          var p = projects[i];
+          if (!p) continue;
+          var personCount = 0;
+          if (p.persons && p.persons.length != null) personCount = p.persons.length;
+          else if (p.personsMap) personCount = Object.keys(p.personsMap).length;
+          out.push({
+            key: p.key || '',
+            agreementId: p.agreementId || '',
+            projectName: p.projectName || '',
+            customerName: p.customerName || '',
+            personCount: personCount,
+          });
+        }
+        return out;
+      }
+
+      /** Compact person list for Ask when full persons week grids are omitted. */
+      function askBuildRaPersonIndex_(persons) {
+        var out = [];
+        for (var i = 0; i < (persons || []).length; i++) {
+          var p = persons[i];
+          if (!p) continue;
+          var projectCount = 0;
+          if (p.projects && p.projects.length != null) projectCount = p.projects.length;
+          else if (p.projects) projectCount = Object.keys(p.projects).length;
+          out.push({
+            key: p.key || '',
+            name: p.name || '',
+            roleName: p.roleName || '',
+            company: p.company || '',
+            projectCount: projectCount,
+          });
+        }
+        return out;
+      }
+
+      /**
+       * Full panel underlying dataset for Ask AI (Approach 1).
+       * Captured once per conversation start via ensureAskConversationContext_.
+       */
+      function buildAskPanelDataset_(panelId) {
+        var data = null;
+        if (panelId === 'agreement-dashboard' || panelId === 'revenue-review') {
+          data =
+            askCloneJson_(lastAgreementPayload_) ||
+            (typeof readAgreementCache === 'function' ? askCloneJson_(readAgreementCache()) : null) ||
+            (typeof dataSourceState !== 'undefined' && dataSourceState && dataSourceState.agreement
+              ? askCloneJson_(dataSourceState.agreement)
+              : null);
+          if (data) {
+            askStripVisualPayloadKeys_(data);
+            if (panelId === 'revenue-review') {
+              data._askPanelView = 'revenue-review';
+              data._askFinancialTab =
+                typeof currentTab !== 'undefined' ? currentTab : null;
+            }
+            return data;
+          }
+          return { ok: false, _askEmpty: true, panelId: panelId };
+        }
+
+        if (panelId === 'delivery') {
+          data =
+            askCloneJson_(lastDeliveryPayload_) ||
+            (typeof readDeliveryCache === 'function' ? askCloneJson_(readDeliveryCache()) : null) ||
+            (typeof dataSourceState !== 'undefined' &&
+            dataSourceState &&
+            dataSourceState.deliveryProjects
+              ? askCloneJson_(dataSourceState.deliveryProjects)
+              : null);
+          if (!data) {
+            return { ok: false, _askEmpty: true, panelId: panelId };
+          }
+          askStripVisualPayloadKeys_(data);
+          if (typeof deliveryState !== 'undefined' && deliveryState) {
+            data._askFilters = deliveryState.filters || {};
+            data._askSearch = deliveryState.searchTerm || '';
+            data._askSelectedId = deliveryState.selectedId || null;
+            if (deliveryState.lastPnlPayload) {
+              data._askSelectedProjectPnL = askCloneJson_(deliveryState.lastPnlPayload);
+              if (data._askSelectedProjectPnL) {
+                askStripVisualPayloadKeys_(data._askSelectedProjectPnL);
+              }
+            }
+          }
+          return data;
+        }
+
+        if (panelId === 'operations' || panelId === 'labor-hours') {
+          data =
+            typeof utilState !== 'undefined' && utilState && utilState.payload
+              ? askCloneJson_(utilState.payload)
+              : null;
+          if (!data) {
+            return { ok: false, _askEmpty: true, panelId: panelId };
+          }
+          askStripVisualPayloadKeys_(data);
+          if (typeof utilState !== 'undefined' && utilState.filters) {
+            data._askFilters = askCloneJson_(utilState.filters);
+          }
+          if (panelId === 'operations' && data.laborHours) {
+            // Labor-hours detail is huge; keep for labor-hours panel only.
+            delete data.laborHours;
+          }
+          return data;
+        }
+
+        if (panelId === 'resource-assignments') {
+          data =
+            typeof raState !== 'undefined' && raState && raState.payload
+              ? askCloneJson_(raState.payload)
+              : typeof readResourceAssignmentCache === 'function'
+                ? askCloneJson_(readResourceAssignmentCache())
+                : null;
+          if (!data) {
+            return { ok: false, _askEmpty: true, panelId: panelId };
+          }
+          askStripVisualPayloadKeys_(data);
+          if (typeof raState !== 'undefined' && raState) {
+            data._askFilters = askCloneJson_(raState.filters || {});
+            data._askActiveTab = raState.activeTab || 'person';
+          }
+          // persons and projects both embed week grids (~370KB). Prefer the active
+          // tab's hierarchy; keep a compact index of the other side for Ask.
+          var activeRaTab = data._askActiveTab || 'person';
+          if (activeRaTab !== 'project' && data.projects && data.projects.length) {
+            data.projectIndex = askBuildRaProjectIndex_(data.projects);
+            delete data.projects;
+          } else if (activeRaTab === 'project' && data.persons && data.persons.length) {
+            data.personIndex = askBuildRaPersonIndex_(data.persons);
+            delete data.persons;
+          }
+          return data;
+        }
+
+        if (panelId === 'portfolio-pnl') {
+          if (typeof portfolioPnlState === 'undefined' || !portfolioPnlState) {
+            return { ok: false, _askEmpty: true, panelId: panelId };
+          }
+          data = {
+            ok: true,
+            panelId: panelId,
+            calendarYear: portfolioPnlState.calendarYear,
+            fetchedAt: portfolioPnlState.fetchedAt,
+            dataAsOf: portfolioPnlState.dataAsOf,
+            loadSource: portfolioPnlState.loadSource,
+            includeSubscription: portfolioPnlState.includeSubscription,
+            includeServices: portfolioPnlState.includeServices,
+            includeProjected: portfolioPnlState.includeProjected,
+            projects: askCloneJson_(portfolioPnlState.projects || []),
+            failedIds: askCloneJson_(portfolioPnlState.failedIds || []),
+            // Full per-project P&L grids (may be trimmed server-side if over budget).
+            pnlById: askCloneJson_(portfolioPnlState.pnlById || {}),
+          };
+          return data;
+        }
+
+        if (panelId === 'expenses') {
+          data =
+            typeof expensesState !== 'undefined' && expensesState && expensesState.payload
+              ? askCloneJson_(expensesState.payload)
+              : null;
+          if (!data) {
+            return { ok: false, _askEmpty: true, panelId: panelId };
+          }
+          askStripVisualPayloadKeys_(data);
+          return data;
+        }
+
+        if (panelId === 'pipeline') {
+          data =
+            typeof pipelineState !== 'undefined' && pipelineState && pipelineState.payload
+              ? askCloneJson_(pipelineState.payload)
+              : null;
+          if (!data) {
+            return { ok: false, _askEmpty: true, panelId: panelId };
+          }
+          askStripVisualPayloadKeys_(data);
+          return data;
+        }
+
+        if (panelId === 'ai-usage') {
+          data =
+            typeof aiUsageState !== 'undefined' && aiUsageState && aiUsageState.payload
+              ? askCloneJson_(aiUsageState.payload)
+              : null;
+          if (!data) {
+            return { ok: false, _askEmpty: true, panelId: panelId };
+          }
+          askStripVisualPayloadKeys_(data);
+          return data;
+        }
+
+        if (panelId === 'home') {
+          var homeAgreement =
+            askCloneJson_(lastAgreementPayload_) ||
+            (typeof readAgreementCache === 'function' ? askCloneJson_(readAgreementCache()) : null);
+          data = {
+            ok: true,
+            panelId: 'home',
+            quickNav: typeof HOME_QUICK_NAV_ITEMS_ !== 'undefined' ? HOME_QUICK_NAV_ITEMS_ : [],
+          };
+          if (homeAgreement) {
+            askStripVisualPayloadKeys_(homeAgreement);
+            data.agreementKpis = homeAgreement.kpis || {};
+            data.agreementAlerts = homeAgreement.alerts || [];
+            data.agreements = homeAgreement.agreements || [];
+            data.companies = homeAgreement.companies || [];
+            data.fetchedAt = homeAgreement.fetchedAt || null;
+            data.dataAsOf = homeAgreement.dataAsOf || homeAgreement.supabaseSyncedAt || null;
+          } else {
+            data._askEmpty = true;
+            data.notes = [
+              'Home Ask uses the Agreements dataset when loaded; open Agreements first for full takeaways.',
+            ];
+          }
+          if (typeof notificationTrayState_ !== 'undefined' && notificationTrayState_) {
+            data.notificationCount = notificationTrayState_.undismissedCount || 0;
+          }
+          return data;
+        }
+
+        return { ok: false, _askEmpty: true, panelId: panelId };
+      }
+
+      /**
+       * Capture full panel dataset once when a conversation starts (or panel changes).
+       * Follow-up turns reuse the same snapshot until Clear.
+       */
+      function ensureAskConversationContext_(panelId) {
+        var startingFresh = !askAiState_.turns.length;
+        var panelChanged = askAiState_.conversationPanelId !== panelId;
+        if (startingFresh || panelChanged || !askAiState_.conversationDataset) {
+          askAiState_.conversationPanelId = panelId;
+          askAiState_.conversationDataset = buildAskContextSummary_(panelId);
+        }
+        return askAiState_.conversationDataset;
       }
 
       function updateAskContextStrip_() {
@@ -10873,9 +11319,11 @@
         }
         askAiState_.busy = true;
         if (a.send) a.send.disabled = true;
-        setAskStatus_('Thinking…', false);
+        setAskStatus_('', false);
+        var contextSummary = ensureAskConversationContext_(panelId);
         askAiState_.turns.push({ role: 'user', content: question });
         a.input.value = '';
+        startAskThinking_();
         renderAskTranscript_();
 
         var dataSource = {
@@ -10891,7 +11339,7 @@
           dataSource: dataSource,
           filters: {},
           fetchedAt: new Date().toISOString(),
-          contextSummary: buildAskContextSummary_(panelId),
+          contextSummary: contextSummary,
           conversationTurns: askAiState_.turns.slice(0, -1).slice(-8),
         };
 
@@ -10899,6 +11347,7 @@
           .withSuccessHandler(function (res) {
             askAiState_.busy = false;
             if (a.send) a.send.disabled = false;
+            stopAskThinking_();
             res = res || {};
             if (res.ok) {
               askAiState_.turns.push({ role: 'assistant', content: res.answer || '' });
@@ -10922,6 +11371,7 @@
           .withFailureHandler(function (err) {
             askAiState_.busy = false;
             if (a.send) a.send.disabled = false;
+            stopAskThinking_();
             var msg = err && err.message ? err.message : 'Ask AI request failed.';
             askAiState_.turns.push({ role: 'assistant', content: msg });
             renderAskTranscript_();
@@ -10947,6 +11397,9 @@
         if (a.clear) {
           a.clear.addEventListener('click', function () {
             askAiState_.turns = [];
+            askAiState_.conversationDataset = null;
+            askAiState_.conversationPanelId = null;
+            stopAskThinking_();
             renderAskTranscript_();
             setAskStatus_('', false);
           });
@@ -11410,7 +11863,7 @@
 
       /** Apply Reload vs Refresh button labels for Datastore cutover (Feature 036). */
       function applyLiveDataModeChrome_() {
-        var ds = DASHBOARD_READ_SOURCE_HINT_ === 'supabase';
+        var ds = true;
         var reloadTip =
           'Reload from Datastore. Does not pull Fibery; newer data arrives after ADMIN Pull from Fibery or the nightly sync.';
         var refreshTip = 'Refresh from the live data source.';
@@ -12423,6 +12876,7 @@
       }
 
       function applyAgreementPayload(data) {
+        lastAgreementPayload_ = data || null;
         agreementAttentionState.expanded = {};
         var agreements = data.agreements || [];
         var companies = data.companies || [];
@@ -16455,7 +16909,7 @@
             laborHoursFetchCache_.payload = data;
             var cfg2 = cfgFrom(data);
             var rows2 = laborFilterRowsForWeek_(data.rows || [], bounds, companyMap);
-            refreshLaborHoursViewFromRows_(rows2, cfg2, bounds, 'Loaded roster window from Fibery.', {
+            refreshLaborHoursViewFromRows_(rows2, cfg2, bounds, 'Loaded roster window from Datastore.', {
               dimensions: data.dimensions,
               fullRows: data.rows,
             });
@@ -25151,6 +25605,7 @@
       }
 
       function applyDeliveryPayload(data) {
+        lastDeliveryPayload_ = data || null;
         var projects = (data && data.projects) || [];
         deliveryRenderState.lastRenderedFetchedAt = data && data.fetchedAt ? data.fetchedAt : null;
         if (els.deliveryLastRefresh) {

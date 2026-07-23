@@ -1,5 +1,5 @@
 /**
- * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Supabase (PostgREST) client for Feature 036.
  * Secrets stay in Script Properties; never returned to the client.
@@ -60,28 +60,21 @@ function isSupabaseConfigured_() {
 }
 
 /**
- * Live read source: supabase | fibery (default fibery until cutover).
- * @return {string}
+ * Live read source label for UI hints.
+ * Live panels always serve from Datastore (Supabase) when credentials exist.
+ * `DASHBOARD_READ_SOURCE=fibery` is ignored (no Live Fibery fallback as of v3.0.11).
+ * @return {string} `supabase` | `unconfigured`
  */
 function dashboardReadSource_() {
-  var raw = String(
-    PropertiesService.getScriptProperties().getProperty('DASHBOARD_READ_SOURCE') ||
-      'fibery'
-  )
-    .trim()
-    .toLowerCase();
-  if (raw === 'supabase') {
-    return 'supabase';
-  }
-  return 'fibery';
+  return isSupabaseConfigured_() ? 'supabase' : 'unconfigured';
 }
 
 /**
- * True when Live panels should prefer Supabase payloads.
+ * True when Live panels serve from Supabase (credentials configured).
  * @return {boolean}
  */
 function shouldServeFromSupabase_() {
-  return dashboardReadSource_() === 'supabase' && isSupabaseConfigured_();
+  return isSupabaseConfigured_();
 }
 
 /**

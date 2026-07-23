@@ -1,5 +1,5 @@
 /**
- * PRD version 3.0.5 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Nested ScriptLock helpers. Apps Script tryLock() returns true when the
  * current execution already holds the lock; releasing in an inner helper

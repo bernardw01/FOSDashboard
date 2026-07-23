@@ -107,7 +107,7 @@ Add to [`src/adminSettingsRegistry.js`](src/adminSettingsRegistry.js) (new **Dat
 | --- | --- |
 | `SUPABASE_URL` | Project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Secret; write-only in UI |
-| `DASHBOARD_READ_SOURCE` | `supabase` \| `fibery` (default `fibery` until cutover) |
+| `DASHBOARD_READ_SOURCE` | `supabase` \| `fibery` (default `supabase`) |
 | `SUPABASE_SYNC_ENABLED` | Kill switch for nightly |
 | `SUPABASE_SYNC_BATCH_SIZE` | Entities/commands per continuation (tuned) |
 
@@ -236,7 +236,7 @@ For migrated panels when `DASHBOARD_READ_SOURCE=supabase`:
 ## Phase 7 - Cutover, PRD, verification
 
 1. Staging: hydrate → flag `supabase` → full smoke matrix.
-2. Production: deploy with default `fibery`; enable `supabase` after first successful nightly.
+2. Production: deploy with default `supabase` after hydrate; use `fibery` kill-switch if needed.
 3. Remove or deprecate Live Drive dependency once stable.
 4. PRD bump (**MAJOR 3.0.0**): FR for Supabase serve, sync job, dual-write; extend FR-120 / AC-79 vocabulary; update feature **034** notes that Live Drive path is superseded.
 5. Update [`docs/features/000-overview.md`](000-overview.md) Planned → Shipped at ship time.
@@ -287,7 +287,7 @@ For migrated panels when `DASHBOARD_READ_SOURCE=supabase`:
 
 | Property | Default | Purpose |
 | --- | --- | --- |
-| `DASHBOARD_READ_SOURCE` | `fibery` | Flip to `supabase` per env when ready |
+| `DASHBOARD_READ_SOURCE` | `supabase` | Kill-switch: set to `fibery` to restore prior Live path |
 | `SUPABASE_SYNC_ENABLED` | `true` when configured | Disable nightly without undeploying |
 | `SUPABASE_SYNC_BATCH_SIZE` | Tuned (start conservative) | Continuations per execution |
 
