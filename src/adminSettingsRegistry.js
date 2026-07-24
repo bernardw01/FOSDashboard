@@ -1,5 +1,5 @@
 /**
- * PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.4.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -16,6 +16,7 @@ var ADMIN_SETTINGS_GROUPS_ = [
   { id: 'utilization', title: 'Utilization (Operations)' },
   { id: 'labor-hours', title: 'Labor hours' },
   { id: 'delivery', title: 'Delivery - Projects & P&L' },
+  { id: 'engagement-review', title: 'Engagement Review' },
   { id: 'snapshots', title: 'Historical snapshots' },
   { id: 'expenses-dashboard', title: 'Expenses dashboard' },
   { id: 'pipeline-dashboard', title: 'Pipeline dashboard (Sales)' },
@@ -472,7 +473,7 @@ function getAdminSettingsCatalog_() {
       'UTILIZATION_DEFAULT_RANGE_DAYS',
       'utilization',
       'Default range (days)',
-      'Default date range when the client does not pass explicit bounds.',
+      'Fallback range when a build is called without bounds (not the Live hydrate window).',
       'number',
       60,
       { min: 1, max: 3650 }
@@ -481,7 +482,7 @@ function getAdminSettingsCatalog_() {
       'UTILIZATION_MAX_RANGE_DAYS',
       'utilization',
       'Max range (days)',
-      'Hard cap on requested utilization range length.',
+      'Hard cap on picker ranges. Nightly / Pull hydrate stores this many days so Live can slice to YTD and other presets.',
       'number',
       365,
       { min: 1, max: 3650 }
@@ -563,8 +564,8 @@ function getAdminSettingsCatalog_() {
       'Heatmap top N persons',
       'Max person rows on the utilization heatmap.',
       'number',
-      30,
-      { min: 1, max: 100 }
+      100,
+      { min: 1, max: 250 }
     ),
     adminSettingEntry_(
       'LABOR_HOURS_DEFAULT_WEEKLY_TARGET',
@@ -1030,6 +1031,22 @@ function getAdminSettingsCatalog_() {
       'number',
       4,
       { min: 0, max: 23 }
+    ),
+    adminSettingEntry_(
+      'ENGAGEMENT_REVIEW_DRIVE_FOLDER_ID',
+      'engagement-review',
+      'Engagement Review recordings folder',
+      'Google Drive folder id for call recording uploads (feature 037). When empty, uses a subfolder under FOS_SNAPSHOT_DRIVE_FOLDER_ID named engagement-review-recordings.',
+      'string',
+      ''
+    ),
+    adminSettingEntry_(
+      'ENGAGEMENT_REVIEW_CALENDAR_ID',
+      'engagement-review',
+      'Engagement Review calendar id',
+      'Optional Google Calendar id for review invites. When empty, uses the script default calendar.',
+      'string',
+      ''
     ),
   ];
 }

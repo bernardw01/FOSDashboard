@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.4.0 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -113,6 +113,7 @@
     #panel-operations.fos-agreement-root,
     #panel-delivery.fos-agreement-root,
     #panel-revenue-review.fos-agreement-root,
+    #panel-engagement-review.fos-agreement-root,
     #panel-expenses.fos-agreement-root,
     #panel-ai-usage.fos-agreement-root,
     #panel-portfolio-pnl.fos-agreement-root,
@@ -2145,6 +2146,7 @@
 
     /* ------------------------------------------------------------------- */
     /* Phase C (v1.14.0) - Utilization heatmap + row-detail drawer. */
+    /* Feature 039 - HTML table sticky headers + legend filter chips. */
     /* ------------------------------------------------------------------- */
     .fos-util-heatmap-wrap {
       position: relative;
@@ -2153,14 +2155,55 @@
       border: 1px solid var(--ag-border);
       border-radius: 10px;
       background: var(--ag-surface2);
-      padding: 8px;
+      padding: 0;
     }
-    /* Intrinsic pixel size from width/height attributes — do not scale to 100%
-       or cell + label sizes change when week/person counts change. */
-    #util-heatmap-svg {
+    .fos-util-heatmap-grid {
       display: block;
+      width: max-content;
+      min-width: 100%;
+    }
+    .fos-util-heatmap-table {
+      border-collapse: separate;
+      border-spacing: 2px;
+      margin: 8px;
       font-family: 'Inter', system-ui, sans-serif;
       font-size: 14px;
+    }
+    .fos-util-heatmap-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: var(--ag-surface2);
+      color: var(--ag-text-muted);
+      font-size: 0.72rem;
+      font-weight: 500;
+      text-align: center;
+      padding: 4px 2px 8px;
+      white-space: nowrap;
+      box-shadow: 0 1px 0 var(--ag-border);
+    }
+    .fos-util-heatmap-table thead th.fos-util-heatmap-corner {
+      left: 0;
+      z-index: 3;
+      min-width: 160px;
+      box-shadow: 1px 1px 0 var(--ag-border);
+    }
+    .fos-util-heatmap-table td.fos-util-heatmap-person-label,
+    .fos-util-heatmap-table th.fos-util-heatmap-person-label {
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      background: var(--ag-surface2);
+      color: var(--ag-text);
+      font-size: 0.78rem;
+      font-weight: 500;
+      text-align: right;
+      padding: 0 8px 0 4px;
+      white-space: nowrap;
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      box-shadow: 1px 0 0 var(--ag-border);
     }
     .fos-util-heatmap-empty {
       position: absolute;
@@ -2173,37 +2216,43 @@
       pointer-events: none;
     }
     .fos-util-heatmap-cell {
-      stroke: rgba(255, 255, 254, 0.08);
-      stroke-width: 1;
+      width: 28px;
+      height: 22px;
+      min-width: 28px;
+      border-radius: 3px;
+      border: 1px solid rgba(255, 255, 254, 0.08);
       cursor: pointer;
-      transition: stroke 0.12s ease, stroke-width 0.12s ease;
+      padding: 0;
+      position: relative;
+      transition: border-color 0.12s ease, border-width 0.12s ease;
     }
     .fos-util-heatmap-cell:hover {
-      stroke: var(--ag-accent);
-      stroke-width: 2;
+      border-color: var(--ag-accent);
+      border-width: 2px;
     }
     .fos-util-heatmap-cell.empty {
       cursor: default;
     }
     .fos-util-heatmap-cell.empty:hover {
-      stroke: rgba(255, 255, 254, 0.08);
-      stroke-width: 1;
+      border-color: rgba(255, 255, 254, 0.08);
+      border-width: 1px;
     }
-    .fos-util-heatmap-cell-label {
-      font-size: 0.7rem;
-      fill: rgba(6, 27, 48, 0.92);
-      pointer-events: none;
-      font-weight: 600;
-    }
-    .fos-util-heatmap-axis-label {
-      fill: var(--ag-text-muted);
-      font-size: 0.72rem;
+    .fos-util-heatmap-cell[aria-disabled="true"] {
       pointer-events: none;
     }
-    .fos-util-heatmap-person-label {
-      fill: var(--ag-text);
-      font-size: 0.78rem;
+    .fos-util-heatmap-cell.partial::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 3px;
       pointer-events: none;
+      background-image: repeating-linear-gradient(
+        45deg,
+        rgba(255, 255, 254, 0.5) 0,
+        rgba(255, 255, 254, 0.5) 2px,
+        transparent 2px,
+        transparent 6px
+      );
     }
     .fos-util-heatmap-legend {
       display: flex;
@@ -2218,17 +2267,36 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 2px 8px;
+      min-height: 32px;
+      padding: 4px 10px;
       border-radius: 12px;
       background: var(--ag-surface2);
       border: 1px solid var(--ag-border);
       letter-spacing: 0.02em;
+      color: var(--ag-text-muted);
+      cursor: pointer;
+      font: inherit;
+      line-height: 1.2;
+    }
+    .fos-util-heatmap-legend-chip:hover {
+      border-color: var(--ag-accent);
+      color: var(--ag-text);
+    }
+    .fos-util-heatmap-legend-chip:focus-visible {
+      outline: 2px solid var(--ag-accent);
+      outline-offset: 2px;
+    }
+    .fos-util-heatmap-legend-chip.is-active {
+      border-color: var(--ag-accent);
+      color: var(--ag-text);
+      box-shadow: 0 0 0 1px var(--ag-accent);
     }
     .fos-util-heatmap-legend-chip .swatch {
       width: 10px;
       height: 10px;
       border-radius: 2px;
       display: inline-block;
+      flex-shrink: 0;
     }
     .fos-util-heatmap-legend-chip.partial .swatch {
       background-image: repeating-linear-gradient(
@@ -2240,12 +2308,19 @@
       );
       background-color: rgba(160, 174, 192, 0.35);
     }
-
-    /* SVG <pattern>-based hatch for partial-week cells (referenced as
-       url(#fos-util-heatmap-partial-hatch) in the generated heatmap). */
-    .fos-util-heatmap-cell-overlay-partial {
-      fill: url(#fos-util-heatmap-partial-hatch);
-      pointer-events: none;
+    @media (max-width: 767.98px) {
+      .fos-util-heatmap-legend-chip {
+        min-height: 44px;
+        padding: 8px 12px;
+      }
+      .fos-util-heatmap-wrap {
+        max-height: 420px;
+      }
+      .fos-util-heatmap-table thead th.fos-util-heatmap-corner,
+      .fos-util-heatmap-table td.fos-util-heatmap-person-label {
+        min-width: 120px;
+        max-width: 120px;
+      }
     }
 
     /* Row-detail drawer ---------------------------------------------------- */
@@ -5044,9 +5119,9 @@
                       <ul class="dropdown-menu" id="util-heatmap-role-menu" aria-label="Heatmap role filter"></ul>
                     </div>
                   </div>
-                  <div class="fos-util-heatmap-legend" id="util-heatmap-legend" aria-hidden="true"></div>
+                  <div class="fos-util-heatmap-legend" id="util-heatmap-legend" role="group" aria-label="Heatmap utilization band filters"></div>
                   <div class="fos-util-heatmap-wrap" id="util-heatmap-wrap">
-                    <svg id="util-heatmap-svg" role="img" aria-label="Per-person weekly utilization heatmap"></svg>
+                    <div id="util-heatmap-grid" class="fos-util-heatmap-grid" role="img" aria-label="Per-person weekly utilization heatmap"></div>
                     <div class="fos-util-heatmap-empty d-none" id="util-heatmap-empty">No contributors match the current filter.</div>
                   </div>
                 </section>
@@ -5920,6 +5995,185 @@
               <div id="rr-detail-tree" class="small"></div>
               <p class="small mb-0 mt-2 d-none" id="rr-empty-detail" style="color: var(--ag-text-muted)">No milestones to show.</p>
             </section>
+          </div>
+        </div>
+
+        <!-- Feature 037 - Engagement Review (Delivery). -->
+        <div id="panel-engagement-review" class="d-none fos-agreement-root">
+          <div id="er-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
+          <div class="fos-agreement-inner shadow-lg">
+            <div class="fos-loading-overlay d-none" id="er-loading" role="status" aria-live="polite" aria-hidden="true">
+              <div class="fos-loading-spinner" aria-hidden="true"></div>
+              <span class="fos-loading-label">Loading engagement reviews…</span>
+            </div>
+
+            <div id="er-view-list">
+              <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+                <div class="flex-grow-1 min-w-0">
+                  <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Engagement review</h1>
+                  <p class="small mb-0" style="color: var(--ag-text-muted)">
+                    Schedule reviews, collect owner updates, and retain call notes.
+                  </p>
+                </div>
+                <button type="button" class="btn btn-sm fw-semibold px-3 d-none" id="er-new-btn" style="background: var(--ag-accent); color: #061b30; border: none; min-height: 44px;">
+                  New review
+                </button>
+              </div>
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                <label class="small" for="er-filter-select" style="color: var(--ag-text-muted)">Show</label>
+                <select id="er-filter-select" class="form-select form-select-sm" style="width: auto; min-height: 44px;">
+                  <option value="upcoming">Upcoming</option>
+                  <option value="all" selected>All</option>
+                  <option value="past">Past</option>
+                </select>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="er-refresh-btn" style="min-height: 44px;">Reload</button>
+                <span class="small d-none text-danger" id="er-list-error" role="alert"></span>
+              </div>
+              <div id="er-list-desktop" class="d-none d-md-block">
+                <div class="table-responsive fos-section-card">
+                  <table class="table table-sm align-middle mb-0" style="color: var(--ag-text)">
+                    <thead>
+                      <tr class="small" style="color: var(--ag-text-muted)">
+                        <th>Target date</th>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th class="text-end">Engagements</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="er-list-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+              <div id="er-list-mobile" class="d-md-none"></div>
+              <p class="small mt-3 d-none" id="er-list-empty" style="color: var(--ag-text-muted)">No engagement reviews yet.</p>
+            </div>
+
+            <div id="er-view-detail" class="d-none">
+              <button type="button" class="btn btn-sm btn-link px-0 mb-2" id="er-back-list-btn" style="color: var(--ag-accent); min-height: 44px;">← All reviews</button>
+              <div class="d-flex flex-wrap align-items-start gap-2 mb-3">
+                <div class="flex-grow-1 min-w-0">
+                  <h2 class="h5 mb-1 fw-bold" id="er-detail-title" style="color: var(--ag-text)">Review</h2>
+                  <p class="small mb-0" id="er-detail-sub" style="color: var(--ag-text-muted)"></p>
+                </div>
+                <div class="d-flex flex-wrap gap-2 d-none" id="er-admin-actions">
+                  <button type="button" class="btn btn-sm btn-outline-secondary" id="er-suggest-alerts-btn" style="min-height: 44px;">Suggest from alerts</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" id="er-suggest-owners-btn" style="min-height: 44px;">Suggest owners</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" id="er-calendar-btn" style="min-height: 44px;">Calendar invite</button>
+                  <button type="button" class="btn btn-sm fw-semibold" id="er-save-detail-btn" style="background: var(--ag-accent); color: #061b30; border: none; min-height: 44px;">Save</button>
+                </div>
+              </div>
+              <div class="row g-3 mb-3">
+                <div class="col-12 col-lg-4">
+                  <section class="fos-section-card h-100">
+                    <h3 class="h6 fw-bold" style="color: var(--ag-text)">Review fields</h3>
+                    <label class="small" style="color: var(--ag-text-muted)">Name</label>
+                    <input type="text" class="form-control form-control-sm mb-2" id="er-field-name" disabled />
+                    <label class="small" style="color: var(--ag-text-muted)">Target date</label>
+                    <input type="date" class="form-control form-control-sm mb-2" id="er-field-date" disabled />
+                    <label class="small" style="color: var(--ag-text-muted)">Status</label>
+                    <select class="form-select form-select-sm mb-2" id="er-field-status" disabled>
+                      <option value="draft">draft</option>
+                      <option value="scheduled">scheduled</option>
+                      <option value="in_progress">in_progress</option>
+                      <option value="completed">completed</option>
+                    </select>
+                    <label class="small" style="color: var(--ag-text-muted)">Notes</label>
+                    <textarea class="form-control form-control-sm" id="er-field-notes" rows="2" disabled></textarea>
+                  </section>
+                </div>
+                <div class="col-12 col-lg-4">
+                  <section class="fos-section-card h-100">
+                    <h3 class="h6 fw-bold" style="color: var(--ag-text)">Call summary</h3>
+                    <textarea class="form-control form-control-sm" id="er-field-summary" rows="6" disabled placeholder="Paste call notes…"></textarea>
+                  </section>
+                </div>
+                <div class="col-12 col-lg-4">
+                  <section class="fos-section-card h-100">
+                    <h3 class="h6 fw-bold" style="color: var(--ag-text)">Recordings</h3>
+                    <ul class="small mb-2 ps-3" id="er-recordings-list" style="color: var(--ag-text-muted)"></ul>
+                    <div class="d-none" id="er-upload-wrap">
+                      <input type="file" class="form-control form-control-sm" id="er-recording-file" accept="audio/*,video/*,.mp3,.mp4,.m4a,.wav,.webm" />
+                      <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="er-upload-btn" style="min-height: 44px;">Upload to Drive</button>
+                    </div>
+                  </section>
+                </div>
+              </div>
+              <div class="row g-3 mb-3">
+                <div class="col-12 col-lg-4">
+                  <section class="fos-section-card">
+                    <h3 class="h6 fw-bold" style="color: var(--ag-text)">Participants</h3>
+                    <ul class="small mb-2 ps-3" id="er-participants-list" style="color: var(--ag-text)"></ul>
+                    <div class="d-none input-group input-group-sm" id="er-add-participant-wrap">
+                      <input type="email" class="form-control" id="er-add-participant-email" placeholder="user@harpin.ai" />
+                      <button type="button" class="btn btn-outline-secondary" id="er-add-participant-btn">Add</button>
+                    </div>
+                  </section>
+                </div>
+                <div class="col-12 col-lg-8">
+                  <section class="fos-section-card">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                      <h3 class="h6 fw-bold mb-0" style="color: var(--ag-text)">Engagements on this review</h3>
+                      <button type="button" class="btn btn-sm btn-outline-secondary d-none ms-auto" id="er-add-agreement-btn" style="min-height: 44px;">Add by id</button>
+                    </div>
+                    <div id="er-agreements-list"></div>
+                    <p class="small d-none mb-0" id="er-agreements-empty" style="color: var(--ag-text-muted)">No engagements linked yet.</p>
+                  </section>
+                </div>
+              </div>
+              <span class="small d-none text-danger" id="er-detail-error" role="alert"></span>
+            </div>
+
+            <div id="er-view-project" class="d-none">
+              <button type="button" class="btn btn-sm btn-link px-0 mb-2" id="er-back-detail-btn" style="color: var(--ag-accent); min-height: 44px;">← Back to review</button>
+              <h2 class="h5 mb-1 fw-bold" id="er-project-title" style="color: var(--ag-text)">Engagement</h2>
+              <p class="small mb-3" id="er-project-sub" style="color: var(--ag-text-muted)"></p>
+
+              <section class="fos-section-card mb-3" aria-labelledby="er-latest-heading">
+                <h3 id="er-latest-heading" class="h6 fw-bold" style="color: var(--ag-text)">Latest executive summary</h3>
+                <div id="er-latest-update" class="small" style="color: var(--ag-text)"></div>
+              </section>
+
+              <details class="fos-section-card mb-3">
+                <summary class="h6 fw-bold mb-0" style="color: var(--ag-text); cursor: pointer; min-height: 44px;">Previous updates</summary>
+                <div id="er-update-history" class="small mt-2" style="color: var(--ag-text-muted)"></div>
+              </details>
+
+              <section class="fos-section-card mb-3">
+                <h3 class="h6 fw-bold" style="color: var(--ag-text)">Project information</h3>
+                <div id="er-project-info" class="small" style="color: var(--ag-text)"></div>
+              </section>
+
+              <section class="fos-section-card mb-3 d-none" id="er-questionnaire-wrap">
+                <h3 class="h6 fw-bold" style="color: var(--ag-text)">Submit engagement update</h3>
+                <form id="er-questionnaire-form"></form>
+                <button type="button" class="btn btn-sm fw-semibold mt-2" id="er-submit-update-btn" style="background: var(--ag-accent); color: #061b30; border: none; min-height: 44px;">Submit update</button>
+                <span class="small d-none text-danger ms-2" id="er-submit-error" role="alert"></span>
+              </section>
+            </div>
+          </div>
+        </div>
+
+        <!-- Create review modal -->
+        <div class="modal fade" id="erCreateModal" tabindex="-1" aria-labelledby="erCreateModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content" style="background: var(--ag-card); color: var(--ag-text)">
+              <div class="modal-header border-secondary">
+                <h2 class="modal-title h5" id="erCreateModalLabel">New engagement review</h2>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <label class="form-label" for="er-create-name">Name</label>
+                <input type="text" class="form-control mb-2" id="er-create-name" />
+                <label class="form-label" for="er-create-date">Target date</label>
+                <input type="date" class="form-control" id="er-create-date" />
+                <p class="small text-danger d-none mb-0 mt-2" id="er-create-error"></p>
+              </div>
+              <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn fw-semibold" id="er-create-save-btn" style="background: var(--ag-accent); color: #061b30;">Create</button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -7064,6 +7318,7 @@
         // science / etc. without disturbing the rest of the dashboard).
         heatmap: {
           roleFilter: {},         // {roleName: true}
+          legendFilter: null,     // Feature 039 - single band key or null
         },
         // v1.16.0 / v1.17.0 - Utilization Alerts grouped by `kind`. `expanded`
         // is keyed by alert kind; `true` = user opened the group. Cleared in
@@ -7168,6 +7423,7 @@
         'resource-assignments': 'bi-people-fill',
         'delivery': 'bi-truck',
         'revenue-review': 'bi-cash-stack',
+        'engagement-review': 'bi-clipboard2-check',
         'expenses': 'bi-receipt-cutoff',
         'ai-usage': 'bi-cpu',
         'portfolio-pnl': 'bi-table',
@@ -7385,7 +7641,7 @@
         utilAttentionList: document.getElementById('util-attention-list'),
         utilAttentionCount: document.getElementById('util-attention-count'),
         utilAttentionCollapseAll: document.getElementById('util-attention-collapse-all'),
-        utilHeatmapSvg: document.getElementById('util-heatmap-svg'),
+        utilHeatmapGrid: document.getElementById('util-heatmap-grid'),
         utilHeatmapLegend: document.getElementById('util-heatmap-legend'),
         utilHeatmapMeta: document.getElementById('util-heatmap-meta'),
         utilHeatmapEmpty: document.getElementById('util-heatmap-empty'),
@@ -7424,6 +7680,7 @@
         deliveryPnlEmpty: document.getElementById('delivery-pnl-empty'),
         // Monthly Revenue Review (agreement cache).
         panelRevenueReview: document.getElementById('panel-revenue-review'),
+        panelEngagementReview: document.getElementById('panel-engagement-review'),
         rrWarn: document.getElementById('rr-warn'),
         rrLoading: document.getElementById('rr-loading'),
         rrRefreshBtn: document.getElementById('rr-refresh-btn'),
@@ -7942,6 +8199,8 @@
           showResourceAssignments();
         } else if (id === 'revenue-review') {
           showRevenueReview();
+        } else if (id === 'engagement-review') {
+          showEngagementReview();
         } else if (id === 'expenses') {
           showExpenses();
         } else if (id === 'portfolio-pnl') {
@@ -8954,6 +9213,7 @@
           'labor-hours': 'Labor hours',
           delivery: 'Delivery - Projects & P&L',
           'revenue-review': 'Revenue review',
+          'engagement-review': 'Engagement review',
           expenses: 'Expenses',
           settings: 'Settings',
           shell: 'Shell / data source',
@@ -9667,7 +9927,7 @@
         var help = document.createElement('p');
         help.className = 'small text-secondary mb-2';
         help.textContent =
-          'Pull dashboard datasets from Fibery into Supabase (continuation batches). The first Pull also installs the nightly hydrate trigger. Live panels always read Datastore after hydrate; Reload re-reads Postgres (Fibery updates require Pull or nightly).';
+          'Pull mirrors Agreement Management tables into Supabase, then rebuilds panel JSON from those tables (labor from Clockify fos_labor_costs only). Continuation batches. The first Pull also installs the nightly hydrate trigger. Live panels always read Datastore after hydrate; Reload re-reads Postgres.';
         wrap.appendChild(help);
 
         var status = adminSettingsState_.supabaseSync;
@@ -10301,6 +10561,7 @@
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelResourceAssignments) els.panelResourceAssignments.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        if (els.panelEngagementReview) els.panelEngagementReview.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
         if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
@@ -10475,6 +10736,7 @@
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelResourceAssignments) els.panelResourceAssignments.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        if (els.panelEngagementReview) els.panelEngagementReview.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
         if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
@@ -10619,10 +10881,21 @@
       function applyDeepLinkPanelFromHash_() {
         try {
           var hash = String(window.location.hash || '');
+          var er = hash.match(/#?engagement-review\/([0-9a-f-]{36})(?:\/([0-9a-f-]{36}))?/i);
+          if (er) {
+            navigateToNavId_('engagement-review');
+            showEngagementReview({ reviewId: er[1], agreementId: er[2] || null });
+            return;
+          }
           var m = hash.match(/panel=([a-z0-9-]+)/i);
           if (!m) return;
           var panelId = m[1];
-          if (panelId === 'agreement-dashboard' || panelId === 'operations' || panelId === 'profile') {
+          if (
+            panelId === 'agreement-dashboard' ||
+            panelId === 'operations' ||
+            panelId === 'profile' ||
+            panelId === 'engagement-review'
+          ) {
             navigateToNavId_(panelId);
           }
         } catch (e) {
@@ -14493,15 +14766,42 @@
          ==================================================================== */
 
       // Phase C - Heatmap row cap (default Script Property
-      // UTILIZATION_HEATMAP_TOP_N_PERSONS = 30). Defined here so the client
-      // doesn't have to round-trip the server config.
-      var UTIL_HEATMAP_TOP_N_PERSONS = 30;
-      // Phase C - Approximate week width when computing the heatmap viewBox.
+      // UTILIZATION_HEATMAP_TOP_N_PERSONS = 100). Client fallback when payload
+      // omits heatmapTopNPersons (legacy snapshots).
+      var UTIL_HEATMAP_TOP_N_PERSONS = 100;
       var UTIL_HEATMAP_CELL_W = 28;
       var UTIL_HEATMAP_CELL_H = 22;
-      var UTIL_HEATMAP_GUTTER = 2;
-      var UTIL_HEATMAP_LABEL_W = 160;
-      var UTIL_HEATMAP_HEADER_H = 26;
+      var UTIL_HEATMAP_LEGEND_BANDS_ = [
+        { key: 'under', label: '< 60% under', color: '#fc5c65' },
+        { key: 'building', label: '60-85% building', color: '#f9c74f' },
+        { key: 'target', label: '85-110% target', color: '#43D6BA' },
+        { key: 'over', label: '> 110% over', color: '#f78c1f' },
+        { key: 'zero_hours', label: 'zero hours', color: '#0d2e4a' },
+        { key: 'partial', label: 'partial week', color: null, partial: true },
+      ];
+
+      function heatmapUtilBandKey_(entry) {
+        if (!entry) return 'zero_hours';
+        var pct = entry.utilizationPct;
+        if (pct === null || pct === undefined || isNaN(pct)) return 'zero_hours';
+        if (pct < 60) return 'under';
+        if (pct < 85) return 'building';
+        if (pct <= 110) return 'target';
+        return 'over';
+      }
+
+      function heatmapCellMatchesLegendBand_(entry, bandKey) {
+        if (!bandKey) return true;
+        if (bandKey === 'partial') return !!(entry && entry.partial);
+        if (bandKey === 'zero_hours') return !entry || heatmapUtilBandKey_(entry) === 'zero_hours';
+        return heatmapUtilBandKey_(entry) === bandKey;
+      }
+
+      function heatmapTopNPersons_(payload) {
+        var n = payload && Number(payload.heatmapTopNPersons);
+        if (n > 0 && isFinite(n)) return Math.max(1, Math.round(n));
+        return UTIL_HEATMAP_TOP_N_PERSONS;
+      }
 
       // Phase C - Alerts panel ----------------------------------------------
       // v1.17.0 - Renders the Utilization Alerts panel as a list grouped by
@@ -14837,7 +15137,7 @@
       // Phase C - Heatmap renderer ------------------------------------------
       function renderUtilHeatmap() {
         var p = utilState.payload;
-        if (!p || !els.utilHeatmapSvg) return;
+        if (!p || !els.utilHeatmapGrid) return;
         var byPersonWeek = (p.aggregates && p.aggregates.byPersonWeek) || [];
         var heatmapRoles = setFromKeys(utilState.heatmap.roleFilter);
         var hasHeatmapRoleFilter = heatmapRoles.length > 0;
@@ -14863,8 +15163,6 @@
           workingSet = recomputeByPersonWeek_(filteredRows, byPersonWeek);
         }
 
-        // Group by personKey → trajectory; rank persons by total hours desc;
-        // cap at UTIL_HEATMAP_TOP_N_PERSONS rows.
         var personTotals = {};
         var personMeta = {};
         var weekSet = {};
@@ -14877,150 +15175,166 @@
           personTotals[e.personKey] += Number(e.hours || 0);
           if (e.week) weekSet[e.week] = true;
         }
-        var personKeys = Object.keys(personTotals).sort(function (a, b) {
-          return personTotals[b] - personTotals[a];
-        });
-        var hiddenPersonCount = Math.max(0, personKeys.length - UTIL_HEATMAP_TOP_N_PERSONS);
-        personKeys = personKeys.slice(0, UTIL_HEATMAP_TOP_N_PERSONS);
         var weeks = Object.keys(weekSet).sort();
-
-        if (els.utilHeatmapMeta) {
-          var meta =
-            personKeys.length + (personKeys.length === 1 ? ' person · ' : ' people · ') +
-            weeks.length + (weeks.length === 1 ? ' week' : ' weeks');
-          if (hiddenPersonCount > 0) {
-            meta += ' · ' + hiddenPersonCount + ' more hidden (cap ' + UTIL_HEATMAP_TOP_N_PERSONS + ')';
-          }
-          els.utilHeatmapMeta.textContent = meta;
-        }
-
-        if (!personKeys.length || !weeks.length) {
-          if (els.utilHeatmapEmpty) els.utilHeatmapEmpty.classList.remove('d-none');
-          els.utilHeatmapSvg.innerHTML = '';
-          renderHeatmapLegend_();
-          return;
-        }
-        if (els.utilHeatmapEmpty) els.utilHeatmapEmpty.classList.add('d-none');
-
-        // Index entries by (person, week) for O(1) lookup.
         var idx = {};
         for (var j = 0; j < workingSet.length; j++) {
           var w = workingSet[j];
           idx[w.personKey + '|' + w.week] = w;
         }
 
-        // Build SVG.
-        var svgNS = 'http://www.w3.org/2000/svg';
-        var svg = els.utilHeatmapSvg;
-        svg.setAttribute('xmlns', svgNS);
-        var cellW = UTIL_HEATMAP_CELL_W;
-        var cellH = UTIL_HEATMAP_CELL_H;
-        var gutter = UTIL_HEATMAP_GUTTER;
-        var labelW = UTIL_HEATMAP_LABEL_W;
-        var headerH = UTIL_HEATMAP_HEADER_H;
-        var totalW = labelW + weeks.length * (cellW + gutter);
-        var totalH = headerH + personKeys.length * (cellH + gutter);
-        svg.setAttribute('viewBox', '0 0 ' + totalW + ' ' + totalH);
-        svg.setAttribute('width', String(totalW));
-        svg.setAttribute('height', String(totalH));
-        svg.setAttribute('preserveAspectRatio', 'xMinYMin meet');
-        svg.removeAttribute('style');
-        svg.innerHTML = '';
-
-        // <defs> with the diagonal hatch pattern used for partial-week cells.
-        var defs = document.createElementNS(svgNS, 'defs');
-        defs.innerHTML =
-          '<pattern id="fos-util-heatmap-partial-hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">' +
-            '<rect x="0" y="0" width="6" height="6" fill="rgba(0,0,0,0)"/>' +
-            '<rect x="0" y="0" width="2" height="6" fill="rgba(255,255,254,0.5)"/>' +
-          '</pattern>';
-        svg.appendChild(defs);
-
-        // Week headers across the top.
-        for (var wi = 0; wi < weeks.length; wi++) {
-          var t = document.createElementNS(svgNS, 'text');
-          t.setAttribute('class', 'fos-util-heatmap-axis-label');
-          t.setAttribute('x', labelW + wi * (cellW + gutter) + cellW / 2);
-          t.setAttribute('y', headerH - 8);
-          t.setAttribute('text-anchor', 'middle');
-          t.setAttribute('dominant-baseline', 'auto');
-          // Render the week portion only (e.g. 'W19') to keep the header tight.
-          t.textContent = (weeks[wi] || '').split('-W')[1] ? 'W' + weeks[wi].split('-W')[1] : weeks[wi];
-          svg.appendChild(t);
+        var legendBand = utilState.heatmap.legendFilter || null;
+        var matchCounts = {};
+        var personKeys = Object.keys(personTotals);
+        if (legendBand) {
+          var matched = [];
+          for (var pi = 0; pi < personKeys.length; pi++) {
+            var pk = personKeys[pi];
+            var qCount = 0;
+            for (var wi = 0; wi < weeks.length; wi++) {
+              if (heatmapCellMatchesLegendBand_(idx[pk + '|' + weeks[wi]], legendBand)) {
+                qCount++;
+              }
+            }
+            if (qCount > 0) {
+              matchCounts[pk] = qCount;
+              matched.push(pk);
+            }
+          }
+          matched.sort(function (a, b) {
+            var d = (matchCounts[b] || 0) - (matchCounts[a] || 0);
+            if (d !== 0) return d;
+            return personTotals[b] - personTotals[a];
+          });
+          personKeys = matched;
+        } else {
+          personKeys.sort(function (a, b) {
+            return personTotals[b] - personTotals[a];
+          });
         }
 
-        // Body - one row per person.
+        var topN = heatmapTopNPersons_(p);
+        var hiddenPersonCount = Math.max(0, personKeys.length - topN);
+        personKeys = personKeys.slice(0, topN);
+
+        if (els.utilHeatmapMeta) {
+          var meta =
+            personKeys.length + (personKeys.length === 1 ? ' person · ' : ' people · ') +
+            weeks.length + (weeks.length === 1 ? ' week' : ' weeks');
+          if (hiddenPersonCount > 0) {
+            meta += ' · ' + hiddenPersonCount + ' more hidden (cap ' + topN + ')';
+          }
+          els.utilHeatmapMeta.textContent = meta;
+        }
+
+        if (!personKeys.length || !weeks.length) {
+          if (els.utilHeatmapEmpty) {
+            els.utilHeatmapEmpty.textContent = legendBand
+              ? 'No people match the selected legend filter.'
+              : 'No contributors match the current filter.';
+            els.utilHeatmapEmpty.classList.remove('d-none');
+          }
+          els.utilHeatmapGrid.innerHTML = '';
+          renderHeatmapLegend_();
+          return;
+        }
+        if (els.utilHeatmapEmpty) els.utilHeatmapEmpty.classList.add('d-none');
+
+        var table = document.createElement('table');
+        table.className = 'fos-util-heatmap-table';
+        var thead = document.createElement('thead');
+        var headRow = document.createElement('tr');
+        var corner = document.createElement('th');
+        corner.className = 'fos-util-heatmap-corner';
+        corner.setAttribute('scope', 'col');
+        corner.textContent = '';
+        headRow.appendChild(corner);
+        for (var wh = 0; wh < weeks.length; wh++) {
+          var th = document.createElement('th');
+          th.setAttribute('scope', 'col');
+          th.textContent =
+            (weeks[wh] || '').split('-W')[1]
+              ? 'W' + weeks[wh].split('-W')[1]
+              : weeks[wh];
+          th.title = weeks[wh];
+          headRow.appendChild(th);
+        }
+        thead.appendChild(headRow);
+        table.appendChild(thead);
+
+        var tbody = document.createElement('tbody');
         for (var pIdx = 0; pIdx < personKeys.length; pIdx++) {
           var personKey = personKeys[pIdx];
-          var rowY = headerH + pIdx * (cellH + gutter);
-
-          // Person label (left).
-          var label = document.createElementNS(svgNS, 'text');
-          label.setAttribute('class', 'fos-util-heatmap-person-label');
-          label.setAttribute('x', labelW - 8);
-          label.setAttribute('y', rowY + cellH / 2);
-          label.setAttribute('text-anchor', 'end');
-          label.setAttribute('dominant-baseline', 'middle');
           var fullName = personMeta[personKey] || personKey;
-          label.textContent = fullName.length > 22 ? fullName.slice(0, 21) + '…' : fullName;
-          var labelTitle = document.createElementNS(svgNS, 'title');
-          labelTitle.textContent = fullName + ' · ' + formatHours(personTotals[personKey]) + ' hrs total in range';
-          label.appendChild(labelTitle);
-          svg.appendChild(label);
+          var tr = document.createElement('tr');
+          var nameTd = document.createElement('td');
+          nameTd.className = 'fos-util-heatmap-person-label';
+          nameTd.textContent =
+            fullName.length > 22 ? fullName.slice(0, 21) + '\u2026' : fullName;
+          var nameTitle = fullName + ' · ' + formatHours(personTotals[personKey]) + ' hrs total in range';
+          if (legendBand && matchCounts[personKey]) {
+            nameTitle +=
+              ' · ' +
+              matchCounts[personKey] +
+              (matchCounts[personKey] === 1 ? ' matching week' : ' matching weeks');
+          }
+          nameTd.title = nameTitle;
+          tr.appendChild(nameTd);
 
           for (var w2 = 0; w2 < weeks.length; w2++) {
             var week = weeks[w2];
-            var cellX = labelW + w2 * (cellW + gutter);
             var entry = idx[personKey + '|' + week];
-            var fill = '#0d2e4a'; // empty cell
+            var fill = '#0d2e4a';
             var pct = null;
             var hours = 0;
             var partial = false;
             if (entry) {
               pct = entry.utilizationPct;
               hours = entry.hours;
-              partial = entry.partial;
+              partial = !!entry.partial;
               fill = utilizationBucketColorClient_(pct);
             }
-            var rect = document.createElementNS(svgNS, 'rect');
-            rect.setAttribute('class', 'fos-util-heatmap-cell' + (entry ? '' : ' empty'));
-            rect.setAttribute('x', cellX);
-            rect.setAttribute('y', rowY);
-            rect.setAttribute('width', cellW);
-            rect.setAttribute('height', cellH);
-            rect.setAttribute('rx', '3');
-            rect.setAttribute('fill', fill);
-            var title = document.createElementNS(svgNS, 'title');
+            var cell = document.createElement('button');
+            cell.type = 'button';
+            cell.className =
+              'fos-util-heatmap-cell' +
+              (entry ? '' : ' empty') +
+              (partial ? ' partial' : '');
+            cell.style.background = fill;
+            cell.style.width = UTIL_HEATMAP_CELL_W + 'px';
+            cell.style.height = UTIL_HEATMAP_CELL_H + 'px';
             if (entry) {
-              title.textContent =
-                fullName + ' · ' + week +
-                ' · ' + formatHours(hours) + ' hrs · ' +
-                (pct != null ? Math.round(pct) + '% utilization' : 'no data') +
-                (partial ? ' · partial week (' + Math.round(entry.partialFraction * 100) + '% in range)' : '');
-            } else {
-              title.textContent = fullName + ' · ' + week + ' · no logged time';
-            }
-            rect.appendChild(title);
-            if (entry) {
+              cell.title =
+                fullName +
+                ' · ' +
+                week +
+                ' · ' +
+                formatHours(hours) +
+                ' hrs · ' +
+                (pct != null ? Math.round(pct) + '% utilization' : 'zero hours') +
+                (partial
+                  ? ' · partial week (' +
+                    Math.round(entry.partialFraction * 100) +
+                    '% in range)'
+                  : '');
               (function (e) {
-                rect.addEventListener('click', function () {
+                cell.addEventListener('click', function () {
                   handleHeatmapCellClick_(e);
                 });
               })(entry);
+            } else {
+              cell.title = fullName + ' · ' + week + ' · zero hours';
+              cell.setAttribute('aria-disabled', 'true');
+              cell.tabIndex = -1;
             }
-            svg.appendChild(rect);
-            if (partial) {
-              var overlay = document.createElementNS(svgNS, 'rect');
-              overlay.setAttribute('class', 'fos-util-heatmap-cell-overlay-partial');
-              overlay.setAttribute('x', cellX);
-              overlay.setAttribute('y', rowY);
-              overlay.setAttribute('width', cellW);
-              overlay.setAttribute('height', cellH);
-              overlay.setAttribute('rx', '3');
-              svg.appendChild(overlay);
-            }
+            var td = document.createElement('td');
+            td.appendChild(cell);
+            tr.appendChild(td);
           }
+          tbody.appendChild(tr);
         }
+        table.appendChild(tbody);
+        els.utilHeatmapGrid.innerHTML = '';
+        els.utilHeatmapGrid.appendChild(table);
 
         renderHeatmapLegend_();
       }
@@ -15028,25 +15342,42 @@
         var legend = els.utilHeatmapLegend;
         if (!legend) return;
         legend.innerHTML = '';
-        var chips = [
-          { label: '< 60% under', color: '#fc5c65' },
-          { label: '60-85% building', color: '#f9c74f' },
-          { label: '85-110% target', color: '#43D6BA' },
-          { label: '> 110% over', color: '#f78c1f' },
-          { label: 'no data', color: '#0d2e4a' },
-        ];
-        for (var i = 0; i < chips.length; i++) {
-          var chip = document.createElement('span');
-          chip.className = 'fos-util-heatmap-legend-chip';
-          chip.innerHTML =
-            '<span class="swatch" style="background:' + chips[i].color + '"></span>' +
-            escapeHtml(chips[i].label);
-          legend.appendChild(chip);
+        var active = utilState.heatmap.legendFilter || null;
+        for (var i = 0; i < UTIL_HEATMAP_LEGEND_BANDS_.length; i++) {
+          (function (band) {
+            var chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className =
+              'fos-util-heatmap-legend-chip' +
+              (band.partial ? ' partial' : '') +
+              (active === band.key ? ' is-active' : '');
+            chip.setAttribute('aria-pressed', active === band.key ? 'true' : 'false');
+            chip.setAttribute(
+              'aria-label',
+              'Filter heatmap to ' + band.label + (active === band.key ? ' (selected)' : '')
+            );
+            var swatchStyle = band.color ? 'background:' + band.color : '';
+            chip.innerHTML =
+              '<span class="swatch" style="' +
+              swatchStyle +
+              '"></span>' +
+              escapeHtml(band.label);
+            chip.addEventListener('click', function () {
+              if (utilState.heatmap.legendFilter === band.key) {
+                utilState.heatmap.legendFilter = null;
+              } else {
+                utilState.heatmap.legendFilter = band.key;
+              }
+              logActivity_(
+                'util_heatmap_legend_filter',
+                'operations',
+                'band=' + (utilState.heatmap.legendFilter || 'cleared')
+              );
+              renderUtilHeatmap();
+            });
+            legend.appendChild(chip);
+          })(UTIL_HEATMAP_LEGEND_BANDS_[i]);
         }
-        var partial = document.createElement('span');
-        partial.className = 'fos-util-heatmap-legend-chip partial';
-        partial.innerHTML = '<span class="swatch"></span>partial week';
-        legend.appendChild(partial);
       }
       function utilizationBucketColorClient_(pct) {
         if (pct === null || pct === undefined || isNaN(pct)) return '#A0AEC0';
@@ -15758,6 +16089,7 @@
           clearUtilDetailTableFilters_();
           // Phase C - also clear the heatmap-local Role filter on global Clear.
           utilState.heatmap.roleFilter = {};
+          utilState.heatmap.legendFilter = null;
           syncBillableButtons();
           syncInternalButtons();
           populateFilterDropdowns(utilState.payload ? utilState.payload.dimensions : null);
@@ -15870,6 +16202,16 @@
         }
       })();
 
+      function utilCachedRangeMatchesPicker_(cached, pickerRange) {
+        if (!cached || !cached.range || !pickerRange) return false;
+        var cs = String(cached.range.start || '').slice(0, 10);
+        var ce = String(cached.range.end || '').slice(0, 10);
+        var ps = String(pickerRange.startIso || '').slice(0, 10);
+        var pe = String(pickerRange.endIso || '').slice(0, 10);
+        if (!cs || !ce || !ps || !pe) return false;
+        return cs === ps && ce === pe;
+      }
+
       function showOperations() {
         els.panelHome.classList.add('d-none');
         if (els.panelAgreementDashboard) els.panelAgreementDashboard.classList.add('d-none');
@@ -15877,6 +16219,7 @@
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelResourceAssignments) els.panelResourceAssignments.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        if (els.panelEngagementReview) els.panelEngagementReview.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
         if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
@@ -15901,9 +16244,11 @@
         // Prefer in-memory utilState.payload: sessionStorage writes often fail
         // on this payload size (quota), which previously caused every re-nav to
         // miss cache and hit Fibery again (v2.22.2).
+        var pickerRange = resolveRangeFromPreset();
         var cached = resolveUtilizationCachedPayload_();
         var ttlMinutes = readUtilTtlMinutes();
-        if (cached && cached.ok !== false) {
+        var rangeMatches = utilCachedRangeMatchesPicker_(cached, pickerRange);
+        if (cached && cached.ok !== false && rangeMatches) {
           // Skip the re-render (and the localStorage filter restore) when
           // the cached payload is identical to what the DOM already shows.
           // Prevents Chart.js / Detail Table churn when the user toggles
@@ -15918,24 +16263,27 @@
             applyUtilPayload(cached);
           }
           if (ttlMinutes > 0 && isCacheStale(cached, ttlMinutes)) {
-            var rRefresh = resolveRangeFromPreset();
-            fetchUtilizationFromServer(rRefresh.startIso, rRefresh.endIso);
+            fetchUtilizationFromServer(pickerRange.startIso, pickerRange.endIso);
           }
         } else {
           applyStoredFilters_();
           applyStoredDetailFilters_();
-          applyUtilPayload({
-            ok: true,
-            fetchedAt: null,
-            range: { start: null, end: null, defaulted: true, clamped: false },
-            rows: [],
-            kpis: { totalHours: 0, billableHours: 0, nonBillableHours: 0, utilizationPct: 0, totalCost: 0, effectiveCostRate: 0, effectiveBillRate: null, effectiveBillRateCoverage: 0, distinctPersons: 0, distinctProjects: 0, distinctCustomers: 0, rowCount: 0 },
-            dimensions: { customers: [], projects: [], persons: [], roles: [] },
-            aggregates: { byCustomer: [], byProject: [], byPerson: [], byRole: [], byWeek: [], billableVsNonBillable: [] },
-            warnings: [],
-          });
-          var r0 = resolveRangeFromPreset();
-          fetchUtilizationFromServer(r0.startIso, r0.endIso);
+          if (cached && cached.ok !== false && !rangeMatches) {
+            // Show last payload briefly while refetching the picker window.
+            applyUtilPayload(cached);
+          } else {
+            applyUtilPayload({
+              ok: true,
+              fetchedAt: null,
+              range: { start: null, end: null, defaulted: true, clamped: false },
+              rows: [],
+              kpis: { totalHours: 0, billableHours: 0, nonBillableHours: 0, utilizationPct: 0, totalCost: 0, effectiveCostRate: 0, effectiveBillRate: null, effectiveBillRateCoverage: 0, distinctPersons: 0, distinctProjects: 0, distinctCustomers: 0, rowCount: 0 },
+              dimensions: { customers: [], projects: [], persons: [], roles: [] },
+              aggregates: { byCustomer: [], byProject: [], byPerson: [], byRole: [], byWeek: [], billableVsNonBillable: [] },
+              warnings: [],
+            });
+          }
+          fetchUtilizationFromServer(pickerRange.startIso, pickerRange.endIso);
         }
       }
 
@@ -17045,6 +17393,7 @@
         if (els.panelOperations) els.panelOperations.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        if (els.panelEngagementReview) els.panelEngagementReview.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
         if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
@@ -18399,6 +18748,7 @@
         if (els.panelOperations) els.panelOperations.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        if (els.panelEngagementReview) els.panelEngagementReview.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
         if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
@@ -19034,6 +19384,7 @@
         if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
         if (els.panelResourceAssignments) els.panelResourceAssignments.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        if (els.panelEngagementReview) els.panelEngagementReview.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
         if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
@@ -20082,6 +20433,7 @@
         if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
+        if (els.panelEngagementReview) els.panelEngagementReview.classList.add('d-none');
         els.panelRevenueReview.classList.remove('d-none');
         hideAccountChromePanels_();
         els.topbarTitle.textContent = 'Revenue review';
@@ -20120,6 +20472,678 @@
             warnings: [],
           });
           fetchAgreementFromServer('revenue-review');
+        }
+      }
+
+      // --- Feature 037: Engagement Review ---------------------------------
+      var erState_ = {
+        isAdmin: false,
+        filter: 'all',
+        reviews: [],
+        currentReviewId: null,
+        currentAgreementId: null,
+        detail: null,
+        project: null,
+      };
+
+      function erSetLoading_(on) {
+        var el = document.getElementById('er-loading');
+        if (!el) return;
+        el.classList.toggle('d-none', !on);
+        el.setAttribute('aria-hidden', on ? 'false' : 'true');
+      }
+
+      function erShowView_(which) {
+        var list = document.getElementById('er-view-list');
+        var detail = document.getElementById('er-view-detail');
+        var project = document.getElementById('er-view-project');
+        if (list) list.classList.toggle('d-none', which !== 'list');
+        if (detail) detail.classList.toggle('d-none', which !== 'detail');
+        if (project) project.classList.toggle('d-none', which !== 'project');
+      }
+
+      function erFmtDate_(iso) {
+        if (!iso) return '-';
+        return String(iso).slice(0, 10);
+      }
+
+      function erTrafficDot_(tl) {
+        var t = String(tl || '').toLowerCase();
+        var color =
+          t === 'green' ? '#3dd68c' : t === 'yellow' ? '#f5c542' : t === 'red' ? '#f07178' : 'var(--ag-text-muted)';
+        return (
+          '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' +
+          color +
+          ';margin-right:6px;"></span>'
+        );
+      }
+
+      function hideOtherPanelsForEngagementReview_() {
+        if (els.panelHome) els.panelHome.classList.add('d-none');
+        if (els.panelAgreementDashboard) els.panelAgreementDashboard.classList.add('d-none');
+        if (els.panelOperations) els.panelOperations.classList.add('d-none');
+        if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
+        if (els.panelResourceAssignments) els.panelResourceAssignments.classList.add('d-none');
+        if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
+        if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
+        if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
+        if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
+      }
+
+      function showEngagementReview(opts) {
+        if (!els.panelEngagementReview) return;
+        hideOtherPanelsForEngagementReview_();
+        els.panelEngagementReview.classList.remove('d-none');
+        hideAccountChromePanels_();
+        els.topbarTitle.textContent = 'Engagement review';
+        logActivity_('engagement_review_nav', 'engagement-review', '');
+        // renderNav assigns the server model onto navState and sets navState.isAdmin
+        // (there is no navState.model). Using .model left New review hidden for Admins.
+        erState_.isAdmin = !!navState.isAdmin;
+        var newBtn = document.getElementById('er-new-btn');
+        if (newBtn) newBtn.classList.toggle('d-none', !erState_.isAdmin);
+        erWireUi_();
+        var openReview = opts && opts.reviewId;
+        var openAgreement = opts && opts.agreementId;
+        if (openReview && openAgreement) {
+          erOpenProject_(openReview, openAgreement);
+        } else if (openReview) {
+          erOpenDetail_(openReview);
+        } else {
+          erShowView_('list');
+          erLoadList_();
+        }
+      }
+
+      function erLoadList_() {
+        erSetLoading_(true);
+        var errEl = document.getElementById('er-list-error');
+        if (errEl) errEl.classList.add('d-none');
+        google.script.run
+          .withSuccessHandler(function (res) {
+            erSetLoading_(false);
+            if (!res || !res.ok) {
+              if (errEl) {
+                errEl.textContent = (res && res.message) || 'Could not load reviews.';
+                errEl.classList.remove('d-none');
+              }
+              return;
+            }
+            erState_.reviews = res.reviews || [];
+            erRenderList_();
+          })
+          .withFailureHandler(function (err) {
+            erSetLoading_(false);
+            if (errEl) {
+              errEl.textContent = err && err.message ? err.message : 'Could not load reviews.';
+              errEl.classList.remove('d-none');
+            }
+          })
+          .listEngagementReviews(erState_.filter);
+      }
+
+      function erRenderList_() {
+        var tbody = document.getElementById('er-list-tbody');
+        var mobile = document.getElementById('er-list-mobile');
+        var empty = document.getElementById('er-list-empty');
+        var rows = erState_.reviews || [];
+        if (empty) empty.classList.toggle('d-none', rows.length > 0);
+        if (tbody) tbody.innerHTML = '';
+        if (mobile) mobile.innerHTML = '';
+        for (var i = 0; i < rows.length; i++) {
+          (function (r) {
+            var tr = document.createElement('tr');
+            tr.style.cursor = 'pointer';
+            tr.innerHTML =
+              '<td>' +
+              escapeHtml(erFmtDate_(r.target_date)) +
+              '</td><td>' +
+              escapeHtml(r.name || '') +
+              '</td><td>' +
+              escapeHtml(r.status || '') +
+              '</td><td class="text-end">-</td><td><button type="button" class="btn btn-sm btn-outline-secondary">Open</button></td>';
+            tr.addEventListener('click', function () {
+              erOpenDetail_(r.id);
+            });
+            if (tbody) tbody.appendChild(tr);
+            var card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'fos-section-card w-100 text-start mb-2 border-0';
+            card.style.minHeight = '44px';
+            card.style.color = 'var(--ag-text)';
+            card.innerHTML =
+              '<div class="fw-semibold">' +
+              escapeHtml(r.name || '') +
+              '</div><div class="small" style="color:var(--ag-text-muted)">' +
+              escapeHtml(erFmtDate_(r.target_date)) +
+              ' · ' +
+              escapeHtml(r.status || '') +
+              '</div>';
+            card.addEventListener('click', function () {
+              erOpenDetail_(r.id);
+            });
+            if (mobile) mobile.appendChild(card);
+          })(rows[i]);
+        }
+      }
+
+      function erOpenDetail_(reviewId) {
+        erState_.currentReviewId = reviewId;
+        erState_.currentAgreementId = null;
+        erShowView_('detail');
+        erSetLoading_(true);
+        google.script.run
+          .withSuccessHandler(function (res) {
+            erSetLoading_(false);
+            if (!res || !res.ok) {
+              var err = document.getElementById('er-detail-error');
+              if (err) {
+                err.textContent = (res && res.message) || 'Could not load review.';
+                err.classList.remove('d-none');
+              }
+              return;
+            }
+            erState_.isAdmin = !!res.isAdmin;
+            erState_.detail = res;
+            erRenderDetail_();
+          })
+          .withFailureHandler(function (e) {
+            erSetLoading_(false);
+            var err = document.getElementById('er-detail-error');
+            if (err) {
+              err.textContent = e && e.message ? e.message : 'Could not load review.';
+              err.classList.remove('d-none');
+            }
+          })
+          .getEngagementReview(reviewId);
+      }
+
+      function erRenderDetail_() {
+        var res = erState_.detail;
+        if (!res || !res.review) return;
+        var r = res.review;
+        var admin = !!erState_.isAdmin;
+        var title = document.getElementById('er-detail-title');
+        var sub = document.getElementById('er-detail-sub');
+        if (title) title.textContent = r.name || 'Review';
+        if (sub) {
+          sub.textContent =
+            erFmtDate_(r.target_date) +
+            ' · ' +
+            (r.status || '') +
+            ' · ' +
+            String((res.agreements || []).length) +
+            ' engagements';
+        }
+        var adminActions = document.getElementById('er-admin-actions');
+        if (adminActions) adminActions.classList.toggle('d-none', !admin);
+        var uploadWrap = document.getElementById('er-upload-wrap');
+        if (uploadWrap) uploadWrap.classList.toggle('d-none', !admin);
+        var addPart = document.getElementById('er-add-participant-wrap');
+        if (addPart) addPart.classList.toggle('d-none', !admin);
+        var addAg = document.getElementById('er-add-agreement-btn');
+        if (addAg) addAg.classList.toggle('d-none', !admin);
+        var fieldMap = {
+          'er-field-name': r.name || '',
+          'er-field-date': erFmtDate_(r.target_date),
+          'er-field-status': r.status || 'draft',
+          'er-field-notes': r.notes || '',
+          'er-field-summary': r.call_summary_html || '',
+        };
+        Object.keys(fieldMap).forEach(function (id) {
+          var el = document.getElementById(id);
+          if (!el) return;
+          el.value = fieldMap[id];
+          el.disabled = !admin;
+        });
+        var parts = document.getElementById('er-participants-list');
+        if (parts) {
+          parts.innerHTML = '';
+          var plist = res.participants || [];
+          if (!plist.length) parts.innerHTML = '<li class="text-muted">None yet</li>';
+          for (var p = 0; p < plist.length; p++) {
+            var li = document.createElement('li');
+            li.textContent =
+              (plist[p].display_name || plist[p].email) +
+              (plist[p].invite_status === 'invited' ? ' (invited)' : '');
+            parts.appendChild(li);
+          }
+        }
+        var recList = document.getElementById('er-recordings-list');
+        if (recList) {
+          recList.innerHTML = '';
+          var recs = res.recordings || [];
+          if (!recs.length) recList.innerHTML = '<li>No recordings uploaded</li>';
+          for (var ri = 0; ri < recs.length; ri++) {
+            var rli = document.createElement('li');
+            rli.textContent =
+              (recs[ri].file_name || recs[ri].drive_file_id) +
+              ' · ' +
+              erFmtDate_(recs[ri].uploaded_at);
+            recList.appendChild(rli);
+          }
+        }
+        var agWrap = document.getElementById('er-agreements-list');
+        var agEmpty = document.getElementById('er-agreements-empty');
+        var ags = res.agreements || [];
+        if (agEmpty) agEmpty.classList.toggle('d-none', ags.length > 0);
+        if (agWrap) {
+          agWrap.innerHTML = '';
+          for (var a = 0; a < ags.length; a++) {
+            (function (ag) {
+              var updates =
+                (res.updatesByAgreement && res.updatesByAgreement[ag.agreement_fibery_id]) || [];
+              var latest = updates[0];
+              var btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = 'fos-section-card w-100 text-start mb-2 border-0';
+              btn.style.minHeight = '44px';
+              btn.style.color = 'var(--ag-text)';
+              btn.innerHTML =
+                '<div class="d-flex justify-content-between gap-2"><div class="fw-semibold">' +
+                escapeHtml(ag.agreement_name || ag.agreement_fibery_id) +
+                '</div><span class="small" style="color:var(--ag-text-muted)">Open</span></div>' +
+                '<div class="small" style="color:var(--ag-text-muted)">' +
+                escapeHtml(ag.company_name || '') +
+                (ag.owner_email ? ' · ' + escapeHtml(ag.owner_email) : '') +
+                (latest
+                  ? ' · ' +
+                    erTrafficDot_(latest.traffic_light) +
+                    escapeHtml(String(latest.executive_summary || '').slice(0, 80))
+                  : ' · No update yet') +
+                '</div>';
+              btn.addEventListener('click', function () {
+                erOpenProject_(erState_.currentReviewId, ag.agreement_fibery_id);
+              });
+              agWrap.appendChild(btn);
+            })(ags[a]);
+          }
+        }
+      }
+
+      function erOpenProject_(reviewId, agreementId) {
+        erState_.currentReviewId = reviewId;
+        erState_.currentAgreementId = agreementId;
+        erShowView_('project');
+        erSetLoading_(true);
+        logActivity_('engagement_review_project_detail', 'engagement-review', agreementId);
+        google.script.run
+          .withSuccessHandler(function (res) {
+            erSetLoading_(false);
+            if (!res || !res.ok) {
+              var info = document.getElementById('er-project-info');
+              if (info) info.textContent = (res && res.message) || 'Could not load project detail.';
+              return;
+            }
+            erState_.project = res;
+            erRenderProject_();
+          })
+          .withFailureHandler(function (e) {
+            erSetLoading_(false);
+            var info = document.getElementById('er-project-info');
+            if (info) info.textContent = e && e.message ? e.message : 'Could not load project detail.';
+          })
+          .getEngagementReviewProjectDetail(reviewId, agreementId);
+      }
+
+      function erRenderProject_() {
+        var res = erState_.project;
+        if (!res) return;
+        var title = document.getElementById('er-project-title');
+        var sub = document.getElementById('er-project-sub');
+        if (title) title.textContent = res.agreementName || res.agreementId;
+        if (sub) {
+          sub.textContent =
+            (res.customerName || '') + (res.ownerEmail ? ' · Owner ' + res.ownerEmail : '');
+        }
+        var latestEl = document.getElementById('er-latest-update');
+        if (latestEl) {
+          if (!res.updates || !res.updates.latest) {
+            latestEl.innerHTML =
+              '<p class="mb-0" style="color:var(--ag-text-muted)">No engagement update yet.</p>';
+          } else {
+            var L = res.updates.latest;
+            latestEl.innerHTML =
+              '<div class="mb-1">' +
+              erTrafficDot_(L.trafficLight) +
+              '<strong>' +
+              escapeHtml(L.executiveSummary || '') +
+              '</strong></div><div class="small" style="color:var(--ag-text-muted)">By ' +
+              escapeHtml(L.submittedByEmail || '') +
+              ' · ' +
+              escapeHtml(erFmtDate_(L.submittedAt)) +
+              '</div>';
+          }
+        }
+        var hist = document.getElementById('er-update-history');
+        if (hist) {
+          var history = (res.updates && res.updates.history) || [];
+          if (!history.length) hist.innerHTML = '<p class="mb-0">No previous updates.</p>';
+          else {
+            hist.innerHTML = history
+              .map(function (u) {
+                return (
+                  '<div class="mb-2 pb-2 border-bottom" style="border-color:var(--ag-border)!important">' +
+                  erTrafficDot_(u.trafficLight) +
+                  escapeHtml(u.executiveSummary || '') +
+                  '<div class="small">' +
+                  escapeHtml(u.submittedByEmail || '') +
+                  ' · ' +
+                  escapeHtml(erFmtDate_(u.submittedAt)) +
+                  '</div></div>'
+                );
+              })
+              .join('');
+          }
+        }
+        var info = document.getElementById('er-project-info');
+        if (info) {
+          var pi = res.projectInfo || {};
+          var kpis = pi.pnlKpis || {};
+          var alertsHtml = (pi.alerts || [])
+            .map(function (a) {
+              return (
+                '<li><strong>' +
+                escapeHtml(a.severity || '') +
+                '</strong> ' +
+                escapeHtml(a.title || '') +
+                '</li>'
+              );
+            })
+            .join('');
+          info.innerHTML =
+            '<div class="mb-2">State: <strong>' +
+            escapeHtml(pi.state || '-') +
+            '</strong> · Type: <strong>' +
+            escapeHtml(pi.type || '-') +
+            '</strong></div><div class="mb-2">Planned rev: ' +
+            escapeHtml(String(kpis.plannedRev != null ? kpis.plannedRev : '-')) +
+            ' · Recognized: ' +
+            escapeHtml(String(kpis.revRec != null ? kpis.revRec : '-')) +
+            ' · Margin: ' +
+            escapeHtml(String(kpis.margin != null ? kpis.margin : '-')) +
+            '</div>' +
+            (alertsHtml
+              ? '<div class="mb-1 fw-semibold">Alerts</div><ul class="mb-0">' + alertsHtml + '</ul>'
+              : '<div style="color:var(--ag-text-muted)">No active alerts for this engagement.</div>');
+        }
+        var qWrap = document.getElementById('er-questionnaire-wrap');
+        var form = document.getElementById('er-questionnaire-form');
+        if (qWrap) qWrap.classList.toggle('d-none', !res.canSubmitUpdate);
+        if (form && res.canSubmitUpdate && res.questionSet) {
+          form.innerHTML = '';
+          var qs = res.questionSet.questions || [];
+          for (var qi = 0; qi < qs.length; qi++) {
+            var q = qs[qi];
+            var lab = document.createElement('label');
+            lab.className = 'form-label small mt-2';
+            lab.setAttribute('for', 'er-q-' + q.key);
+            lab.textContent = q.label + (q.required ? ' *' : '');
+            form.appendChild(lab);
+            var input;
+            if (q.inputType === 'traffic_light' || q.inputType === 'single_select') {
+              input = document.createElement('select');
+              input.className = 'form-select form-select-sm';
+              input.innerHTML = '<option value="">Select…</option>';
+              var opts = q.options || [];
+              for (var oi = 0; oi < opts.length; oi++) {
+                var o = document.createElement('option');
+                o.value = opts[oi].value;
+                o.textContent = opts[oi].label;
+                input.appendChild(o);
+              }
+            } else {
+              input = document.createElement('textarea');
+              input.className = 'form-control form-control-sm';
+              input.rows = q.key === 'executive_summary' ? 3 : 2;
+            }
+            input.id = 'er-q-' + q.key;
+            input.setAttribute('data-er-key', q.key);
+            form.appendChild(input);
+          }
+        }
+      }
+
+      function erWireUi_() {
+        if (erWireUi_._done) return;
+        erWireUi_._done = true;
+        var filter = document.getElementById('er-filter-select');
+        if (filter) {
+          filter.addEventListener('change', function () {
+            erState_.filter = filter.value || 'all';
+            erLoadList_();
+          });
+        }
+        var refresh = document.getElementById('er-refresh-btn');
+        if (refresh) refresh.addEventListener('click', erLoadList_);
+        var backList = document.getElementById('er-back-list-btn');
+        if (backList) {
+          backList.addEventListener('click', function () {
+            erShowView_('list');
+            erLoadList_();
+          });
+        }
+        var backDetail = document.getElementById('er-back-detail-btn');
+        if (backDetail) {
+          backDetail.addEventListener('click', function () {
+            if (erState_.currentReviewId) erOpenDetail_(erState_.currentReviewId);
+            else {
+              erShowView_('list');
+              erLoadList_();
+            }
+          });
+        }
+        var newBtn = document.getElementById('er-new-btn');
+        if (newBtn) {
+          newBtn.addEventListener('click', function () {
+            var modalEl = document.getElementById('erCreateModal');
+            if (modalEl && window.bootstrap) bootstrap.Modal.getOrCreateInstance(modalEl).show();
+          });
+        }
+        var createSave = document.getElementById('er-create-save-btn');
+        if (createSave) {
+          createSave.addEventListener('click', function () {
+            var name = (document.getElementById('er-create-name') || {}).value || '';
+            var date = (document.getElementById('er-create-date') || {}).value || '';
+            var cerr = document.getElementById('er-create-error');
+            google.script.run
+              .withSuccessHandler(function (res) {
+                if (!res || !res.ok) {
+                  if (cerr) {
+                    cerr.textContent = (res && res.message) || 'Create failed.';
+                    cerr.classList.remove('d-none');
+                  }
+                  return;
+                }
+                logActivity_('engagement_review_create', 'engagement-review', res.review && res.review.id);
+                var modalEl = document.getElementById('erCreateModal');
+                if (modalEl && window.bootstrap) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+                if (typeof showSaveToast_ === 'function') showSaveToast_();
+                erOpenDetail_(res.review.id);
+              })
+              .withFailureHandler(function (e) {
+                if (cerr) {
+                  cerr.textContent = e && e.message ? e.message : 'Create failed.';
+                  cerr.classList.remove('d-none');
+                }
+              })
+              .createEngagementReview({ name: name, targetDate: date, status: 'draft' });
+          });
+        }
+        function erAdminAction_(fnName, activity, args) {
+          erSetLoading_(true);
+          var runner = google.script.run
+            .withSuccessHandler(function (res) {
+              erSetLoading_(false);
+              if (!res || !res.ok) {
+                var err = document.getElementById('er-detail-error');
+                if (err) {
+                  err.textContent = (res && res.message) || 'Action failed.';
+                  err.classList.remove('d-none');
+                }
+                return;
+              }
+              if (activity) logActivity_(activity, 'engagement-review', erState_.currentReviewId || '');
+              if (typeof showSaveToast_ === 'function') showSaveToast_();
+              if (erState_.currentReviewId) erOpenDetail_(erState_.currentReviewId);
+            })
+            .withFailureHandler(function (e) {
+              erSetLoading_(false);
+              var err = document.getElementById('er-detail-error');
+              if (err) {
+                err.textContent = e && e.message ? e.message : 'Action failed.';
+                err.classList.remove('d-none');
+              }
+            });
+          runner[fnName].apply(runner, args);
+        }
+        var saveBtn = document.getElementById('er-save-detail-btn');
+        if (saveBtn) {
+          saveBtn.addEventListener('click', function () {
+            erAdminAction_('updateEngagementReview', 'engagement_review_update', [
+              erState_.currentReviewId,
+              {
+                name: (document.getElementById('er-field-name') || {}).value,
+                targetDate: (document.getElementById('er-field-date') || {}).value,
+                status: (document.getElementById('er-field-status') || {}).value,
+                notes: (document.getElementById('er-field-notes') || {}).value,
+                callSummaryHtml: (document.getElementById('er-field-summary') || {}).value,
+              },
+            ]);
+          });
+        }
+        var sugAlerts = document.getElementById('er-suggest-alerts-btn');
+        if (sugAlerts) {
+          sugAlerts.addEventListener('click', function () {
+            erAdminAction_('suggestEngagementReviewAgreementsFromAlerts', 'engagement_review_suggest_alerts', [
+              erState_.currentReviewId,
+            ]);
+          });
+        }
+        var sugOwners = document.getElementById('er-suggest-owners-btn');
+        if (sugOwners) {
+          sugOwners.addEventListener('click', function () {
+            erAdminAction_('suggestEngagementReviewParticipants', 'engagement_review_suggest_owners', [
+              erState_.currentReviewId,
+            ]);
+          });
+        }
+        var calBtn = document.getElementById('er-calendar-btn');
+        if (calBtn) {
+          calBtn.addEventListener('click', function () {
+            erAdminAction_('createEngagementReviewCalendarEvent', 'engagement_review_calendar_invite', [
+              erState_.currentReviewId,
+            ]);
+          });
+        }
+        var addPartBtn = document.getElementById('er-add-participant-btn');
+        if (addPartBtn) {
+          addPartBtn.addEventListener('click', function () {
+            var email = ((document.getElementById('er-add-participant-email') || {}).value || '').trim();
+            erAdminAction_('addEngagementReviewParticipant', 'engagement_review_update', [
+              erState_.currentReviewId,
+              { email: email, participantRole: 'owner' },
+            ]);
+          });
+        }
+        var addAgBtn = document.getElementById('er-add-agreement-btn');
+        if (addAgBtn) {
+          addAgBtn.addEventListener('click', function () {
+            var aid = window.prompt('Agreement Fibery id to add:');
+            if (!aid) return;
+            erAdminAction_('addEngagementReviewAgreement', 'engagement_review_update', [
+              erState_.currentReviewId,
+              { agreementFiberyId: aid.trim(), agreementName: aid.trim() },
+            ]);
+          });
+        }
+        var uploadBtn = document.getElementById('er-upload-btn');
+        if (uploadBtn) {
+          uploadBtn.addEventListener('click', function () {
+            var input = document.getElementById('er-recording-file');
+            if (!input || !input.files || !input.files[0]) return;
+            var file = input.files[0];
+            var reader = new FileReader();
+            reader.onload = function () {
+              var dataUrl = String(reader.result || '');
+              var b64 = dataUrl.split(',')[1] || '';
+              erSetLoading_(true);
+              google.script.run
+                .withSuccessHandler(function (res) {
+                  erSetLoading_(false);
+                  if (!res || !res.ok) {
+                    var err = document.getElementById('er-detail-error');
+                    if (err) {
+                      err.textContent = (res && res.message) || 'Upload failed.';
+                      err.classList.remove('d-none');
+                    }
+                    return;
+                  }
+                  logActivity_('engagement_review_recording_upload', 'engagement-review', file.name);
+                  if (typeof showSaveToast_ === 'function') showSaveToast_();
+                  erOpenDetail_(erState_.currentReviewId);
+                })
+                .withFailureHandler(function (e) {
+                  erSetLoading_(false);
+                  var err = document.getElementById('er-detail-error');
+                  if (err) {
+                    err.textContent = e && e.message ? e.message : 'Upload failed.';
+                    err.classList.remove('d-none');
+                  }
+                })
+                .uploadEngagementReviewRecording(
+                  erState_.currentReviewId,
+                  file.name,
+                  file.type || 'application/octet-stream',
+                  b64
+                );
+            };
+            reader.readAsDataURL(file);
+          });
+        }
+        var submitBtn = document.getElementById('er-submit-update-btn');
+        if (submitBtn) {
+          submitBtn.addEventListener('click', function () {
+            var form = document.getElementById('er-questionnaire-form');
+            var answers = {};
+            if (form) {
+              var nodes = form.querySelectorAll('[data-er-key]');
+              for (var i = 0; i < nodes.length; i++) {
+                answers[nodes[i].getAttribute('data-er-key')] = nodes[i].value;
+              }
+            }
+            var serr = document.getElementById('er-submit-error');
+            if (serr) serr.classList.add('d-none');
+            erSetLoading_(true);
+            google.script.run
+              .withSuccessHandler(function (res) {
+                erSetLoading_(false);
+                if (!res || !res.ok) {
+                  if (serr) {
+                    serr.textContent = (res && res.message) || 'Submit failed.';
+                    serr.classList.remove('d-none');
+                  }
+                  return;
+                }
+                logActivity_('engagement_update_submit', 'engagement-review', erState_.currentAgreementId || '');
+                if (typeof showSaveToast_ === 'function') showSaveToast_();
+                erOpenProject_(erState_.currentReviewId, erState_.currentAgreementId);
+              })
+              .withFailureHandler(function (e) {
+                erSetLoading_(false);
+                if (serr) {
+                  serr.textContent = e && e.message ? e.message : 'Submit failed.';
+                  serr.classList.remove('d-none');
+                }
+              })
+              .createEngagementUpdate(erState_.currentReviewId, erState_.currentAgreementId, {
+                answers: answers,
+                questionSetVersion:
+                  (erState_.project && erState_.project.questionSet && erState_.project.questionSet.version) || 1,
+              });
+          });
         }
       }
 
@@ -23117,6 +24141,7 @@
         if (els.panelResourceAssignments) els.panelResourceAssignments.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        if (els.panelEngagementReview) els.panelEngagementReview.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
         if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
@@ -24761,6 +25786,7 @@
         if (els.panelResourceAssignments) els.panelResourceAssignments.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        if (els.panelEngagementReview) els.panelEngagementReview.classList.add('d-none');
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
         if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
@@ -25394,6 +26420,7 @@
         if (els.panelResourceAssignments) els.panelResourceAssignments.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        if (els.panelEngagementReview) els.panelEngagementReview.classList.add('d-none');
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
@@ -25418,6 +26445,7 @@
         if (els.panelResourceAssignments) els.panelResourceAssignments.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        if (els.panelEngagementReview) els.panelEngagementReview.classList.add('d-none');
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
@@ -27762,6 +28790,11 @@
           if (item.id === 'revenue-review') {
             setActiveNav('revenue-review');
             showRevenueReview();
+            return;
+          }
+          if (item.id === 'engagement-review') {
+            setActiveNav('engagement-review');
+            showEngagementReview();
             return;
           }
           if (item.id === 'delivery') {

@@ -34,8 +34,30 @@ Migrations are **idempotent** (`create table if not exists`, `create index if no
 | `036_fos_dashboard_schema.sql` | Hub serving tables (`fos_*`): panel payloads, delivery P&L, sync control, dimensions |
 | `037_labor_costs_date_range_indexes.sql` | Date-range indexes on `labor_costs.start_date_time` (+ user/project/status composites) |
 | `038_fos_labor_costs_time_entries.sql` | Repurpose `fos_labor_costs` as Hub time-entry mirror of `labor_costs` + mirror trigger |
+| `039_engagement_reviews.sql` | Engagement Review tables + `fos_agreements.owner_email` / `owner_name` |
+| `040_engagement_reviews_grants.sql` | Grants for engagement tables |
+| `041_agreement_management_mirror.sql` | Agreement Management typed mirror (enums, entities, junctions); adds (unused) `fos_am_labor_costs` table |
+| `042_am_mirror_foreign_keys.sql` | Soft-to-hard FK constraints (`DEFERRABLE INITIALLY DEFERRED`, `NOT VALID`) across the AM mirror graph; does not touch `fos_am_labor_costs` |
 
 After schema apply: set Script Properties (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`), run ADMIN **Pull from Fibery** (also installs the nightly hydrate trigger as of v3.0.12), then smoke Live panels. See [cutover notes](sql/036/README.md).
+
+## v3.4.0 cutover: panels build from typed tables, labor is Clockify-only
+
+As of **v3.4.0**, panel hydrate (`supabaseSyncJob.js`) builds every Live panel payload by **reading the AM-mirrored typed tables** (`supabasePanelBuilders.js`) instead of re-aggregating live Fibery queries. The AM mirror (`am-mirror` dataset) still runs first in the nightly/Pull sequence so the typed tables are current before panel builders read them.
+
+**Labor ownership is unchanged and exclusive:** labor facts come **only** from Clockify via `labor_costs` / `fos_labor_costs` (migration 038's trigger-mirrored table). Fibery `Agreement Management/Labor Costs` is **not** mirrored by `supabaseAmMirror.js` - the `am_labor_costs` entity step was removed, and `fos_pnl_labor_costs` junctions are no longer written (`amMirrorAfterPnlItems_` only writes revenue-item junctions now). `fos_am_labor_costs` (added by migration 041) is **deprecated**: the table remains for backward compatibility but is no longer written to and is not FK-constrained. It is a candidate for a future drop once confirmed unused.
+
+| Panel | Live serve (unchanged) | Hydrate build source (v3.4.0) |
+| --- | --- | --- |
+| Agreement | `fos_panel_payloads` (`panel_key='agreement'`) | `fos_agreements`, `fos_companies`, `fos_company_segments`, `fos_revenue_items` |
+| Utilization | `fos_panel_payloads` (Live already preferred `fos_labor_costs` pre-cutover) | `fos_labor_costs` (Clockify) |
+| Pipeline | `fos_panel_payloads` (`panel_key='pipeline'`) | `fos_hubspot_deals` (full-replace mirrored from Fibery `HubSpot/Deal` immediately before build; sheet side unchanged) |
+| Resource assignments | `fos_panel_payloads` | `fos_resource_allocations`, `fos_agreements`, `fos_clockify_users`, `fos_team_member_roles`, `fos_labor_costs` |
+| AI Usage | `fos_panel_payloads` (`panel_key='ai-usage'`) | `fos_ai_usage_rows` (full-replace mirrored from Fibery `Claude API Costs` immediately before build) |
+| Delivery P&L | `fos_delivery_pnl` | `fos_agreements`, `fos_revenue_items`, `fos_other_direct_costs`, `fos_labor_costs`, `fos_status_updates`, `fos_resource_allocations` |
+| Portfolio P&L | `fos_panel_payloads` (`panel_key='portfolio-pnl'`) | Per-project Delivery P&L build (above) over the delivery project index |
+
+`fos_hubspot_deals` and `fos_ai_usage_rows` have no dedicated AM-mirror step (they are not Agreement Management entities), so their panel hydrate functions (`hydrateSupabasePipeline_`, `hydrateSupabaseAiUsage_`) run a full-replace mirror from Fibery immediately before building the panel from the typed table. This keeps the **Live serve contract** identical (`fos_panel_payloads` / `fos_delivery_pnl`) while the **build source** moves from live Fibery aggregation to Supabase.
 
 ## Ownership
 
@@ -45,8 +67,12 @@ After schema apply: set Script Properties (`SUPABASE_URL`, `SUPABASE_SERVICE_ROL
 | `fos_labor_costs` | Postgres trigger from `labor_costs` (migration 038) | Hub SQL builders / future Live facts |
 | `fos_labor_costs_rates_legacy` | None (empty prior rate DDL, renamed aside) | Deferred; not used by Live |
 | `fos_panel_payloads`, `fos_delivery_pnl`, `fos_dataset_as_of`, `fos_sync_*` | Feature 036 Fibery hydrate (nightly + ADMIN Pull) | Live panel serve |
-| `fos_status_updates` | Hydrate + dual-write on Delivery status submit | Delivery status history |
-| `fos_companies`, `fos_agreements`, `fos_hubspot_deals`, `fos_ai_usage_rows` | Hydrate (dimension / row stubs) | Future SQL builders; payloads cover v1 Live |
+| `fos_am_enums`, `fos_team_member_roles`, `fos_companies`, `fos_clockify_users`, `fos_contacts`, `fos_services_estimates`, `fos_agreements`, `fos_resource_allocations`, `fos_estimated_allocations`, `fos_other_direct_costs`, `fos_invoice_requests`, `fos_revenue_items`, `fos_agreement_pnl_items`, junction tables | Feature 036 AM mirror (`am-mirror` dataset; `supabaseAmMirror.js`) | **v3.4.0:** `supabasePanelBuilders.js` panel hydrate builders; Engagement Review joins |
+| `fos_am_labor_costs` | **Deprecated (v3.4.0):** no longer written. Table remains from migration 041 for back-compat only. | None; not read by any builder |
+| `fos_status_updates` | Hydrate AM mirror (`submitted_by`) + dual-write on Delivery status submit (`content`, `author_email`) | Delivery status history (`fetchStatusUpdatesForAgreementFromSupabase_` prefers `author_email`, falls back to `submitted_by`) |
+| `fos_engagement_reviews` (+ agreements, participants, updates, recordings) | Hub Engagement Review module (feature **037**) | Engagement Review UI |
+| `fos_hubspot_deals` | **v3.4.0:** full-replace mirrored from Fibery `HubSpot/Deal` by `mirrorHubspotDealsToSupabase_()` immediately before the Pipeline panel hydrate | Pipeline panel build (`buildPipelineDashboardPayloadFromSupabase_`) |
+| `fos_ai_usage_rows` | **v3.4.0:** full-replace mirrored from Fibery `Claude API Costs` by `mirrorAiUsageRowsFromFibery_()` immediately before the AI Usage panel hydrate | AI Usage panel build (`buildAiUsagePayloadFromSupabase_`) |
 
 ## Entity relationship (conceptual)
 
@@ -81,6 +107,10 @@ erDiagram
     text project_id
   }
 ```
+
+## Foreign keys (migration 042)
+
+The AM mirror graph uses **soft FK columns** (plain `text` fibery ids) so hydrate pages can upsert facts before their dimension rows exist. Migration `042_am_mirror_foreign_keys.sql` adds the corresponding **hard FK constraints**, all `DEFERRABLE INITIALLY DEFERRED` and `NOT VALID` (accepted immediately for new/changed rows; historical dirty data is not retroactively validated). Dimension-referencing FKs use `ON DELETE SET NULL`; junction-table FKs use `ON DELETE CASCADE`. `fos_am_labor_costs` is intentionally excluded (deprecated, Clockify owns labor).
 
 ## Table catalog
 

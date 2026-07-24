@@ -1,9 +1,16 @@
 /**
- * PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.4.0 - sync with docs/FOS-Dashboard-PRD.md
  *
- * Feature 036: Fibery → Supabase hydrate (nightly + ADMIN Pull).
- * Builds panel payloads with existing Fibery builders, upserts into Supabase,
- * and continues via time-based triggers under the Apps Script time budget.
+ * Feature 036 cutover: Fibery -> Supabase hydrate (nightly + ADMIN Pull).
+ * Dataset am-mirror (supabaseAmMirror.js) hydrates Agreement Management typed
+ * tables FIRST; panel blobs are then built by reading those typed tables
+ * (`supabasePanelBuilders.js`) instead of aggregating live Fibery queries.
+ * Labor facts are never re-derived from Fibery here - Utilization and every
+ * P&L / resource-assignment builder read `fos_labor_costs` (Clockify-owned).
+ * HubSpot deals and AI usage rows are full-replace mirrored from Fibery
+ * immediately before their panel build (see hydrateSupabasePipeline_ /
+ * hydrateSupabaseAiUsage_) since there is no dedicated AM-mirror step for
+ * those two Fibery databases.
  */
 
 /** @const {number} */
@@ -17,6 +24,9 @@ var SUPABASE_SYNC_STATE_PROP_ = 'SUPABASE_SYNC_STATE_V1';
 
 /** @const {!Array<string>} */
 var SUPABASE_SYNC_DATASETS_ = [
+  // Relational Agreement Management mirror first, then panel JSON blobs.
+  // am-mirror is multi-page; processSupabaseSyncBatch_ honors result.continue.
+  'am-mirror',
   'agreement',
   'utilization',
   'pipeline',
@@ -189,6 +199,7 @@ function startSupabaseSync_(triggerKind) {
       notes: [],
       lastError: null,
     };
+    resetAmMirrorCursor_(state);
     writeSupabaseSyncState_(state);
     insertSupabaseSyncRunRow_(state, 'running');
     scheduleSupabaseSyncContinuation_(500);
@@ -239,13 +250,28 @@ function processSupabaseSyncBatch_() {
       Date.now() - started < SUPABASE_SYNC_TIME_BUDGET_MS_
     ) {
       var key = state.datasets[state.datasetIndex];
-      var result = hydrateSupabaseDataset_(key);
+      var result = hydrateSupabaseDataset_(key, state);
       if (!result.ok) {
         state.lastError = result.message || 'Dataset failed: ' + key;
         state.notes.push(key + ': ' + state.lastError);
         writeSupabaseSyncState_(state);
         finishSupabaseSync_('failed', state.lastError);
         return;
+      }
+      if (result.continue) {
+        // Keep a single rolling progress note so Script Properties stay under size limits.
+        var progress = key + ': ' + (result.detail || 'in progress');
+        if (
+          state.notes.length &&
+          String(state.notes[state.notes.length - 1]).indexOf(key + ':') === 0
+        ) {
+          state.notes[state.notes.length - 1] = progress;
+        } else {
+          state.notes.push(progress);
+        }
+        writeSupabaseSyncState_(state);
+        processed++;
+        continue;
       }
       state.notes.push(key + ': ok' + (result.detail ? ' (' + result.detail + ')' : ''));
       state.datasetIndex++;
@@ -275,10 +301,13 @@ function processSupabaseSyncBatch_() {
 
 /**
  * @param {string} datasetKey
- * @return {!{ ok: boolean, message?: string, detail?: string }}
+ * @param {!Object=} syncState Running sync state (required for am-mirror cursor).
+ * @return {!{ ok: boolean, message?: string, detail?: string, continue?: boolean }}
  */
-function hydrateSupabaseDataset_(datasetKey) {
+function hydrateSupabaseDataset_(datasetKey, syncState) {
   switch (datasetKey) {
+    case 'am-mirror':
+      return hydrateSupabaseAmMirror_(syncState || {});
     case 'agreement':
       return hydrateSupabaseAgreement_();
     case 'utilization':
@@ -298,11 +327,11 @@ function hydrateSupabaseDataset_(datasetKey) {
 
 /** @return {!Object} */
 function hydrateSupabaseAgreement_() {
-  var built = buildAgreementDashboardPayload_(null);
+  var built = buildAgreementDashboardPayloadFromSupabase_();
   if (!built || built.ok === false) {
     return {
       ok: false,
-      message: (built && built.message) || 'Agreement Fibery build failed.',
+      message: (built && built.message) || 'Agreement Supabase build failed.',
     };
   }
   var save = saveSupabasePanelPayload_(
@@ -330,12 +359,19 @@ function hydrateSupabaseAgreement_() {
 
 /** @return {!Object} */
 function hydrateSupabaseUtilization_() {
-  var built = buildUtilizationDashboardPayload_(null, null);
+  // Keep the panel blob on the default range (UTILIZATION_DEFAULT_RANGE_DAYS).
+  // A MAX_RANGE / YTD-sized JSON upsert times out in Postgres. Live Utilization
+  // already honors the date picker via fos_labor_costs (getUtilizationDashboardData);
+  // this hydrate feeds alert digests + fallback only.
+  var built = buildUtilizationDashboardPayloadFromSupabase_(null, null);
   if (!built || built.ok === false) {
     return {
       ok: false,
-      message: (built && built.message) || 'Utilization Fibery build failed.',
+      message: (built && built.message) || 'Utilization Supabase build failed.',
     };
+  }
+  if (!built.dataWindow && built.range) {
+    built.dataWindow = { start: built.range.start, end: built.range.end };
   }
   var save = saveSupabasePanelPayload_(
     'utilization',
@@ -343,32 +379,38 @@ function hydrateSupabaseUtilization_() {
     built.cacheSchemaVersion
   );
   return save.ok
-    ? { ok: true }
+    ? { ok: true, detail: 'default-range panel blob' }
     : { ok: false, message: save.message || 'Utilization upsert failed.' };
 }
 
 /** @return {!Object} */
 function hydrateSupabasePipeline_() {
-  var built = buildPipelineDashboardPayload_();
+  // No AM-mirror step covers HubSpot/Deal; full-replace mirror it here,
+  // immediately before building the panel from fos_hubspot_deals.
+  var mirrored = mirrorHubspotDealsToSupabase_();
+  if (!mirrored.ok) {
+    return { ok: false, message: mirrored.message || 'HubSpot deal mirror failed.' };
+  }
+  var built = buildPipelineDashboardPayloadFromSupabase_();
   if (!built || built.ok === false) {
     return {
       ok: false,
-      message: (built && built.message) || 'Pipeline build failed.',
+      message: (built && built.message) || 'Pipeline Supabase build failed.',
     };
   }
   var save = saveSupabasePanelPayload_('pipeline', built, built.cacheSchemaVersion);
   return save.ok
-    ? { ok: true }
+    ? { ok: true, detail: 'hubspotDeals=' + mirrored.count }
     : { ok: false, message: save.message || 'Pipeline upsert failed.' };
 }
 
 /** @return {!Object} */
 function hydrateSupabaseResourceAssignments_() {
-  var built = buildResourceAssignmentDashboardPayload_(null, null);
+  var built = buildResourceAssignmentDashboardPayloadFromSupabase_(null, null);
   if (!built || built.ok === false) {
     return {
       ok: false,
-      message: (built && built.message) || 'Resource assignments build failed.',
+      message: (built && built.message) || 'Resource assignments Supabase build failed.',
     };
   }
   var save = saveSupabasePanelPayload_(
@@ -383,34 +425,35 @@ function hydrateSupabaseResourceAssignments_() {
 
 /** @return {!Object} */
 function hydrateSupabaseAiUsage_() {
-  var props = getAiUsageDashboardProps_();
-  var now = new Date();
-  var fetchedAtIso = now.toISOString();
-  var rangeDays = props.defaultRangeDays || 90;
-  var range = resolveAiUsageRange_(null, null, now, rangeDays);
-  var built = buildAiUsagePayloadFromFibery_(range, props, fetchedAtIso);
+  // No AM-mirror step covers Claude API Costs; full-replace mirror it here,
+  // immediately before building the panel from fos_ai_usage_rows.
+  var mirrored = mirrorAiUsageRowsFromFibery_();
+  if (!mirrored.ok) {
+    return { ok: false, message: mirrored.message || 'AI usage row mirror failed.' };
+  }
+  var built = buildAiUsagePayloadFromSupabase_(null, null);
   if (!built || built.ok === false) {
     return {
       ok: false,
-      message: (built && built.message) || 'AI Usage Fibery build failed.',
+      message: (built && built.message) || 'AI Usage Supabase build failed.',
     };
   }
   var save = saveSupabasePanelPayload_('ai-usage', built, built.cacheSchemaVersion);
   return save.ok
-    ? { ok: true }
+    ? { ok: true, detail: 'aiUsageRows=' + mirrored.count }
     : { ok: false, message: save.message || 'AI Usage upsert failed.' };
 }
 
 /** @return {!Object} */
 function hydrateSupabasePortfolio_() {
-  if (typeof buildPortfolioPnlBundleFromFibery_ !== 'function') {
+  if (typeof buildPortfolioPnlBundleFromSupabase_ !== 'function') {
     return { ok: false, message: 'Portfolio builder not found.' };
   }
-  var built = buildPortfolioPnlBundleFromFibery_();
+  var built = buildPortfolioPnlBundleFromSupabase_();
   if (!built || built.ok === false) {
     return {
       ok: false,
-      message: (built && built.message) || 'Portfolio Fibery build failed.',
+      message: (built && built.message) || 'Portfolio Supabase build failed.',
     };
   }
   var save = saveSupabasePanelPayload_(

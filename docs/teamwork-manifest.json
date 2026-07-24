@@ -322,6 +322,46 @@
       "publishedAt": "2026-07-21",
       "lastSyncedAt": "2026-07-23",
       "gitMirror": "docs/features/036-supabase-dashboard-data-layer-implementation-plan.md"
+    },
+    "feature_038": {
+      "id": 312848,
+      "title": "Feature 038 - Labor Hours multi-window period",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/312848",
+      "featureId": "038",
+      "intakeTaskId": 40578799,
+      "publishedAt": "2026-07-23",
+      "lastSyncedAt": "2026-07-23"
+    },
+    "feature_039": {
+      "id": 312849,
+      "title": "Feature 039 - Utilization heatmap full view and legend filters",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/312849",
+      "featureId": "039",
+      "intakeTaskId": 40578934,
+      "publishedAt": "2026-07-23",
+      "lastSyncedAt": "2026-07-23",
+      "description": "Utilization heatmap: raise TOP_N to 100, interactive single-select legend filters with sticky headers, rename no data to zero hours.",
+      "gitMirror": "docs/features/039-utilization-heatmap-full-view.md"
+    },
+    "feature_037": {
+      "id": 312850,
+      "title": "Feature 037 - Engagement Review",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/312850",
+      "featureId": "037",
+      "intakeTaskId": 40478571,
+      "publishedAt": "2026-07-23",
+      "lastSyncedAt": "2026-07-23",
+      "gitMirror": "docs/features/037-engagement-review.md"
+    },
+    "feature_037_implementation_plan": {
+      "id": 312851,
+      "title": "Feature 037 - Implementation plan (Engagement Review)",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/312851",
+      "featureId": "037",
+      "intakeTaskId": 40478571,
+      "publishedAt": "2026-07-23",
+      "lastSyncedAt": "2026-07-23",
+      "gitMirror": "docs/features/037-engagement-review-implementation-plan.md"
     }
   },
   "tasks": {
@@ -1034,6 +1074,44 @@
         "Total (rounded to nearest 0.5h): 16.0h"
       ],
       "estDevHoursGitBase": "dcef149d268ce47ba20ece546e3f8489b8823a3e"
+    },
+    "Feature 038 - Labor Hours multi-window period": {
+      "id": 40578799,
+      "url": "https://win.godeap.io/app/tasks/40578799",
+      "featureId": "038",
+      "releaseType": "Enhancement",
+      "tasklist": "Inbox",
+      "tasklistId": 4175395,
+      "notebookKey": "feature_038",
+      "workflowStage": "Backlog",
+      "createdAt": "2026-07-23"
+    },
+    "Feature 039 - Utilization heatmap full view and legend filters": {
+      "id": 40578934,
+      "url": "https://win.godeap.io/app/tasks/40578934",
+      "featureId": "039",
+      "releaseType": "Enhancement",
+      "tasklist": "Inbox",
+      "tasklistId": 4175395,
+      "notebookKey": "feature_039",
+      "workflowStage": "In-progress",
+      "createdAt": "2026-07-23"
+    },
+    "Feature 037 - Engagement Review": {
+      "id": 40579193,
+      "tasklist": "Delivery",
+      "featureId": "037",
+      "releaseType": "Enhancement",
+      "releaseTitle": "Engagement Review",
+      "provisionalTaskName": true,
+      "shippedVersion": null,
+      "notebookKey": "feature_037",
+      "implementationPlanNotebookKey": "feature_037_implementation_plan",
+      "intakeTaskId": 40478571,
+      "url": "https://win.godeap.io/app/tasks/40579193",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Engagement Review",
+      "workflowStage": "Spec Draft",
+      "createdAt": "2026-07-23"
     }
   },
   "lastBootstrappedAt": "2026-06-10"

@@ -1,5 +1,5 @@
 /**
- * PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.4.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Sales **Pipeline** dashboard (features 016 + 030). Merges the sales opportunity
  * tracker spreadsheet with HubSpot deals synced into Fibery (`HubSpot/Deal`).
@@ -427,11 +427,42 @@ function buildPipelineDashboardPayload_() {
     };
   }
 
-  var fiberyNorm = normalizeFiberyPipelineDeals_(fetched.rows || [], cfg.stageBucketMap);
+  return assemblePipelineDashboardPayload_(
+    fetched.rows || [],
+    sheetResult,
+    cfg,
+    fetchedAt,
+    warnings,
+    'merged',
+    !!fetched.truncated
+  );
+}
+
+/**
+ * Shared merge assembly: raw deal rows (Fibery `HubSpot/Deal` shape, whether
+ * fetched live or mirrored into `fos_hubspot_deals`) + sales pipeline sheet
+ * rows -> the Pipeline dashboard payload. Extracted so
+ * `buildPipelineDashboardPayloadFromSupabase_` (supabasePanelBuilders.js) can
+ * reuse the exact same merge/bucket logic as the Fibery builder.
+ *
+ * @param {!Array<!Object>} rawDealRows Rows shaped like `buildPipelineDealsQuery_` select.
+ * @param {!Object} sheetResult `readSalesPipelineSheetRows_()` result (ok: true).
+ * @param {!Object} cfg `getPipelineProps_()` result.
+ * @param {string} fetchedAt
+ * @param {!Array<string>} warnings Mutated/copied; caller-provided base warnings.
+ * @param {string} sourceLabel `payload.source` value (e.g. `merged`, `merged-supabase`).
+ * @param {boolean} truncated
+ * @return {!Object}
+ */
+function assemblePipelineDashboardPayload_(
+  rawDealRows, sheetResult, cfg, fetchedAt, warnings, sourceLabel, truncated
+) {
+  var fiberyNorm = normalizeFiberyPipelineDeals_(rawDealRows || [], cfg.stageBucketMap);
   var sheetRows = sheetResult.rows || [];
   var merged = [];
   var matchedHubspot = 0;
   var sheetOnly = 0;
+  var mergeWarnings = (warnings || []).slice();
 
   for (var i = 0; i < sheetRows.length; i++) {
     var sr = sheetRows[i];
@@ -442,7 +473,7 @@ function buildPipelineDashboardPayload_() {
     } else {
       sheetOnly++;
       if (sr.hubspotDealId) {
-        warnings.push(
+        mergeWarnings.push(
           'Sheet row ' + sr.salesOppId + ' has HubSpot ID ' + sr.hubspotDealId + ' with no Fibery match.'
         );
       }
@@ -466,20 +497,20 @@ function buildPipelineDashboardPayload_() {
 
   return {
     ok: true,
-    source: 'merged',
+    source: sourceLabel || 'merged',
     fetchedAt: fetchedAt,
     cacheSchemaVersion: PIPELINE_CACHE_SCHEMA_VERSION_,
     deals: merged,
     pipelines: pipelines,
-    partial: !!fetched.truncated,
-    warnings: warnings,
+    partial: !!truncated,
+    warnings: mergeWarnings,
     editorial: {
       oneLineRead: sheetResult.oneLineRead || '',
       sheetUpdatedAt: sheetResult.sheetUpdatedAt || null,
     },
     stageDefinitions: sheetResult.stageDefinitions || [],
     meta: {
-      rowCountRawFibery: (fetched.rows || []).length,
+      rowCountRawFibery: (rawDealRows || []).length,
       dealCount: merged.length,
       sheetRowCount: sheetRows.length,
       matchedHubspotCount: matchedHubspot,

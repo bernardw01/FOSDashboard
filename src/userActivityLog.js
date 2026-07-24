@@ -1,5 +1,5 @@
 /**
- * PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.4.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * User activity logging - append-only event rows to the "User Activity" tab
  * in the Users spreadsheet (AUTH_SPREADSHEET_ID). Implements Section 3.8 / FR-60-FR-66.
@@ -118,6 +118,7 @@ var ACTIVITY_VALID_EVENT_TYPES_ = {
   ai_usage_export: true,
   util_detail_table_filter: true,
   util_detail_export_csv: true,
+  util_heatmap_legend_filter: true,
   resource_assignments_refresh: true,
   resource_assignments_range_change: true,
   resource_assignments_expand_person: true,
@@ -135,6 +136,15 @@ var ACTIVITY_VALID_EVENT_TYPES_ = {
   home_quick_nav: true,
   agreement_mobile_charts_toggle: true,
   pipeline_mobile_charts_toggle: true,
+  engagement_review_nav: true,
+  engagement_review_create: true,
+  engagement_review_update: true,
+  engagement_review_suggest_alerts: true,
+  engagement_review_suggest_owners: true,
+  engagement_review_calendar_invite: true,
+  engagement_review_recording_upload: true,
+  engagement_review_project_detail: true,
+  engagement_update_submit: true,
 };
 
 /** @const {number} Allow FinOps Ask question text (Feature 032). */

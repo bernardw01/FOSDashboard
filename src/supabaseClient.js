@@ -1,5 +1,5 @@
 /**
- * PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.4.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Supabase (PostgREST) client for Feature 036.
  * Secrets stay in Script Properties; never returned to the client.
@@ -218,6 +218,61 @@ function supabaseSelect_(table, query, select, limit) {
   return supabaseRest_('get', '/rest/v1/' + encodeURIComponent(table), q, null, {
     Prefer: 'count=exact',
   });
+}
+
+/** @const {number} Safe upper bound on pages read by supabaseSelectAll_. */
+var SUPABASE_SELECT_ALL_MAX_PAGES_ = 100;
+
+/**
+ * Pages through a full PostgREST table/view read using Range-style offset
+ * paging (SUPABASE_DEFAULT_PAGE_SIZE_ rows per page), up to
+ * SUPABASE_SELECT_ALL_MAX_PAGES_ pages. Mirrors the paging pattern used by
+ * `fetchFosLaborCostsByRange_` in `fiberyUtilizationDashboard.js`.
+ *
+ * @param {string} table
+ * @param {?Object<string, string>=} filters PostgREST filters (e.g.
+ *   `{ agreement_id: 'eq.' + id }`); may include `or`, `and`, etc.
+ * @param {string=} select Column list (default `*`).
+ * @param {string=} order PostgREST `order` value (e.g. `created_at.asc`).
+ * @return {!{ ok: true, rows: !Array<!Object>, truncated: boolean }|
+ *          !{ ok: false, reason: string, message: string }}
+ */
+function supabaseSelectAll_(table, filters, select, order) {
+  var pageSize = SUPABASE_DEFAULT_PAGE_SIZE_ || 1000;
+  var all = [];
+  for (var page = 0; page < SUPABASE_SELECT_ALL_MAX_PAGES_; page++) {
+    var offset = page * pageSize;
+    var query = {};
+    if (filters) {
+      for (var k in filters) {
+        if (Object.prototype.hasOwnProperty.call(filters, k)) {
+          query[k] = filters[k];
+        }
+      }
+    }
+    query.select = select || '*';
+    query.limit = String(pageSize);
+    query.offset = String(offset);
+    if (order) {
+      query.order = order;
+    }
+    var res = supabaseRest_('get', '/rest/v1/' + encodeURIComponent(table), query, null, null);
+    if (!res.ok) {
+      return {
+        ok: false,
+        reason: res.reason || 'SUPABASE_HTTP',
+        message: res.message || (table + ' query failed.'),
+      };
+    }
+    var chunk = res.json || [];
+    for (var i = 0; i < chunk.length; i++) {
+      all.push(chunk[i]);
+    }
+    if (chunk.length < pageSize) {
+      return { ok: true, rows: all, truncated: false };
+    }
+  }
+  return { ok: true, rows: all, truncated: true };
 }
 
 /**

@@ -1,5 +1,5 @@
 /**
- * PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.4.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard orchestrator (route id `operations`, panel
  * `#panel-operations`). Reads `Agreement Management/Labor Costs` from Fibery
@@ -72,13 +72,373 @@ function getUtilizationCacheTtlMinutes() {
  */
 function getUtilizationDashboardData(rangeStart, rangeEnd) {
   requireAuthForApi_();
-  // Live Datastore only (v3.0.11+). Client may pass a date range for UX;
-  // server always returns the hydrated utilization payload (no Fibery rebuild).
-  // Custom-range Fibery queries are retired for Live; hydrate owns the window.
-  return serveLivePanelFromSupabaseOrFail_(
+  var thresholds = getUtilizationThresholds_();
+  var now = new Date();
+  var range = resolveRange_(rangeStart, rangeEnd, now, thresholds);
+
+  // Prefer fos_labor_costs (Clockify Hub mirror): spans YTD+ and honors the
+  // panel date picker without depending on the narrow panel hydrate blob.
+  var fromMirror = buildUtilizationPayloadFromFosLaborCosts_(
+    range,
+    thresholds,
+    now
+  );
+  if (fromMirror && fromMirror.ok) {
+    return fromMirror;
+  }
+
+  // Fallback: slice the hydrated panel payload (legacy ~60-day windows).
+  var served = serveLivePanelFromSupabaseOrFail_(
     'utilization',
     UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_
   );
+  if (!served || served.ok === false) {
+    return served;
+  }
+  return applyUtilizationRequestedRange_(served, rangeStart, rangeEnd);
+}
+
+/**
+ * Builds a Live utilization payload from `fos_labor_costs` for `[range.start, range.end)`.
+ * @param {!{start: string, end: string, defaulted: boolean, clamped: boolean}} range
+ * @param {!Object} thresholds
+ * @param {!Date} now
+ * @return {!Object}
+ * @private
+ */
+function buildUtilizationPayloadFromFosLaborCosts_(range, thresholds, now) {
+  if (!isSupabaseConfigured_()) {
+    return { ok: false, reason: 'SUPABASE_UNCONFIGURED' };
+  }
+  var fetched = fetchFosLaborCostsByRange_(range.start, range.end);
+  if (!fetched.ok) {
+    return {
+      ok: false,
+      reason: fetched.reason || 'FOS_LABOR_FETCH_FAILED',
+      message: fetched.message || 'Could not read fos_labor_costs.',
+    };
+  }
+  if (!fetched.rows || !fetched.rows.length) {
+    // Empty range is still a valid answer (show zeros), not a hard miss.
+    fetched.rows = [];
+  }
+
+  var raw = [];
+  for (var i = 0; i < fetched.rows.length; i++) {
+    raw.push(mapFosLaborCostRowToUtilRaw_(fetched.rows[i]));
+  }
+  var rows = normalizeLaborRows_(raw, thresholds);
+  var kpis = computeUtilizationKpis_(rows);
+  var dimensions = buildUtilizationDimensions_(rows, thresholds);
+  var aggregates = buildUtilizationAggregates_(rows, thresholds);
+  aggregates.byPersonWeek = buildByPersonWeek_(rows, range, thresholds);
+  var alerts = buildUtilizationAlerts_(
+    rows,
+    aggregates.byPersonWeek,
+    thresholds,
+    range,
+    now
+  );
+
+  var warnings = [];
+  if (fetched.truncated) {
+    warnings.push(
+      'fos_labor_costs page ceiling reached; data may be incomplete for this range.'
+    );
+  }
+  if (range.clamped) {
+    warnings.push(
+      'Date range clamped to UTILIZATION_MAX_RANGE_DAYS (' +
+        thresholds.maxRangeDays +
+        ').'
+    );
+  }
+
+  var out = {
+    ok: true,
+    source: 'supabase',
+    loadSource: 'fos_labor_costs',
+    fetchedAt: now.toISOString(),
+    cacheSchemaVersion: UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_,
+    ttlMinutes: thresholds.cacheTtlMinutes,
+    range: range,
+    dataWindow: { start: range.start, end: range.end },
+    rows: rows,
+    kpis: kpis,
+    dimensions: dimensions,
+    aggregates: aggregates,
+    alerts: alerts,
+    laborHours: getLaborHoursConfig_(),
+    heatmapTopNPersons: thresholds.heatmapTopNPersons,
+  };
+  if (warnings.length) {
+    out.warnings = warnings;
+    out.partial = true;
+  }
+  return out;
+}
+
+/**
+ * @param {string} startIso inclusive
+ * @param {string} endIso exclusive
+ * @return {!{ok: boolean, rows?: !Array<!Object>, truncated?: boolean, message?: string, reason?: string}}
+ * @private
+ */
+function fetchFosLaborCostsByRange_(startIso, endIso) {
+  var pageSize = SUPABASE_DEFAULT_PAGE_SIZE_ || 1000;
+  var maxPages = 60;
+  var all = [];
+  var selectCols =
+    'clockify_time_log_id,start_date_time,end_date_time,seconds,clockify_hours,' +
+    'task,project_id,billable,user_id,time_entry_user_name,time_entry_project_name,' +
+    'fibery_payload_json';
+  var andFilter =
+    '(start_date_time.gte."' +
+    String(startIso) +
+    '",start_date_time.lt."' +
+    String(endIso) +
+    '")';
+
+  for (var page = 0; page < maxPages; page++) {
+    var offset = page * pageSize;
+    var res = supabaseRest_(
+      'get',
+      '/rest/v1/fos_labor_costs',
+      {
+        select: selectCols,
+        and: andFilter,
+        order: 'start_date_time.asc',
+        limit: String(pageSize),
+        offset: String(offset),
+      },
+      null,
+      null
+    );
+    if (!res.ok) {
+      return {
+        ok: false,
+        reason: res.reason || 'SUPABASE_HTTP',
+        message: res.message || 'fos_labor_costs query failed.',
+      };
+    }
+    var chunk = res.json;
+    if (!chunk || !chunk.length) {
+      return { ok: true, rows: all, truncated: false };
+    }
+    for (var i = 0; i < chunk.length; i++) {
+      all.push(chunk[i]);
+    }
+    if (chunk.length < pageSize) {
+      return { ok: true, rows: all, truncated: false };
+    }
+  }
+  return { ok: true, rows: all, truncated: true };
+}
+
+/**
+ * Maps a fos_labor_costs row into the raw shape normalizeLaborRows_ expects.
+ * @param {!Object} row
+ * @return {!Object}
+ * @private
+ */
+function mapFosLaborCostRowToUtilRaw_(row) {
+  row = row || {};
+  var p = row.fibery_payload_json;
+  if (typeof p === 'string') {
+    try {
+      p = JSON.parse(p);
+    } catch (e) {
+      p = null;
+    }
+  }
+  p = p || {};
+  var hours = Number(row.clockify_hours);
+  if (!isFinite(hours)) {
+    hours = Number(p['Agreement Management/Clockify Hours']);
+  }
+  if (!isFinite(hours) && row.seconds != null) {
+    hours = Number(row.seconds) / 3600;
+  }
+  if (!isFinite(hours)) {
+    hours = 0;
+  }
+  var startIso =
+    row.start_date_time ||
+    p['Agreement Management/Start Date Time'] ||
+    null;
+  if (startIso && typeof startIso !== 'string') {
+    startIso = String(startIso);
+  }
+  return {
+    id: row.clockify_time_log_id || '',
+    publicId: null,
+    name: '',
+    hours: hours,
+    seconds: numberOr_(row.seconds, 0),
+    cost: 0,
+    billable:
+      row.billable || p['Agreement Management/Billable'] || 'No',
+    startDateTime: startIso,
+    endDateTime:
+      row.end_date_time || p['Agreement Management/End Date Time'] || null,
+    dateOfCreation: null,
+    agreementId: null,
+    agreementName: null,
+    agreementType: null,
+    agreementState: null,
+    customer: '(Unassigned)',
+    projectName:
+      row.time_entry_project_name ||
+      p['Agreement Management/Time Entry Project Name'] ||
+      '(No Project)',
+    projectId: row.project_id || p['Agreement Management/Project ID'] || null,
+    task: row.task || p['Agreement Management/Task'] || null,
+    userName:
+      row.time_entry_user_name ||
+      p['Agreement Management/Time Entry User Name'] ||
+      '(Unknown user)',
+    userId: row.user_id || p['Agreement Management/User ID'] || null,
+    clockifyUserCompany: null,
+    clockifyUserRole: null,
+    clockifyUserWorkStatus: null,
+    userRole: null,
+    userRoleBillRate: null,
+    userRoleCostRate: null,
+  };
+}
+
+/**
+ * Filters a hydrated utilization payload to `[rangeStart, rangeEnd)` and
+ * recomputes KPIs, dimensions, aggregates (incl. byPersonWeek), and alerts.
+ * Does not call Fibery. Rows outside the Datastore window stay unavailable.
+ *
+ * @param {!Object} payload
+ * @param {?string=} rangeStart
+ * @param {?string=} rangeEnd
+ * @return {!Object}
+ * @private
+ */
+function applyUtilizationRequestedRange_(payload, rangeStart, rangeEnd) {
+  var thresholds = getUtilizationThresholds_();
+  var now = new Date();
+  var range = resolveRange_(rangeStart, rangeEnd, now, thresholds);
+  var dataWindow = payload.dataWindow || payload.range || null;
+  var startMs = parseIsoMs_(range.start);
+  var endMs = parseIsoMs_(range.end);
+  if (startMs === null || endMs === null) {
+    return payload;
+  }
+  var rowsIn = payload.rows || [];
+  var filtered = [];
+  for (var i = 0; i < rowsIn.length; i++) {
+    var row = rowsIn[i];
+    var ms = utilizationRowStartMs_(row);
+    if (ms === null) {
+      continue;
+    }
+    if (ms >= startMs && ms < endMs) {
+      filtered.push(row);
+    }
+  }
+
+  var warnings = [];
+  if (payload.warnings && payload.warnings.length) {
+    for (var wi = 0; wi < payload.warnings.length; wi++) {
+      warnings.push(payload.warnings[wi]);
+    }
+  }
+  if (dataWindow && dataWindow.start) {
+    var windowStartMs = parseIsoMs_(dataWindow.start);
+    var windowEndMs = dataWindow.end ? parseIsoMs_(dataWindow.end) : null;
+    if (windowStartMs !== null && startMs < windowStartMs - 12 * 3600000) {
+      warnings.push(
+        'Requested range starts before the Datastore utilization window (' +
+          String(dataWindow.start).slice(0, 10) +
+          '). Days before that date are empty until the next ADMIN Pull / nightly hydrate.'
+      );
+    }
+    if (windowEndMs !== null && endMs > windowEndMs + 12 * 3600000) {
+      warnings.push(
+        'Requested range ends after the Datastore utilization window (' +
+          String(dataWindow.end).slice(0, 10) +
+          '). Later days are empty until the next ADMIN Pull / nightly hydrate.'
+      );
+    }
+  }
+
+  var kpis = computeUtilizationKpis_(filtered);
+  var dimensions = buildUtilizationDimensions_(filtered, thresholds);
+  var aggregates = buildUtilizationAggregates_(filtered, thresholds);
+  aggregates.byPersonWeek = buildByPersonWeek_(filtered, range, thresholds);
+  var alerts = buildUtilizationAlerts_(
+    filtered,
+    aggregates.byPersonWeek,
+    thresholds,
+    range,
+    now
+  );
+
+  var out = {
+    ok: true,
+    source: payload.source || 'supabase',
+    fetchedAt: payload.fetchedAt || now.toISOString(),
+    supabaseSyncedAt: payload.supabaseSyncedAt || null,
+    cacheDateKey: payload.cacheDateKey || null,
+    cacheSchemaVersion:
+      payload.cacheSchemaVersion || UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_,
+    ttlMinutes:
+      payload.ttlMinutes != null ? payload.ttlMinutes : thresholds.cacheTtlMinutes,
+    range: range,
+    dataWindow: dataWindow
+      ? { start: dataWindow.start, end: dataWindow.end }
+      : null,
+    rows: filtered,
+    kpis: kpis,
+    dimensions: dimensions,
+    aggregates: aggregates,
+    alerts: alerts,
+    laborHours: payload.laborHours || getLaborHoursConfig_(),
+    heatmapTopNPersons:
+      payload.heatmapTopNPersons != null
+        ? payload.heatmapTopNPersons
+        : thresholds.heatmapTopNPersons,
+  };
+  if (payload.loadSource) {
+    out.loadSource = payload.loadSource;
+  }
+  if (warnings.length) {
+    out.warnings = warnings;
+    out.partial = true;
+  }
+  if (range.clamped) {
+    out.warnings = out.warnings || [];
+    out.warnings.push(
+      'Date range clamped to UTILIZATION_MAX_RANGE_DAYS (' +
+        thresholds.maxRangeDays +
+        ').'
+    );
+    out.partial = true;
+  }
+  return out;
+}
+
+/**
+ * @param {!Object} row
+ * @return {?number}
+ * @private
+ */
+function utilizationRowStartMs_(row) {
+  if (!row) {
+    return null;
+  }
+  var ms = parseIsoMs_(row.startDateTime);
+  if (ms !== null) {
+    return ms;
+  }
+  if (row.day) {
+    return parseIsoMs_(String(row.day) + 'T12:00:00.000Z');
+  }
+  return null;
 }
 
 /**
@@ -141,12 +501,14 @@ function buildUtilizationDashboardPayload_(rangeStart, rangeEnd) {
     cacheSchemaVersion: UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_,
     ttlMinutes: ttlMinutes,
     range: range,
+    dataWindow: { start: range.start, end: range.end },
     rows: rows,
     kpis: kpis,
     dimensions: dimensions,
     aggregates: aggregates,
     alerts: alerts,
     laborHours: laborHoursCfg,
+    heatmapTopNPersons: thresholds.heatmapTopNPersons,
   };
   if (warnings.length) {
     payload.warnings = warnings;

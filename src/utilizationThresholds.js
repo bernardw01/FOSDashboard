@@ -1,5 +1,5 @@
 /**
- * PRD version 3.0.12 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.4.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard constants per
  * docs/features/005-utilization-management-dashboard.md:
@@ -22,7 +22,7 @@
  *   UTILIZATION_TOP_N_PERSONS             (default 20)
  *   UTILIZATION_TOP_N_PROJECTS            (default 20)
  *   UTILIZATION_TOP_N_CUSTOMERS           (default 20)
- *   UTILIZATION_HEATMAP_TOP_N_PERSONS     (default 30 - Phase C heatmap row cap)
+ *   UTILIZATION_HEATMAP_TOP_N_PERSONS     (default 100 - Phase C heatmap row cap)
  *
  * Labor Hours dashboard (route `labor-hours`, feature 007) reuses the same
  * labor rows; optional Script Properties (read by `getLaborHoursConfig_()`):
@@ -101,7 +101,7 @@ var UTILIZATION_DEFAULTS_ = {
   TOP_N_CUSTOMERS: 20,
   // Phase C - heatmap row cap (separate from TOP_N_PERSONS so the donut/bar
   // and the heatmap can scale independently).
-  HEATMAP_TOP_N_PERSONS: 30,
+  HEATMAP_TOP_N_PERSONS: 100,
   INTERNAL_COMPANY_NAMES: ['harpin.ai', 'Harpin'],
 };
 
