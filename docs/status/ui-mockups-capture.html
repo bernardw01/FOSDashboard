@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FinOps Performance Hub · UI capture frames</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #061b30;
+      --surface: #092747;
+      --surface2: #0d2e4a;
+      --border: #1a4060;
+      --accent: #52c9e5;
+      --accent2: #007fa7;
+      --accent4: #43d6ba;
+      --text: #fffefc;
+      --text-muted: #a0aec0;
+      --danger: #fc5c65;
+      --warn: #fd9644;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 2rem;
+      font-family: Inter, system-ui, sans-serif;
+      background: #0a1018;
+      color: var(--text);
+    }
+    h1 { font-size: 1rem; color: var(--text-muted); margin: 0 0 1.5rem; font-weight: 600; }
+    .stack { display: flex; flex-direction: column; gap: 3rem; align-items: flex-start; }
+    .label {
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #7a8fa3;
+      margin-bottom: 0.5rem;
+    }
+    .frame {
+      width: 980px;
+      height: 560px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(82, 201, 229, 0.25);
+      background: var(--bg);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+      display: flex;
+    }
+    .sidebar {
+      width: 240px;
+      flex-shrink: 0;
+      background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+      border-right: 1px solid rgba(82, 201, 229, 0.18);
+      padding: 1rem 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.35rem 0.5rem 1rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0.5rem;
+    }
+    .brand img { width: 40px; height: 40px; border-radius: 8px; }
+    .brand-title { font-size: 1.05rem; font-weight: 600; line-height: 1.25; }
+    .nav-btn {
+      display: flex; align-items: center; gap: 0.55rem;
+      padding: 0.55rem 0.7rem; border-radius: 8px;
+      color: rgba(255,254,252,0.78); font-size: 0.88rem;
+    }
+    .nav-btn.active {
+      color: var(--accent);
+      background: rgba(82, 201, 229, 0.12);
+      box-shadow: inset 3px 0 0 var(--accent);
+      font-weight: 600;
+    }
+    .nav-btn.ask {
+      color: var(--accent4);
+      background: rgba(94, 234, 212, 0.12);
+      margin-bottom: 0.35rem;
+    }
+    .nav-group {
+      font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--text-muted); padding: 0.55rem 0.7rem 0.2rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      background: var(--bg);
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1.1rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(9, 39, 71, 0.65);
+    }
+    .topbar h2 { margin: 0; font-size: 1rem; font-weight: 600; }
+    .pill {
+      font-size: 0.72rem;
+      padding: 0.28rem 0.65rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text-muted);
+    }
+    .pill.live { border-color: rgba(67, 214, 186, 0.45); color: var(--accent4); }
+    .body-row { flex: 1; display: flex; min-height: 0; }
+    .panel { flex: 1; padding: 1rem 1.1rem; overflow: hidden; }
+    .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.65rem; margin-bottom: 0.9rem; }
+    .kpi {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.75rem 0.85rem;
+    }
+    .kpi .l { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .kpi .v { font-size: 1.35rem; font-weight: 700; margin-top: 0.2rem; }
+    .kpi .s { font-size: 0.72rem; color: var(--accent4); margin-top: 0.15rem; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.85rem;
+    }
+    .source-line {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+    .source-line strong { color: var(--accent4); font-weight: 600; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    th, td { text-align: left; padding: 0.45rem 0.4rem; border-bottom: 1px solid var(--border); }
+    th { color: var(--text-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    td.neg { color: var(--danger); }
+    .ask-pane {
+      width: 340px;
+      border-left: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+    }
+    .ask-h {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 0.5rem;
+      font-weight: 600; font-size: 0.92rem;
+    }
+    .ask-ctx {
+      padding: 0.5rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    .ask-tx { flex: 1; padding: 0.75rem 1rem; overflow: hidden; }
+    .bubble {
+      margin-bottom: 0.65rem;
+      padding: 0.6rem 0.7rem;
+      border-radius: 0.75rem;
+      font-size: 0.82rem;
+      line-height: 1.45;
+    }
+    .bubble.user {
+      background: rgba(94, 234, 212, 0.12);
+      border: 1px solid rgba(94, 234, 212, 0.25);
+    }
+    .bubble.bot {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+    }
+    .bubble.bot strong { color: var(--accent); }
+    .ask-composer {
+      padding: 0.75rem 1rem 1rem;
+      border-top: 1px solid var(--border);
+    }
+    .ask-composer .box {
+      min-height: 44px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.55rem 0.7rem;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      background: var(--surface2);
+    }
+    .toolbar {
+      display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap;
+    }
+    .btn {
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 0.4rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .btn.primary {
+      background: rgba(82, 201, 229, 0.18);
+      border-color: rgba(82, 201, 229, 0.45);
+      color: var(--accent);
+    }
+    .progress {
+      height: 6px; background: rgba(255,255,255,0.08); border-radius: 99px; overflow: hidden; width: 180px;
+    }
+    .progress > span { display: block; height: 100%; width: 72%; background: linear-gradient(90deg, var(--accent2), var(--accent4)); }
+    .profile-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 0.85rem; }
+    .toggle-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0.55rem 0; border-bottom: 1px solid var(--border); font-size: 0.84rem;
+    }
+    .switch {
+      width: 36px; height: 20px; border-radius: 99px; background: rgba(67,214,186,0.35);
+      position: relative;
+    }
+    .switch::after {
+      content: ""; position: absolute; top: 2px; right: 2px;
+      width: 16px; height: 16px; border-radius: 50%; background: var(--accent4);
+    }
+    .switch.off { background: rgba(255,255,255,0.12); }
+    .switch.off::after { right: auto; left: 2px; background: #cbd5e1; }
+    .bell {
+      width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border);
+      display: grid; place-items: center; position: relative; color: var(--text-muted);
+    }
+    .bell .dot {
+      position: absolute; top: 6px; right: 7px; width: 8px; height: 8px;
+      border-radius: 50%; background: var(--danger); border: 2px solid var(--surface);
+    }
+    .tray {
+      position: absolute; right: 1.1rem; top: 3.4rem; width: 300px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.4); z-index: 2; padding: 0.65rem;
+    }
+    .tray h3 { margin: 0 0 0.5rem; font-size: 0.8rem; }
+    .nitem {
+      padding: 0.5rem; border-radius: 8px; background: var(--surface2);
+      margin-bottom: 0.4rem; font-size: 0.75rem; line-height: 1.35;
+    }
+    .nitem .sev { color: var(--warn); font-weight: 600; font-size: 0.68rem; }
+    .overlay-card {
+      margin: 4.5rem auto 0; width: 320px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      padding: 1.25rem; text-align: center;
+    }
+    .overlay-card .spin {
+      width: 28px; height: 28px; margin: 0 auto 0.75rem;
+      border: 3px solid rgba(82,201,229,0.2); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .deny {
+      width: 980px; height: 560px; border-radius: 12px; overflow: hidden;
+      border: 1px solid rgba(82, 201, 229, 0.25); background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .deny-card {
+      width: 420px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.5rem; text-align: center;
+    }
+    .deny-card img { width: 56px; height: 56px; margin-bottom: 0.75rem; border-radius: 10px; }
+    .deny-card h2 { margin: 0 0 0.5rem; font-size: 1.15rem; }
+    .deny-card p { color: var(--text-muted); font-size: 0.88rem; line-height: 1.45; margin: 0 0 0.75rem; }
+    .code {
+      display: inline-block; font-family: ui-monospace, Menlo, monospace;
+      font-size: 0.78rem; padding: 0.35rem 0.55rem; border-radius: 6px;
+      background: rgba(252,92,101,0.12); border: 1px solid rgba(252,92,101,0.35); color: #ffb4b8;
+    }
+  </style>
+</head>
+<body>
+  <h1>Capture frames for biweekly status (product-faithful mocks · illustrative data)</h1>
+  <div class="stack">
+
+    <div>
+      <div class="label">01 · Brand + collapsible nav</div>
+      <div class="frame" id="shot-brand">
+        <aside class="sidebar">
+          <div class="brand">
+            <img src="screenshots/brand-mark.png" alt="" />
+            <div class="brand-title">FinOps<br/>Performance Hub</div>
+          </div>
+          <div class="nav-btn"><i class="bi bi-house"></i> Home</div>
+          <div class="nav-btn ask"><i class="bi bi-stars"></i> Ask AI</div>
+          <div class="nav-group">Sales <i class="bi bi-chevron-down"></i></div>
+          <div class="nav-group">Operations <i class="bi bi-chevron-right"></i></div>
+          <div class="nav-group">Delivery <i class="bi bi-chevron-down"></i></div>
+          <div class="nav-btn" style="padding-left:1.4rem"><i class="bi bi-kanban"></i> Projects</div>
+          <div class="nav-btn active" style="padding-left:1.4rem"><i class="bi bi-graph-up"></i> Revenue review</div>
+          <div class="nav-group">Finance <i class="bi bi-chevron-down"></i></div>
+          <div class="nav-btn" style="padding-left:1.4rem"><i class="bi bi-pie-chart"></i> Portfolio P&amp;L</div>
+          <div style="flex:1"></div>
+          <div class="nav-btn"><i class="bi bi-person"></i> Profile</div>
+          <div class="nav-btn"><i class="bi bi-gear"></i> Settings</div>
+          <div style="font-size:0.68rem;color:var(--text-muted);padding:0.5rem 0.7rem">v3.0.10</div>
+        </aside>
+        <div class="main">
+          <div class="topbar">
+            <h2>Revenue review</h2>
+            <span class="pill live">Live · Datastore</span>
+          </div>
+          <div class="panel">
+            <div class="source-line">Source: <strong>Datastore · synced 2026-07-21 06:12</strong></div>
+            <div class="kpis">
+              <div class="kpi"><div class="l">Recognized YTD</div><div class="v">$4.82M</div><div class="s">+6.1% vs prior</div></div>
+              <div class="kpi"><div class="l">At risk</div><div class="v">$312k</div><div class="s">3 agreements</div></div>
+              <div class="kpi"><div class="l">Expiring 90d</div><div class="v">7</div><div class="s">Review queue</div></div>
+            </div>
+            <div class="card">
+              <table>
+                <thead><tr><th>Customer</th><th>Agreement</th><th>Status</th><th style="text-align:right">Amount</th></tr></thead>
+                <tbody>
+                  <tr><td>Northwind Health</td><td>MSA-241</td><td>Active</td><td class="num">$840,000</td></tr>
+                  <tr><td>Acme Logistics</td><td>SOW-118</td><td>Pre-recog</td><td class="num">$210,000</td></tr>
+                  <tr><td>Brightline Co</td><td>MSA-203</td><td>Expiring</td><td class="num">$125,000</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="label">02 · FinOps Ask companion</div>
+      <div class="frame" id="shot-ask">
+        <aside class="sidebar">
+          <div class="brand">
+            <img src="screenshots/brand-mark.png" alt="" />
+            <div class="brand-title">FinOps<br/>Performance Hub</div>
+          </div>
+          <div class="nav-btn ask active"><i class="bi bi-stars"></i> Ask AI</div>
+          <div class="nav-btn"><i class="bi bi-house"></i> Home</div>
+          <div class="nav-group">Finance <i class="bi bi-chevron-down"></i></div>
+          <div class="nav-btn active" style="padding-left:1.4rem"><i class="bi bi-pie-chart"></i> Portfolio P&amp;L</div>
+        </aside>
+        <div class="main">
+          <div class="topbar">
+            <h2>Portfolio P&amp;L</h2>
+            <span class="pill live">Live · Datastore</span>
+          </div>
+          <div class="body-row">
+            <div class="panel">
+              <div class="source-line">Source: <strong>Datastore · synced 2026-07-21 06:12</strong></div>
+              <div class="kpis">
+                <div class="kpi"><div class="l">Portfolio revenue</div><div class="v">$9.4M</div></div>
+                <div class="kpi"><div class="l">Margin</div><div class="v">28.4%</div></div>
+                <div class="kpi"><div class="l">Projects</div><div class="v">42</div></div>
+              </div>
+              <div class="card">
+                <table>
+                  <thead><tr><th>Project</th><th style="text-align:right">FY Rev</th><th style="text-align:right">Margin</th></tr></thead>
+                  <tbody>
+                    <tr><td>Northwind · Platform</td><td class="num">$1.2M</td><td class="num">31%</td></tr>
+                    <tr><td>Acme · Integration</td><td class="num">$640k</td><td class="num neg">-4%</td></tr>
+                    <tr><td>Brightline · Retainer</td><td class="num">$480k</td><td class="num">12%</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="ask-pane">
+              <div class="ask-h"><i class="bi bi-stars" style="color:var(--accent4)"></i> Ask AI</div>
+              <div class="ask-ctx">
+                <strong style="color:var(--text)">Portfolio P&amp;L</strong> · Live · filters: Services · as of Jul 21, 2026
+              </div>
+              <div class="ask-tx">
+                <div class="bubble user">Which three projects have the worst trailing margin?</div>
+                <div class="bubble bot">
+                  From the <strong>loaded Portfolio P&amp;L</strong> (Services filter, Live Datastore):
+                  <ol style="margin:0.4rem 0 0 1rem;padding:0">
+                    <li><strong>Acme · Integration</strong> −4%</li>
+                    <li><strong>Harbor · Migration</strong> 3%</li>
+                    <li><strong>Brightline · Retainer</strong> 12%</li>
+                  </ol>
+                </div>
+              </div>
+              <div class="ask-composer"><div class="box">Ask about this panel…</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="label">03 · Profile alerts + notification tray</div>
+      <div class="frame" id="shot-alerts" style="position:relative">
+        <aside class="sidebar">
+          <div class="brand">
+            <img src="screenshots/brand-mark.png" alt="" />
+            <div class="brand-title">FinOps<br/>Performance Hub</div>
+          </div>
+          <div class="nav-btn"><i class="bi bi-house"></i> Home</div>
+          <div style="flex:1"></div>
+          <div class="nav-btn active"><i class="bi bi-person"></i> Profile</div>
+          <div class="nav-btn"><i class="bi bi-gear"></i> Settings</div>
+        </aside>
+        <div class="main">
+          <div class="topbar">
+            <h2>Profile</h2>
+            <div class="bell"><i class="bi bi-bell"></i><span class="dot"></span></div>
+          </div>
+          <div class="tray">
+            <h3>Notifications</h3>
+            <div class="nitem"><div class="sev">AGREEMENT · HIGH</div>MSA-203 expires in 21 days · Northwind</div>
+            <div class="nitem"><div class="sev">UTILIZATION · MED</div>3 people under target this week</div>
+          </div>
+          <div class="panel">
+            <div class="profile-grid">
+              <div class="card">
+                <div style="font-weight:600;margin-bottom:0.65rem">Email digests</div>
+                <div class="toggle-row"><span>Master email enabled</span><div class="switch"></div></div>
+                <div class="toggle-row"><span>Agreement expiring soon</span><div class="switch"></div></div>
+                <div class="toggle-row"><span>Utilization under target</span><div class="switch"></div></div>
+                <div class="toggle-row"><span>Agreement attention rollup</span><div class="switch off"></div></div>
+                <div style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-muted)">Frequency: <strong style="color:var(--text)">Daily</strong> · timezone America/Chicago</div>
+              </div>
+              <div class="card">
+                <div style="font-weight:600;margin-bottom:0.5rem">Last digest preview</div>
+                <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.45;background:var(--surface2);border-radius:8px;padding:0.75rem;border:1px solid var(--border)">
+                  <div style="color:var(--accent);font-weight:600;margin-bottom:0.35rem">FinOps Performance Hub · Daily alerts</div>
+                  2 alerts summarized with deep links back to Agreements and Operations.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="label">04 · Portfolio Excel export</div>
+      <div class="frame" id="shot-excel">
+        <aside class="sidebar">
+          <div class="brand">
+            <img src="screenshots/brand-mark.png" alt="" />
+            <div class="brand-title">FinOps<br/>Performance Hub</div>
+          </div>
+          <div class="nav-group">Finance <i class="bi bi-chevron-down"></i></div>
+          <div class="nav-btn active" style="padding-left:1.4rem"><i class="bi bi-pie-chart"></i> Portfolio P&amp;L</div>
+        </aside>
+        <div class="main">
+          <div class="topbar">
+            <h2>Portfolio P&amp;L</h2>
+            <span class="pill live">Live · Datastore</span>
+          </div>
+          <div class="panel">
+            <div class="toolbar">
+              <button class="btn">Reload</button>
+              <button class="btn primary"><i class="bi bi-file-earmark-excel"></i> Export Excel</button>
+              <div class="progress"><span></span></div>
+              <span style="font-size:0.75rem;color:var(--text-muted)">Building outline groups…</span>
+            </div>
+            <div class="card">
+              <table>
+                <thead><tr><th></th><th style="text-align:right">Q1</th><th style="text-align:right">Q2</th><th style="text-align:right">FY</th></tr></thead>
+                <tbody>
+                  <tr><td><strong>Portfolio Revenue</strong></td><td class="num">$2.1M</td><td class="num">$2.4M</td><td class="num">$9.4M</td></tr>
+                  <tr><td style="padding-left:1rem">▾ Northwind Health</td><td class="num">$480k</td><td class="num">$510k</td><td class="num">$1.9M</td></tr>
+                  <tr><td style="padding-left:2rem">Platform</td><td class="num">$300k</td><td class="num">$320k</td><td class="num">$1.2M</td></tr>
+                  <tr><td style="padding-left:2.5rem;color:var(--text-muted)">Costs</td><td class="num neg">($198k)</td><td class="num neg">($205k)</td><td class="num neg">($780k)</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="label">05 · Datastore live load</div>
+      <div class="frame" id="shot-datastore">
+        <aside class="sidebar">
+          <div class="brand">
+            <img src="screenshots/brand-mark.png" alt="" />
+            <div class="brand-title">FinOps<br/>Performance Hub</div>
+          </div>
+          <div class="nav-btn active"><i class="bi bi-file-earmark-text"></i> Agreements</div>
+        </aside>
+        <div class="main" style="position:relative">
+          <div class="topbar">
+            <h2>Agreements</h2>
+            <span class="pill live">Live · Datastore</span>
+          </div>
+          <div class="panel" style="opacity:0.35;pointer-events:none">
+            <div class="kpis">
+              <div class="kpi"><div class="l">Active</div><div class="v">64</div></div>
+              <div class="kpi"><div class="l">Attention</div><div class="v">9</div></div>
+              <div class="kpi"><div class="l">Value</div><div class="v">$12.1M</div></div>
+            </div>
+          </div>
+          <div class="overlay-card">
+            <div class="spin"></div>
+            <div style="font-weight:600;margin-bottom:0.25rem">Reloading from Datastore</div>
+            <div style="font-size:0.78rem;color:var(--text-muted)">Fast indexed Live path · Fibery updates via ADMIN Pull</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="label">06 · Not-authorized troubleshooting</div>
+      <div class="deny" id="shot-auth">
+        <div class="deny-card">
+          <img src="screenshots/brand-mark.png" alt="" />
+          <h2>Not authorized</h2>
+          <p>Your Workspace account is signed in, but it is not on the FinOps Performance Hub Users list for this deployment.</p>
+          <div class="code">reason:detail · not_on_users_sheet</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <script>
+    (function () {
+      var id = new URLSearchParams(location.search).get('frame');
+      if (!id) return;
+      document.body.classList.add('solo');
+      var style = document.createElement('style');
+      style.textContent = 'body.solo { padding: 1rem; } body.solo h1, body.solo .label { display: none; } body.solo .stack > div { display: none; } body.solo .stack > div:has(#' + id + ') { display: block; }';
+      document.head.appendChild(style);
+    })();
+  </script>
+</body>
+</html>

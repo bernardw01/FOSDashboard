@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FinOps Performance Hub · Monthly Status · July 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #0f1c24;
+      --ink-soft: #3d4f5c;
+      --muted: #6b7c88;
+      --line: rgba(15, 28, 36, 0.12);
+      --paper: #f3f6f4;
+      --paper-2: #e8eeea;
+      --surface: #ffffff;
+      --teal: #0d6e6e;
+      --teal-deep: #084848;
+      --teal-soft: #d7ebea;
+      --amber: #c47a1a;
+      --amber-soft: #f8ebd7;
+      --green: #1f6b3a;
+      --green-soft: #d9efe2;
+      --rose: #9b3d4a;
+      --rose-soft: #f5dde1;
+      --shadow: 0 18px 50px rgba(15, 28, 36, 0.08);
+      --radius: 14px;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: "DM Sans", system-ui, sans-serif;
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(13, 110, 110, 0.14), transparent 55%),
+        radial-gradient(900px 500px at 95% 5%, rgba(196, 122, 26, 0.12), transparent 50%),
+        linear-gradient(180deg, #f7faf8 0%, var(--paper) 40%, #eef3f0 100%);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      width: min(1120px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 2.5rem 0 4rem;
+    }
+
+    .hero {
+      position: relative;
+      padding: 2.25rem 0 1.5rem;
+      animation: rise 0.7s var(--ease) both;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 0.85rem;
+    }
+    .eyebrow::before {
+      content: "";
+      width: 1.5rem;
+      height: 2px;
+      background: var(--teal);
+    }
+    h1 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-weight: 400;
+      font-size: clamp(2.4rem, 5vw, 3.6rem);
+      line-height: 1.05;
+      margin: 0 0 0.75rem;
+      letter-spacing: -0.02em;
+    }
+    h1 em {
+      font-style: italic;
+      color: var(--teal-deep);
+    }
+    .lede {
+      max-width: 42rem;
+      font-size: 1.05rem;
+      line-height: 1.55;
+      color: var(--ink-soft);
+      margin: 0 0 1.5rem;
+    }
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      align-items: center;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.4rem 0.75rem;
+      border-radius: 999px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      font-size: 0.82rem;
+      color: var(--ink-soft);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset;
+    }
+    .chip strong { color: var(--ink); font-weight: 600; }
+    .btn-download {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      border: 0;
+      border-radius: 999px;
+      padding: 0.5rem 1rem;
+      font: inherit;
+      font-size: 0.86rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: #fff;
+      background: var(--teal);
+      box-shadow: 0 8px 20px rgba(13, 110, 110, 0.25);
+      transition: transform 0.2s var(--ease), background 0.2s, opacity 0.2s;
+    }
+    .btn-download:hover { background: var(--teal-deep); transform: translateY(-1px); }
+    .btn-download:disabled {
+      opacity: 0.7;
+      cursor: wait;
+      transform: none;
+    }
+    .btn-download .btn-download-hint {
+      font-weight: 500;
+      font-size: 0.75rem;
+      opacity: 0.9;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.85rem;
+      margin: 2rem 0 1.75rem;
+      animation: rise 0.7s var(--ease) 0.08s both;
+    }
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1.1rem 1.15rem;
+      box-shadow: var(--shadow);
+      transition: transform 0.25s var(--ease), border-color 0.25s;
+    }
+    .stat:hover { transform: translateY(-2px); border-color: rgba(13,110,110,0.35); }
+    .stat .n {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: 2.35rem;
+      line-height: 1;
+      color: var(--teal-deep);
+    }
+    .stat .l {
+      margin-top: 0.45rem;
+      font-size: 0.84rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 0.75rem;
+      z-index: 20;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      padding: 0.65rem;
+      margin: 0 0 0.55rem;
+      background: rgba(243, 246, 244, 0.92);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      box-shadow: 0 8px 30px rgba(15, 28, 36, 0.06);
+    }
+    .work-panel {
+      margin-top: 2rem;
+    }
+    .work-panel .section-head {
+      margin: 0 0 0.45rem;
+    }
+    .work-results {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .toolbar label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding-left: 0.65rem;
+    }
+    .filter-btn {
+      border: 0;
+      background: transparent;
+      color: var(--ink-soft);
+      font: inherit;
+      font-size: 0.84rem;
+      font-weight: 500;
+      padding: 0.45rem 0.85rem;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .filter-btn:hover { background: var(--paper-2); color: var(--ink); }
+    .filter-btn.active {
+      background: var(--teal);
+      color: #fff;
+    }
+    .search {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 0.35rem 0.75rem;
+      min-width: 12rem;
+    }
+    .search input {
+      border: 0;
+      outline: 0;
+      background: transparent;
+      font: inherit;
+      font-size: 0.86rem;
+      width: 100%;
+      color: var(--ink);
+    }
+
+    .section-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      margin: 2rem 0 0.85rem;
+    }
+    .section-head h2 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: 1.85rem;
+      font-weight: 400;
+      margin: 0;
+    }
+    .section-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .value-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.85rem;
+      margin-bottom: 0.5rem;
+    }
+    .value-card {
+      background: linear-gradient(165deg, #fff 0%, #f5f9f7 100%);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      box-shadow: var(--shadow);
+      animation: rise 0.6s var(--ease) both;
+    }
+    .value-card .tag {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 0.55rem;
+    }
+    .value-card h3 {
+      margin: 0 0 0.45rem;
+      font-size: 1.05rem;
+      line-height: 1.3;
+    }
+    .value-card p {
+      margin: 0;
+      color: var(--ink-soft);
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+
+    .timeline {
+      position: relative;
+      margin: 0.5rem 0 2rem;
+      padding-left: 1.25rem;
+    }
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 0.35rem;
+      top: 0.4rem;
+      bottom: 0.4rem;
+      width: 2px;
+      background: linear-gradient(180deg, var(--teal), rgba(13,110,110,0.15));
+      border-radius: 2px;
+    }
+    .t-item {
+      position: relative;
+      padding: 0.55rem 0 0.55rem 1rem;
+      animation: rise 0.5s var(--ease) both;
+    }
+    .t-item::before {
+      content: "";
+      position: absolute;
+      left: -0.72rem;
+      top: 1rem;
+      width: 0.65rem;
+      height: 0.65rem;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 2px solid var(--teal);
+      box-shadow: 0 0 0 3px var(--teal-soft);
+    }
+    .t-date {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--teal);
+    }
+    .t-body {
+      margin-top: 0.15rem;
+      font-size: 0.95rem;
+      color: var(--ink-soft);
+    }
+    .t-body strong { color: var(--ink); }
+
+    .work-list {
+      display: grid;
+      gap: 0.75rem;
+    }
+    .work {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      animation: rise 0.55s var(--ease) both;
+    }
+    .work:hover { border-color: rgba(13,110,110,0.28); }
+    .work.hidden { display: none; }
+    .work-head {
+      width: 100%;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 0.85rem;
+      align-items: start;
+      text-align: left;
+      border: 0;
+      background: transparent;
+      padding: 1.1rem 1.2rem;
+      cursor: pointer;
+      font: inherit;
+      color: inherit;
+    }
+    .badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 0.35rem 0.55rem;
+      border-radius: 8px;
+      white-space: nowrap;
+    }
+    .badge.major { background: var(--rose-soft); color: var(--rose); }
+    .badge.feature { background: var(--teal-soft); color: var(--teal-deep); }
+    .badge.platform { background: var(--amber-soft); color: #8a5510; }
+    .badge.ops { background: var(--green-soft); color: var(--green); }
+    .badge.ux { background: #e6e9f5; color: #3a4570; }
+    .work-title {
+      margin: 0 0 0.3rem;
+      font-size: 1.05rem;
+      font-weight: 650;
+      line-height: 1.3;
+    }
+    .work-sub {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.4;
+    }
+    .work-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.25rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .chev {
+      width: 1.4rem;
+      height: 1.4rem;
+      border-radius: 50%;
+      background: var(--paper-2);
+      display: grid;
+      place-items: center;
+      transition: transform 0.25s var(--ease);
+      flex-shrink: 0;
+      margin-top: 0.15rem;
+    }
+    .work.open .chev { transform: rotate(180deg); background: var(--teal-soft); }
+    .work-body {
+      display: none;
+      padding: 0 1.2rem 1.2rem;
+      border-top: 1px solid var(--line);
+    }
+    .work.open .work-body { display: block; animation: fade 0.3s var(--ease); }
+    .work-body-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 1.25rem;
+      padding-top: 1rem;
+    }
+    .work-body h4 {
+      margin: 0 0 0.45rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .work-body ul {
+      margin: 0;
+      padding-left: 1.1rem;
+      color: var(--ink-soft);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+    .work-body li + li { margin-top: 0.35rem; }
+    .value-callout {
+      background: var(--teal-soft);
+      border-radius: 12px;
+      padding: 0.9rem 1rem;
+      color: var(--teal-deep);
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+    .value-callout strong { color: var(--ink); }
+    .fr-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 0.85rem;
+    }
+    .fr {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      background: var(--paper-2);
+      color: var(--ink-soft);
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.85rem;
+      margin: 0.5rem 0 1.5rem;
+    }
+    .shot {
+      margin: 0;
+      background: #061b30;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      cursor: zoom-in;
+      transition: transform 0.25s var(--ease), box-shadow 0.25s;
+      animation: rise 0.55s var(--ease) both;
+      text-align: left;
+      padding: 0;
+      width: 100%;
+      font: inherit;
+      color: inherit;
+    }
+    .shot:hover { transform: translateY(-3px); box-shadow: 0 22px 50px rgba(15,28,36,0.14); }
+    .shot img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      object-position: top left;
+      background: #061b30;
+    }
+    .shot figcaption {
+      padding: 0.7rem 0.85rem 0.85rem;
+      background: var(--surface);
+      border-top: 1px solid var(--line);
+    }
+    .shot figcaption strong {
+      display: block;
+      font-size: 0.88rem;
+      margin-bottom: 0.2rem;
+    }
+    .shot figcaption span {
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+    .work-shot {
+      margin-top: 1rem;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      cursor: zoom-in;
+      background: #061b30;
+    }
+    .work-shot img {
+      display: block;
+      width: 100%;
+      max-height: 280px;
+      object-fit: cover;
+      object-position: top left;
+    }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(8, 16, 22, 0.82);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      cursor: zoom-out;
+    }
+    .lightbox.open { display: flex; animation: fade 0.2s var(--ease); }
+    .lightbox img {
+      max-width: min(1100px, 96vw);
+      max-height: 90vh;
+      border-radius: 12px;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .lightbox-cap {
+      position: absolute;
+      bottom: 1.25rem;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #e8f0f4;
+      font-size: 0.85rem;
+      background: rgba(0,0,0,0.45);
+      padding: 0.4rem 0.75rem;
+      border-radius: 999px;
+      max-width: 90vw;
+      text-align: center;
+    }
+
+    .footer-note {
+      margin-top: 2.5rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.5;
+    }
+    .empty {
+      display: none;
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      border: 1px dashed var(--line);
+      border-radius: var(--radius);
+    }
+    .empty.show { display: block; }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: none; }
+    }
+    @keyframes fade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @media (max-width: 900px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .value-grid { grid-template-columns: 1fr; }
+      .gallery { grid-template-columns: 1fr 1fr; }
+      .work-body-grid { grid-template-columns: 1fr; }
+      .search { margin-left: 0; width: 100%; }
+      .toolbar { border-radius: 16px; }
+      .work-head { grid-template-columns: auto 1fr; }
+      .work-meta { grid-column: 2; align-items: flex-start; flex-direction: row; flex-wrap: wrap; }
+      .chev { grid-column: 2; justify-self: end; }
+    }
+    @media (max-width: 560px) {
+      .wrap { width: calc(100% - 1.25rem); }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .gallery { grid-template-columns: 1fr; }
+      h1 { font-size: 2.15rem; }
+    }
+
+    @media print {
+      .toolbar { display: none; }
+      .lightbox { display: none !important; }
+      .work { break-inside: avoid; box-shadow: none; }
+      .work-body { display: block !important; }
+      body { background: #fff; }
+      .shot { break-inside: avoid; box-shadow: none; cursor: default; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="eyebrow">harpin · Status update</div>
+      <h1>FinOps Performance Hub<br /><em>July 2026 monthly delivery</em></h1>
+      <p class="lede">
+        Across July the team renamed and hardened the product surface, shipped proactive alert digests and an in-app AI companion,
+        moved Live dashboards onto an in-app Datastore with relational Agreement Management mirroring, and closed the month with
+        Engagement Review plus Utilization and Delivery operational fixes.
+      </p>
+      <div class="meta-row">
+        <span class="chip">Window <strong>Jul 1 - Jul 31, 2026</strong></span>
+        <span class="chip">Product <strong>FinOps Performance Hub</strong></span>
+        <span class="chip">Current PRD <strong>3.4.11</strong></span>
+        <span class="chip">Started at <strong>2.21.4</strong></span>
+        <button type="button" class="btn-download" id="btn-download" title="Download a single HTML file with screenshots embedded">
+          Download HTML report
+        </button>
+      </div>
+    </header>
+
+    <section class="stats" aria-label="Delivery metrics">
+      <div class="stat">
+        <div class="n" data-count="50">0</div>
+        <div class="l">PRD releases in July (2.21.4 → 3.4.11)</div>
+      </div>
+      <div class="stat">
+        <div class="n" data-count="8">0</div>
+        <div class="l">Named feature specs shipped or advanced (031-037, 039)</div>
+      </div>
+      <div class="stat">
+        <div class="n" data-count="1">0</div>
+        <div class="l">Major platform jump (in-app Datastore for Live)</div>
+      </div>
+      <div class="stat">
+        <div class="n" data-count="11">0</div>
+        <div class="l">Primary dashboard panels Ask-ready with grounded context</div>
+      </div>
+    </section>
+
+    <div class="section-head">
+      <h2>Product screenshots</h2>
+      <p>Click to enlarge · product-faithful UI with illustrative sample data (as of Jul 2026)</p>
+    </div>
+    <div class="gallery" id="gallery">
+      <button type="button" class="shot" style="animation-delay:0.04s" data-full="screenshots/01-brand-nav.png" data-cap="FinOps Performance Hub brand, Ask AI entry, and collapsible nav (Jul 2026)">
+        <img src="screenshots/01-brand-nav.png" alt="Branded sidebar with Revenue review and Datastore source" loading="lazy" />
+        <figcaption>
+          <strong>Brand + navigation shell</strong>
+          <span>Rebrand, Ask AI entry point, collapsible groups, Live · Datastore</span>
+        </figcaption>
+      </button>
+      <button type="button" class="shot" style="animation-delay:0.08s" data-full="screenshots/02-finops-ask.png" data-cap="FinOps Ask grounded on Portfolio P&L context">
+        <img src="screenshots/02-finops-ask.png" alt="Ask AI companion answering a Portfolio P&L margin question" loading="lazy" />
+        <figcaption>
+          <strong>FinOps Ask companion</strong>
+          <span>Panel-scoped Q&amp;A with Live filters and citations</span>
+        </figcaption>
+      </button>
+      <button type="button" class="shot" style="animation-delay:0.12s" data-full="screenshots/03-profile-alerts.png" data-cap="Profile email digests and notification tray">
+        <img src="screenshots/03-profile-alerts.png" alt="Profile notification preferences and bell tray" loading="lazy" />
+        <figcaption>
+          <strong>Profile + alert digests</strong>
+          <span>Opt-in email catalog and in-app notification tray</span>
+        </figcaption>
+      </button>
+      <button type="button" class="shot" style="animation-delay:0.16s" data-full="screenshots/04-portfolio-excel.png" data-cap="Portfolio P&L Export Excel with outline progress">
+        <img src="screenshots/04-portfolio-excel.png" alt="Portfolio P&L Export Excel progress and hierarchy grid" loading="lazy" />
+        <figcaption>
+          <strong>Portfolio Excel export</strong>
+          <span>Outline groups with staged export progress</span>
+        </figcaption>
+      </button>
+      <button type="button" class="shot" style="animation-delay:0.2s" data-full="screenshots/05-datastore-reload.png" data-cap="Agreements Reloading from Datastore">
+        <img src="screenshots/05-datastore-reload.png" alt="Agreements panel reloading from Datastore" loading="lazy" />
+        <figcaption>
+          <strong>In-app Datastore</strong>
+          <span>Reloading from Datastore · freshness via ADMIN Pull</span>
+        </figcaption>
+      </button>
+      <button type="button" class="shot" style="animation-delay:0.24s" data-full="screenshots/06-not-authorized.png" data-cap="Not-authorized page with reason:detail code">
+        <img src="screenshots/06-not-authorized.png" alt="Not authorized page with troubleshooting reason code" loading="lazy" />
+        <figcaption>
+          <strong>Access troubleshooting</strong>
+          <span>Distinct denial copy with safe reason:detail codes</span>
+        </figcaption>
+      </button>
+    </div>
+
+    <div class="section-head">
+      <h2>Organizational value delivered</h2>
+      <p>Mapped to documented feature goals</p>
+    </div>
+    <div class="value-grid">
+      <article class="value-card" style="animation-delay:0.05s">
+        <div class="tag">Speed &amp; scale</div>
+        <h3>Live dashboards load from an in-app Datastore, not Fibery on every cold open</h3>
+        <p>
+          Feature 036 introduced Datastore Live serving, then matured through Agreement Management typed mirrors and
+          panel builders from tables so Pull hydrates relational rows and assembles panel JSON without Fibery labor paths.
+          Fibery remains the system of record; ADMIN Pull and nightly jobs keep the store fresh.
+        </p>
+      </article>
+      <article class="value-card" style="animation-delay:0.1s">
+        <div class="tag">Decision support</div>
+        <h3>Natural-language answers on the dashboard you are already viewing</h3>
+        <p>
+          FinOps Ask (032) grounds Q&amp;A in loaded panel data, filters, and Live vs snapshot context, with daily quotas,
+          activity logging, Drive chat archives, markdown answers, and prompt caching so finance and ops interpret KPIs in place.
+        </p>
+      </article>
+      <article class="value-card" style="animation-delay:0.15s">
+        <div class="tag">Proactive ops</div>
+        <h3>Alerts reach people who are not parked on the Web App</h3>
+        <p>
+          Feature 033 delivers opt-in Hourly / Daily / Weekly HTML digests for existing Agreement and Utilization alerts,
+          deep links back into the Hub, and an in-app notification tray for review and dismiss.
+        </p>
+      </article>
+      <article class="value-card" style="animation-delay:0.2s">
+        <div class="tag">Delivery excellence</div>
+        <h3>Engagement Review plus clearer project ownership and P&amp;L drill-down</h3>
+        <p>
+          Feature 037 adds a Delivery Engagement Review route for CE / EXEC / ADMIN with calendar, Drive recordings, and
+          questionnaires. Delivery also gained Assigned Owner filters, hydrate fixes, restored Allocated cost lines, and
+          month-modal hours by person.
+        </p>
+      </article>
+      <article class="value-card" style="animation-delay:0.25s">
+        <div class="tag">Workforce visibility</div>
+        <h3>Utilization heatmap and Labor Hours stay trustworthy on Datastore labor</h3>
+        <p>
+          Feature 039 ships legend band filters, sticky headers, and Live date ranges rebuilt from the Clockify
+          <code>fos_labor_costs</code> mirror. Labor Hours week picking and grants patches closed DST and permission gaps.
+        </p>
+      </article>
+      <article class="value-card" style="animation-delay:0.3s">
+        <div class="tag">Executive finance &amp; trust</div>
+        <h3>Portfolio Excel, historical snapshots, and one named product identity</h3>
+        <p>
+          Portfolio Excel export (031), snapshot schema upgrade paths (009), FinOps Performance Hub rebrand, and clearer
+          unauthorized-access troubleshooting give executives offline workbooks and operators a recognizable, supportable surface.
+        </p>
+      </article>
+    </div>
+
+    <div class="section-head">
+      <h2>Delivery timeline</h2>
+      <p>Ship milestones from git / PRD changelog</p>
+    </div>
+    <div class="timeline">
+      <div class="t-item" style="animation-delay:0.05s">
+        <div class="t-date">Jul 7-10</div>
+        <div class="t-body"><strong>v2.21.4-2.23.3</strong> · Portfolio negative styling and Excel export; FinOps Performance Hub rebrand and favicon; Utilization cache resilience; not-authorized reasons and access-denied logging.</div>
+      </div>
+      <div class="t-item" style="animation-delay:0.08s">
+        <div class="t-date">Jul 14-17</div>
+        <div class="t-body"><strong>v2.23.4-2.27.0</strong> · Snapshot schema upgrades; User Profile + alert digests; Live warm caches and Portfolio batches; collapsible sidebar nav; FinOps Ask AI companion.</div>
+      </div>
+      <div class="t-item" style="animation-delay:0.11s">
+        <div class="t-date">Jul 21-22</div>
+        <div class="t-body"><strong>v3.0.0-3.0.12</strong> · In-app Datastore for Live panels; Datastore UX and Ask hardening; Datastore-only Live reads; <code>fos_labor_costs</code> Hub mirror and nightly hydrate install.</div>
+      </div>
+      <div class="t-item" style="animation-delay:0.14s">
+        <div class="t-date">Jul 23-24</div>
+        <div class="t-body"><strong>v3.1.0-3.4.0</strong> · Utilization heatmap legend filters; Engagement Review; AM relational mirror; panels built from Datastore tables.</div>
+      </div>
+      <div class="t-item" style="animation-delay:0.17s">
+        <div class="t-date">Jul 25-31</div>
+        <div class="t-body"><strong>v3.4.1-3.4.11</strong> · AM grants and mirror field fixes; Delivery Assigned Owner filter and hydrate; Labor Hours DST / week slice / grants; Allocated cost line restored; P&amp;L month modal hours by person.</div>
+      </div>
+    </div>
+
+    <section class="work-panel" aria-labelledby="work-completed-heading">
+      <div class="section-head">
+        <h2 id="work-completed-heading">Work completed</h2>
+        <p id="work-count">14 deliveries · expand any item for scope, value, and FR linkage</p>
+      </div>
+      <div class="work-results">
+        <nav class="toolbar" aria-label="Filter completed work">
+          <label>Focus</label>
+          <button type="button" class="filter-btn active" data-filter="all">All</button>
+          <button type="button" class="filter-btn" data-filter="intelligence">Intelligence</button>
+          <button type="button" class="filter-btn" data-filter="platform">Data platform</button>
+          <button type="button" class="filter-btn" data-filter="alerts">Alerts &amp; access</button>
+          <button type="button" class="filter-btn" data-filter="delivery">Delivery</button>
+          <button type="button" class="filter-btn" data-filter="finance">Finance UX</button>
+          <button type="button" class="filter-btn" data-filter="shell">Shell &amp; brand</button>
+          <div class="search">
+            <span aria-hidden="true">⌕</span>
+            <input id="q" type="search" placeholder="Search work…" autocomplete="off" />
+          </div>
+        </nav>
+        <div class="work-list" id="work-list"></div>
+        <div class="empty" id="empty">No items match this filter. Choose <strong>All</strong> to see every delivery.</div>
+      </div>
+    </section>
+
+    <p class="footer-note">
+      Sources: <code>docs/FOS-Dashboard-PRD.md</code> §13 Change Log (2026-07-07 through 2026-07-31),
+      feature specs <code>031</code>-<code>037</code> / <code>039</code> / <code>009</code> / <code>001</code>-<code>004</code> / <code>006</code>-<code>007</code>,
+      and ship commits in this repository. Screenshots are <strong>product-faithful UI frames</strong>
+      (Hub dark theme and chrome) with <strong>illustrative sample data</strong> for the status deck;
+      Engagement Review and Utilization heatmap upgrades are covered in the narrative without dedicated captures.
+      Live overlays and Source labels say <strong>Datastore</strong>
+      so operators see an in-app capability, not a separate vendor tool.
+    </p>
+  </div>
+
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Screenshot preview" hidden>
+    <img id="lightbox-img" alt="" />
+    <div class="lightbox-cap" id="lightbox-cap"></div>
+  </div>
+
+  <script>
+    const WORK = [
+      {
+        id: "036",
+        cat: "platform",
+        badge: "major",
+        badgeLabel: "Major · 036",
+        versions: "3.0.0 → 3.4.10",
+        date: "Jul 21-29",
+        title: "In-app Datastore and Agreement Management mirror",
+        summary: "Major platform arc: Live panels read from an in-app Datastore, then mature into typed AM tables and panel builders from Postgres.",
+        shipped: [
+          "Live panels (except Expenses) serve from the in-app Datastore for faster cold opens",
+          "Nightly refresh and ADMIN Pull from Fibery with continuation batches under Apps Script limits",
+          "Datastore-only Live reads (no Fibery fallback); default read source supabase",
+          "fos_labor_costs Hub mirror of Clockify labor_costs with nightly hydrate auto-install",
+          "Agreement Management relational mirror (enums, companies, users, agreements, allocations, revenue, ODC, P&L)",
+          "Panel JSON built from Datastore tables (supabasePanelBuilders); Clockify-only labor costs",
+          "AM grants, Segment/collection select fixes, and Estimated Allocations Percent Allocated mapping",
+          "Source labels show Datastore (not a third-party product name) for operators"
+        ],
+        value: "Cuts cold-load wait time and Fibery quota pressure for day-to-day Live use, while giving Pull a durable relational store that can rebuild panels without re-fetching Fibery labor. Fibery remains the operational source of truth.",
+        fr: ["FR-133", "FR-120", "AC-95"],
+        shot: "screenshots/05-datastore-reload.png",
+        shotCap: "Agreements Reloading from Datastore"
+      },
+      {
+        id: "037",
+        cat: "delivery",
+        badge: "feature",
+        badgeLabel: "Feature · 037",
+        versions: "3.2.0 → 3.2.2",
+        date: "Jul 23",
+        title: "Engagement Review (Delivery)",
+        summary: "New Delivery route for CE / EXEC / ADMIN to run structured engagement reviews with calendar, Drive, and questionnaires.",
+        shipped: [
+          "engagement-review route gated for CLIENT-ENGAGEMENT / EXEC / ADMIN",
+          "Admin CRUD in Supabase with alert suggest and Agreement Owner intersect Users participants",
+          "Calendar invites and Drive recordings linkage",
+          "Code questionnaire with DB responses; project detail with latest executive summary and collapsible history",
+          "New review button visibility fix for Admins (navState.isAdmin)"
+        ],
+        value: "Gives delivery leadership a first-class place to capture engagement health, follow-ups, and executive summaries without leaving the Hub.",
+        fr: ["FR-135", "AC-97"]
+      },
+      {
+        id: "039",
+        cat: "finance",
+        badge: "feature",
+        badgeLabel: "Feature · 039",
+        versions: "3.1.0 → 3.1.2",
+        date: "Jul 23",
+        title: "Utilization heatmap full view and Live labor ranges",
+        summary: "Heatmap legend filters, sticky chrome, and Live date picker ranges rebuilt from the Hub labor mirror.",
+        shipped: [
+          "TOP_N default 100; single-select legend band filters with qualifying-week sort",
+          "Sticky week headers and person labels; zero hours label; util_heatmap_legend_filter activity",
+          "Live date picker slices Datastore max-range hydrate and rebuilds KPIs / charts / heatmap / alerts",
+          "Live ranges rebuild from fos_labor_costs (YTD+), not a stale short hydrate blob",
+          "Utilization Pull keeps default-range hydrate to avoid Postgres statement timeout"
+        ],
+        value: "Operators can scan the full workforce heatmap and trust Live date windows against Clockify-backed Datastore labor instead of Fibery rebuilds.",
+        fr: ["FR-134", "AC-96"]
+      },
+      {
+        id: "006-delivery",
+        cat: "delivery",
+        badge: "ops",
+        badgeLabel: "Ops · 006",
+        versions: "3.4.4 → 3.4.11",
+        date: "Jul 27-31",
+        title: "Delivery ownership filters and P&L drill-down",
+        summary: "Assigned Owner filter and hydrate, Allocated cost line restored, and month modal hours by person.",
+        shipped: [
+          "Multi-select Assigned Owner filter on Active Projects (blank → Unassigned)",
+          "Filters re-render from in-memory delivery payload so missing session cache no longer clears the table",
+          "Live rebuild of Agreement/Delivery panel JSON when Refresh is forced or cacheSchemaVersion lags",
+          "Portfolio hydrate no longer overwrites full Delivery P&L with slim portfolioMode rows (Allocated cost line restored)",
+          "P&L month click modal shows Name / Role / Hours / Cost from laborByPerson[]; Delivery P&L cache schema 11 → 12",
+          "Removed Portfolio margin flow Sankey"
+        ],
+        value: "Delivery leads can filter by owner and drill month labor to the person without losing plan allocated cost or clearing the active projects grid.",
+        fr: ["FR-114", "AC-72"]
+      },
+      {
+        id: "007-labor",
+        cat: "finance",
+        badge: "ops",
+        badgeLabel: "Ops · 007",
+        versions: "3.4.3 → 3.4.6",
+        date: "Jul 27",
+        title: "Labor Hours week reliability on Datastore",
+        summary: "DST-safe ISO week picking, week hours from fos_labor_costs, and table grants so Live can read last-week hours.",
+        shipped: [
+          "ISO week picker no longer drifts after US spring-forward (local getTime day spans fixed)",
+          "Labor Hours week slice requires loadSource=fos_labor_costs and dataWindow coverage; Refresh forces live Clockify mirror fetch",
+          "Zero-hours roster matches email and display-name aliases",
+          "Migration 044 grants on fos_labor_costs / labor_costs so Live Utilization and Labor Hours are not permission-denied"
+        ],
+        value: "Keeps weekly labor reviews accurate and readable after the Datastore cutover, including the week that previously fell back to a stale hydrate blob.",
+        fr: ["FR-101"]
+      },
+      {
+        id: "032",
+        cat: "intelligence",
+        badge: "feature",
+        badgeLabel: "Feature · 032",
+        versions: "2.27.0 → 3.0.10",
+        date: "Jul 17-21",
+        title: "FinOps Ask AI companion",
+        summary: "Panel-scoped natural-language Q&A grounded in the currently loaded dashboard context.",
+        shipped: [
+          "Sidebar Ask AI companion pane beside the active dashboard",
+          "Messages API answers with citations to panel, filters, and Live vs snapshot",
+          "Users-tab daily quota (default 20) plus Drive chat archives and activity logging",
+          "Markdown answers, in-transcript Thinking progress, prompt caching",
+          "Full panel dataset at conversation start; Resource Assignments context sizing",
+          "Mobile full-width Ask sheet with ≥44px targets"
+        ],
+        value: "Lets finance, ops, and executives interpret KPIs in place instead of exporting CSV or hunting across panels, with cost controls and an audit trail.",
+        fr: ["FR-132", "AC-94"],
+        shot: "screenshots/02-finops-ask.png",
+        shotCap: "Ask AI on Portfolio P&L"
+      },
+      {
+        id: "033",
+        cat: "alerts",
+        badge: "feature",
+        badgeLabel: "Feature · 033",
+        versions: "2.25.0 → 2.25.3",
+        date: "Jul 15-17",
+        title: "User Profile and alert email notifications",
+        summary: "Personal Profile with opt-in digests for every existing Agreement and Utilization alert.",
+        shipped: [
+          "Sidebar Profile above Settings; preferences on Users-tab Profile JSON column",
+          "Fine-grained opt-in catalog; Hourly / Daily / Weekly (Tuesday) HTML digests with deep links",
+          "In-app Notification Log + bell tray with Clear",
+          "Live Fibery evaluation for alert jobs; ADMIN Run hourly now",
+          "Shared save-success toast for Profile, Settings, and Delivery status submit"
+        ],
+        value: "Closes the Inbox request for subscribed alert emails so stakeholders get summarized signals without watching the Web App, while keeping ADMIN Script Properties separate.",
+        fr: ["FR-127", "FR-128", "FR-129", "AC-89", "AC-90", "AC-91"],
+        shot: "screenshots/03-profile-alerts.png",
+        shotCap: "Profile digests and notification tray"
+      },
+      {
+        id: "034",
+        cat: "platform",
+        badge: "platform",
+        badgeLabel: "Platform · 034",
+        versions: "2.26.0 → 2.26.1",
+        date: "Jul 16-17",
+        title: "Live warm cache and Portfolio batch builds",
+        summary: "Same-day Drive warm path for Agreements/Delivery and continuation batches for Portfolio cold builds.",
+        shipped: [
+          "Agreement same-day Drive warm cache with force-refresh rewrite",
+          "Delivery reuses warm Agreement payload instead of a duplicate Fibery fetch",
+          "Portfolio cold builds checkpoint per project and continue in bounded batches",
+          "Nested ScriptLock reliability so Portfolio progress is not dropped mid-build"
+        ],
+        value: "Stabilized Live performance under Apps Script limits ahead of the in-app Datastore rollout, especially for Portfolio’s multi-project cold path.",
+        fr: ["FR-52", "FR-120", "FR-130", "AC-92"]
+      },
+      {
+        id: "031",
+        cat: "finance",
+        badge: "feature",
+        badgeLabel: "Feature · 031",
+        versions: "2.22.0 → 2.22.1",
+        date: "Jul 8",
+        title: "Portfolio P&L Excel export with outline groups",
+        summary: "Download the loaded Portfolio hierarchy as a real .xlsx with Excel collapse/expand outlining.",
+        shipped: [
+          "Export Excel from already-loaded panel data (respects filters and toggles)",
+          "Customer → Project → detail outline levels for offline drill-down",
+          "True xlsx MIME via Sheets export URL; staged export progress bar",
+          "Cost / negative margin styling consistent with the in-app grid"
+        ],
+        value: "Finance and executives can share, annotate, and present portfolio performance offline without rebuilding the hierarchy in a spreadsheet.",
+        fr: ["FR-125", "AC-84"],
+        shot: "screenshots/04-portfolio-excel.png",
+        shotCap: "Export Excel with outline progress"
+      },
+      {
+        id: "009",
+        cat: "platform",
+        badge: "ops",
+        badgeLabel: "Ops · 009",
+        versions: "2.23.4 → 2.24.0",
+        date: "Jul 14",
+        title: "Historical snapshot schema upgrade path",
+        summary: "Detect and regenerate Drive snapshot dates that lag live cacheSchemaVersion bumps.",
+        shipped: [
+          "Mismatch errors name the failing artifact and expected versions",
+          "Queued upgrade job via diagnostics / processSnapshotSchemaUpgrade_",
+          "Optional SNAPSHOT_AUTO_UPGRADE_STALE for automatic remediation"
+        ],
+        value: "Keeps historical Data source browsing trustworthy as Live payloads evolve, reducing “broken as-of date” support load.",
+        fr: ["FR-126", "AC-88"]
+      },
+      {
+        id: "001-brand",
+        cat: "shell",
+        badge: "ux",
+        badgeLabel: "Shell · 001",
+        versions: "2.22.3 → 2.23.1",
+        date: "Jul 8",
+        title: "FinOps Performance Hub product rebrand",
+        summary: "Product renamed from harpin FOS / AI Ops Dashboards with bundled logo and favicon.",
+        shipped: [
+          "Sidebar and not-authorized branding with hub-and-growth mark",
+          "Favicon asset pipeline + Drive mirror invalidation",
+          "Sidebar title typography tuned above topbar panel titles"
+        ],
+        value: "Gives harpin a single recognizable FinOps product identity for operators and executives opening the Web App.",
+        fr: ["FR-50", "AC-85"],
+        shot: "screenshots/01-brand-nav.png",
+        shotCap: "Branded shell and collapsible nav"
+      },
+      {
+        id: "002-004",
+        cat: "alerts",
+        badge: "ops",
+        badgeLabel: "Access · 002/004",
+        versions: "2.23.2 → 2.23.3",
+        date: "Jul 9-10",
+        title: "Auth troubleshooting and access-denied logging",
+        summary: "Clearer denial UX and best-effort User Activity records when access is refused.",
+        shipped: [
+          "Distinct not-authorized copy per auth reason with safe reason:detail codes",
+          "Server-side deny logging in authUsersSheet",
+          "Unauthorized doGet appends access_denied with email and detail"
+        ],
+        value: "Shortens time-to-diagnose for onboarding and permission issues without exposing sensitive stack traces.",
+        fr: ["FR-08", "FR-64a", "AC-86", "AC-87"],
+        shot: "screenshots/06-not-authorized.png",
+        shotCap: "Not-authorized with reason:detail"
+      },
+      {
+        id: "035",
+        cat: "shell",
+        badge: "ux",
+        badgeLabel: "Shell · 035",
+        versions: "2.26.2",
+        date: "Jul 17",
+        title: "Collapsible sidebar navigation sections",
+        summary: "Sales / Operations / Delivery / Finance groups collapse with session persistence.",
+        shipped: [
+          "Default collapsed for a scannable menu as routes grow",
+          "sessionStorage persistence across refresh in the same tab",
+          "Auto-expand when navigating into a collapsed group (including mobile More)"
+        ],
+        value: "Keeps the shell usable as the Hub’s dashboard surface expands, on desktop and mobile More menu.",
+        fr: ["FR-131", "AC-93"],
+        shot: "screenshots/01-brand-nav.png",
+        shotCap: "Collapsible Sales / Ops / Delivery / Finance groups"
+      },
+      {
+        id: "005-util",
+        cat: "finance",
+        badge: "ops",
+        badgeLabel: "Ops · 005",
+        versions: "2.22.2",
+        date: "Jul 8",
+        title: "Utilization in-memory cache fallback",
+        summary: "Avoid unnecessary Fibery refetch when sessionStorage quota blocks a write.",
+        shipped: [
+          "Prefer utilState.payload when sessionStorage write fails",
+          "Re-nav to Utilization no longer forces a cold Fibery rebuild in that case"
+        ],
+        value: "Preserves snappy panel switching for operators reviewing utilization during heavy browser sessions.",
+        fr: ["FR-73", "AC-32"]
+      }
+    ];
+
+    const list = document.getElementById("work-list");
+    const empty = document.getElementById("empty");
+    let activeFilter = "all";
+    let query = "";
+
+    function render() {
+      list.innerHTML = "";
+      let shown = 0;
+      WORK.forEach((item, i) => {
+        const hay = (item.title + " " + item.summary + " " + item.value + " " + item.shipped.join(" ") + " " + item.fr.join(" ")).toLowerCase();
+        const matchCat = activeFilter === "all" || item.cat === activeFilter;
+        const matchQ = !query || hay.includes(query);
+        if (!matchCat || !matchQ) return;
+        shown += 1;
+
+        const el = document.createElement("article");
+        el.className = "work";
+        el.style.animationDelay = (0.04 * i) + "s";
+        el.dataset.cat = item.cat;
+        el.innerHTML = `
+          <button type="button" class="work-head" aria-expanded="false">
+            <span class="badge ${item.badge}">${item.badgeLabel}</span>
+            <span>
+              <h3 class="work-title">${item.title}</h3>
+              <p class="work-sub">${item.summary}</p>
+            </span>
+            <span class="work-meta">
+              <span>${item.versions}</span>
+              <span>${item.date}</span>
+              <span class="chev" aria-hidden="true">▾</span>
+            </span>
+          </button>
+          <div class="work-body">
+            <div class="work-body-grid">
+              <div>
+                <h4>Completed in scope</h4>
+                <ul>${item.shipped.map((s) => `<li>${s}</li>`).join("")}</ul>
+                ${item.shot ? `<button type="button" class="work-shot" data-full="${item.shot}" data-cap="${item.shotCap || item.title}"><img src="${item.shot}" alt="${item.shotCap || item.title}" loading="lazy" /></button>` : ""}
+              </div>
+              <div>
+                <h4>Organizational value</h4>
+                <div class="value-callout"><strong>Why it matters.</strong> ${item.value}</div>
+                <div class="fr-row">${item.fr.map((f) => `<span class="fr">${f}</span>`).join("")}</div>
+              </div>
+            </div>
+          </div>
+        `;
+        const btn = el.querySelector(".work-head");
+        btn.addEventListener("click", () => {
+          const open = el.classList.toggle("open");
+          btn.setAttribute("aria-expanded", open ? "true" : "false");
+        });
+        const shotBtn = el.querySelector(".work-shot");
+        if (shotBtn) {
+          shotBtn.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            openLightbox(shotBtn.dataset.full, shotBtn.dataset.cap);
+          });
+        }
+        list.appendChild(el);
+      });
+      empty.classList.toggle("show", shown === 0);
+      const countEl = document.getElementById("work-count");
+      if (countEl) {
+        if (activeFilter === "all" && !query) {
+          countEl.textContent = WORK.length + " deliveries · expand any item for scope, value, and FR linkage";
+        } else {
+          countEl.textContent = "Showing " + shown + " of " + WORK.length + " · Focus filter or search is active (choose All to reset)";
+        }
+      }
+    }
+
+    const lightbox = document.getElementById("lightbox");
+    const lightboxImg = document.getElementById("lightbox-img");
+    const lightboxCap = document.getElementById("lightbox-cap");
+
+    function openLightbox(src, cap) {
+      lightboxImg.src = src;
+      lightboxImg.alt = cap || "";
+      lightboxCap.textContent = cap || "";
+      lightbox.hidden = false;
+      lightbox.classList.add("open");
+    }
+    function closeLightbox() {
+      lightbox.classList.remove("open");
+      lightbox.hidden = true;
+      lightboxImg.removeAttribute("src");
+    }
+    lightbox.addEventListener("click", closeLightbox);
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeLightbox();
+    });
+    document.querySelectorAll(".shot").forEach((btn) => {
+      btn.addEventListener("click", () => openLightbox(btn.dataset.full, btn.dataset.cap));
+    });
+
+    document.querySelectorAll(".filter-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".filter-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        activeFilter = btn.dataset.filter;
+        render();
+      });
+    });
+
+    document.getElementById("q").addEventListener("input", (e) => {
+      query = e.target.value.trim().toLowerCase();
+      render();
+    });
+
+    function animateCounts() {
+      document.querySelectorAll("[data-count]").forEach((node) => {
+        const target = Number(node.dataset.count);
+        const start = performance.now();
+        const dur = 900;
+        function tick(now) {
+          const t = Math.min(1, (now - start) / dur);
+          const eased = 1 - Math.pow(1 - t, 3);
+          node.textContent = String(Math.round(target * eased));
+          if (t < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      });
+    }
+
+    render();
+    animateCounts();
+
+    function blobToDataUrl(blob) {
+      return new Promise(function (resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function () { resolve(reader.result); };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    function imgElementToDataUrl(img) {
+      try {
+        var canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        if (!canvas.width || !canvas.height) return null;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        return canvas.toDataURL("image/png");
+      } catch (err) {
+        return null;
+      }
+    }
+
+    function loadImageDataUrl(src) {
+      return new Promise(function (resolve, reject) {
+        var img = new Image();
+        img.onload = function () {
+          var data = imgElementToDataUrl(img);
+          if (data) resolve(data);
+          else reject(new Error("Could not encode " + src));
+        };
+        img.onerror = function () { reject(new Error("Could not load " + src)); };
+        img.src = src;
+      });
+    }
+
+    async function resolveAssetDataUrl(src) {
+      if (!src || src.indexOf("data:") === 0) return src;
+      var loaded = document.querySelector('img[src="' + src.replace(/"/g, '\\"') + '"]');
+      if (loaded && loaded.complete && loaded.naturalWidth) {
+        var fromDom = imgElementToDataUrl(loaded);
+        if (fromDom) return fromDom;
+      }
+      try {
+        var res = await fetch(src);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return await blobToDataUrl(await res.blob());
+      } catch (err) {
+        return await loadImageDataUrl(src);
+      }
+    }
+
+    async function buildAssetMap() {
+      var paths = {};
+      document.querySelectorAll("img[src], [data-full]").forEach(function (el) {
+        var src = el.getAttribute("src") || el.getAttribute("data-full");
+        if (src && src.indexOf("data:") !== 0) paths[src] = true;
+      });
+      WORK.forEach(function (item) {
+        if (item.shot) paths[item.shot] = true;
+      });
+      var map = {};
+      var list = Object.keys(paths);
+      for (var i = 0; i < list.length; i++) {
+        map[list[i]] = await resolveAssetDataUrl(list[i]);
+      }
+      return map;
+    }
+
+    function applyAssetMapToHtml(html, map) {
+      var paths = Object.keys(map).sort(function (a, b) { return b.length - a.length; });
+      for (var i = 0; i < paths.length; i++) {
+        var path = paths[i];
+        var dataUrl = map[path];
+        html = html.split(path).join(dataUrl);
+      }
+      return html;
+    }
+
+    async function getSourceHtml() {
+      try {
+        var res = await fetch(location.href, { cache: "no-store" });
+        if (res.ok) return await res.text();
+      } catch (err) { /* file:// or blocked */ }
+      closeLightbox();
+      return "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+    }
+
+    async function downloadSelfContainedReport() {
+      var btn = document.getElementById("btn-download");
+      var original = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "Packing report…";
+      try {
+        closeLightbox();
+        activeFilter = "all";
+        query = "";
+        document.querySelectorAll(".filter-btn").forEach(function (b) {
+          b.classList.toggle("active", b.dataset.filter === "all");
+        });
+        var search = document.getElementById("q");
+        if (search) search.value = "";
+        render();
+
+        var map = await buildAssetMap();
+        var html = await getSourceHtml();
+        html = applyAssetMapToHtml(html, map);
+
+        // Offline-safe fonts (no Google Fonts dependency in the shared file).
+        html = html.replace(/<link[^>]+fonts\.googleapis\.com[^>]*>\s*/gi, "");
+        html = html.replace(/<link[^>]+fonts\.gstatic\.com[^>]*>\s*/gi, "");
+        if (html.indexOf("/* standalone-font-fallback */") === -1) {
+          html = html.replace(
+            "</style>",
+            "    /* standalone-font-fallback */\n" +
+              "    body { font-family: \"Segoe UI\", system-ui, sans-serif; }\n" +
+              "    h1, h2, .stat .n { font-family: Georgia, \"Times New Roman\", serif; }\n" +
+              "  </style>"
+          );
+        }
+
+        // Mark shared copies; keep Download so recipients can re-save after viewing.
+        if (html.indexOf('data-standalone-report="1"') === -1) {
+          html = html.replace(/<html\b([^>]*)>/i, '<html data-standalone-report="1"$1>');
+        }
+
+        var blob = new Blob([html], { type: "text/html;charset=utf-8" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = "FinOps-Performance-Hub-Monthly-Status-2026-07.html";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+        btn.textContent = "Downloaded";
+        setTimeout(function () { btn.textContent = original; }, 1800);
+      } catch (err) {
+        console.error(err);
+        btn.textContent = "Download failed";
+        alert("Could not build a self-contained report. Open this page via a local server or the folder HTML (so screenshots can load), then try again.\n\n" + (err && err.message ? err.message : err));
+        setTimeout(function () { btn.textContent = original; }, 2200);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById("btn-download").addEventListener("click", function () {
+      downloadSelfContainedReport();
+    });
+  </script>
+</body>
+</html>
