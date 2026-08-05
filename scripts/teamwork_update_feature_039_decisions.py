@@ -1,23 +1,46 @@
-# Feature: Utilization heatmap full view and legend filters
+#!/usr/bin/env python3
+"""Update Feature 039 Teamwork notebook + task after open-question decisions."""
 
-> **PRD version 3.1.0** (feature ship; follow-ons **3.1.1** / **3.1.2** / **3.2.1** under **FR-134**) - sync with docs/FOS-Dashboard-PRD.md
->
-> **Status:** Shipped (**v3.1.0**)
+from __future__ import annotations
+
+import sys
+from datetime import date
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+
+from teamwork_bootstrap import api, md_to_html  # noqa: E402
+from teamwork_intake import load_manifest, task_url  # noqa: E402
+from teamwork_sync_notebook import save_manifest, update_notebook  # noqa: E402
+
+FEATURE_ID = "039"
+NOTEBOOK_ID = 312849
+TASK_ID = 40578934
+NOTEBOOK_KEY = "feature_039"
+NOTEBOOK_TITLE = "Feature 039 - Utilization heatmap full view and legend filters"
+NOTEBOOK_DESC = (
+    "Utilization heatmap: raise TOP_N to 100, interactive single-select legend "
+    "filters with sticky headers, rename no data to zero hours."
+)
+TASK_NAME = "Feature 039 - Utilization heatmap full view and legend filters"
+
+FEATURE_MD = """# Feature: Utilization heatmap full view and legend filters
+
+> **Status:** Spec Draft (Inbox backlog)
 > **Feature ID:** **039**
 > **Release type:** Enhancement
-> **Task list:** Operations
+> **Task list:** Inbox (move to Operations at Spec Approved)
 > **Extends:** Utilization dashboard heatmap (Phase C / Operations)
-> **Teamwork:** https://win.godeap.io/app/projects/1615262/notebooks/312849
-> **Task:** https://win.godeap.io/app/tasks/40578934
-> **Shipped:** `v3.1.0 - Utilization heatmap full view and legend filters`
+> **Teamwork:** This notebook is the authoritative RD until Spec Approved; sync to `docs/features/039-utilization-heatmap-full-view.md` before coding.
 
 ## Goal
 
-Let Operations users scan a larger utilization heatmap (person cap raised to **100**), use the **heatmap legend as a single-select filter** to focus on people with any week in a chosen band, keep **sticky week headers and person labels** while scrolling, and rename the **no data** legend label to **zero hours**. Live Utilization follows the panel **date picker** by rebuilding from **`fos_labor_costs`**. ADMIN Pull hydrates a default-range panel blob only (avoids Postgres statement timeout on oversized JSON upserts).
+Let Operations users scan a larger utilization heatmap (person cap raised to **100**), use the **heatmap legend as a single-select filter** to focus on people with any week in a chosen band, keep **sticky week headers and person labels** while scrolling, and rename the **no data** legend label to **zero hours**.
 
 ## Problem today
 
-The Utilization panel heatmap (`#panel-utilization`, `#util-heatmap-grid`):
+The Utilization panel heatmap (`#panel-utilization`, `#util-heatmap-svg`):
 
 1. Caps rows at **30 people** via `UTILIZATION_HEATMAP_TOP_N_PERSONS`. Reviewers need the cap raised to **100**, not a different capping mechanism.
 2. The legend is display-only. Reviewers cannot click a band (for example `> 110% over`) to focus on people who have any week in that band.
@@ -42,7 +65,6 @@ The Utilization panel heatmap (`#panel-utilization`, `#util-heatmap-grid`):
 | 12 | Meta line | Meta shows `N people · M weeks` for the currently displayed set (after legend filter and TOP_N). Cap messaging may still appear when more people exist than TOP_N. |
 | 13 | Mobile | Legend single-select and sticky headers usable under 768px; touch targets at least 44px for legend chips. |
 | 14 | Activity | Log legend filter changes (e.g. `util_heatmap_legend_filter`) with the active band key (or cleared). |
-| 15 | Date picker alignment (v3.1.2+) | Live Utilization KPIs, charts, heatmap, alerts, and detail MUST match the panel date picker via **`fos_labor_costs`**. Pull hydrate keeps the **default** Fibery window for digests/fallback only (not MAX_RANGE; oversized upserts timed out). |
 
 ## Resolved questions (were open)
 
@@ -117,27 +139,61 @@ The Utilization panel heatmap (`#panel-utilization`, `#util-heatmap-grid`):
 
 ## Implementation Checklist
 
-- [x] Update feature spec checkboxes as implemented
-- [x] **Mobile UI** per mobile shell rule (same PR as desktop)
-- [x] Set `UTILIZATION_HEATMAP_TOP_N_PERSONS` default to **100** (keep cap mechanism)
-- [x] Legend single-select filter + active styles; full week rows for matched people
-- [x] Sort by qualifying-week count when legend filter active
-- [x] Sticky week headers + sticky person labels
-- [x] Rename **no data** → **zero hours** (legend + tooltips/aria)
-- [x] Whitelist any new activity event in `userActivityLog.js`
-- [x] Sync this notebook to `docs/features/039-utilization-heatmap-full-view.md` at Spec Approved and again at ship
-- [x] PRD FR/AC + version bump at ship
-- [x] Run local smoke test on desktop and mobile width
-- [x] Commit with message: feat: utilization heatmap legend filters and sticky headers
-- [x] Teamwork ship checklist (`teamwork_ship_command.py --feature-id 039` / ship at **v3.1.0**)
+- [ ] Update feature spec checkboxes as implemented
+- [ ] **Mobile UI** per mobile shell rule (same PR as desktop)
+- [ ] Set `UTILIZATION_HEATMAP_TOP_N_PERSONS` default to **100** (keep cap mechanism)
+- [ ] Legend single-select filter + active styles; full week rows for matched people
+- [ ] Sort by qualifying-week count when legend filter active
+- [ ] Sticky week headers + sticky person labels
+- [ ] Rename **no data** → **zero hours** (legend + tooltips/aria)
+- [ ] Whitelist any new activity event in `userActivityLog.js`
+- [ ] Sync this notebook to `docs/features/039-utilization-heatmap-full-view.md` at Spec Approved and again at ship
+- [ ] PRD FR/AC + version bump at ship
+- [ ] Run local smoke test on desktop and mobile width
+- [ ] Commit with message: feat: utilization heatmap legend filters and sticky headers
 
 ## Change requests
 
 (Post-approval customer edits only; merge into main body at ship.)
+"""
 
-## Changelog (feature doc)
 
-| Date | Note |
-| --- | --- |
-| 2026-07-23 | Spec Draft / locked decisions; implementation in **v3.1.0** (+ date-picker / labor-mirror follow-ons). |
-| 2026-08-05 | Teamwork ship sync: task renamed to **v3.1.0**, workflow **Shipped**, notebook re-synced from git, tasklist **Operations**. |
+def main() -> None:
+    html = md_to_html(FEATURE_MD)
+    update_notebook(NOTEBOOK_ID, content=html, description=NOTEBOOK_DESC)
+    print(f"Notebook updated: {NOTEBOOK_ID}")
+
+    manifest = load_manifest()
+    how = manifest["notebooks"]["how_we_work"]["url"]
+    nb_url = manifest["notebooks"][NOTEBOOK_KEY]["url"]
+    desc = f"""Release type: Enhancement
+Feature id: {FEATURE_ID}
+Product version: TBD at ship (do not guess in task title until deploy)
+Workflow stage: Backlog (Inbox)
+
+**Scope:** Utilization heatmap legend filters + sticky headers:
+
+1. Keep TOP_N person cap; set `UTILIZATION_HEATMAP_TOP_N_PERSONS` default to **100** (do not remove the cap).
+2. Show all weeks for the current Utilization page filters.
+3. Legend chips are **single-select** filters: show people with any week in the selected band; still display all weeks for those people.
+4. When filtered, sort by **count of qualifying weeks** descending.
+5. Sticky week headers and sticky person labels.
+6. Rename legend **no data** → **zero hours**; empty cells stay empty (no fabricated zeros).
+7. Mobile-usable legend + sticky chrome in the same release.
+
+Feature notebook: {nb_url}
+Extends: Utilization dashboard heatmap (Operations)
+Workflow: {how}
+"""
+    api("PUT", f"/tasks/{TASK_ID}.json", {"todo-item": {"description": desc}})
+    print(f"Task updated: {TASK_ID} {task_url(TASK_ID)}")
+
+    nb = manifest.setdefault("notebooks", {}).setdefault(NOTEBOOK_KEY, {})
+    nb["lastSyncedAt"] = date.today().isoformat()
+    nb["description"] = NOTEBOOK_DESC
+    save_manifest(manifest)
+    print("Manifest lastSyncedAt updated.")
+
+
+if __name__ == "__main__":
+    main()

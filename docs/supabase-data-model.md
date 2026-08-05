@@ -38,6 +38,11 @@ Migrations are **idempotent** (`create table if not exists`, `create index if no
 | `040_engagement_reviews_grants.sql` | Grants for engagement tables |
 | `041_agreement_management_mirror.sql` | Agreement Management typed mirror (enums, entities, junctions); adds (unused) `fos_am_labor_costs` table |
 | `042_am_mirror_foreign_keys.sql` | Soft-to-hard FK constraints (`DEFERRABLE INITIALLY DEFERRED`, `NOT VALID`) across the AM mirror graph; does not touch `fos_am_labor_costs` |
+| `043_am_mirror_grants.sql` | Grants for AM mirror tables |
+| `044_fos_labor_costs_grants.sql` | Grants + RLS policies on `fos_labor_costs` / `labor_costs` |
+| `045_engagement_updates_status_pack.sql` | Engagement Update status packs: notes table, snapshot/RAG/sort columns, AI synopsis columns, uniqueness |
+| `043_am_mirror_grants.sql` | Grants AM mirror tables to `anon` / `authenticated` (same pattern as 040); fixes nightly `permission denied for table fos_am_enums` |
+| `044_fos_labor_costs_grants.sql` | Grants + RLS policies on `fos_labor_costs` / `labor_costs`; fixes Live Utilization / Labor Hours and Pull `permission denied for table fos_labor_costs` |
 
 After schema apply: set Script Properties (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`), run ADMIN **Pull from Fibery** (also installs the nightly hydrate trigger as of v3.0.12), then smoke Live panels. See [cutover notes](sql/036/README.md).
 
@@ -70,7 +75,7 @@ As of **v3.4.0**, panel hydrate (`supabaseSyncJob.js`) builds every Live panel p
 | `fos_am_enums`, `fos_team_member_roles`, `fos_companies`, `fos_clockify_users`, `fos_contacts`, `fos_services_estimates`, `fos_agreements`, `fos_resource_allocations`, `fos_estimated_allocations`, `fos_other_direct_costs`, `fos_invoice_requests`, `fos_revenue_items`, `fos_agreement_pnl_items`, junction tables | Feature 036 AM mirror (`am-mirror` dataset; `supabaseAmMirror.js`) | **v3.4.0:** `supabasePanelBuilders.js` panel hydrate builders; Engagement Review joins |
 | `fos_am_labor_costs` | **Deprecated (v3.4.0):** no longer written. Table remains from migration 041 for back-compat only. | None; not read by any builder |
 | `fos_status_updates` | Hydrate AM mirror (`submitted_by`) + dual-write on Delivery status submit (`content`, `author_email`) | Delivery status history (`fetchStatusUpdatesForAgreementFromSupabase_` prefers `author_email`, falls back to `submitted_by`) |
-| `fos_engagement_reviews` (+ agreements, participants, updates, recordings) | Hub Engagement Review module (feature **037**) | Engagement Review UI |
+| `fos_engagement_reviews` (+ agreements, participants, updates, recordings, notes) | Hub Engagement Review module (feature **037**) | Engagement Review UI; v3.5.0 status packs + AI synopsis |
 | `fos_hubspot_deals` | **v3.4.0:** full-replace mirrored from Fibery `HubSpot/Deal` by `mirrorHubspotDealsToSupabase_()` immediately before the Pipeline panel hydrate | Pipeline panel build (`buildPipelineDashboardPayloadFromSupabase_`) |
 | `fos_ai_usage_rows` | **v3.4.0:** full-replace mirrored from Fibery `Claude API Costs` by `mirrorAiUsageRowsFromFibery_()` immediately before the AI Usage panel hydrate | AI Usage panel build (`buildAiUsagePayloadFromSupabase_`) |
 

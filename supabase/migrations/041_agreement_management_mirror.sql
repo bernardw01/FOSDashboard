@@ -501,22 +501,24 @@ create table if not exists public.fos_pnl_revenue_items (
 create index if not exists fos_pnl_revenue_items_revenue_idx
   on public.fos_pnl_revenue_items (revenue_item_fibery_id);
 
--- Service role only (match 036 posture). Apps Script uses service role key.
-revoke all on table public.fos_am_enums from anon, authenticated;
-revoke all on table public.fos_team_member_roles from anon, authenticated;
-revoke all on table public.fos_company_segments from anon, authenticated;
-revoke all on table public.fos_clockify_users from anon, authenticated;
-revoke all on table public.fos_contacts from anon, authenticated;
-revoke all on table public.fos_services_estimates from anon, authenticated;
-revoke all on table public.fos_agreement_assigned_resources from anon, authenticated;
-revoke all on table public.fos_resource_allocations from anon, authenticated;
-revoke all on table public.fos_estimated_allocations from anon, authenticated;
-revoke all on table public.fos_am_labor_costs from anon, authenticated;
-revoke all on table public.fos_other_direct_costs from anon, authenticated;
-revoke all on table public.fos_invoice_requests from anon, authenticated;
-revoke all on table public.fos_revenue_items from anon, authenticated;
-revoke all on table public.fos_agreement_pnl_items from anon, authenticated;
-revoke all on table public.fos_pnl_labor_costs from anon, authenticated;
-revoke all on table public.fos_pnl_revenue_items from anon, authenticated;
+-- Match sibling Hub fos_* tables (036 / 040): grant anon/authenticated too.
+-- Do not revoke anon; that breaks PostgREST upserts (see 043_am_mirror_grants.sql).
+-- Prefer SUPABASE_SERVICE_ROLE_KEY = service_role secret.
+grant all on table public.fos_am_enums to postgres, service_role, anon, authenticated;
+grant all on table public.fos_team_member_roles to postgres, service_role, anon, authenticated;
+grant all on table public.fos_company_segments to postgres, service_role, anon, authenticated;
+grant all on table public.fos_clockify_users to postgres, service_role, anon, authenticated;
+grant all on table public.fos_contacts to postgres, service_role, anon, authenticated;
+grant all on table public.fos_services_estimates to postgres, service_role, anon, authenticated;
+grant all on table public.fos_agreement_assigned_resources to postgres, service_role, anon, authenticated;
+grant all on table public.fos_resource_allocations to postgres, service_role, anon, authenticated;
+grant all on table public.fos_estimated_allocations to postgres, service_role, anon, authenticated;
+grant all on table public.fos_am_labor_costs to postgres, service_role, anon, authenticated;
+grant all on table public.fos_other_direct_costs to postgres, service_role, anon, authenticated;
+grant all on table public.fos_invoice_requests to postgres, service_role, anon, authenticated;
+grant all on table public.fos_revenue_items to postgres, service_role, anon, authenticated;
+grant all on table public.fos_agreement_pnl_items to postgres, service_role, anon, authenticated;
+grant all on table public.fos_pnl_labor_costs to postgres, service_role, anon, authenticated;
+grant all on table public.fos_pnl_revenue_items to postgres, service_role, anon, authenticated;
 
 commit;

@@ -1,6 +1,6 @@
 # Feature: Delivery Dashboard - Active Projects + Per-Project P&L
 
-> **PRD version 2.26.0** - Feature **034** adds browser/Drive Agreement reuse for the Active Projects list; per-project P&L behavior is unchanged.
+> **PRD version 3.4.12** - Full Delivery P&L keeps Allocated cost (plan) line; portfolio hydrate no longer overwrites with slim blobs. Live rebuild of Delivery panel JSON when schema lags (Assigned Owner). Delivery status/owner filters keep matching projects in view (in-memory re-render). Assigned Owner filter on Active Projects; portfolio margin Sankey removed. Feature **034** adds browser/Drive Agreement reuse for the Active Projects list; per-project P&L behavior is unchanged. **v3.4.11:** chart month modal shows hours by individual (`laborByPerson`); chart/tooltips stay on `laborByRole`. **v3.4.12:** month modal adds logged vs allocated hours, Fibery % Allocated, sort/filter, orange for non-billable logged; P&L cache schema **13**.
 > `src/Code.js` `FOS_PRD_VERSION` and every `src/*` file header MUST match the
 > version line in `docs/FOS-Dashboard-PRD.md`.
 
@@ -10,10 +10,13 @@
 | --- | --- | --- | --- |
 | **Phase A - activation + project list + monthly P&L** | Delivery panel activation (replaces the v1.0 "coming soon" stub) · Active projects table · row-click → **monthly P&L time-series** (one row per calendar month from project start through current month) with Revenue Recognized · Labor Cost · Expenses · Total Cost · Margin $ · Margin %; per-project lazy fetch of `Labor Costs` + `Other Direct Costs`; rollup KPI strip + lifetime totals row in the same card · refresh + TTL row · `sessionStorage` cache · activity events | v1.19.0 | **Shipped** |
 | **Phase B - chart view + drill-down + projected months + CSV + search** | Table / Chart view toggle on the monthly P&L (stacked **labor by role** + Expenses bars with an overlaid Revenue line via Chart.js - v2.6.8) · per-month Revenue drill-down modal sourced from the cached `month.revenueItems[]` (zero extra Fibery fetches) · projected months tagged `projected: true` server-side (drops recognized-only filter on Revenue Items; defaults `DELIVERY_PNL_INCLUDE_PROJECTED_ODC` to `true`) and surfaced as a `Projected` pill in the table + muted bar fills in the chart · Copy CSV action on the P&L card · client-side substring search input in the Active Projects header (Project + Customer; persisted + debounced) · four new activity events (`delivery_pnl_view_toggle`, `delivery_pnl_month_drilldown`, `delivery_pnl_copy_csv`, `delivery_table_search`) · cache schema bump (`_v1` → `_v2`; **`_v4`** as of v2.6.8 for `laborByRole`) | v1.20.0 | **Shipped** |
-| **Phase C - predictive** | Client-only **pacing strip** on the P&L card (linear plan vs recognized + trailing 3-mo avg) · **Delivery signals** strip above Active Projects (rules on cached `projects[]` only) · **Portfolio margin-flow Sankey** (D3 + d3-sankey, visible-row aggregate) · Agreement Attention extensions in `agreementAlerts.js` (pacing / cost vs recognized / low recognition near duration end) | v1.21.0 | **Shipped** |
+| **Phase C - predictive** | Client-only **pacing strip** on the P&L card (linear plan vs recognized + trailing 3-mo avg) · **Delivery signals** strip above Active Projects (rules on cached `projects[]` only) · ~~**Portfolio margin-flow Sankey**~~ **removed in v3.4.4** · Agreement Attention extensions in `agreementAlerts.js` (pacing / cost vs recognized / low recognition near duration end) | v1.21.0 | **Shipped** (Sankey removed **v3.4.4**) |
+| **Assigned Owner filter** | Multi-select **Assigned owner** (Fibery Assigned Owner / Clockify User name; blank → **Unassigned**); Agreement schema **4**; Delivery projects schema **2**; filters pref schema **3** | v3.4.4 | **Shipped** |
 | **Status updates on P&L** | Latest Fibery **Status Updates** chip + **Add status update** modal; `statusUpdates` on P&L payload; cache **`_v5`** | v2.12.0 | **Shipped** |
 | **Resource allocation cost on chart** | Planned labor from Fibery **Resource Allocations** as dashed line on P&L chart; `resourceAllocations` on payload; cache **`_v6`** | v2.12.6 | **Shipped** |
-| **P&L month modal allocation + variance** | Chart click modal: **Actual / Allocated / Variance** by role; `allocatedByRole`; cache **`_v7`** | v2.12.8 | **Shipped** |
+| **P&L month modal allocation + variance** | Chart click modal: **Actual / Allocated / Variance** by role; `allocatedByRole`; cache **`_v7`** | v2.12.8 | **Shipped** (modal columns superseded **v3.4.11**) |
+| **P&L month modal hours by person** | Chart click modal: **Name / Role / Hours / Cost** from `laborByPerson[]`; chart/tooltips unchanged (`laborByRole`); cache **`_v12`** | v3.4.11 | **Shipped** (extended **v3.4.12**) |
+| **P&L month modal logged vs allocated** | Sort/filter; Hours logged vs allocated; Fibery % Allocated; orange without Allocated & Billable; cache **`_v13`** | v3.4.12 | **Shipped** |
 | **Agreement payload reuse** | Active Projects derives from a fresh browser Agreement payload when safe, otherwise today's Agreement Drive cache before Fibery; source labels propagate. | v2.26.0 | **Shipped** ([034](034-live-dashboard-warm-cache-and-portfolio-batching.md)) |
 
 ## Goal
@@ -250,6 +253,12 @@ is the reconciliation source of truth.
  header stay visible).
 - **Placeholder state** (no row selected): "Select a project above to
  see its monthly P&L." - uses the same card shell so height is stable.
+- **Chart month modal (v3.4.12):** clicking a month on the Chart view opens
+ `#deliveryPnlMonthModal` with **Name · Role · Hours logged · Hours allocated ·
+ % Allocated · Cost** from `month.laborByPerson[]`. Sortable headers; name /
+ role / needs-allocation filters. Orange rows when logged hours exist without
+ **Allocated & Billable**. Desktop table; mobile (&lt; 768px) person cards.
+ Chart stacks and hover tooltips remain role-grouped (`laborByRole`).
 
 ### Refresh + TTL
 
@@ -388,13 +397,13 @@ function getDeliveryProjectMonthlyPnL(agreementId) {
 ## Client cache contract
 
 - **Projects list cache key:** `fos_delivery_dashboard_v1`. Value =
- `{ projects, fetchedAt, ttlMinutes, cacheSchemaVersion: 1 }`.
-- **Per-project monthly P&L cache key:** `fos_delivery_pnl_<agreementId>_v1`.
- Value = `{ months, fetchedAt, ttlMinutes, cacheSchemaVersion: 1, discrepancyCheck }`.
+ `{ projects, fetchedAt, ttlMinutes, cacheSchemaVersion: 2 }` (v3.4.4: `assignedOwner` on each project).
+- **Per-project monthly P&L cache key:** `fos_delivery_pnl_<agreementId>_v10`.
+ Value = monthly P&L payload (`cacheSchemaVersion: 10` as of v2.15.12).
 - **TTL preference:** `fos_delivery_dashboard_ttl_minutes_v1` (single
  knob - applies to both cache families).
 - **Filter state preference:** `fos_delivery_filters_v1`
- (`schemaVersion: 1`) - `{ sort: { column, dir }, selectedId: string|null }`.
+ (`schemaVersion: 3`) - `{ sort, selectedId, searchTerm, pnlView, filters: { customers, types, states, owners } }`.
 - **Secrets:** none. Standard rule - never persist Fibery tokens.
 - **Sticky panel render:** mirror the v1.13.1 pattern - track
  `lastRenderedFetchedAt` for the projects list AND a
@@ -680,3 +689,14 @@ coding. Numbered M.1 - M.7 to distinguish them from the original 1 - 7.
  delivery-scoped severity (e.g. "three consecutive negative-margin
  months") and surface in a small attention strip above the Active
  Projects table.
+
+## Changelog
+
+| Date | Version | Notes |
+| --- | --- | --- |
+| 2026-08-04 | 3.4.12 | Month modal: logged vs allocated hours, Fibery % Allocated, sort/filter, orange without Allocated & Billable. P&L cache schema **13**. |
+| 2026-07-31 | 3.4.11 | Chart month modal shows **Name / Role / Hours / Cost** from per-month **`laborByPerson[]`**. Stacked chart and tooltips unchanged (`laborByRole`). P&L cache schema **12**. |
+| 2026-07-28 | 3.4.9 | Portfolio hydrate no longer writes slim `portfolioMode` rows into `fos_delivery_pnl`. Live Delivery P&L rebuilds full typed payloads (with `resourceAllocations`) when stored rows are slim/schema-stale. P&L cache schema **11**. Restores orange **Allocated cost (plan)** chart line. |
+| 2026-07-28 | 3.4.8 | Live Agreement/Delivery serve rebuilds from typed tables when Refresh is forced or panel `cacheSchemaVersion` lags, so Assigned Owner appears in the filter without a full Fibery Pull. |
+| 2026-07-28 | 3.4.7 | Status/owner (and other dimension) filters re-render from the in-memory delivery payload so selecting a value no longer empties the table when sessionStorage is missing or schema-rejected. Owner blanks normalize to **Unassigned**. |
+| 2026-07-27 | 3.4.4 | **Assigned owner** multi-select filter (blank → Unassigned). Agreement schema **4**, Delivery projects schema **2**, filters pref schema **3**. Removed Delivery **Portfolio margin flow** Sankey. |

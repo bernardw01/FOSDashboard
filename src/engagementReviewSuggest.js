@@ -1,5 +1,5 @@
 /**
- * PRD version 3.4.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.5.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 037: Suggest agreements from alerts; participants from Agreement Owner ∩ Users.
  */

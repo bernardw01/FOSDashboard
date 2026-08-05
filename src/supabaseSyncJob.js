@@ -1,5 +1,5 @@
 /**
- * PRD version 3.4.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.5.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: Fibery -> Supabase hydrate (nightly + ADMIN Pull).
  * Dataset am-mirror (supabaseAmMirror.js) hydrates Agreement Management typed
@@ -326,7 +326,7 @@ function hydrateSupabaseDataset_(datasetKey, syncState) {
 }
 
 /** @return {!Object} */
-function hydrateSupabaseAgreement_() {
+function rebuildAgreementDeliveryPanelsFromTyped_() {
   var built = buildAgreementDashboardPayloadFromSupabase_();
   if (!built || built.ok === false) {
     return {
@@ -340,10 +340,15 @@ function hydrateSupabaseAgreement_() {
     built.cacheSchemaVersion
   );
   if (!save.ok) {
-    return { ok: false, message: save.message || 'Agreement upsert failed.' };
+    return {
+      ok: false,
+      message: save.message || 'Agreement upsert failed.',
+      agreement: built,
+    };
   }
+  var delivery = null;
   try {
-    var delivery = buildDeliveryDashboardPayloadFromAgreement_(built);
+    delivery = buildDeliveryDashboardPayloadFromAgreement_(built);
     if (delivery && delivery.ok !== false) {
       saveSupabasePanelPayload_(
         'delivery',
@@ -352,7 +357,24 @@ function hydrateSupabaseAgreement_() {
       );
     }
   } catch (e) {
-    supabaseWarn_('delivery derive during agreement hydrate', e);
+    supabaseWarn_('delivery derive during typed rebuild', e);
+    return {
+      ok: false,
+      message: (e && e.message) || String(e),
+      agreement: built,
+    };
+  }
+  return { ok: true, agreement: built, delivery: delivery };
+}
+
+/** @return {!Object} */
+function hydrateSupabaseAgreement_() {
+  var rebuilt = rebuildAgreementDeliveryPanelsFromTyped_();
+  if (!rebuilt.ok) {
+    return {
+      ok: false,
+      message: rebuilt.message || 'Agreement Supabase build failed.',
+    };
   }
   return { ok: true, detail: 'agreement+delivery' };
 }
@@ -465,18 +487,18 @@ function hydrateSupabasePortfolio_() {
     return { ok: false, message: save.message || 'Portfolio upsert failed.' };
   }
   var pnlById = built.pnlById || built.projectsById || null;
-  var stored = 0;
+  // Do NOT upsert portfolioMode (slim) P&L rows into fos_delivery_pnl.
+  // Delivery Live needs full payloads with resourceAllocations for the
+  // Allocated cost (plan) chart line; overwriting with slim rows cleared it.
+  // Portfolio serves from the portfolio-pnl panel blob (pnlById embedded).
+  var embedded = 0;
   if (pnlById && typeof pnlById === 'object') {
     for (var id in pnlById) {
       if (!Object.prototype.hasOwnProperty.call(pnlById, id)) continue;
-      var pnl = pnlById[id];
-      if (!pnl || typeof pnl !== 'object') continue;
-      var name = pnl.agreementName || pnl.name || '';
-      saveSupabaseDeliveryPnL_(id, name, pnl);
-      stored++;
+      if (pnlById[id] && typeof pnlById[id] === 'object') embedded++;
     }
   }
-  return { ok: true, detail: 'pnlRows=' + stored };
+  return { ok: true, detail: 'portfolioBlob + embeddedPnl=' + embedded };
 }
 
 /**

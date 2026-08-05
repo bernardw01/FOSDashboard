@@ -1,5 +1,5 @@
 /**
- * PRD version 3.4.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.5.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * User activity logging - append-only event rows to the "User Activity" tab
  * in the Users spreadsheet (AUTH_SPREADSHEET_ID). Implements Section 3.8 / FR-60-FR-66.
@@ -144,6 +144,14 @@ var ACTIVITY_VALID_EVENT_TYPES_ = {
   engagement_review_calendar_invite: true,
   engagement_review_recording_upload: true,
   engagement_review_project_detail: true,
+  engagement_update_create: true,
+  engagement_update_edit: true,
+  engagement_update_reorder: true,
+  engagement_update_refresh_metrics: true,
+  engagement_update_view: true,
+  engagement_update_export: true,
+  engagement_review_note_save: true,
+  engagement_review_ai_synopsis: true,
   engagement_update_submit: true,
 };
 

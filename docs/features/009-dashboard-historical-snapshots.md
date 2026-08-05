@@ -1,6 +1,6 @@
 # Dashboard historical snapshots
 
-> **PRD version 2.26.0** - see `docs/FOS-Dashboard-PRD.md` (**FR-42**, **FR-40**, **FR-104**, **FR-126**, **FR-130**, **AC-60**, **AC-88**, **AC-92**). Feature **034** reuses the snapshot root for Live daily caches without changing historical snapshot artifacts.
+> **PRD version 3.4.12** - see `docs/FOS-Dashboard-PRD.md` (**FR-42**, **FR-40**, **FR-104**, **FR-126**, **FR-130**, **AC-60**, **AC-88**, **AC-92**). Feature **034** reuses the snapshot root for Live daily caches without changing historical snapshot artifacts. Agreement `cacheSchemaVersion` **4**; Delivery projects **2**; Delivery P&L **13** (laborByPerson logged vs allocated + Allocated & Billable; was **12** for person hours only).
 
 ## Goal
 
@@ -45,13 +45,13 @@ The `agreement-cache/` and `portfolio-pnl-cache/` folders are **Live-mode daily 
 
 | Artifact | Source | Notes |
 |----------|--------|--------|
-| `agreement.json` | `buildAgreementDashboardPayload_(snapshotDate)` | Future revenue filtered as of snapshot date |
+| `agreement.json` | `buildAgreementDashboardPayload_(snapshotDate)` | Future revenue filtered as of snapshot date; `cacheSchemaVersion: 4` (v3.4.4: `assignedOwner`; was **3**) |
 | `utilization.json` | `buildUtilizationDashboardPayload_(start, end)` | Default 90-day window ending snapshot date; `cacheSchemaVersion: 5` (v2.16.1: browser cache key migration; was **4** through v2.13.6) |
-| `delivery-projects.json` | `buildDeliveryDashboardPayloadFromAgreement_` | No extra Fibery fetch |
+| `delivery-projects.json` | `buildDeliveryDashboardPayloadFromAgreement_` | No extra Fibery fetch; `cacheSchemaVersion: 2` (v3.4.4: `assignedOwner`; was **1**) |
 | `expenses.json` | `buildExpensesDashboardPayload_()` | Spreadsheet tab at job run time; `cacheSchemaVersion: 3` (v2.17.2: category column resolution; was **2** through v2.11.2); skip when **`SNAPSHOT_INCLUDE_EXPENSES`** is false |
 | `pipeline.json` | `buildPipelineDashboardPayload_()` | Merged Opportunity Tracker + Fibery `HubSpot/Deal`; `cacheSchemaVersion: 3` (v2.21.0; was **2** in v2.11.1); skip when **`SNAPSHOT_INCLUDE_PIPELINE`** is false |
 | `resource-assignments.json` | `buildResourceAssignmentDashboardPayload_(start, end)` | Fibery Resource Allocations + Labor Costs actuals; range snapshot date **-30 / +90** days; `cacheSchemaVersion: 2` (v2.19.0; was **1** in v2.18.x); skip when **`SNAPSHOT_INCLUDE_RESOURCE_ASSIGNMENTS`** is false |
-| `delivery-pnl/*.json` | `buildDeliveryProjectMonthlyPnLInternal_` | Batched; continuation trigger if needed; `cacheSchemaVersion: 10` (v2.15.12: `assignments[].roleName`; was **9** through v2.15.10) |
+| `delivery-pnl/*.json` | `buildDeliveryProjectMonthlyPnLInternal_` | Batched; continuation trigger if needed; `cacheSchemaVersion: 13` (v3.4.12: laborByPerson allocated hours / % / billable flag; was **12** in v3.4.11 for person hours; was **11** in v3.4.9 for full `resourceAllocations`) |
 | `portfolio-pnl.json` | `writePortfolioPnlSnapshotBundle_` (aggregates per-project artifacts) | Written at manifest finalize; schema **1** (v2.16.0 / feature **025**); slim portfolio payloads (`portfolioMode`) |
 
 ### Failure policy

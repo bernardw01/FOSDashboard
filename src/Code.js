@@ -1,11 +1,11 @@
 /**
- * PRD version 3.4.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.5.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.4.0';
+var FOS_PRD_VERSION = '3.5.2';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.4.0';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.4.0 Pull mirrors AM tables then builds panel JSON from Supabase (Clockify labor only).';
+  'v3.5.2 Engagement Update create/edit modal: solid opaque surfaces, form and option contrast, darker backdrop.';
 
 /**
  * @return {string}

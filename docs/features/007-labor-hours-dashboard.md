@@ -1,6 +1,6 @@
 # Feature: Labor Hours Dashboard (under Operations)
 
-> **PRD version 2.13.6** - see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js`).
+> **PRD version 3.4.5** - see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js`).
 
 > **PRD baseline (imported):** `docs/implementation-notes/labor-hours-dashboard-PRD (1).html` (v2.4, static Python report spec). 
 > **Reference UI (imported example):** `docs/implementation-notes/labor-hours-week-of-2026-05-04.html` (week-of report with KPIs, tables, zero-hours chips, expandable project breakdown). 
@@ -51,15 +51,15 @@ The imported files use a **light** theme (cream background, navy header). The We
 
 ## Data strategy - connection to existing “cache”
 
-**Normalized row shape** today: `getUtilizationDashboardData(rangeStart?, rangeEnd?)` in `src/fiberyUtilizationDashboard.js` returns paginated, normalized labor rows; the client stores the payload in `sessionStorage` under `fos_utilization_dashboard_v1` with `cacheSchemaVersion` (see feature **005**).
+**Normalized row shape** today: `getUtilizationDashboardData(rangeStart?, rangeEnd?)` in `src/fiberyUtilizationDashboard.js` returns paginated, normalized labor rows from **`fos_labor_costs`** (Clockify Hub mirror) on Live; the client may cache that payload in `sessionStorage` under `fos_utilization_dashboard_v2` with `cacheSchemaVersion` (see feature **005**). ADMIN Pull hydrates panel JSON separately and does **not** gate Labor Hours week data.
 
-**Labor Hours** is a **different aggregation** over the **same rows**:
+**Labor Hours** is a **different aggregation** over the **same Clockify labor rows**:
 
-1. **Week bounds:** User picks an ISO week `[weekStartMon, weekEndSun]` (inclusive display; filter uses the same UTC boundary pattern as the imported PRD §4 / §9 - align with existing `startDateTime` filtering on rows).
-2. **Cache hit:** If the in-memory or `sessionStorage` cached utilization payload already covers the week (`payload.range.start <= weekStart` and `payload.range.end >= weekEnd` in comparable ISO resolution), **derive** the Labor Hours view **entirely client-side** by filtering `payload.rows` - **no server call**.
-3. **Cache miss / partial overlap:** Call `getUtilizationDashboardData(weekStartIso, weekEndIso)` with the **exact** week window (still bounded by `UTILIZATION_MAX_RANGE_DAYS` and auth). Optionally merge into a client-side “union range” cache policy (document tradeoff: larger cache vs fewer fetches).
+1. **Week bounds:** User picks an ISO week `[weekStartMon, weekEndSun]` (inclusive display; filter uses local week bounds against `startDateTime`). Default = last completed Mon–Sun (ISO week math must be DST-safe).
+2. **Cache hit:** Only when the cached Utilization payload has `loadSource === 'fos_labor_costs'` **and** both `range` and `dataWindow` cover the selected week. Then derive Labor Hours client-side by filtering `payload.rows`.
+3. **Cache miss / hydrate / Refresh:** Call `getUtilizationDashboardData` for a ~60-day roster window ending today (bounded by `UTILIZATION_MAX_RANGE_DAYS`). Labor Hours **Refresh** always forces this live fetch.
 
-**Important:** The Utilization dashboard’s **default** range is 90 days - opening Labor Hours for a week **older** than the cached range still requires a fetch with the week-specific bounds.
+**Important:** Do not slice a Fibery/hydrate Utilization blob for Labor Hours weeks. Person keys may be email (`jess.williams@harpin.ai`) or display name (`Jess.williams` / `Jess Williams`); zero-hours matching uses alias equivalence so roster chips do not falsely mark people who already have time.
 
 **Fields required** for PRD/example parity (already on normalized utilization rows unless noted):
 
@@ -160,6 +160,8 @@ This plan assumes **nested nav** unless product prefers inner tabs (document in 
 
 | Date | Version | Notes |
 | --- | --- | --- |
+| 2026-07-27 | **3.4.5** | Live weeks prefer `fos_labor_costs` (`loadSource` gate); Refresh forces live fetch; Postgres timestamp normalize; zero-hours person-key aliases (email vs display name). |
+| 2026-07-27 | **3.4.3** | Default ISO week number no longer loses a week after US DST spring-forward (`getTime()` span bug). Cache slice also requires Utilization `dataWindow` coverage. |
 | 2026-06-15 | **2.13.6** | **Zero hours** roster lists only Clockify Users with **Work Status = Active** (`clockifyUserWorkStatus` on labor rows / `dimensions.persons`). Utilization cache schema **4**. |
 | 2026-05-27 | **2.5.4** | **Company** checkbox multi-select replaces shared Internal-labor toggle; all companies checked by default. Roster fetch uses **60-day** window on cache miss; zero-hours merges `dimensions.persons` + inferred persons from rows. **`labor_hours_filter_change`** activity event. |
 

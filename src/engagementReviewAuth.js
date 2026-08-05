@@ -1,9 +1,9 @@
 /**
- * PRD version 3.4.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.5.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 037: Engagement Review access gates.
- * View: CLIENT-ENGAGEMENT team, EXEC, or ADMIN.
- * Mutate reviews / calendar / Drive: ADMIN only.
+ * View / create reviews & updates: CLIENT-ENGAGEMENT, EXEC, or ADMIN.
+ * Admin-only: reorder, calendar, Drive, AI synopsis, delete review.
  */
 
 /**
@@ -22,12 +22,33 @@ function canAccessEngagementReview_(auth) {
 }
 
 /**
+ * CE / EXEC / ADMIN may create reviews and Engagement Updates.
+ * @param {{ email?: string, role?: string, team?: string }} auth
+ * @return {boolean}
+ */
+function canCreateEngagementReview_(auth) {
+  return canAccessEngagementReview_(auth);
+}
+
+/**
  * @return {{ email: string, role: string, team: string, fiberyAccess: boolean }}
  * @throws {Error} NOT_AUTHORIZED | FORBIDDEN
  */
 function requireEngagementReviewAccessForApi_() {
   var auth = requireAuthForApi_();
   if (!canAccessEngagementReview_(auth)) {
+    throw new Error('FORBIDDEN');
+  }
+  return auth;
+}
+
+/**
+ * @return {{ email: string, role: string, team: string, fiberyAccess: boolean }}
+ * @throws {Error} NOT_AUTHORIZED | FORBIDDEN
+ */
+function requireEngagementReviewCreateForApi_() {
+  var auth = requireEngagementReviewAccessForApi_();
+  if (!canCreateEngagementReview_(auth)) {
     throw new Error('FORBIDDEN');
   }
   return auth;

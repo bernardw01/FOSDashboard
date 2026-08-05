@@ -227,7 +227,7 @@ Routes and panels below match `buildNavigationModel_()` in [`src/Code.js`](src/C
 
 | Route | Capability | Spec |
 | --- | --- | --- |
-| **`delivery`** | **Projects & P&L**: Active projects table, monthly P&L (table/chart), labor by role, allocated cost (plan) line, month modal + assignment variance, resource assignments modal, status updates (Live write to Fibery; snapshot read-only), delivery signals, portfolio margin Sankey, client filters | [006](docs/features/006-delivery-project-pnl.md) · [018](docs/features/018-agreement-status-updates-delivery-pnl.md) · [019](docs/features/019-resource-allocation-pnl-chart.md) · [020](docs/features/020-delivery-pnl-month-modal-allocation-variance.md) · [021](docs/features/021-pnl-allocated-line-color.md) · [024](docs/features/024-delivery-pnl-resource-assignments-modal.md) |
+| **`delivery`** | **Projects & P&L**: Active projects table, monthly P&L (table/chart), labor by role, allocated cost (plan) line, month modal + assignment variance, resource assignments modal, status updates (Live write to Fibery; snapshot read-only), delivery signals, Assigned Owner + dimension filters | [006](docs/features/006-delivery-project-pnl.md) · [018](docs/features/018-agreement-status-updates-delivery-pnl.md) · [019](docs/features/019-resource-allocation-pnl-chart.md) · [020](docs/features/020-delivery-pnl-month-modal-allocation-variance.md) · [021](docs/features/021-pnl-allocated-line-color.md) · [024](docs/features/024-delivery-pnl-resource-assignments-modal.md) |
 | **`revenue-review`** | **Revenue review**: Executive KPIs, tables (billing, variance, portfolio, overdue), milestone tree, customer drawer, CSV, print; shares Agreement cache | [008](docs/features/008-revenue-review-dashboard.md) |
 
 ### Finance

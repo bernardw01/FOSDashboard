@@ -1,5 +1,5 @@
 /**
- * PRD version 3.4.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.5.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `delivery`, panel
  * `#panel-delivery`). Public endpoints, all authorized via
@@ -75,7 +75,7 @@
  */
 
 /** @const {number} Bumped when the client cache shape changes. */
-var DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_ = 1;
+var DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_ = 2;
 
 /**
  * Per-project monthly P&L cache shape version.
@@ -88,9 +88,17 @@ var DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_ = 1;
  *   v6 - v2.12.6: `resourceAllocations` block (feature 019).
  *   v7 - v2.12.9: `resourceAllocations.months[].allocatedByRole` (feature 020).
  *   v8 - v2.13.0: per-month `laborEmployee` + `laborContractor` (feature 022).
+ *   v11 - v3.4.9: Delivery Live requires full (non-portfolioMode) payloads with
+ *        `resourceAllocations` (Allocated cost plan line). Portfolio hydrate
+ *        must not overwrite these rows with slim portfolioMode blobs.
+ *   v12 - v3.4.11: per-month `laborByPerson[]` ({ name, role, hours, cost }) for
+ *        chart month modal (hours by individual); chart/tooltips stay on
+ *        `laborByRole`.
+ *   v13 - v3.4.12: laborByPerson enriched with month-prorated allocatedHours,
+ *        Fibery percentAllocated, allocatedAndBillable, highlightOrange.
  * @const {number}
  */
-var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 10;
+var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 13;
 
 /** @const {number} Default TTL (minutes) for the client-side cache. */
 var DELIVERY_DEFAULT_CACHE_TTL_MIN_ = 10;
@@ -161,7 +169,15 @@ function getDeliveryCacheTtlMinutes() {
  */
 function getDeliveryDashboardData(forceRefresh) {
   requireAuthForApi_();
-  // Live Datastore only. forceRefresh re-reads Postgres; Fibery is hydrate/Pull only.
+  // Live Datastore: serve panel blob, or rebuild agreement+delivery from typed
+  // tables when Refresh is forced or delivery schema lags (e.g. Assigned Owner).
+  if (typeof serveLiveAgreementFamilyOrRebuild_ === 'function') {
+    return serveLiveAgreementFamilyOrRebuild_(
+      'delivery',
+      DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_,
+      forceRefresh === true
+    );
+  }
   return serveLivePanelFromSupabaseOrFail_(
     'delivery',
     DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_
@@ -346,6 +362,13 @@ function buildDeliveryDashboardPayloadFromAgreement_(agreementPayload, fetchedAt
  */
 function getDeliveryProjectMonthlyPnL(agreementId) {
   requireAuthForApi_();
+  if (typeof serveLiveDeliveryPnLOrRebuildFull_ === 'function') {
+    return serveLiveDeliveryPnLOrRebuildFull_(
+      agreementId,
+      DELIVERY_PNL_CACHE_SCHEMA_VERSION_,
+      false
+    );
+  }
   return serveLiveDeliveryPnLFromSupabaseOrFail_(
     agreementId,
     DELIVERY_PNL_CACHE_SCHEMA_VERSION_
@@ -449,11 +472,13 @@ function buildDeliveryProjectMonthlyPnLInternal_(agreementId, options) {
 
   var allocWarnings = [];
   var resourceAllocations = emptyResourceAllocationsBlock_();
+  var allocRowsForEnrich = [];
   if (!portfolioMode) {
     var allocFetch = fetchResourceAllocationsForAgreement_(agreementId);
     if (allocFetch.ok) {
+      allocRowsForEnrich = allocFetch.rows || [];
       resourceAllocations = buildResourceAllocationsBlock_(
-        allocFetch.rows,
+        allocRowsForEnrich,
         built.months,
         allocWarnings
       );
@@ -461,6 +486,7 @@ function buildDeliveryProjectMonthlyPnLInternal_(agreementId, options) {
       allocWarnings.push(allocFetch.reason || 'RESOURCE_ALLOCATIONS_FETCH_FAILED');
       console.warn('Resource allocations fetch failed for ' + agreementId + ': ' + allocFetch.message);
     }
+    enrichMonthsLaborByPersonWithAllocations_(built.months, allocRowsForEnrich);
   }
 
   var allWarnings = statusWarnings.concat(allocWarnings);
@@ -609,6 +635,10 @@ function buildActiveProjects_(agreements, thresholds, filters) {
       customer: a.customer || ' - ',
       type: a.type || ' - ',
       state: a.state || ' - ',
+      assignedOwner:
+        a.assignedOwner && String(a.assignedOwner).trim()
+          ? String(a.assignedOwner).trim()
+          : 'Unassigned',
       contractValue: planned,
       revenueRecognized: revRec,
       revenueOutstanding: Math.max(0, planned - revRec),
@@ -706,6 +736,8 @@ function buildMonthlyPnL_(args) {
   var laborByMonthEmployee = {};
   var laborByMonthContractor = {};
   var laborByMonthByRole = {};
+  // name\0role -> { name, role, hours, cost } per month (chart month modal).
+  var laborByMonthByPerson = {};
   var laborRoleTotals = {};
   var odcByMonth = {};
   var revenueByMonth = {};
@@ -725,6 +757,9 @@ function buildMonthlyPnL_(args) {
     var cost = Number(l.cost || 0);
     if (!isFinite(cost)) { laborSkipped++; continue; }
     var roleName = l.userRole || l.clockifyUserRole || '(No role)';
+    var personName = String(l.userName || '').trim() || '(Unknown user)';
+    var hours = Number(l.hours);
+    if (!isFinite(hours) || hours < 0) hours = 0;
     laborByMonth[key] = (laborByMonth[key] || 0) + cost;
     if (isInternalLabor_(l, internalNames)) {
       laborByMonthEmployee[key] = (laborByMonthEmployee[key] || 0) + cost;
@@ -734,6 +769,15 @@ function buildMonthlyPnL_(args) {
     if (!laborByMonthByRole[key]) laborByMonthByRole[key] = {};
     laborByMonthByRole[key][roleName] = (laborByMonthByRole[key][roleName] || 0) + cost;
     laborRoleTotals[roleName] = (laborRoleTotals[roleName] || 0) + cost;
+    if (!laborByMonthByPerson[key]) laborByMonthByPerson[key] = {};
+    var personKey = personName + '\0' + roleName;
+    var personAgg = laborByMonthByPerson[key][personKey];
+    if (!personAgg) {
+      personAgg = { name: personName, role: roleName, hours: 0, cost: 0 };
+      laborByMonthByPerson[key][personKey] = personAgg;
+    }
+    personAgg.hours += hours;
+    personAgg.cost += cost;
     activityMonths[key] = true;
     summedLabor += cost;
   }
@@ -855,6 +899,25 @@ function buildMonthlyPnL_(args) {
     var oor = !inRangeSet[mk];
     var hasActivity = rev > 0 || lab > 0 || exp > 0;
     var monthItems = (revenueItemsByMonth[mk] || []).slice();
+    var personMap = laborByMonthByPerson[mk] || {};
+    var laborByPerson = [];
+    var personKeys = Object.keys(personMap);
+    for (var pk = 0; pk < personKeys.length; pk++) {
+      var pa = personMap[personKeys[pk]];
+      laborByPerson.push({
+        name: pa.name,
+        role: pa.role,
+        hours: Math.round(pa.hours * 100) / 100,
+        cost: pa.cost,
+      });
+    }
+    laborByPerson.sort(function (a, b) {
+      var costDelta = (b.cost || 0) - (a.cost || 0);
+      if (costDelta) return costDelta;
+      var nameCmp = String(a.name || '').localeCompare(String(b.name || ''));
+      if (nameCmp) return nameCmp;
+      return String(a.role || '').localeCompare(String(b.role || ''));
+    });
     months.push({
       key: mk,
       label: monthLabel_(mk),
@@ -863,6 +926,7 @@ function buildMonthlyPnL_(args) {
       laborEmployee: Number(laborByMonthEmployee[mk] || 0),
       laborContractor: Number(laborByMonthContractor[mk] || 0),
       laborByRole: laborByMonthByRole[mk] ? Object.assign({}, laborByMonthByRole[mk]) : {},
+      laborByPerson: laborByPerson,
       expenses: exp,
       totalCost: totalCost,
       grossProfit: grossProfit,
@@ -1051,6 +1115,8 @@ function fetchLaborCostsForAgreement_(agreementId, maxRows) {
           id: 'fibery/id',
           cost: 'Agreement Management/Cost',
           startDateTime: 'Agreement Management/Start Date Time',
+          userName: 'Agreement Management/Time Entry User Name',
+          hours: 'Agreement Management/Clockify Hours',
           userRole: ['Agreement Management/User Role', 'Agreement Management/Name'],
           clockifyUserRole: ['Agreement Management/Clockify User Role', 'enum/name'],
           clockifyUserCompany: ['Agreement Management/Clockify User Company', 'enum/name'],
@@ -1070,6 +1136,8 @@ function fetchLaborCostsForAgreement_(agreementId, maxRows) {
         id: stringOr_(page[i].id, ''),
         cost: numberOr_(page[i].cost, 0),
         startDateTime: stringOrNull_(page[i].startDateTime),
+        userName: stringOrNull_(page[i].userName),
+        hours: numberOr_(page[i].hours, 0),
         userRole: stringOrNull_(page[i].userRole),
         clockifyUserRole: stringOrNull_(page[i].clockifyUserRole),
         clockifyUserCompany: stringOrNull_(page[i].clockifyUserCompany),
@@ -1213,6 +1281,7 @@ function fetchResourceAllocationsForAgreement_(agreementId) {
           'Agreement Management/Name',
         ],
         percentAllocated: 'Agreement Management/Percent Allocated',
+        allocatedAndBillable: 'Agreement Management/Allocated & Billable',
         roleName: [
           'Agreement Management/Clockify User Team Member Role',
           'Agreement Management/Name',
@@ -1230,6 +1299,7 @@ function fetchResourceAllocationsForAgreement_(agreementId) {
   for (var i = 0; i < page.length; i++) {
     var dur = page[i].duration && typeof page[i].duration === 'object'
       ? page[i].duration : null;
+    var billableRaw = page[i].allocatedAndBillable;
     rows.push({
       id: stringOr_(page[i].id, ''),
       allocatedCost: numberOr_(page[i].allocatedCost, 0),
@@ -1238,6 +1308,7 @@ function fetchResourceAllocationsForAgreement_(agreementId) {
       clockifyUserName: stringOrNull_(page[i].clockifyUserName),
       percentAllocated: page[i].percentAllocated != null && page[i].percentAllocated !== ''
         ? numberOr_(page[i].percentAllocated, 0) : null,
+      allocatedAndBillable: billableRaw === true ? true : billableRaw === false ? false : null,
       roleName: stringOrNull_(page[i].roleName) || '(No role)',
       durStart: dur ? stringOrNull_(dur.start) : null,
       durEnd: dur ? stringOrNull_(dur.end) : null,
@@ -1300,8 +1371,14 @@ function buildResourceAllocationAssignmentsList_(rows) {
       name: name,
       roleName: stringOrNull_(row.roleName) || '(No role)',
       durationLabel: formatResourceAllocationDurationLabel_(row.durStart, row.durEnd),
-      percentAllocated: (pctNum !== null && isFinite(pctNum)) ? pctNum : null,
+      percentAllocated: (pctNum !== null && isFinite(pctNum))
+        ? deliveryPnlNormalizePercent_(pctNum) : null,
       allocatedHours: Number(row.allocatedHours || 0),
+      allocatedAndBillable: row.allocatedAndBillable === true
+        ? true
+        : row.allocatedAndBillable === false
+          ? false
+          : null,
     });
   }
   out.sort(function (a, b) {
@@ -1312,6 +1389,307 @@ function buildResourceAllocationAssignmentsList_(rows) {
     return 0;
   });
   return out;
+}
+
+/**
+ * @param {?number|string} raw
+ * @return {?number} Percent on 0-100 scale
+ * @private
+ */
+function deliveryPnlNormalizePercent_(raw) {
+  if (raw === null || raw === undefined || raw === '') return null;
+  var n = Number(raw);
+  if (!isFinite(n)) return null;
+  if (n > 0 && n <= 1) n = n * 100;
+  return n;
+}
+
+/**
+ * @param {string} s
+ * @return {string}
+ * @private
+ */
+function deliveryPnlNormalizePersonToken_(s) {
+  return String(s || '')
+    .trim()
+    .toLowerCase()
+    .replace(/@.*$/, '')
+    .replace(/[._\s\-]+/g, '');
+}
+
+/**
+ * Alias keys for matching labor Time Entry User Name to Clockify User Name.
+ * @param {?string} name
+ * @return {!Array<string>}
+ * @private
+ */
+function deliveryPnlPersonAliasKeys_(name) {
+  var out = [];
+  var seen = {};
+  function add(v) {
+    var s = v != null ? String(v).trim() : '';
+    if (!s || seen[s]) return;
+    seen[s] = true;
+    out.push(s);
+    var lower = s.toLowerCase();
+    if (!seen[lower]) {
+      seen[lower] = true;
+      out.push(lower);
+    }
+    var token = deliveryPnlNormalizePersonToken_(s);
+    if (token) {
+      var alias = '~' + token;
+      if (!seen[alias]) {
+        seen[alias] = true;
+        out.push(alias);
+      }
+    }
+  }
+  add(name);
+  if (name && String(name).indexOf('@') >= 0) {
+    add(String(name).split('@')[0]);
+  }
+  return out;
+}
+
+/**
+ * @param {?string} aName
+ * @param {?string} bName
+ * @return {boolean}
+ * @private
+ */
+function deliveryPnlPersonNamesMatch_(aName, bName) {
+  var a = deliveryPnlPersonAliasKeys_(aName);
+  var bSet = {};
+  var b = deliveryPnlPersonAliasKeys_(bName);
+  for (var i = 0; i < b.length; i++) bSet[b[i]] = true;
+  for (var j = 0; j < a.length; j++) {
+    if (bSet[a[j]]) return true;
+  }
+  return false;
+}
+
+/**
+ * Calendar-day prorate of Allocated Hours into one month.
+ * @param {!Object} row
+ * @param {string} monthKey
+ * @return {?{ hours: number, percent: ?number, billable: ?boolean, name: string, role: string }}
+ * @private
+ */
+function prorateAllocationHoursForMonth_(row, monthKey) {
+  var durStartIso = row.durStart || null;
+  var durEndIso = row.durEnd || null;
+  var rowHours = Number(row.allocatedHours || 0);
+  if (!isFinite(rowHours) || rowHours < 0) rowHours = 0;
+  var pct = deliveryPnlNormalizePercent_(row.percentAllocated);
+  var name = stringOrNull_(row.clockifyUserName)
+    || stringOrNull_(row.allocationName)
+    || '(Unnamed)';
+  var role = stringOrNull_(row.roleName) || '(No role)';
+  var billable = row.allocatedAndBillable === true
+    ? true
+    : row.allocatedAndBillable === false
+      ? false
+      : null;
+
+  var bounds = monthBoundsUtc_(monthKey);
+  var allocStart = parseIsoDateOnlyUtc_(durStartIso || durEndIso);
+  var allocEnd = parseIsoDateOnlyUtc_(durEndIso || durStartIso);
+  if (!allocStart && !allocEnd) {
+    // No duration: count full hours into first/only overlap as zero-day skip.
+    return null;
+  }
+  if (!allocStart) allocStart = allocEnd;
+  if (!allocEnd) allocEnd = allocStart;
+  if (allocEnd.getTime() < allocStart.getTime()) {
+    var swap = allocStart;
+    allocStart = allocEnd;
+    allocEnd = swap;
+  }
+  var intersection = intersectDateRangesInclusiveUtc_(
+    allocStart, allocEnd, bounds.start, bounds.end
+  );
+  if (!intersection) return null;
+  var totalDays = calendarDaysInclusiveUtc_(allocStart, allocEnd);
+  if (totalDays <= 0) return null;
+  var daysInMonth = calendarDaysInclusiveUtc_(intersection.start, intersection.end);
+  if (daysInMonth <= 0) return null;
+  var hours = rowHours > 0 ? rowHours * (daysInMonth / totalDays) : 0;
+  return {
+    hours: hours,
+    percent: pct,
+    billable: billable,
+    name: name,
+    role: role,
+  };
+}
+
+/**
+ * Join logged laborByPerson with month-prorated allocation hours / Fibery %.
+ * Mutates `months[].laborByPerson` in place.
+ *
+ * @param {!Array<!Object>} months
+ * @param {!Array<!Object>} allocRows
+ * @private
+ */
+function enrichMonthsLaborByPersonWithAllocations_(months, allocRows) {
+  months = months || [];
+  allocRows = allocRows || [];
+  for (var mi = 0; mi < months.length; mi++) {
+    var month = months[mi];
+    if (!month || !month.key) continue;
+    var monthKey = month.key;
+
+    // personToken -> { displayName, byRole: { role: { hours, pctWeight, pctSum, billableTrue } } }
+    var allocByPerson = {};
+    function ensurePerson(token, displayName) {
+      if (!allocByPerson[token]) {
+        allocByPerson[token] = {
+          displayName: displayName,
+          byRole: {},
+          anyBillable: false,
+          hasOverlap: false,
+        };
+      }
+      return allocByPerson[token];
+    }
+    function personToken(name) {
+      return '~' + deliveryPnlNormalizePersonToken_(name);
+    }
+
+    for (var ai = 0; ai < allocRows.length; ai++) {
+      var slice = prorateAllocationHoursForMonth_(allocRows[ai], monthKey);
+      if (!slice) continue;
+      var token = personToken(slice.name);
+      if (!token || token === '~') continue;
+      var pers = ensurePerson(token, slice.name);
+      pers.hasOverlap = true;
+      if (slice.billable === true) pers.anyBillable = true;
+      var roleKey = slice.role || '(No role)';
+      if (!pers.byRole[roleKey]) {
+        pers.byRole[roleKey] = {
+          hours: 0,
+          pctWeight: 0,
+          pctSum: 0,
+          billableTrue: false,
+        };
+      }
+      var roleAgg = pers.byRole[roleKey];
+      roleAgg.hours += slice.hours;
+      if (slice.percent != null && isFinite(slice.percent)) {
+        var w = slice.hours > 0 ? slice.hours : 1;
+        roleAgg.pctWeight += w;
+        roleAgg.pctSum += slice.percent * w;
+      }
+      if (slice.billable === true) roleAgg.billableTrue = true;
+    }
+
+    function findAllocPerson(laborName) {
+      var keys = deliveryPnlPersonAliasKeys_(laborName);
+      for (var k = 0; k < keys.length; k++) {
+        var t = personToken(keys[k]);
+        if (allocByPerson[t]) return allocByPerson[t];
+      }
+      // Scan all for alias match (different display forms).
+      var tokens = Object.keys(allocByPerson);
+      for (var ti = 0; ti < tokens.length; ti++) {
+        var cand = allocByPerson[tokens[ti]];
+        if (deliveryPnlPersonNamesMatch_(laborName, cand.displayName)) return cand;
+      }
+      return null;
+    }
+
+    function resolvePercent(roleAgg) {
+      if (!roleAgg || !(roleAgg.pctWeight > 0)) return null;
+      return Math.round((roleAgg.pctSum / roleAgg.pctWeight) * 10) / 10;
+    }
+
+    var labor = Array.isArray(month.laborByPerson) ? month.laborByPerson : [];
+    var seenLaborTokens = {};
+    var enriched = [];
+    for (var li = 0; li < labor.length; li++) {
+      var row = labor[li] || {};
+      var lName = row.name || '(Unknown user)';
+      var lRole = row.role || '(No role)';
+      var logged = Number(row.hours || 0);
+      var cost = Number(row.cost || 0);
+      var allocPers = findAllocPerson(lName);
+      var allocHours = 0;
+      var pct = null;
+      var billable = null;
+      if (allocPers) {
+        seenLaborTokens[personToken(allocPers.displayName)] = true;
+        // Prefer matching role; else sum all roles for the person.
+        var roleAgg = allocPers.byRole[lRole];
+        if (roleAgg) {
+          allocHours = roleAgg.hours;
+          pct = resolvePercent(roleAgg);
+        } else {
+          var roles = Object.keys(allocPers.byRole);
+          var pctW = 0;
+          var pctS = 0;
+          for (var ri = 0; ri < roles.length; ri++) {
+            var ra = allocPers.byRole[roles[ri]];
+            allocHours += ra.hours;
+            if (ra.pctWeight > 0) {
+              pctW += ra.pctWeight;
+              pctS += ra.pctSum;
+            }
+          }
+          pct = pctW > 0 ? Math.round((pctS / pctW) * 10) / 10 : null;
+        }
+        billable = allocPers.hasOverlap
+          ? (allocPers.anyBillable ? true : false)
+          : null;
+      }
+      var orange = logged > 0 && billable !== true;
+      enriched.push({
+        name: lName,
+        role: lRole,
+        hours: logged,
+        cost: cost,
+        allocatedHours: Math.round(allocHours * 100) / 100,
+        percentAllocated: pct,
+        allocatedAndBillable: billable,
+        highlightOrange: orange,
+      });
+    }
+
+    // Allocated-only people (no logged hours this month).
+    var allocTokens = Object.keys(allocByPerson);
+    for (var at = 0; at < allocTokens.length; at++) {
+      var tok = allocTokens[at];
+      if (seenLaborTokens[tok]) continue;
+      var ap = allocByPerson[tok];
+      var roleKeys = Object.keys(ap.byRole);
+      for (var rj = 0; rj < roleKeys.length; rj++) {
+        var rk = roleKeys[rj];
+        var rAgg = ap.byRole[rk];
+        if (!(rAgg.hours > 0) && resolvePercent(rAgg) == null) continue;
+        enriched.push({
+          name: ap.displayName,
+          role: rk,
+          hours: 0,
+          cost: 0,
+          allocatedHours: Math.round(rAgg.hours * 100) / 100,
+          percentAllocated: resolvePercent(rAgg),
+          allocatedAndBillable: ap.anyBillable ? true : false,
+          highlightOrange: false,
+        });
+      }
+    }
+
+    enriched.sort(function (a, b) {
+      var costDelta = (b.cost || 0) - (a.cost || 0);
+      if (costDelta) return costDelta;
+      var hoursDelta = (b.hours || 0) - (a.hours || 0);
+      if (hoursDelta) return hoursDelta;
+      var nameCmp = String(a.name || '').localeCompare(String(b.name || ''));
+      if (nameCmp) return nameCmp;
+      return String(a.role || '').localeCompare(String(b.role || ''));
+    });
+    month.laborByPerson = enriched;
+  }
 }
 
 /**

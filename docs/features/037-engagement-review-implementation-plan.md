@@ -1,57 +1,58 @@
 # Implementation plan: Feature 037 - Engagement Review
 
 > **Feature spec:** [037-engagement-review.md](037-engagement-review.md)  
-> **Status:** Implemented in `src/` (**v3.2.0**); Teamwork ship pending  
+> **Status:** Implemented in `src/` (**v3.5.0**); Teamwork Spec Draft pending approval / ship  
 > **Feature ID:** **037**  
 > **Task list:** Delivery  
 > **Ship type:** Enhancement (MINOR at deploy)  
-> **Depends on:** Auth (**002**); Agreement alerts (**003**); Delivery P&L (**006**); Mobile (**029**); Supabase layer (**036**)  
+> **Depends on:** Auth (**002**); Agreement alerts (**003**); Delivery P&L (**006**); Mobile (**029**); Supabase layer (**036**); Anthropic / FinOps Ask path for synopsis  
 > **Teamwork notebook:** [Feature 037 - Implementation plan (Engagement Review)](https://win.godeap.io/app/projects/1615262/notebooks/312851)  
 > **Feature notebook:** [Feature 037 - Engagement Review](https://win.godeap.io/app/projects/1615262/notebooks/312850)  
-> **Release task:** [Feature 037 - Engagement Review](https://win.godeap.io/app/tasks/40579193)
+> **Release task:** [Feature 037 - Engagement Review](https://win.godeap.io/app/tasks/40579193)  
+> **Template:** DEAP Monthly Project Status Report HTML (customer reference)
 
 ## Summary
 
 | Item | Choice |
 | --- | --- |
-| **Product** | Engagement Reviews under Delivery; Admin-created; CE/EXEC/Admin view; owner prep via code questionnaire |
-| **Storage** | **Supabase only** for reviews / updates / participants / recording metadata |
+| **Product** | Engagement Reviews under Delivery; agenda = reorderable **Engagement Updates** (status packs) |
+| **Storage** | **Supabase only** (reviews, notes, participants, recordings metadata, updates + snapshots, AI synopsis JSON) |
 | **Access (view)** | `CLIENT-ENGAGEMENT` **or** `EXEC` **or** `ADMIN` |
-| **Access (create/mutate review)** | **ADMIN** only |
-| **Owner suggest** | Fibery **Agreement Owner** ∩ auth **Users** sheet |
-| **Questions** | **Code** constants + version; **responses** in `fos_engagement_updates` |
-| **Reporting** | Follow-on |
-| **018 Status Updates** | Separate; no dual-write from Engagement Updates |
-| **Recordings** | **Google Drive** uploads + metadata rows |
-| **Invites** | Calendar events; **Users sheet emails only** |
-| **Statuses** | `draft` \| `scheduled` \| `in_progress` \| `completed` |
-| **UX** | Review engagement list → project detail (latest executive summary + collapsible prior owner updates + project info) |
-| **Snapshots / deck export** | Out of scope v1 |
-| **PRD at ship** | New FR/AC; MINOR bump |
+| **Access (create review / update)** | CE / EXEC / ADMIN |
+| **Access (reorder, calendar mutate, Drive upload, AI synopsis)** | **ADMIN** only (calendar/Drive may stay Admin as today; synopsis Admin-only locked) |
+| **Metrics** | Snapshot from Supabase builders; Refresh + `metrics_pulled_at`; never Fibery at render |
+| **Update pill** | Overall RAG: `on_track` \| `at_risk` \| `off_track` |
+| **Assigned owner** | From `fos_agreements` |
+| **Notes** | Many `fos_engagement_review_notes`; migrate `call_summary_html` |
+| **Export** | HTML download + Print/PDF |
+| **AI synopsis** | Persist JSON; inputs = notes + updates + review meta; reuse Anthropic |
+| **Review statuses** | `draft` \| `scheduled` \| `in_progress` \| `completed` |
+| **PRD at ship** | Extend FR-135 / AC-97 (or add FR/AC rows); MINOR bump |
 
 ## Goals / non-goals
 
-| In scope (v1) | Out of scope (v1) |
+| In scope | Out of scope |
 | --- | --- |
-| Nav + access gate (CE / EXEC / ADMIN) | Auto-create monthly reviews |
-| Supabase DDL + Apps Script CRUD | Fibery Engagement Review database |
-| Admin create/edit agenda, alert suggest, owner suggest | Non-Users / guest invitees |
-| Calendar invites to auth Users | Response analytics / reporting UI |
-| Code question set + Supabase responses | Dual-write to Fibery Status Updates |
-| Project detail: latest summary + collapsible history + Datastore project slices | PCL-style PDF/deck export |
-| Drive recording uploads + call summary rich text | Historical Drive snapshot artifact for this module |
-| Mobile list / detail / questionnaire | FinOps Ask grounding (follow-on) |
+| Agenda-first Engagement Updates (create/edit/view/reorder) | Auto-create monthly reviews |
+| Large qualitative modal + read-only quant snapshot | Fibery calls for update metrics |
+| Refresh metrics + pulled-at display | Standalone updates outside a review |
+| RAG auto-suggest with margin tolerance | Draft/publish workflow beyond RAG |
+| Many meeting notes + calendar + Drive | Guest invitees |
+| Interactive viewer + HTML / Print PDF | Portfolio analytics over updates |
+| Admin AI synopsis JSON on completed reviews | Dual-write to feature **018** |
+| Mobile accommodations same release | Historical snapshot artifact for this module |
 
 ## Recommended release strategy
 
-| Release | Scope | User-visible outcome |
+| Release slice | Scope | User-visible outcome |
 | --- | --- | --- |
-| **R1 - Foundation** | DDL; ADMIN list/create/edit; manual engagements; statuses; call summary | Admins build agendas in Hub |
-| **R2 - Suggest + browse UX** | Alert suggest; owner participant suggest (Users only); CE/EXEC read; engagement list | Faster agenda; reviewers browse |
-| **R3 - Project detail + updates** | Project detail subview; code questions; `fos_engagement_updates`; latest summary + collapsible history | Owners submit prep; facilitators read history |
-| **R4 - Calendar + Drive** | Calendar event (Users only); Drive recording upload + metadata | Meeting invite + retained recordings |
+| **R1 - Foundation (exists)** | DDL 039; review CRUD; participants; early questionnaire updates; calendar/Drive modules | Review shell in Hub |
+| **R5 - Data model extension** | Additive migration: notes, update columns (period, sort_order, RAG, qualitative, snapshot, uniqueness), synopsis columns; backfill notes from `call_summary_html` | Schema ready |
+| **R6 - Metrics + CRUD APIs** | Supabase metric builders; create/update/refresh/reorder APIs; picker rules; auth gates | Server-complete status packs |
+| **R7 - UI agenda + modal + viewer** | Reorderable list; large modal; binoculars viewer; refresh; RAG suggest display | Authors and facilitators use packs |
+| **R8 - Notes + export + synopsis** | Multi-note UI; HTML/Print; Admin Generate synopsis; mobile polish | Full Spec Draft scope |
 
-Prefer one MINOR shipping R1–R4 together if capacity allows; keep modules separable for test.
+Prefer one MINOR shipping R5–R8 together if capacity allows; R1 code is refactored in place rather than duplicated.
 
 ## Architecture
 
@@ -60,339 +61,320 @@ flowchart TB
   subgraph Shell
     Nav[Delivery: Engagement review]
     List[Review list]
-    Review[Review detail: engagement list]
-    Detail[Project detail + questionnaire]
+    Review[Review detail: Engagement Update agenda]
+    Modal[Create/Edit modal]
+    Viewer[Interactive status pack]
   end
   subgraph GAS
-    Auth[CE / EXEC / ADMIN view]
-    Admin[ADMIN mutations]
+    Auth[CE/EXEC/ADMIN view + create]
+    AdminOnly[ADMIN reorder / synopsis / Drive / calendar]
     API[engagementReviewApi.js]
-    Q[engagementReviewQuestions.js code]
-    Suggest[alerts + Agreement Owner]
+    Metrics[engagementUpdateMetrics.js Supabase builders]
+    AI[finopsAskAnthropic / shared Anthropic client]
     Cal[CalendarApp Users only]
     Drive[DriveApp uploads]
   end
   subgraph Supabase
     Reviews[fos_engagement_reviews]
-    Links[fos_engagement_review_agreements]
+    Notes[fos_engagement_review_notes]
     Parts[fos_engagement_review_participants]
     Updates[fos_engagement_updates]
     Recs[fos_engagement_review_recordings]
+    Facts[fos_labor_costs fos_resource_allocations fos_agreements fos_revenue_items ...]
   end
-  subgraph Existing
-    AgPanel[Agreement alerts / payload]
-    PnL[Delivery P&L / Datastore slices]
-    Users[Auth Users sheet]
-    FibOwner[Fibery Agreement Owner]
-  end
-  Nav --> List --> Review --> Detail
+  Nav --> List --> Review
+  Review --> Modal
+  Review --> Viewer
   Review --> API
-  Detail --> API
+  Modal --> API
+  Viewer --> API
   API --> Auth
-  API --> Admin
-  API --> Reviews
-  API --> Links
-  API --> Parts
+  API --> AdminOnly
   API --> Updates
-  API --> Recs
-  Q --> Detail
-  Suggest --> AgPanel
-  Suggest --> FibOwner
-  Suggest --> Users
+  API --> Notes
+  API --> Reviews
+  Metrics --> Facts
+  API --> Metrics
+  API --> AI
   Cal --> Parts
-  Cal --> Users
   Drive --> Recs
-  Detail --> PnL
 ```
 
 ### Module split
 
 | Module | Responsibility |
 | --- | --- |
-| `supabase/migrations/039_engagement_reviews.sql` | DDL, indexes, privilege revoke |
-| `src/engagementReviewAuth.js` | View gate (CE/EXEC/ADMIN); Admin mutation gate |
-| `src/engagementReviewStore.js` | Supabase CRUD |
+| `supabase/migrations/0NN_engagement_updates_status_pack.sql` | Additive DDL (number at implement) |
+| `src/engagementReviewAuth.js` | View + create gates; Admin-only reorder/synopsis/calendar/Drive |
+| `src/engagementReviewStore.js` | Supabase CRUD including notes, reorder, synopsis |
+| `src/engagementUpdateMetrics.js` | **New:** build quantitative snapshot from Supabase; RAG suggest helpers |
 | `src/engagementReviewSuggest.js` | Alert suggest; Agreement Owner ∩ Users |
-| `src/engagementReviewCalendar.js` | Create/update calendar event; invite Users only |
-| `src/engagementReviewDrive.js` | Upload recordings; folder resolve |
-| `src/engagementReviewQuestions.js` | Versioned question definitions + answer validation |
+| `src/engagementReviewCalendar.js` | Calendar event; Users only |
+| `src/engagementReviewDrive.js` | Recording uploads |
+| `src/engagementReviewSynopsis.js` | **New:** assemble prompt context; call Anthropic; validate/store JSON |
 | `src/engagementReviewApi.js` | `google.script.run` surface |
-| `src/Code.js` | Nav child + access flag |
-| `src/DashboardShell.html` | List, review detail, project detail, mobile |
+| `src/engagementReviewQuestions.js` | Legacy questionnaire; retire or map into qualitative if still referenced |
+| `src/DashboardShell.html` | Agenda, modal, viewer, notes, export, mobile |
 | `src/userActivityLog.js` | Whitelist |
-| `src/adminSettingsRegistry.js` | `ENGAGEMENT_REVIEW_DRIVE_FOLDER_ID`, calendar id, toggles |
+| `src/adminSettingsRegistry.js` | Drive/calendar/synopsis toggles |
 | `docs/supabase-data-model.md` | Catalog update |
-| Hydrate / `fos_agreements` | Persist Agreement Owner email/id when field path confirmed |
 
 Reuse:
 
-- `evaluateAlerts_` / Agreement panel payload
-- Datastore `fos_delivery_pnl` / agreement dimensions for project info
-- Toast / rich-text patterns (**018** UI patterns only; no Fibery write)
+- `fos_labor_costs`, allocations, revenue items, `fos_agreements` (036 AM mirror)
+- FinOps Ask Anthropic client / quota patterns
 - `openMobileFilterSheet_` (**029**)
-- Notification deep-link hash patterns (**033**)
+- Rich-text editor patterns already in shell
+- DEAP template structure for viewer CSS (port tokens, not live Fibery)
 
 ## Data model (DDL sketch)
 
-```sql
--- Sketch; authoritative SQL in supabase/migrations/039_engagement_reviews.sql
+Authoritative SQL lands in a new migration. Sketch:
 
-create table public.fos_engagement_reviews (
+```sql
+-- Additive; do not recreate 039 tables
+
+alter table public.fos_engagement_reviews
+  add column if not exists ai_synopsis_json jsonb,
+  add column if not exists ai_synopsis_generated_at timestamptz,
+  add column if not exists ai_synopsis_generated_by text;
+
+create table if not exists public.fos_engagement_review_notes (
   id uuid primary key default gen_random_uuid(),
-  name text not null,
-  target_date date not null,
-  status text not null default 'draft', -- draft|scheduled|in_progress|completed
-  call_summary_html text,
-  notes text,
-  question_set_version integer not null default 1,
+  review_id uuid not null references public.fos_engagement_reviews(id) on delete cascade,
+  title text,
+  body_html text not null default '',
+  sort_order integer not null default 0,
   created_by_email text not null,
   updated_by_email text,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  constraint fos_engagement_reviews_status_chk
-    check (status in ('draft', 'scheduled', 'in_progress', 'completed'))
+  updated_at timestamptz not null default now()
 );
 
-create table public.fos_engagement_review_agreements (
-  id uuid primary key default gen_random_uuid(),
-  review_id uuid not null references public.fos_engagement_reviews(id) on delete cascade,
-  agreement_fibery_id text not null,
-  agreement_name text,
-  company_name text,
-  owner_email text,
-  owner_name text,
-  suggested_from_alert boolean not null default false,
-  alert_snapshot jsonb,
-  sort_order integer not null default 0,
-  created_at timestamptz not null default now(),
-  unique (review_id, agreement_fibery_id)
-);
+create index if not exists fos_engagement_review_notes_review_idx
+  on public.fos_engagement_review_notes (review_id, sort_order);
 
-create table public.fos_engagement_review_participants (
-  id uuid primary key default gen_random_uuid(),
-  review_id uuid not null references public.fos_engagement_reviews(id) on delete cascade,
-  email text not null,
-  display_name text,
-  participant_role text not null default 'owner', -- owner|facilitator|observer
-  suggested boolean not null default false,
-  invite_status text not null default 'pending', -- pending|invited
-  invite_sent_at timestamptz,
-  created_at timestamptz not null default now(),
-  unique (review_id, email)
-);
+alter table public.fos_engagement_updates
+  add column if not exists reporting_period date,
+  add column if not exists sort_order integer not null default 0,
+  add column if not exists overall_rag text,
+  add column if not exists assigned_owner_email text,
+  add column if not exists assigned_owner_name text,
+  add column if not exists agreement_name text,
+  add column if not exists company_name text,
+  add column if not exists qualitative jsonb not null default '{}'::jsonb,
+  add column if not exists quantitative_snapshot jsonb not null default '{}'::jsonb,
+  add column if not exists metrics_pulled_at timestamptz,
+  add column if not exists updated_by_email text,
+  add column if not exists updated_at timestamptz not null default now();
 
-create table public.fos_engagement_updates (
-  id uuid primary key default gen_random_uuid(),
-  review_id uuid not null references public.fos_engagement_reviews(id) on delete cascade,
-  agreement_fibery_id text not null,
-  submitted_by_email text not null,
-  executive_summary text not null,
-  traffic_light text, -- green|yellow|red|null
-  answers jsonb not null default '{}'::jsonb,
-  question_set_version integer not null,
-  submitted_at timestamptz not null default now(),
-  created_at timestamptz not null default now()
-);
+-- Uniqueness for status packs (after backfill of reporting_period)
+-- create unique index ... on (review_id, agreement_fibery_id, reporting_period);
 
-create table public.fos_engagement_review_recordings (
-  id uuid primary key default gen_random_uuid(),
-  review_id uuid not null references public.fos_engagement_reviews(id) on delete cascade,
-  drive_file_id text not null,
-  file_name text,
-  mime_type text,
-  byte_size bigint,
-  uploaded_by_email text not null,
-  uploaded_at timestamptz not null default now()
-);
+alter table public.fos_engagement_updates
+  drop constraint if exists fos_engagement_updates_overall_rag_chk;
+alter table public.fos_engagement_updates
+  add constraint fos_engagement_updates_overall_rag_chk
+  check (overall_rag is null or overall_rag in ('on_track', 'at_risk', 'off_track'));
 ```
 
-Indexes (minimum):
+### Legacy questionnaire rows
 
-- `fos_engagement_reviews (target_date desc)`, `(status)`
-- `fos_engagement_review_agreements (agreement_fibery_id)`, `(owner_email)`
-- `fos_engagement_updates (review_id, agreement_fibery_id, submitted_at desc)`
-- `fos_engagement_review_participants (email)`
-- `fos_engagement_review_recordings (review_id)`
+Early 037 wrote `executive_summary`, `answers`, `traffic_light`, `question_set_version`. At implement:
 
-Privileges: revoke `anon` / `authenticated` (match **036**).
+1. Prefer mapping display of legacy rows into a read-only banner or one-time migrate `executive_summary` → `qualitative.key_developments[0]` when `reporting_period` is null.
+2. New creates MUST use status-pack columns and set `reporting_period`.
+3. Do not require Fibery for migration.
 
-**No** question-bank tables in v1.
+### Backfill notes
 
-## Questions module (code)
+```sql
+insert into public.fos_engagement_review_notes (review_id, title, body_html, sort_order, created_by_email)
+select id, 'Call summary', call_summary_html, 0, created_by_email
+from public.fos_engagement_reviews
+where call_summary_html is not null and length(trim(call_summary_html)) > 0
+  and not exists (
+    select 1 from public.fos_engagement_review_notes n where n.review_id = fos_engagement_reviews.id
+  );
+```
 
-`src/engagementReviewQuestions.js`:
+## Engagement Update metrics builder
 
-- Export `ENGAGEMENT_REVIEW_QUESTION_SET_VERSION` (integer).
-- Export ordered array: `{ key, label, helpText, inputType, required, options? }`.
-- `inputType`: `textarea` | `text` | `single_select` | `traffic_light` | `number`.
-- Designate which field feeds **`executive_summary`** (dedicated required textarea, or explicit mapping).
-- `validateEngagementUpdateAnswers_(answers, version)` server-side before insert.
+`buildEngagementUpdateQuantitativeSnapshot_(agreementFiberyId, reportingPeriod)` returns JSON:
 
-Exact labels: draft from Google requirements doc during R3; bump version on any breaking change.
+| Block | Logic (Supabase) |
+| --- | --- |
+| Hours/cost MTD | Sum `fos_labor_costs` for agreement/project mapping in period; planned from allocations for that month |
+| EAC hours/dollars | Actuals-to-date + remaining resource allocation (template decision: plan remaining, not run-rate) |
+| Charts | Monthly buckets from engagement start (or trailing N months) through reporting period close |
+| Margin series | Planned margin vs projected (actuals-to-date + remaining plan) |
+| Revenue | Invoiced MTD/FYTD from revenue/invoice mirrors; next milestone from open invoice/revenue items |
+| Resources | Per-person allocated vs logged for the month; billable vs not-on-SOW flag |
+| Missing data | Emit `null` / empty arrays; UI shows N/A |
 
-## Suggest algorithms
+**Agreement mapping:** resolve Clockify project / agreement keys using existing Hub join conventions from Delivery P&L / labor builders (do not invent a Fibery round-trip).
 
-### Agreements from alerts
+### RAG auto-suggest (v1 rules)
 
-1. Load Agreement dashboard alerts (Datastore panel payload preferred).
-2. Distinct `agreementId` where severity in (`critical`, `warning`), exclude `all_clear`.
-3. Upsert link rows with `suggested_from_alert = true`; copy name/customer/owner when known.
-4. Do not delete admin-added rows.
+Configurable constants (Script Properties or code defaults; expose in Settings if needed):
 
-### Participants from Agreement Owner
+| Dimension | Green | Amber | Red |
+| --- | --- | --- | --- |
+| Cost / Hours | abs variance ≤ 5% of plan | ≤ 10% | > 10% |
+| Margin | within ±3 percentage points of planned margin | ≤ 6 pts | > 6 pts |
+| Schedule | placeholder: green if no overdue milestone signal in Supabase; amber/red when milestone/date risk flags exist; else default green with subtext "On plan" | | |
+| Client sentiment | default green "Assumed strong" or leave prior user value on refresh | | |
+| Overall | worst of dimension RAGs mapped to on_track / at_risk / off_track | | |
 
-1. For each linked agreement, resolve Fibery **Agreement Owner** → email (via hydrate column or live Fibery read Admin-only).
-2. Keep emails that exist on auth **Users** sheet (case-insensitive).
-3. Upsert participants with `suggested = true`, `participant_role = 'owner'`.
-4. Skip / warn for owners missing from Users (never calendar-invite them).
+User overrides in `qualitative` and `overall_rag` win on Save; Refresh re-suggests only fields marked `auto: true` OR re-suggests all with a confirm (product default: refresh metrics + re-suggest dimensions that user has not dirty-edited in the open modal).
 
-## Project detail DTO (R3)
+## AI synopsis
 
-```text
+**Gate:** `status === 'completed'` and caller is Admin.
+
+**Input assembly:**
+
+1. Review name, target date, status
+2. All notes (`title`, `body_html` stripped/truncated safely)
+3. Each Engagement Update: agreement name, period, overall RAG, qualitative, quantitative summary KPIs (not full raw labor rows if token-heavy; include resource exception flags)
+
+**Output JSON schema (store as `ai_synopsis_json`):**
+
+```json
 {
-  reviewId, agreementId, agreementName, customerName, ownerEmail,
-  updates: {
-    latest: { id, executiveSummary, trafficLight, answers, submittedByEmail, submittedAt, questionSetVersion } | null,
-    history: [ /* older updates, newest first */ ]
-  },
-  projectInfo: {
-    state, type, alerts[],
-    pnlKpis: { /* from fos_delivery_pnl / builder */ },
-    resources?: { /* optional */ },
-    milestones?: { /* optional */ }
-  },
-  questionSet: { version, questions: [...] },
-  canSubmitUpdate: boolean
+  "version": 1,
+  "headline": "…",
+  "themes": ["…"],
+  "decisions": ["…"],
+  "risks": ["…"],
+  "actions": ["…"],
+  "per_engagement": [
+    { "agreement_fibery_id": "…", "name": "…", "summary": "…" }
+  ]
 }
 ```
 
-UI contract:
-
-1. Render **latest.executiveSummary** at top (or empty state).
-2. **history** in a **collapsed** `<details>` / accordion labeled previous updates from Agreement Owner.
-3. Project information section below.
-4. Questionnaire when `canSubmitUpdate`.
-
-Deep link: `route=engagement-review&reviewId=…&agreementId=…`.
-
-## Calendar invites (R4)
-
-- Script Property for calendar id (or default script calendar).
-- Event title/body: review name, target date, Hub deep link, engagement count.
-- Attendees: participant emails after Users-sheet filter only.
-- Idempotent: store `calendar_event_id` on review (add column if needed) for update/reschedule.
-- Activity: `engagement_review_calendar_invite`.
-
-## Drive recordings (R4)
-
-- Folder: `ENGAGEMENT_REVIEW_DRIVE_FOLDER_ID` or subfolder under `FOS_SNAPSHOT_DRIVE_FOLDER_ID` named `engagement-review-recordings/`.
-- Upload via `DriveApp`; persist `fos_engagement_review_recordings` row.
-- List/download via Drive file id (open in Drive for v1; no streaming through Apps Script).
-- Reject empty files; cap size with clear error.
+Reuse `finopsAskAnthropic.js` (or shared Anthropic helper) with a dedicated system prompt; apply existing quota/logging patterns; never return API keys or stack traces to the client.
 
 ## UI implementation notes
 
-### Nav
+### Agenda row
 
-- `{ id: 'engagement-review', label: 'Engagement review' }` under `delivery-group`.
-- Gate identical membership to Resource assignments (**CE / EXEC / ADMIN**).
-- Expose `engagementReviewAccess` on nav model; create button client-gated by `isAdmin`.
+- Drag handle (Admin)
+- Title: `{company or agreement} - {Mon YYYY}` or agreement name
+- RAG pill
+- Assigned owner name/email
+- Actions: binoculars (view), pencil (edit); optional overflow delete (Admin)
 
-### Views
+### Large modal
 
-| View | Purpose |
-| --- | --- |
-| Reviews list | Filter upcoming/past/all |
-| Review detail | Header, participants, call summary, recordings, **engagement list** |
-| Project detail | Latest summary, collapsible history, project info, questionnaire |
+- Full-viewport-friendly dialog (≥ desktop); mobile full-screen sheet
+- Qualitative editors: rich text or structured lists for bullets/risks
+- Assigned Owner read-only from agreement denorm
+- Quant panel: tiles + mini charts from snapshot; Refresh button; "Metrics pulled at {local datetime}"
+- Save validates unique period/project
 
-### Mobile
+### Interactive viewer
 
-- Cards; sticky **Add update**; filter sheet; ≥ 44px targets.
-- Collapsible history default closed.
+- Port DEAP layout/CSS into shell (scoped class prefix `fos-eu-rpt-`)
+- Bind snapshot + qualitative
+- Toolbar: Download HTML (Blob), Print (window.print + print CSS)
+- Mobile: single column stack; charts simplify or progressive disclosure
+
+### Meeting notes
+
+- List + add/edit/delete
+- Rich text field (existing editor)
+- Sort order optional (Admin)
+
+## Auth matrix
+
+| Action | CE | EXEC | ADMIN |
+| --- | --- | --- | --- |
+| View module / reviews | Y | Y | Y |
+| Create / edit review | Y | Y | Y |
+| Create / edit Engagement Update | Y* | Y* | Y |
+| Refresh metrics | Y* | Y* | Y |
+| Reorder updates | N | N | Y |
+| Manage participants / calendar | N | N | Y |
+| Upload Drive recording | N | N | Y |
+| Generate AI synopsis | N | N | Y |
+| Delete review | N | N | Y |
+
+\*Non-Admin create/edit limited to picker-eligible projects (owner_email match + Delivery In Progress). Editing an update the user did not create but owns via agreement: **allowed** if they pass picker rules for that agreement. Editing others' packs: **Admin only** (lock this in API).
 
 ## Activity events
 
-| Event type | When |
+| Event id | When |
 | --- | --- |
 | `engagement_review_nav` | Open panel |
-| `engagement_review_create` | Admin creates |
-| `engagement_review_update` | Admin saves header/status/summary |
-| `engagement_review_suggest_alerts` | Suggest agreements |
-| `engagement_review_suggest_owners` | Suggest participants |
-| `engagement_review_calendar_invite` | Calendar send |
-| `engagement_review_recording_upload` | Drive upload |
-| `engagement_review_project_detail` | Open project detail |
-| `engagement_update_submit` | Questionnaire save |
+| `engagement_review_create` | Create review |
+| `engagement_review_update` | Edit review fields/status |
+| `engagement_update_create` | Create update |
+| `engagement_update_edit` | Save qualitative |
+| `engagement_update_reorder` | Admin reorder |
+| `engagement_update_refresh_metrics` | Refresh |
+| `engagement_update_view` | Binoculars |
+| `engagement_update_export` | HTML or print |
+| `engagement_review_note_save` | Note add/edit |
+| `engagement_review_calendar_invite` | Calendar |
+| `engagement_review_recording_upload` | Drive |
+| `engagement_review_ai_synopsis` | Generate synopsis |
 
-## Testing / verification plan
+## Implementation checklist
 
-1. Apply migration; confirm revokes.
-2. Admin: create review, suggest alerts, suggest owners (Users only), upload recording, set `scheduled`, create calendar.
-3. Owner: open engagement → project detail → submit update → latest summary on top; second submit → first moves into collapsible history.
-4. EXEC: see nav; cannot create.
-5. CE non-Admin: same.
-6. Finance-only: no nav / FORBIDDEN.
-7. Mobile 390px path.
-8. Non-Users owner email never appears on calendar attendees.
+### R5 - Schema
 
-## Risks and mitigations
+- [ ] Author migration; apply to project; update `supabase/build/schema_all.sql` if used
+- [ ] Update `docs/supabase-data-model.md`
+- [ ] Backfill notes from `call_summary_html`
+- [ ] Unique index on updates after period backfill strategy chosen
+
+### R6 - APIs / metrics
+
+- [ ] `engagementUpdateMetrics.js` builders + RAG suggest
+- [ ] Store methods: create/update/reorder/refresh/notes/synopsis
+- [ ] Auth matrix enforced server-side
+- [ ] Picker query: Delivery In Progress (+ owner filter)
+
+### R7 - Shell UI
+
+- [ ] Agenda list + Admin drag-drop
+- [ ] Large create/edit modal
+- [ ] Interactive viewer
+- [ ] Refresh + pulled-at
+- [ ] Mobile cards / sheets
+
+### R8 - Notes, export, AI, polish
+
+- [ ] Multi-note CRUD UI
+- [ ] HTML download + print CSS
+- [ ] Admin synopsis button + JSON renderer
+- [ ] Activity whitelist + settings registry
+- [ ] Verification steps from feature RD
+- [ ] PRD FR/AC + `FOS_PRD_VERSION` header sweep at ship
+- [ ] Teamwork ship via `teamwork_ship_command.py --feature-id 037`
+
+## Risk register
 
 | Risk | Mitigation |
 | --- | --- |
-| Fibery Owner field path unclear / MCP host drift | Confirm on `harpin-ai` before R2; add hydrate column; implementation note in spec |
-| Apps Script upload limits | Cap file size; document supported types |
-| Calendar quota / permissions | Shared calendar id via Settings; fail soft per attendee |
-| Question churn | Integer `question_set_version` on review + update rows |
-| Accidental Fibery status dual-write | No calls into `createAgreementStatusUpdate` from this module |
-| Stale Datastore for alerts/P&L | Label “as of last Pull”; Admin can refresh Datastore separately |
+| Clockify↔agreement join incomplete | N/A tiles; document mapping; reuse Delivery P&L join helpers |
+| Token limits on synopsis | Summarize quant to KPIs; truncate note HTML |
+| Drag-drop on mobile | Up/down controls for Admin on small viewports |
+| Legacy questionnaire confusion | Hide legacy form; migrate or banner |
+| Create permission expansion (was Admin-only) | Explicit auth tests for CE/EXEC create |
 
-## PRD / Teamwork ship hooks
+## Open engineering items (not product blockers)
 
-1. Bump PRD (MINOR), `FOS_PRD_VERSION`, all `src/*` headers.
-2. Add FR/AC for Engagement Review.
-3. Update `docs/features/000-overview.md`.
-4. Sync notebooks; ship command:
+1. Exact `fos_agreements` column for Delivery In Progress filter (`status` vs `state` vs enum name) - confirm against AM mirror row shape at implement.
+2. Labor row → agreement_fibery_id join path (Clockify project name vs Fibery id on `fos_labor_costs`).
+3. Whether CE/EXEC may delete their own updates (default: soft-hide; Admin hard delete).
+4. Print CSS page breaks for long resource tables.
 
-```bash
-python3 scripts/teamwork_ship_command.py --feature-id 037
-```
-
-## Phase checklist
-
-### R1 - Foundation
-
-- [x] Product decisions locked
-- [ ] Migration + data model doc
-- [ ] Auth (view CE/EXEC/ADMIN; mutate ADMIN) + nav
-- [ ] Admin CRUD review + manual engagements + statuses + call summary
-- [ ] Activity: nav/create/update
-
-### R2 - Suggest + browse
-
-- [ ] Confirm Agreement Owner Fibery path + hydrate
-- [ ] Suggest from alerts
-- [ ] Suggest participants (Owner ∩ Users)
-- [ ] CE/EXEC read review + engagement list
-- [ ] Mobile list/review detail
-
-### R3 - Project detail + updates
-
-- [ ] Code question set v1
-- [ ] Project detail DTO + UI (latest summary + collapsible history + project info)
-- [ ] `createEngagementUpdate`
-- [ ] Deep link
-- [ ] Mobile questionnaire
-
-### R4 - Calendar + Drive
-
-- [ ] Calendar event (Users only); optional `calendar_event_id` column
-- [ ] Drive upload + recordings table UI
-- [ ] Settings registry keys
-
-## Changelog (plan)
+## Changelog (plan doc)
 
 | Date | Note |
 | --- | --- |
-| 2026-07-23 | Initial plan: R1–R4, schema sketch, open questions. |
-| 2026-07-23 | Locked decisions applied: EXEC access; Admin-only create; code questions / DB responses; Supabase-only reviews; Drive recordings; Users-only calendar; four statuses; project detail UX with executive summary + collapsible owner history; dropped question DB tables. |
+| 2026-07-23 | Initial plan R1-R4 (foundation, suggest, questionnaire, calendar/Drive). |
+| 2026-08-04 | Extended plan R5-R8: Engagement Update status packs, notes, metrics snapshot/refresh, HTML/Print, Admin AI synopsis JSON; create open to CE/EXEC/ADMIN; Admin-only reorder. |

@@ -1,5 +1,5 @@
 /**
- * PRD version 3.4.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.5.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard orchestrator (route id `operations`, panel
  * `#panel-operations`). Reads `Agreement Management/Labor Costs` from Fibery
@@ -123,9 +123,18 @@ function buildUtilizationPayloadFromFosLaborCosts_(range, thresholds, now) {
     fetched.rows = [];
   }
 
+  var usersByKey = {};
+  try {
+    if (typeof loadFosClockifyUsersByClockifyIdMap_ === 'function') {
+      usersByKey = loadFosClockifyUsersByClockifyIdMap_() || {};
+    }
+  } catch (eUsers) {
+    usersByKey = {};
+  }
+
   var raw = [];
   for (var i = 0; i < fetched.rows.length; i++) {
-    raw.push(mapFosLaborCostRowToUtilRaw_(fetched.rows[i]));
+    raw.push(mapFosLaborCostRowToUtilRaw_(fetched.rows[i], usersByKey));
   }
   var rows = normalizeLaborRows_(raw, thresholds);
   var kpis = computeUtilizationKpis_(rows);
@@ -241,7 +250,44 @@ function fetchFosLaborCostsByRange_(startIso, endIso) {
  * @return {!Object}
  * @private
  */
-function mapFosLaborCostRowToUtilRaw_(row) {
+/**
+ * Normalizes PostgREST / Postgres timestamptz strings to ISO-8601 so
+ * `Date.parse` / Apps Script `new Date` behave consistently.
+ * e.g. `2026-07-20 03:30:00+00` -> `2026-07-20T03:30:00+00:00`
+ * @param {?*} v
+ * @return {?string}
+ * @private
+ */
+function normalizePostgresTimestamptzToIso_(v) {
+  if (v == null || v === '') {
+    return null;
+  }
+  if (Object.prototype.toString.call(v) === '[object Date]') {
+    var dt = /** @type {!Date} */ (v);
+    return isFinite(dt.getTime()) ? dt.toISOString() : null;
+  }
+  var s = String(v).trim();
+  if (!s) {
+    return null;
+  }
+  if (s.indexOf(' ') >= 0 && s.indexOf('T') < 0) {
+    s = s.replace(' ', 'T');
+  }
+  // Postgres often emits +00 / -05 without minutes.
+  if (/[+-]\d{2}$/.test(s)) {
+    s += ':00';
+  }
+  return s;
+}
+
+/**
+ * Maps a fos_labor_costs row into the raw shape normalizeLaborRows_ expects.
+ * @param {!Object} row
+ * @param {?Object=} usersByClockifyId optional email/Clockify-id -> fos_clockify_users
+ * @return {!Object}
+ * @private
+ */
+function mapFosLaborCostRowToUtilRaw_(row, usersByClockifyId) {
   row = row || {};
   var p = row.fibery_payload_json;
   if (typeof p === 'string') {
@@ -262,12 +308,53 @@ function mapFosLaborCostRowToUtilRaw_(row) {
   if (!isFinite(hours)) {
     hours = 0;
   }
-  var startIso =
-    row.start_date_time ||
-    p['Agreement Management/Start Date Time'] ||
+  var startIso = normalizePostgresTimestamptzToIso_(
+    row.start_date_time || p['Agreement Management/Start Date Time'] || null
+  );
+  var endIso = normalizePostgresTimestamptzToIso_(
+    row.end_date_time || p['Agreement Management/End Date Time'] || null
+  );
+  var company =
+    p['Agreement Management/Clockify User Company'] ||
+    (p['Agreement Management/Clockify User Company'] &&
+      p['Agreement Management/Clockify User Company']['enum/name']) ||
     null;
-  if (startIso && typeof startIso !== 'string') {
-    startIso = String(startIso);
+  if (company && typeof company === 'object' && company['enum/name']) {
+    company = company['enum/name'];
+  }
+  var workStatus = null;
+  var wsPath = p['Agreement Management/Clockify User'];
+  if (wsPath && typeof wsPath === 'object') {
+    var wsNested = wsPath['Agreement Management/Work Status'];
+    if (wsNested && typeof wsNested === 'object' && wsNested['enum/name']) {
+      workStatus = wsNested['enum/name'];
+    } else if (typeof wsNested === 'string') {
+      workStatus = wsNested;
+    }
+  }
+  var userName =
+    row.time_entry_user_name ||
+    p['Agreement Management/Time Entry User Name'] ||
+    '(Unknown user)';
+  var userId = row.user_id || p['Agreement Management/User ID'] || null;
+  var user = null;
+  if (usersByClockifyId && userId) {
+    var uid = String(userId);
+    user =
+      usersByClockifyId[uid] ||
+      usersByClockifyId[uid.toLowerCase()] ||
+      null;
+  }
+  if (user) {
+    if (user.company_enum_name) {
+      company = user.company_enum_name;
+    }
+    if (user.work_status_name) {
+      workStatus = user.work_status_name;
+    }
+    if (user.name) {
+      userName = user.name;
+    }
   }
   return {
     id: row.clockify_time_log_id || '',
@@ -279,8 +366,7 @@ function mapFosLaborCostRowToUtilRaw_(row) {
     billable:
       row.billable || p['Agreement Management/Billable'] || 'No',
     startDateTime: startIso,
-    endDateTime:
-      row.end_date_time || p['Agreement Management/End Date Time'] || null,
+    endDateTime: endIso,
     dateOfCreation: null,
     agreementId: null,
     agreementName: null,
@@ -293,14 +379,11 @@ function mapFosLaborCostRowToUtilRaw_(row) {
       '(No Project)',
     projectId: row.project_id || p['Agreement Management/Project ID'] || null,
     task: row.task || p['Agreement Management/Task'] || null,
-    userName:
-      row.time_entry_user_name ||
-      p['Agreement Management/Time Entry User Name'] ||
-      '(Unknown user)',
-    userId: row.user_id || p['Agreement Management/User ID'] || null,
-    clockifyUserCompany: null,
+    userName: userName,
+    userId: userId,
+    clockifyUserCompany: company ? String(company) : null,
     clockifyUserRole: null,
-    clockifyUserWorkStatus: null,
+    clockifyUserWorkStatus: workStatus ? String(workStatus) : null,
     userRole: null,
     userRoleBillRate: null,
     userRoleCostRate: null,

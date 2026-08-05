@@ -339,7 +339,7 @@
       "featureId": "039",
       "intakeTaskId": 40578934,
       "publishedAt": "2026-07-23",
-      "lastSyncedAt": "2026-07-23",
+      "lastSyncedAt": "2026-08-05",
       "description": "Utilization heatmap: raise TOP_N to 100, interactive single-select legend filters with sticky headers, rename no data to zero hours.",
       "gitMirror": "docs/features/039-utilization-heatmap-full-view.md"
     },
@@ -350,7 +350,7 @@
       "featureId": "037",
       "intakeTaskId": 40478571,
       "publishedAt": "2026-07-23",
-      "lastSyncedAt": "2026-07-23",
+      "lastSyncedAt": "2026-08-04",
       "gitMirror": "docs/features/037-engagement-review.md"
     },
     "feature_037_implementation_plan": {
@@ -360,7 +360,7 @@
       "featureId": "037",
       "intakeTaskId": 40478571,
       "publishedAt": "2026-07-23",
-      "lastSyncedAt": "2026-07-23",
+      "lastSyncedAt": "2026-08-04",
       "gitMirror": "docs/features/037-engagement-review-implementation-plan.md"
     }
   },
@@ -1086,17 +1086,6 @@
       "workflowStage": "Backlog",
       "createdAt": "2026-07-23"
     },
-    "Feature 039 - Utilization heatmap full view and legend filters": {
-      "id": 40578934,
-      "url": "https://win.godeap.io/app/tasks/40578934",
-      "featureId": "039",
-      "releaseType": "Enhancement",
-      "tasklist": "Inbox",
-      "tasklistId": 4175395,
-      "notebookKey": "feature_039",
-      "workflowStage": "In-progress",
-      "createdAt": "2026-07-23"
-    },
     "Feature 037 - Engagement Review": {
       "id": 40579193,
       "tasklist": "Delivery",
@@ -1111,7 +1100,29 @@
       "url": "https://win.godeap.io/app/tasks/40579193",
       "renameAtShip": "v{FOS_PRD_VERSION} - Engagement Review",
       "workflowStage": "Spec Draft",
-      "createdAt": "2026-07-23"
+      "createdAt": "2026-07-23",
+      "specExtendedAt": "2026-08-04",
+      "notes": "Extended Spec Draft 2026-08-04: Engagement Updates as DEAP status packs, multi notes, AI synopsis, HTML/Print export."
+    },
+    "v3.1.0 - Utilization heatmap full view and legend filters": {
+      "id": 40578934,
+      "url": "https://win.godeap.io/app/tasks/40578934",
+      "featureId": "039",
+      "releaseType": "Enhancement",
+      "tasklist": "Operations",
+      "tasklistId": 4174282,
+      "notebookKey": "feature_039",
+      "workflowStage": "Shipped",
+      "createdAt": "2026-07-23",
+      "shippedVersion": "v3.1.0",
+      "provisionalTaskName": false,
+      "releaseTitle": "Utilization heatmap full view and legend filters",
+      "shippedAt": "2026-08-05",
+      "estDevHours": 6,
+      "estDevHoursRationale": [
+        "Explicit --est-dev-hours: 6.0h"
+      ],
+      "estDevHoursGitBase": "(manual)"
     }
   },
   "lastBootstrappedAt": "2026-06-10"

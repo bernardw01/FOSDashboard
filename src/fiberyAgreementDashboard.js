@@ -1,5 +1,5 @@
 /**
- * PRD version 3.4.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.5.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement Dashboard orchestrator (route id `agreement-dashboard`, panel
  * `#panel-agreement-dashboard`). Live loads use same-day Drive warm cache
@@ -26,7 +26,7 @@
  */
 
 /** @const {number} Bumped when the client cache shape changes. */
-var AGREEMENT_DASHBOARD_CACHE_SCHEMA_VERSION_ = 3;
+var AGREEMENT_DASHBOARD_CACHE_SCHEMA_VERSION_ = 4;
 
 /** @const {number} Default TTL (minutes) for the client-side cache. */
 var AGREEMENT_DEFAULT_CACHE_TTL_MIN_ = 10;
@@ -93,16 +93,21 @@ function getAgreementDashboardData(forceRefresh) {
  * ADMIN Pull / nightly hydrate only. Snapshot jobs keep calling
  * `buildAgreementDashboardPayload_` directly.
  *
- * @param {boolean} forceRefresh Ignored for Live Datastore serve (Reload re-reads Postgres).
+ * When Refresh is forced or the agreement panel schema lags, rebuilds
+ * agreement + delivery panel JSON from typed Supabase tables (no Fibery).
+ *
+ * @param {boolean} forceRefresh Rebuild panel JSON from typed tables when true.
  * @return {!Object}
  */
 function getAgreementDashboardDataInternal_(forceRefresh) {
-  return serveLivePanelFromSupabaseOrFail_(
-    'agreement',
+  var expected =
     typeof AGREEMENT_DASHBOARD_CACHE_SCHEMA_VERSION_ !== 'undefined'
       ? AGREEMENT_DASHBOARD_CACHE_SCHEMA_VERSION_
-      : null
-  );
+      : null;
+  if (typeof serveLiveAgreementFamilyOrRebuild_ === 'function') {
+    return serveLiveAgreementFamilyOrRebuild_('agreement', expected, forceRefresh === true);
+  }
+  return serveLivePanelFromSupabaseOrFail_('agreement', expected);
 }
 
 /**
@@ -279,6 +284,7 @@ function buildAgreementsQuery_() {
         // unpack it in normalizeAgreements_().
         duration: 'Agreement Management/Duration',
         executionDate: 'Agreement Management/Execution Date',
+        assignedOwner: ['Agreement Management/Assigned Owner', 'Agreement Management/Name'],
       },
       'q/where': ['!=', ['workflow/state', 'enum/name'], '$closedLost'],
       // Fibery's REST `/api/commands` expects q/order-by as an array of
@@ -402,6 +408,7 @@ function normalizeAgreements_(rows) {
       type: stringOrNull_(r.type),
       progress: stringOrNull_(r.progress),
       customer: stringOrNull_(r.customer),
+      assignedOwner: stringOrNull_(r.assignedOwner),
       plannedRev: numberOr_(r.plannedRev, 0),
       revRec: numberOr_(r.revRec, 0),
       laborCosts: numberOr_(r.laborCosts, 0),

@@ -1,5 +1,5 @@
 /**
- * PRD version 3.4.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.5.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement Management Fibery → Supabase relational mirror (Pull / nightly).
  * Panel aggregation builders read the typed tables this mirror hydrates
@@ -12,7 +12,7 @@
  * Does not read or write Admin Settings. Does not log secrets or full row
  * dumps.
  *
- * IMPORTANT (v3.4.0 cutover): Fibery `Agreement Management/Labor Costs` is
+ * IMPORTANT (v3.4.1 cutover): Fibery `Agreement Management/Labor Costs` is
  * NOT mirrored by this job. Labor facts come ONLY from Clockify via
  * `labor_costs` / `fos_labor_costs` (see `fiberyUtilizationDashboard.js`,
  * `supabaseClient.js`). The legacy `fos_am_labor_costs` table (and its
@@ -69,7 +69,7 @@ var AM_MIRROR_ENUM_STEPS_ = [
   { key: 'agreement_type', kind: 'enum', enumType: 'agreement_type', from: 'Agreement Management/Agreement Type_Revenue Management/Agreements', isWorkflow: false },
   { key: 'agreement_status', kind: 'enum', enumType: 'agreement_status', from: 'Agreement Management/Agreement Status_Agreement Management/Status Updates', isWorkflow: false },
   // NOTE: labor_approval / time_entry_status enums were only used by the
-  // now-removed Fibery Labor Costs mirror step; intentionally dropped (v3.4.0).
+  // now-removed Fibery Labor Costs mirror step; intentionally dropped (v3.4.1).
   { key: 'clockify_company', kind: 'enum', enumType: 'clockify_company', from: 'Agreement Management/Company_Agreement Management/Clockify Users', isWorkflow: false },
   { key: 'clockify_department', kind: 'enum', enumType: 'clockify_department', from: 'Agreement Management/Department_Agreement Management/Clockify Users', isWorkflow: false },
   { key: 'work_status', kind: 'enum', enumType: 'work_status', from: 'Agreement Management/Work Status_Agreement Management/Clockify Users', isWorkflow: false },
@@ -128,11 +128,10 @@ var AM_MIRROR_ENTITY_STEPS_ = [
       accountLeadId: ['Agreement Management/Account Lead', 'fibery/id'],
       createdAt: 'fibery/creation-date',
       modifiedAt: 'fibery/modification-date',
-      segments: {
-        'q/from': 'Agreement Management/Segment_Revenue Management/Companies',
-        'q/select': { id: 'fibery/id', name: 'enum/name' },
-        'q/limit': AM_MIRROR_SEGMENTS_SUBQUERY_LIMIT_,
-      },
+      // Multi-select enum: path vectors return parallel id/name arrays.
+      // Nested { q/from } collection subqueries fail on this workspace.
+      segmentIds: ['Agreement Management/Segment', 'fibery/id'],
+      segmentNames: ['Agreement Management/Segment', 'enum/name'],
     },
     mapRow: amMirrorMapCompany_,
     afterPage: amMirrorAfterCompanies_,
@@ -252,11 +251,8 @@ var AM_MIRROR_ENTITY_STEPS_ = [
       totalPlannedRevenue: 'Agreement Management/Total Planned Revenue',
       createdAt: 'fibery/creation-date',
       modifiedAt: 'fibery/modification-date',
-      assignedResources: {
-        'q/from': 'Agreement Management/Clockify Users',
-        'q/select': { id: 'fibery/id' },
-        'q/limit': AM_MIRROR_ASSIGNED_RESOURCES_SUBQUERY_LIMIT_,
-      },
+      // Collection of Clockify Users: path vector returns id array.
+      assignedResourceIds: ['Agreement Management/Assigned Resources', 'fibery/id'],
     },
     mapRow: amMirrorMapAgreement_,
     afterPage: amMirrorAfterAgreements_,
@@ -301,7 +297,8 @@ var AM_MIRROR_ENTITY_STEPS_ = [
       clockifyUserId: ['Agreement Management/Clockify User', 'fibery/id'],
       genericResourceId: ['Agreement Management/Generic Resource', 'fibery/id'],
       allocatedHours: 'Agreement Management/Allocated Hours',
-      allocation: 'Agreement Management/Allocation',
+      // Fibery field is Percent Allocated (no field named Allocation).
+      allocation: 'Agreement Management/Percent Allocated',
       allocationCostGeneric: 'Agreement Management/Allocation Cost (Generic)',
       adjustedRevenue: 'Agreement Management/Adjusted Revenue',
       billRateAdjustment: 'Agreement Management/Bill Rate Adjustement',
@@ -437,14 +434,9 @@ var AM_MIRROR_ENTITY_STEPS_ = [
       marginPct: 'Agreement Management/Margin %',
       createdAt: 'fibery/creation-date',
       modifiedAt: 'fibery/modification-date',
-      // NOTE: no `laborCosts` subquery here (v3.4.0) - Fibery Labor Costs are
-      // not mirrored; `fos_pnl_labor_costs` is no longer written. Revenue
-      // item junctions are still hydrated below.
-      revenueItems: {
-        'q/from': 'Agreement Management/Revenue Item',
-        'q/select': { id: 'fibery/id' },
-        'q/limit': AM_MIRROR_PNL_REVENUE_SUBQUERY_LIMIT_,
-      },
+      // NOTE: no labor collection here - Fibery Labor Costs are not mirrored.
+      // Revenue item junctions use a path vector (id array).
+      revenueItemIds: ['Agreement Management/Agreement Revenue Items', 'fibery/id'],
     },
     mapRow: amMirrorMapAgreementPnlItem_,
     afterPage: amMirrorAfterPnlItems_,
@@ -653,16 +645,15 @@ function amMirrorAfterCompanies_(mappedRows, fiberyRows) {
   for (var i = 0; i < fiberyRows.length; i++) {
     var row = fiberyRows[i];
     if (!row || !row.id) continue;
-    var segments = row.segments || [];
-    for (var j = 0; j < segments.length; j++) {
-      var seg = segments[j];
-      if (seg && seg.id) {
-        junctions.push({
-          company_fibery_id: row.id,
-          segment_fibery_id: seg.id,
-          segment_name: seg.name || null,
-        });
-      }
+    var ids = Array.isArray(row.segmentIds) ? row.segmentIds : [];
+    var names = Array.isArray(row.segmentNames) ? row.segmentNames : [];
+    for (var j = 0; j < ids.length; j++) {
+      if (!ids[j]) continue;
+      junctions.push({
+        company_fibery_id: row.id,
+        segment_fibery_id: ids[j],
+        segment_name: names[j] || null,
+      });
     }
   }
   if (junctions.length) {
@@ -680,15 +671,13 @@ function amMirrorAfterAgreements_(mappedRows, fiberyRows) {
   for (var i = 0; i < fiberyRows.length; i++) {
     var row = fiberyRows[i];
     if (!row || !row.id) continue;
-    var resources = row.assignedResources || [];
-    for (var j = 0; j < resources.length; j++) {
-      var resource = resources[j];
-      if (resource && resource.id) {
-        junctions.push({
-          agreement_fibery_id: row.id,
-          clockify_user_fibery_id: resource.id,
-        });
-      }
+    var ids = Array.isArray(row.assignedResourceIds) ? row.assignedResourceIds : [];
+    for (var j = 0; j < ids.length; j++) {
+      if (!ids[j]) continue;
+      junctions.push({
+        agreement_fibery_id: row.id,
+        clockify_user_fibery_id: ids[j],
+      });
     }
   }
   if (junctions.length) {
@@ -698,7 +687,7 @@ function amMirrorAfterAgreements_(mappedRows, fiberyRows) {
 
 /**
  * Writes revenue-item junctions only. Fibery Labor Costs are not mirrored
- * (v3.4.0), so `fos_pnl_labor_costs` is intentionally never written here.
+ * (v3.4.1), so `fos_pnl_labor_costs` is intentionally never written here.
  *
  * @param {!Array<!Object>} mappedRows
  * @param {!Array<!Object>} fiberyRows
@@ -709,11 +698,13 @@ function amMirrorAfterPnlItems_(mappedRows, fiberyRows) {
   for (var i = 0; i < fiberyRows.length; i++) {
     var row = fiberyRows[i];
     if (!row || !row.id) continue;
-    var revenueItems = row.revenueItems || [];
-    for (var k = 0; k < revenueItems.length; k++) {
-      if (revenueItems[k] && revenueItems[k].id) {
-        revenueJunctions.push({ pnl_fibery_id: row.id, revenue_item_fibery_id: revenueItems[k].id });
-      }
+    var ids = Array.isArray(row.revenueItemIds) ? row.revenueItemIds : [];
+    for (var k = 0; k < ids.length; k++) {
+      if (!ids[k]) continue;
+      revenueJunctions.push({
+        pnl_fibery_id: row.id,
+        revenue_item_fibery_id: ids[k],
+      });
     }
   }
   if (revenueJunctions.length) {
@@ -773,7 +764,7 @@ function amMirrorMapCompany_(row) {
     created_at: amMirrorDate_(row.createdAt),
     modified_at: amMirrorDate_(row.modifiedAt),
     synced_at: amMirrorNowIso_(),
-    raw: amMirrorRawWithout_(row, ['segments']),
+    raw: amMirrorRawWithout_(row, ['segmentIds', 'segmentNames']),
   };
 }
 
@@ -907,7 +898,7 @@ function amMirrorMapAgreement_(row) {
     created_at: amMirrorDate_(row.createdAt),
     modified_at: amMirrorDate_(row.modifiedAt),
     synced_at: amMirrorNowIso_(),
-    raw: amMirrorRawWithout_(row, ['assignedResources']),
+    raw: amMirrorRawWithout_(row, ['assignedResourceIds']),
   };
 }
 
@@ -1120,7 +1111,7 @@ function amMirrorMapAgreementPnlItem_(row) {
     created_at: amMirrorDate_(row.createdAt),
     modified_at: amMirrorDate_(row.modifiedAt),
     synced_at: amMirrorNowIso_(),
-    raw: amMirrorRawWithout_(row, ['laborCosts', 'revenueItems']),
+    raw: amMirrorRawWithout_(row, ['laborCosts', 'revenueItems', 'revenueItemIds']),
   };
 }
 

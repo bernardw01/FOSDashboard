@@ -1,12 +1,12 @@
 # Feature: Delivery P&L month modal - allocation by role and variance
 
-> **PRD version 2.12.8** - sync with `docs/FOS-Dashboard-PRD.md`  
+> **PRD version 3.4.12** - sync with `docs/FOS-Dashboard-PRD.md`  
 > **Feature id:** 020 | **Task list:** Delivery  
 > **Teamwork notebook:** [Feature 020](https://win.godeap.io/app/projects/1615262/notebooks/311801)  
 > **Release task:** [v2.12.8](https://win.godeap.io/app/tasks/40150201)  
 > **Intake:** [Inbox task 40149979](https://win.godeap.io/app/tasks/40149979)  
 > **Extends:** [Feature 006 - Delivery project P&L](006-delivery-project-pnl.md), [Feature 019 - Resource allocation P&L chart](019-resource-allocation-pnl-chart.md)  
-> **Status:** Shipped in **v2.12.8**
+> **Status:** Shipped in **v2.12.8**; modal columns superseded in **v3.4.11** / **v3.4.12** (hours by person + logged vs allocated)
 
 ## Goal
 
@@ -95,5 +95,7 @@ When a user clicks a month on the **Delivery P&L chart**, the **monthly P&L moda
 
 | Date | Change |
 | --- | --- |
+| 2026-08-04 | **v3.4.12:** Month modal further extended with logged vs allocated (see feature **006**). |
+| 2026-07-31 | **v3.4.11:** Chart month modal columns superseded by hours-by-person (**Name / Role / Hours / Cost** via `laborByPerson`); chart and tooltips unchanged. See feature **006**. |
 | 2026-06-11 | Implemented v2.12.8: `allocatedByRole`, modal columns, cache v7. |
 | 2026-06-11 | Shipped v2.12.8; notebook synced to Teamwork. |

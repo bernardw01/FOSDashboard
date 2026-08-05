@@ -1,5 +1,5 @@
 /**
- * PRD version 3.4.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.5.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036: read/write dashboard panel payloads and status rows in Supabase.
  */
@@ -247,6 +247,91 @@ function serveLivePanelFromSupabaseOrFail_(panelKey, cacheSchemaVersion) {
 }
 
 /**
+ * @param {?Object} payload
+ * @param {number=} expectedSchema
+ * @return {boolean}
+ * @private
+ */
+function panelPayloadSchemaMatches_(payload, expectedSchema) {
+  if (expectedSchema == null || expectedSchema === undefined) {
+    return !!(payload && typeof payload === 'object');
+  }
+  if (!payload || typeof payload !== 'object') {
+    return false;
+  }
+  return Number(payload.cacheSchemaVersion) === Number(expectedSchema);
+}
+
+/**
+ * Live Agreement / Delivery serve: read panel blob, or rebuild both from typed
+ * AM tables when Refresh is forced, the blob is missing, or schema lags.
+ * Does not call Fibery.
+ *
+ * @param {string} panelKey `agreement` or `delivery`
+ * @param {number} expectedSchema
+ * @param {boolean=} forceRefresh
+ * @return {!Object}
+ */
+function serveLiveAgreementFamilyOrRebuild_(panelKey, expectedSchema, forceRefresh) {
+  var key = String(panelKey || '').trim();
+  if (!isSupabaseConfigured_()) {
+    return supabaseLiveMissPayload_(key, null, expectedSchema);
+  }
+
+  var needRebuild = forceRefresh === true;
+  if (!needRebuild) {
+    var existing = loadSupabasePanelPayload_(key);
+    if (
+      existing.ok &&
+      existing.payload &&
+      panelPayloadSchemaMatches_(existing.payload, expectedSchema)
+    ) {
+      return tagPayloadFromSupabase_(existing.payload, existing.asOf || existing.syncedAt);
+    }
+    needRebuild = true;
+  }
+
+  if (typeof rebuildAgreementDeliveryPanelsFromTyped_ !== 'function') {
+    return serveLivePanelFromSupabaseOrFail_(key, expectedSchema);
+  }
+
+  var rebuilt = rebuildAgreementDeliveryPanelsFromTyped_();
+  if (rebuilt && rebuilt.ok) {
+    var fresh = key === 'delivery' ? rebuilt.delivery : rebuilt.agreement;
+    if (fresh && typeof fresh === 'object') {
+      return tagPayloadFromSupabase_(
+        fresh,
+        fresh.dataAsOf || fresh.fetchedAt || null
+      );
+    }
+  }
+
+  var stale = loadSupabasePanelPayload_(key);
+  if (stale.ok && stale.payload) {
+    var tagged = tagPayloadFromSupabase_(stale.payload, stale.asOf || stale.syncedAt);
+    var warn =
+      'Typed rebuild failed; serving stale ' +
+      key +
+      ' panel' +
+      (rebuilt && rebuilt.message ? ' (' + rebuilt.message + ')' : '') +
+      '.';
+    tagged.warnings = (tagged.warnings || []).concat([warn]);
+    return tagged;
+  }
+
+  return supabaseLiveMissPayload_(
+    key,
+    {
+      reason: 'SUPABASE_REBUILD_FAILED',
+      message:
+        (rebuilt && rebuilt.message) ||
+        'Could not rebuild ' + key + ' from typed Datastore tables.',
+    },
+    expectedSchema
+  );
+}
+
+/**
  * Live Delivery project P&L: Datastore only.
  * @param {string} agreementId
  * @param {number=} cacheSchemaVersion
@@ -275,6 +360,106 @@ function serveLiveDeliveryPnLFromSupabaseOrFail_(agreementId, cacheSchemaVersion
         'No Datastore P&L for this project. Ask an ADMIN to run Pull from Fibery in Settings.',
     },
     cacheSchemaVersion
+  );
+}
+
+/**
+ * True when a fos_delivery_pnl payload is suitable for the Delivery chart
+ * (Allocated cost plan line needs `resourceAllocations`, not portfolioMode).
+ * @param {?Object} payload
+ * @param {number=} expectedSchema
+ * @return {boolean}
+ */
+function isFullDeliveryPnLPayload_(payload, expectedSchema) {
+  if (!payload || typeof payload !== 'object' || payload.ok === false) {
+    return false;
+  }
+  if (payload.portfolioMode === true) {
+    return false;
+  }
+  if (!payload.resourceAllocations || typeof payload.resourceAllocations !== 'object') {
+    return false;
+  }
+  if (expectedSchema != null && expectedSchema !== undefined) {
+    if (Number(payload.cacheSchemaVersion) !== Number(expectedSchema)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Live Delivery P&L: serve a full (non-portfolioMode) row, or rebuild from
+ * typed tables and upsert so Allocated cost (plan) is not lost after Portfolio
+ * hydrate wrote a slim blob.
+ *
+ * @param {string} agreementId
+ * @param {number=} cacheSchemaVersion
+ * @param {boolean=} forceRefresh
+ * @return {!Object}
+ */
+function serveLiveDeliveryPnLOrRebuildFull_(agreementId, cacheSchemaVersion, forceRefresh) {
+  var id = String(agreementId || '').trim();
+  var expected =
+    cacheSchemaVersion != null
+      ? cacheSchemaVersion
+      : typeof DELIVERY_PNL_CACHE_SCHEMA_VERSION_ !== 'undefined'
+        ? DELIVERY_PNL_CACHE_SCHEMA_VERSION_
+        : null;
+  if (!id) {
+    return supabaseLiveMissPayload_('delivery-pnl', {
+      reason: 'BAD_AGREEMENT_ID',
+      message: 'Missing agreement id.',
+    }, expected);
+  }
+  if (!isSupabaseConfigured_()) {
+    return supabaseLiveMissPayload_('delivery-pnl', null, expected);
+  }
+
+  var needRebuild = forceRefresh === true;
+  if (!needRebuild) {
+    var existing = loadSupabaseDeliveryPnL_(id);
+    if (existing.ok && isFullDeliveryPnLPayload_(existing.payload, expected)) {
+      return tagPayloadFromSupabase_(existing.payload, existing.asOf || existing.syncedAt);
+    }
+    needRebuild = true;
+  }
+
+  if (typeof buildDeliveryProjectMonthlyPnLFromSupabase_ !== 'function') {
+    return serveLiveDeliveryPnLFromSupabaseOrFail_(id, expected);
+  }
+
+  var rebuilt = buildDeliveryProjectMonthlyPnLFromSupabase_(id, { portfolioMode: false });
+  if (rebuilt && rebuilt.ok !== false) {
+    var name = rebuilt.agreementName || '';
+    try {
+      saveSupabaseDeliveryPnL_(id, name, rebuilt);
+    } catch (e) {
+      supabaseWarn_('save full delivery P&L after rebuild', e);
+    }
+    return tagPayloadFromSupabase_(rebuilt, rebuilt.dataAsOf || rebuilt.fetchedAt || null);
+  }
+
+  var stale = loadSupabaseDeliveryPnL_(id);
+  if (stale.ok && stale.payload) {
+    var tagged = tagPayloadFromSupabase_(stale.payload, stale.asOf || stale.syncedAt);
+    var warn =
+      'Full Delivery P&L rebuild failed; serving stored row' +
+      (rebuilt && rebuilt.message ? ' (' + rebuilt.message + ')' : '') +
+      '.';
+    tagged.warnings = (tagged.warnings || []).concat([warn]);
+    return tagged;
+  }
+
+  return supabaseLiveMissPayload_(
+    'delivery-pnl',
+    {
+      reason: 'SUPABASE_PNL_REBUILD_FAILED',
+      message:
+        (rebuilt && rebuilt.message) ||
+        'Could not rebuild Delivery P&L from typed Datastore tables.',
+    },
+    expected
   );
 }
 

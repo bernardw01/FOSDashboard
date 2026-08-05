@@ -1,7 +1,7 @@
 # Feature: Supabase dashboard data layer
 
 > **Status:** Shipped (**v3.0.0**; Live Datastore-only **v3.0.11**; labor mirror + nightly auto-install **v3.0.12**).  
-> **PRD version:** 3.4.0  
+> **PRD version:** 3.4.10  
 > **Feature id:** 036 | **Task list:** Data platform  
 > **Release type:** Enhancement  
 > **Extends:** [003 - Agreement client cache](003-agreement-dashboard-fibery-client-cache.md), [005 - Utilization](005-utilization-management-dashboard.md), [006 - Delivery P&L](006-delivery-project-pnl.md), [009 - Historical snapshots](009-dashboard-historical-snapshots.md), [010 - Historical data source](010-dashboard-historical-data-source.md), [016 / 030 - Pipeline](030-sales-os-pipeline.md), [017 / 023 - AI usage](023-ai-usage-dashboard.md), [022 / 025 - Portfolio](025-portfolio-pnl-performance-and-load-source-ux.md), [027 / 028 - Resource assignments](027-resource-assignment-dashboard.md), [034 - Live Drive warm cache](034-live-dashboard-warm-cache-and-portfolio-batching.md) (live Drive path superseded by this feature).  
@@ -173,6 +173,10 @@ See [implementation plan](036-supabase-dashboard-data-layer-implementation-plan.
 
 | Date | Note |
 | --- | --- |
+| 2026-07-29 | **v3.4.10:** AM mirror `estimated_allocations` select maps `allocation` → Fibery **Percent Allocated** (field `Agreement Management/Allocation` does not exist; overnight sync failed after resource_allocations). |
+| 2026-07-27 | **v3.4.6:** Migration **044** restores `anon`/`authenticated` grants + RLS policies on `fos_labor_costs` / `labor_costs` (fixes Live Labor Hours / Utilization and Pull `permission denied for table fos_labor_costs`). |
+| 2026-07-27 | **v3.4.2:** AM mirror Companies Segment / Assigned Resources / P&L revenue junctions use Fibery path vectors (nested collection `{ q/from }` fails on this workspace). |
+| 2026-07-25 | **v3.4.1:** Migration **043** restores `anon`/`authenticated` grants on AM mirror tables (fixes nightly `permission denied for table fos_am_enums`). |
 | 2026-07-24 | **v3.4.0:** Panel hydrate builds JSON from Supabase typed tables (`supabasePanelBuilders.js`); Fibery Labor Costs no longer mirrored (Clockify `fos_labor_costs` only); HubSpot/AI row mirrors before Pipeline/AI panels; AM FK constraints (migration **042**). |
 | 2026-07-23 | **v3.3.0:** ADMIN Pull / nightly hydrate Agreement Management relational tables (`am-mirror` via `supabaseAmMirror.js`) before panel JSON blobs. Migration **041**. Fibery Labor Costs → `fos_am_labor_costs` (Clockify `fos_labor_costs` unchanged). Panel aggregation builders unchanged. |
 | 2026-07-22 | **v3.0.12:** `fos_labor_costs` is Hub time-entry mirror of `labor_costs` (migration 038). ADMIN Pull auto-installs nightly hydrate trigger; Settings shows trigger status. |

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.4.0 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.5.2 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -1627,6 +1627,96 @@
       padding-left: 1.25rem;
       color: var(--ag-text-muted);
     }
+    .fos-delivery-pnl-person-card {
+      border: 1px solid var(--ag-border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .fos-delivery-pnl-person-card.is-orange,
+    tr.fos-delivery-pnl-person-orange td {
+      color: var(--ag-warn);
+    }
+    .fos-delivery-pnl-person-card.is-orange {
+      border-color: var(--ag-warn);
+    }
+    tr.fos-delivery-pnl-person-orange td:first-child {
+      box-shadow: inset 3px 0 0 var(--ag-warn);
+    }
+    .fos-delivery-pnl-month-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .fos-delivery-pnl-month-filters .form-control,
+    .fos-delivery-pnl-month-filters .form-select {
+      min-height: 44px;
+      max-width: 220px;
+    }
+    .fos-delivery-pnl-month-filters .form-check {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+    }
+    .fos-financial-table thead th.fos-delivery-sortable {
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .fos-financial-table thead th.fos-delivery-sortable .sort-icon {
+      opacity: 0.45;
+      font-size: 0.75em;
+      margin-left: 4px;
+    }
+    .fos-financial-table thead th.fos-delivery-sortable.is-active-sort .sort-icon {
+      opacity: 1;
+    }
+    .fos-delivery-pnl-person-card .fos-delivery-pnl-person-name {
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .fos-delivery-pnl-person-card .fos-delivery-pnl-person-role {
+      color: var(--ag-text-muted);
+      font-size: 0.875rem;
+      margin-bottom: 8px;
+    }
+    .fos-delivery-pnl-person-card.is-orange .fos-delivery-pnl-person-role {
+      color: var(--ag-warn);
+      opacity: 0.85;
+    }
+    .fos-delivery-pnl-person-card .fos-delivery-pnl-person-metrics {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .fos-delivery-pnl-person-card .fos-delivery-pnl-person-metrics span {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+    }
+    @media (max-width: 767.98px) {
+      .fos-delivery-pnl-month-desktop {
+        display: none !important;
+      }
+      .fos-delivery-pnl-month-mobile.fos-mobile-only {
+        display: block !important;
+      }
+      .fos-delivery-pnl-month-filters .form-control,
+      .fos-delivery-pnl-month-filters .form-select {
+        max-width: none;
+        flex: 1 1 100%;
+      }
+    }
+    @media (min-width: 768px) {
+      .fos-delivery-pnl-month-mobile {
+        display: none !important;
+      }
+    }
     .fos-delivery-pacing {
       padding: 10px 12px;
       border: 1px solid var(--ag-border);
@@ -1678,9 +1768,6 @@
     .fos-delivery-attention-list .fos-attention-item:focus-visible {
       outline: 2px solid var(--ag-accent);
       outline-offset: 2px;
-    }
-    .fos-delivery-sankey-host {
-      min-height: 280px;
     }
 
     /* Customer Relationship Cards (§7.6) */
@@ -4216,6 +4303,276 @@
         display: none !important;
       }
     }
+
+    /* Feature 037: Engagement Update / Create Review modals.
+       Live outside .fos-agreement-root; force opaque hex surfaces so create/edit
+       never look transparent over the dashboard (Bootstrap + undefined --ag-card). */
+    #erUpdateModal,
+    #erViewerModal,
+    #erCreateModal {
+      color-scheme: dark;
+    }
+
+    #erUpdateModal .modal-content,
+    #erViewerModal .modal-content,
+    #erCreateModal .modal-content {
+      --ag-bg: #061b30;
+      --ag-surface: #0d2e4a;
+      --ag-surface2: #113655;
+      --ag-border: #2a5a7a;
+      --ag-accent: #52c9e5;
+      --ag-text: #fffefc;
+      --ag-text-muted: #a0aec0;
+      --ag-text-dim: #7a93a8;
+      --bs-modal-bg: #0d2e4a;
+      --bs-modal-color: #fffefc;
+      --bs-modal-border-color: #2a5a7a;
+      --bs-body-bg: #0d2e4a;
+      --bs-body-color: #fffefc;
+      --bs-secondary-color: #a0aec0;
+      --bs-border-color: #2a5a7a;
+      --bs-tertiary-bg: #113655;
+      background-color: #0d2e4a !important;
+      background-image: none !important;
+      color: #fffefc !important;
+      border: 1px solid #2a5a7a !important;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.65);
+      opacity: 1 !important;
+    }
+
+    #erUpdateModal .modal-header,
+    #erUpdateModal .modal-footer,
+    #erViewerModal .modal-header,
+    #erViewerModal .modal-footer,
+    #erCreateModal .modal-header,
+    #erCreateModal .modal-footer {
+      background-color: #113655 !important;
+      border-color: #2a5a7a !important;
+      color: #fffefc !important;
+    }
+
+    #erUpdateModal .modal-title,
+    #erViewerModal .modal-title,
+    #erCreateModal .modal-title {
+      color: #fffefc !important;
+    }
+
+    #erUpdateModal .modal-body,
+    #erViewerModal .modal-body,
+    #erCreateModal .modal-body {
+      background-color: #0d2e4a !important;
+      color: #fffefc !important;
+    }
+
+    #erUpdateModal .form-control,
+    #erUpdateModal .form-select,
+    #erCreateModal .form-control,
+    #erCreateModal .form-select {
+      background-color: #061b30 !important;
+      border: 1px solid #2a5a7a !important;
+      color: #fffefc !important;
+      opacity: 1 !important;
+    }
+
+    #erUpdateModal .form-control:disabled,
+    #erUpdateModal .form-select:disabled,
+    #erCreateModal .form-control:disabled,
+    #erCreateModal .form-select:disabled {
+      background-color: #0a2438 !important;
+      color: #a0aec0 !important;
+      opacity: 1 !important;
+    }
+
+    #erUpdateModal .form-control:focus,
+    #erUpdateModal .form-select:focus,
+    #erCreateModal .form-control:focus,
+    #erCreateModal .form-select:focus {
+      background-color: #061b30 !important;
+      border-color: #52c9e5 !important;
+      color: #fffefc !important;
+      box-shadow: 0 0 0 0.2rem rgba(82, 201, 229, 0.28);
+    }
+
+    #erUpdateModal .form-control::placeholder,
+    #erCreateModal .form-control::placeholder {
+      color: #a0aec0 !important;
+      opacity: 1;
+    }
+
+    #erUpdateModal .form-select option,
+    #erCreateModal .form-select option {
+      background-color: #0d2e4a;
+      color: #fffefc;
+    }
+
+    #erUpdateModal .form-label,
+    #erCreateModal .form-label,
+    #erUpdateModal label,
+    #erCreateModal label {
+      color: #a0aec0 !important;
+    }
+
+    #erUpdateModal .fos-section-card,
+    #erUpdateModal #er-um-quant-panel .fos-section-card {
+      background-color: #113655 !important;
+      border: 1px solid #2a5a7a !important;
+      border-radius: 8px;
+      color: #fffefc;
+    }
+
+    #erUpdateModal .table {
+      --bs-table-bg: transparent;
+      --bs-table-color: #fffefc;
+      --bs-table-border-color: #2a5a7a;
+      color: #fffefc;
+    }
+
+    #erUpdateModal .btn-secondary,
+    #erCreateModal .btn-secondary,
+    #erViewerModal .btn-secondary {
+      background-color: #113655;
+      border-color: #2a5a7a;
+      color: #fffefc;
+    }
+
+    #erUpdateModal .btn-outline-secondary,
+    #erViewerModal .btn-outline-secondary {
+      color: #fffefc;
+      border-color: #2a5a7a;
+      background-color: transparent;
+    }
+
+    #erUpdateModal .btn-outline-secondary:hover,
+    #erViewerModal .btn-outline-secondary:hover {
+      background-color: #113655;
+      border-color: #52c9e5;
+      color: #fffefc;
+    }
+
+    #erUpdateModal .form-check-input {
+      background-color: #061b30;
+      border-color: #2a5a7a;
+    }
+
+    #erUpdateModal .form-check-input:checked {
+      background-color: #52c9e5;
+      border-color: #52c9e5;
+    }
+
+    .modal-backdrop.show {
+      opacity: 0.78;
+      background-color: #020b14;
+    }
+
+    .er-rag-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 10px;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    .er-update-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 0.5rem;
+      border-bottom: 1px solid var(--ag-border);
+    }
+
+    .er-update-row:last-child {
+      border-bottom: none;
+    }
+
+    .er-update-row.is-dragging {
+      opacity: 0.4;
+    }
+
+    .er-update-row .btn {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    .er-update-row-main {
+      flex: 1 1 160px;
+      min-width: 0;
+    }
+
+    .er-drag-handle {
+      cursor: grab;
+      color: var(--ag-text-muted);
+      padding: 0.25rem;
+      align-items: center;
+    }
+
+    .er-reorder-mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .er-update-owner {
+      display: inline-block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .er-scorecard-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.5rem;
+    }
+
+    #er-notes-list p {
+      margin: 0 0 0.35rem;
+    }
+
+    #er-notes-list p:last-child {
+      margin-bottom: 0;
+    }
+
+    #er-viewer-frame {
+      border-radius: 0 0 0.5rem 0.5rem;
+    }
+
+    @media (max-width: 767.98px) {
+      .er-update-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        border: 1px solid var(--ag-border);
+        border-radius: 10px;
+        margin-bottom: 0.5rem;
+        background: var(--ag-surface2);
+      }
+
+      .er-update-row:last-child {
+        margin-bottom: 0;
+      }
+
+      .er-update-row .er-rag-pill {
+        align-self: flex-start;
+      }
+
+      .er-update-owner {
+        max-width: none !important;
+      }
+
+      .er-reorder-mobile .btn {
+        min-height: 44px;
+        min-width: 44px;
+      }
+
+      .er-scorecard-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
   </style>
 </head>
 <body>
@@ -5554,28 +5911,35 @@
                 <button type="button" class="fos-util-clear-btn ms-auto" id="delivery-clear-filters-btn">Clear filters</button>
               </div>
               <p class="small mb-2" style="color: var(--ag-text-muted)">
-                Client-side only — narrows the table, signals, and portfolio chart without refetching.
+                Client-side only — narrows the table and signals without refetching.
               </p>
               <div class="row g-2 align-items-end">
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-3">
                   <label class="small d-block mb-1" style="color: var(--ag-text-muted)">Customer</label>
                   <div class="fos-util-multi">
                     <button type="button" class="multi-trigger w-100" id="delivery-customer-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">All customers</button>
                     <ul class="dropdown-menu" id="delivery-customer-menu" aria-label="Customer filter"></ul>
                   </div>
                 </div>
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-3">
                   <label class="small d-block mb-1" style="color: var(--ag-text-muted)">Agreement type</label>
                   <div class="fos-util-multi">
                     <button type="button" class="multi-trigger w-100" id="delivery-type-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">All types</button>
                     <ul class="dropdown-menu" id="delivery-type-menu" aria-label="Agreement type filter"></ul>
                   </div>
                 </div>
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-3">
                   <label class="small d-block mb-1" style="color: var(--ag-text-muted)">Agreement status</label>
                   <div class="fos-util-multi">
                     <button type="button" class="multi-trigger w-100" id="delivery-state-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">All statuses</button>
                     <ul class="dropdown-menu" id="delivery-state-menu" aria-label="Agreement status filter"></ul>
+                  </div>
+                </div>
+                <div class="col-12 col-md-3">
+                  <label class="small d-block mb-1" style="color: var(--ag-text-muted)">Assigned owner</label>
+                  <div class="fos-util-multi">
+                    <button type="button" class="multi-trigger w-100" id="delivery-owner-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">All owners</button>
+                    <ul class="dropdown-menu" id="delivery-owner-menu" aria-label="Assigned owner filter"></ul>
                   </div>
                 </div>
               </div>
@@ -5592,17 +5956,6 @@
               <div id="delivery-attention-list" class="fos-delivery-attention-list" aria-live="polite"></div>
             </section>
 
-            <!-- v1.21.0 Phase C.3 - portfolio margin-flow Sankey (recognized
-                 revenue → labor · ODC · gross margin). Same D3 + d3-sankey
-                 loader as the Agreement Dashboard. -->
-            <section class="fos-section-card mb-3" aria-labelledby="delivery-sankey-heading">
-              <h2 id="delivery-sankey-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Portfolio margin flow</h2>
-              <p class="small mb-2" style="color: var(--ag-text-muted)">
-                Aggregated across active projects in the table (recognized revenue vs labor, materials &amp; ODC, and implied gross margin).
-              </p>
-              <div id="delivery-sankey-wrap" class="fos-sankey-wrap" role="img" aria-label="Delivery portfolio margin flow Sankey diagram"></div>
-            </section>
-
             <section class="fos-section-card mb-3" aria-labelledby="delivery-projects-heading">
               <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                 <h2 id="delivery-projects-heading" class="mb-0">Active projects</h2>
@@ -5615,7 +5968,7 @@
                     type="search"
                     class="form-control form-control-sm fos-delivery-search"
                     id="delivery-search-input"
-                    aria-label="Filter projects by name or customer"
+                    aria-label="Filter projects by name, customer, or owner"
                     placeholder="Filter projects…"
                     autocomplete="off"
                     spellcheck="false"
@@ -6012,7 +6365,7 @@
                 <div class="flex-grow-1 min-w-0">
                   <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Engagement review</h1>
                   <p class="small mb-0" style="color: var(--ag-text-muted)">
-                    Schedule reviews, collect owner updates, and retain call notes.
+                    Schedule reviews, collect Engagement Updates status packs, and retain meeting notes.
                   </p>
                 </div>
                 <button type="button" class="btn btn-sm fw-semibold px-3 d-none" id="er-new-btn" style="background: var(--ag-accent); color: #061b30; border: none; min-height: 44px;">
@@ -6083,9 +6436,19 @@
                   </section>
                 </div>
                 <div class="col-12 col-lg-4">
-                  <section class="fos-section-card h-100">
-                    <h3 class="h6 fw-bold" style="color: var(--ag-text)">Call summary</h3>
-                    <textarea class="form-control form-control-sm" id="er-field-summary" rows="6" disabled placeholder="Paste call notes…"></textarea>
+                  <section class="fos-section-card h-100 d-flex flex-column">
+                    <h3 class="h6 fw-bold" style="color: var(--ag-text)">Meeting notes</h3>
+                    <div id="er-notes-list" class="small mb-2" style="color: var(--ag-text); max-height: 220px; overflow-y: auto;"></div>
+                    <p class="small d-none mb-2" id="er-notes-empty" style="color: var(--ag-text-muted)">No meeting notes yet.</p>
+                    <div class="d-none mt-auto" id="er-note-form-wrap">
+                      <input type="text" class="form-control form-control-sm mb-2" id="er-note-title" placeholder="Title (optional)" />
+                      <textarea class="form-control form-control-sm mb-2" id="er-note-body" rows="3" placeholder="Meeting note…"></textarea>
+                      <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-sm fw-semibold" id="er-note-save-btn" style="background: var(--ag-accent); color: #061b30; border: none; min-height: 44px;">Add note</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="er-note-cancel-edit-btn" style="min-height: 44px;">Cancel</button>
+                      </div>
+                      <span class="small d-none text-danger" id="er-note-error" role="alert"></span>
+                    </div>
                   </section>
                 </div>
                 <div class="col-12 col-lg-4">
@@ -6113,17 +6476,36 @@
                 <div class="col-12 col-lg-8">
                   <section class="fos-section-card">
                     <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                      <h3 class="h6 fw-bold mb-0" style="color: var(--ag-text)">Engagements on this review</h3>
-                      <button type="button" class="btn btn-sm btn-outline-secondary d-none ms-auto" id="er-add-agreement-btn" style="min-height: 44px;">Add by id</button>
+                      <h3 class="h6 fw-bold mb-0" style="color: var(--ag-text)">Engagement Updates</h3>
+                      <span class="small" style="color: var(--ag-text-muted)">Status packs for this review, in agenda order</span>
+                      <button type="button" class="btn btn-sm fw-semibold d-none ms-auto" id="er-create-update-btn" style="background: var(--ag-accent); color: #061b30; border: none; min-height: 44px;">
+                        Create new Engagement Update
+                      </button>
                     </div>
-                    <div id="er-agreements-list"></div>
-                    <p class="small d-none mb-0" id="er-agreements-empty" style="color: var(--ag-text-muted)">No engagements linked yet.</p>
+                    <div id="er-updates-list"></div>
+                    <p class="small d-none mb-0" id="er-updates-empty" style="color: var(--ag-text-muted)">No Engagement Updates yet.</p>
+                  </section>
+                </div>
+              </div>
+              <div class="row g-3 mb-3 d-none" id="er-synopsis-wrap">
+                <div class="col-12">
+                  <section class="fos-section-card">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                      <h3 class="h6 fw-bold mb-0" style="color: var(--ag-text)">AI synopsis</h3>
+                      <span class="small" id="er-synopsis-meta" style="color: var(--ag-text-muted)"></span>
+                      <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" id="er-generate-synopsis-btn" style="min-height: 44px;">Generate AI synopsis</button>
+                    </div>
+                    <div id="er-synopsis-panel" class="small" style="color: var(--ag-text)"></div>
+                    <span class="small d-none text-danger" id="er-synopsis-error" role="alert"></span>
                   </section>
                 </div>
               </div>
               <span class="small d-none text-danger" id="er-detail-error" role="alert"></span>
             </div>
 
+            <!-- Legacy project questionnaire view - kept for deep links and the older
+                 owner-submitted update flow. Not linked from the primary Engagement
+                 Updates agenda; binoculars there opens #erViewerModal instead. -->
             <div id="er-view-project" class="d-none">
               <button type="button" class="btn btn-sm btn-link px-0 mb-2" id="er-back-detail-btn" style="color: var(--ag-accent); min-height: 44px;">← Back to review</button>
               <h2 class="h5 mb-1 fw-bold" id="er-project-title" style="color: var(--ag-text)">Engagement</h2>
@@ -6157,7 +6539,7 @@
         <!-- Create review modal -->
         <div class="modal fade" id="erCreateModal" tabindex="-1" aria-labelledby="erCreateModalLabel" aria-hidden="true">
           <div class="modal-dialog">
-            <div class="modal-content" style="background: var(--ag-card); color: var(--ag-text)">
+            <div class="modal-content">
               <div class="modal-header border-secondary">
                 <h2 class="modal-title h5" id="erCreateModalLabel">New engagement review</h2>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -6172,6 +6554,166 @@
               <div class="modal-footer border-secondary">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn fw-semibold" id="er-create-save-btn" style="background: var(--ag-accent); color: #061b30;">Create</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Engagement Update status pack modal (feature 037). -->
+        <div class="modal fade" id="erUpdateModal" tabindex="-1" aria-labelledby="erUpdateModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-scrollable modal-xl modal-fullscreen-md-down">
+            <div class="modal-content">
+              <div class="modal-header border-secondary">
+                <h2 class="modal-title h5" id="erUpdateModalLabel">Create Engagement Update</h2>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <div class="row g-3 mb-2">
+                  <div class="col-12 col-md-6">
+                    <label class="form-label small" for="er-um-project-select">Project</label>
+                    <select class="form-select form-select-sm" id="er-um-project-select" style="min-height: 44px;">
+                      <option value="">Select a project…</option>
+                    </select>
+                    <div class="d-none" id="er-um-project-readonly-wrap">
+                      <div class="fw-semibold" id="er-um-project-readonly" style="min-height: 44px; display: flex; align-items: center;"></div>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <label class="form-label small" for="er-um-period">Reporting period</label>
+                    <input type="month" class="form-control form-control-sm" id="er-um-period" style="min-height: 44px;" />
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <label class="form-label small" for="er-um-overall-rag">Overall RAG</label>
+                    <select class="form-select form-select-sm" id="er-um-overall-rag" style="min-height: 44px;">
+                      <option value="on_track">On track</option>
+                      <option value="at_risk">At risk</option>
+                      <option value="off_track">Off track</option>
+                    </select>
+                  </div>
+                </div>
+
+                <p class="small mb-3" style="color: var(--ag-text-muted)">Owner: <span id="er-um-owner-readonly">-</span></p>
+
+                <div class="d-none" id="er-um-detail-fields">
+                  <h3 class="h6 fw-bold mt-2" style="color: var(--ag-text)">Scorecard</h3>
+                  <div class="er-scorecard-grid mb-3" id="er-um-dims-row">
+                    <div class="fos-section-card p-2">
+                      <label class="small fw-semibold d-block mb-1" style="color: var(--ag-text)">Schedule</label>
+                      <select class="form-select form-select-sm mb-1" id="er-um-dim-schedule-rag">
+                        <option value="green">Green</option>
+                        <option value="amber">Amber</option>
+                        <option value="red">Red</option>
+                      </select>
+                      <input type="text" class="form-control form-control-sm mb-1" id="er-um-dim-schedule-subtext" placeholder="Subtext" />
+                      <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" role="switch" id="er-um-dim-schedule-auto" checked />
+                        <label class="form-check-label small" for="er-um-dim-schedule-auto" style="color: var(--ag-text-muted)">Auto-refresh</label>
+                      </div>
+                    </div>
+                    <div class="fos-section-card p-2">
+                      <label class="small fw-semibold d-block mb-1" style="color: var(--ag-text)">Cost / Hours</label>
+                      <select class="form-select form-select-sm mb-1" id="er-um-dim-cost_hours-rag">
+                        <option value="green">Green</option>
+                        <option value="amber">Amber</option>
+                        <option value="red">Red</option>
+                      </select>
+                      <input type="text" class="form-control form-control-sm mb-1" id="er-um-dim-cost_hours-subtext" placeholder="Subtext" />
+                      <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" role="switch" id="er-um-dim-cost_hours-auto" checked />
+                        <label class="form-check-label small" for="er-um-dim-cost_hours-auto" style="color: var(--ag-text-muted)">Auto-refresh</label>
+                      </div>
+                    </div>
+                    <div class="fos-section-card p-2">
+                      <label class="small fw-semibold d-block mb-1" style="color: var(--ag-text)">Margin</label>
+                      <select class="form-select form-select-sm mb-1" id="er-um-dim-margin-rag">
+                        <option value="green">Green</option>
+                        <option value="amber">Amber</option>
+                        <option value="red">Red</option>
+                      </select>
+                      <input type="text" class="form-control form-control-sm mb-1" id="er-um-dim-margin-subtext" placeholder="Subtext" />
+                      <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" role="switch" id="er-um-dim-margin-auto" checked />
+                        <label class="form-check-label small" for="er-um-dim-margin-auto" style="color: var(--ag-text-muted)">Auto-refresh</label>
+                      </div>
+                    </div>
+                    <div class="fos-section-card p-2">
+                      <label class="small fw-semibold d-block mb-1" style="color: var(--ag-text)">Client sentiment</label>
+                      <select class="form-select form-select-sm mb-1" id="er-um-dim-client_sentiment-rag">
+                        <option value="green">Green</option>
+                        <option value="amber">Amber</option>
+                        <option value="red">Red</option>
+                      </select>
+                      <input type="text" class="form-control form-control-sm mb-1" id="er-um-dim-client_sentiment-subtext" placeholder="Subtext" />
+                      <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" role="switch" id="er-um-dim-client_sentiment-auto" checked />
+                        <label class="form-check-label small" for="er-um-dim-client_sentiment-auto" style="color: var(--ag-text-muted)">Auto-refresh</label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="row g-3 mb-3">
+                    <div class="col-12 col-md-6">
+                      <label class="form-label small">Key developments <span style="color: var(--ag-text-muted)">(one per line)</span></label>
+                      <textarea class="form-control form-control-sm" id="er-um-key-developments" rows="4"></textarea>
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label small">Priorities next <span style="color: var(--ag-text-muted)">(one per line)</span></label>
+                      <textarea class="form-control form-control-sm" id="er-um-priorities-next" rows="4"></textarea>
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label small">Risks <span style="color: var(--ag-text-muted)">(one per line, format: severity|description)</span></label>
+                    <textarea class="form-control form-control-sm" id="er-um-risks" rows="3" placeholder="high|Client is reconsidering scope for Q3"></textarea>
+                  </div>
+
+                  <div class="row g-3 mb-3">
+                    <div class="col-12 col-md-6">
+                      <label class="form-label small">Revenue callout</label>
+                      <textarea class="form-control form-control-sm" id="er-um-revenue-callout" rows="2" placeholder="Optional note shown on the revenue section…"></textarea>
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label small">Margin footnote</label>
+                      <textarea class="form-control form-control-sm" id="er-um-margin-footnote" rows="2" placeholder="Optional footnote shown under margin…"></textarea>
+                    </div>
+                  </div>
+
+                  <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <h3 class="h6 fw-bold mb-0" style="color: var(--ag-text)">Quantitative snapshot</h3>
+                    <span class="small" id="er-um-metrics-pulled-at" style="color: var(--ag-text-muted)"></span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" id="er-um-refresh-metrics-btn" style="min-height: 44px;">Refresh metrics</button>
+                  </div>
+                  <div id="er-um-quant-panel" class="small mb-2" style="color: var(--ag-text)"></div>
+                </div>
+
+                <span class="small d-none text-danger" id="er-um-error" role="alert"></span>
+              </div>
+              <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="er-um-cancel-btn">Cancel</button>
+                <button type="button" class="btn fw-semibold" id="er-um-save-btn" style="background: var(--ag-accent); color: #061b30; min-height: 44px;">Create</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Engagement Update viewer modal (feature 037). -->
+        <div class="modal fade" id="erViewerModal" tabindex="-1" aria-labelledby="erViewerModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-scrollable modal-xl modal-fullscreen-md-down">
+            <div class="modal-content">
+              <div class="modal-header border-secondary">
+                <h2 class="modal-title h5" id="erViewerModalLabel">Engagement Update</h2>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body p-0">
+                <span class="small d-none text-danger m-3 d-block" id="er-viewer-error" role="alert"></span>
+                <div id="er-viewer-body">
+                  <iframe id="er-viewer-frame" title="Engagement Update status pack" style="width: 100%; min-height: 65vh; height: 65vh; border: 0; background: #fff; display: block;"></iframe>
+                </div>
+              </div>
+              <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-outline-secondary" id="er-viewer-print-btn" style="min-height: 44px;">Print</button>
+                <button type="button" class="btn fw-semibold" id="er-viewer-download-btn" style="background: var(--ag-accent); color: #061b30; min-height: 44px;">Download HTML</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
               </div>
             </div>
           </div>
@@ -6984,9 +7526,8 @@
     </div>
   </div>
 
-  <!-- v2.6.9 - opens when a month bar/point is clicked in the Delivery P&L
-       chart. Shows revenue, labor by role, expenses, and margin for that
-       month only (cached payload; no extra Fibery fetch). -->
+  <!-- Chart month click: hours by individual vs allocated for the selected month
+       (cached payload laborByPerson; chart/tooltips stay on laborByRole). -->
   <div
     class="modal fade fos-modal"
     id="deliveryPnlMonthModal"
@@ -6998,26 +7539,70 @@
       <div class="modal-content rounded-4">
         <div class="modal-header">
           <div>
-            <h5 class="modal-title fw-semibold" id="deliveryPnlMonthModalTitle">Monthly P&amp;L</h5>
+            <h5 class="modal-title fw-semibold" id="deliveryPnlMonthModalTitle">Labor hours</h5>
             <div class="small text-secondary" id="deliveryPnlMonthModalSubtitle"> - </div>
           </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <div class="fos-financial-scroll">
+          <div class="fos-delivery-pnl-month-filters" id="deliveryPnlMonthModalFilters">
+            <input
+              type="search"
+              class="form-control form-control-sm"
+              id="deliveryPnlMonthModalSearch"
+              placeholder="Filter by name"
+              autocomplete="off"
+              aria-label="Filter by name"
+            />
+            <select
+              class="form-select form-select-sm"
+              id="deliveryPnlMonthModalRoleFilter"
+              aria-label="Filter by role"
+            >
+              <option value="">All roles</option>
+            </select>
+            <label class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="deliveryPnlMonthModalOrangeOnly"
+              />
+              <span class="form-check-label">Needs allocation attention</span>
+            </label>
+          </div>
+          <div class="fos-financial-scroll fos-delivery-pnl-month-desktop">
             <table class="fos-financial-table" aria-describedby="deliveryPnlMonthModalTitle">
               <thead id="deliveryPnlMonthModalHead">
                 <tr>
-                  <th scope="col">Line item</th>
-                  <th scope="col" class="num">Actual</th>
-                  <th scope="col" class="num">Allocated (plan)</th>
-                  <th scope="col" class="num">Variance</th>
+                  <th scope="col" class="fos-delivery-sortable" data-sort-key="name" tabindex="0" role="button">
+                    Name <span class="sort-icon">↕</span>
+                  </th>
+                  <th scope="col" class="fos-delivery-sortable" data-sort-key="role" tabindex="0" role="button">
+                    Role <span class="sort-icon">↕</span>
+                  </th>
+                  <th scope="col" class="num fos-delivery-sortable" data-sort-key="hours" tabindex="0" role="button">
+                    Hours logged <span class="sort-icon">↕</span>
+                  </th>
+                  <th scope="col" class="num fos-delivery-sortable" data-sort-key="allocatedHours" tabindex="0" role="button">
+                    Hours allocated <span class="sort-icon">↕</span>
+                  </th>
+                  <th scope="col" class="num fos-delivery-sortable" data-sort-key="percentAllocated" tabindex="0" role="button">
+                    % Allocated <span class="sort-icon">↕</span>
+                  </th>
+                  <th scope="col" class="num fos-delivery-sortable" data-sort-key="cost" tabindex="0" role="button">
+                    Cost <span class="sort-icon">↕</span>
+                  </th>
                 </tr>
               </thead>
               <tbody id="deliveryPnlMonthModalBody"></tbody>
               <tfoot id="deliveryPnlMonthModalFoot"></tfoot>
             </table>
           </div>
+          <div
+            class="fos-delivery-pnl-month-mobile fos-mobile-only"
+            id="deliveryPnlMonthModalMobile"
+            aria-describedby="deliveryPnlMonthModalTitle"
+          ></div>
           <p class="small mb-0 mt-2 d-none" id="delivery-pnl-month-modal-note" style="color: var(--ag-text-muted)"></p>
         </div>
         <div class="modal-footer border-0 pt-0">
@@ -7190,7 +7775,7 @@
     (function () {
       var navState = { items: [], userLabel: '', activeNavId: 'home', isAdmin: false };
       var AGREEMENT_CACHE_KEY = 'fos_agreement_dashboard_v2';
-      var AGREEMENT_CACHE_SCHEMA_VERSION = 3;
+      var AGREEMENT_CACHE_SCHEMA_VERSION = 4;
       var AGREEMENT_TTL_PREF_KEY = 'fos_agreement_dashboard_ttl_minutes_v1';
       var UTIL_CACHE_KEY = 'fos_utilization_dashboard_v2';
       var UTIL_CACHE_LEGACY_KEYS_ = ['fos_utilization_dashboard_v1'];
@@ -7213,14 +7798,14 @@
       // so we can iterate sessionStorage to invalidate them in one pass on
       // Refresh.
       var DELIVERY_CACHE_KEY = 'fos_delivery_dashboard_v1';
-      var DELIVERY_CACHE_SCHEMA_VERSION = 1;
+      var DELIVERY_CACHE_SCHEMA_VERSION = 2;
       // v1.20.0 (Phase B, FR-94 / FR-95). The per-project P&L key suffix is
       // bumped to `_v2` so any v1.19.0 cache (which had no `projected`
       // flag or `revenueItems[]` per month) is invalidated cleanly when
       // the user upgrades.
       var DELIVERY_PNL_KEY_PREFIX = 'fos_delivery_pnl_';
-      var DELIVERY_PNL_KEY_SUFFIX = '_v10';
-      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 10;
+      var DELIVERY_PNL_KEY_SUFFIX = '_v13';
+      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 13;
       var DELIVERY_STATUS_CLIENT_META_ = {
         on_track: { enumName: 'Agreement On Track', trafficLight: 'green' },
         at_risk: { enumName: 'Agreement At Risk', trafficLight: 'yellow' },
@@ -7238,7 +7823,7 @@
       ];
       var DELIVERY_TTL_PREF_KEY = 'fos_delivery_dashboard_ttl_minutes_v1';
       var DELIVERY_FILTERS_PREF_KEY = 'fos_delivery_filters_v1';
-      var DELIVERY_FILTERS_SCHEMA_VERSION = 2;
+      var DELIVERY_FILTERS_SCHEMA_VERSION = 3;
       var EXPENSES_CACHE_KEY = 'fos_expenses_dashboard_v1';
       var EXPENSES_CACHE_SCHEMA_VERSION = 3;
       var EXPENSES_FILTERS_PREF_KEY = 'fos_expenses_filters_v1';
@@ -7661,7 +8246,6 @@
         deliverySubtitle: document.getElementById('delivery-subtitle'),
         deliveryAttentionSection: document.getElementById('delivery-attention-section'),
         deliveryAttentionList: document.getElementById('delivery-attention-list'),
-        deliverySankeyWrap: document.getElementById('delivery-sankey-wrap'),
         deliveryWarn: document.getElementById('delivery-warn'),
         deliveryLoading: document.getElementById('delivery-loading'),
         deliveryTtlSelect: document.getElementById('delivery-ttl-select'),
@@ -7718,6 +8302,8 @@
         deliveryTypeMenu: document.getElementById('delivery-type-menu'),
         deliveryStateTrigger: document.getElementById('delivery-state-trigger'),
         deliveryStateMenu: document.getElementById('delivery-state-menu'),
+        deliveryOwnerTrigger: document.getElementById('delivery-owner-trigger'),
+        deliveryOwnerMenu: document.getElementById('delivery-owner-menu'),
         deliveryProjectsNoMatch: document.getElementById('delivery-projects-no-match'),
         deliveryPnlToolbar: document.getElementById('delivery-pnl-toolbar'),
         deliveryPnlCsvBtn: document.getElementById('delivery-pnl-csv-btn'),
@@ -7733,9 +8319,14 @@
         deliveryPnlMonthModal: document.getElementById('deliveryPnlMonthModal'),
         deliveryPnlMonthModalTitle: document.getElementById('deliveryPnlMonthModalTitle'),
         deliveryPnlMonthModalSubtitle: document.getElementById('deliveryPnlMonthModalSubtitle'),
+        deliveryPnlMonthModalHead: document.getElementById('deliveryPnlMonthModalHead'),
         deliveryPnlMonthModalBody: document.getElementById('deliveryPnlMonthModalBody'),
         deliveryPnlMonthModalFoot: document.getElementById('deliveryPnlMonthModalFoot'),
+        deliveryPnlMonthModalMobile: document.getElementById('deliveryPnlMonthModalMobile'),
         deliveryPnlMonthModalNote: document.getElementById('delivery-pnl-month-modal-note'),
+        deliveryPnlMonthModalSearch: document.getElementById('deliveryPnlMonthModalSearch'),
+        deliveryPnlMonthModalRoleFilter: document.getElementById('deliveryPnlMonthModalRoleFilter'),
+        deliveryPnlMonthModalOrangeOnly: document.getElementById('deliveryPnlMonthModalOrangeOnly'),
         deliveryStatusUpdateModal: document.getElementById('deliveryStatusUpdateModal'),
         deliveryStatusUpdateModalSubtitle: document.getElementById('deliveryStatusUpdateModalSubtitle'),
         deliveryStatusUpdateSelect: document.getElementById('delivery-status-update-select'),
@@ -12656,106 +13247,6 @@
           .text(function (d) { return d.name + ' · ' + formatMoneyCompact(d.value); });
       }
 
-      /**
-       * v1.21.0 Phase C.3 - aggregate recognized revenue → labor / ODC /
-       * gross margin for the visible Delivery rows (non-Internal only).
-       * @param {!Array<!Object>} projects
-       * @return {!{nodes: !Array, links: !Array, total: number, linkOpacity: number, caption: ?string}}
-       */
-      function buildDeliveryPortfolioSankeyModel_(projects) {
-        var R = 0;
-        var L = 0;
-        var O = 0;
-        for (var i = 0; i < projects.length; i++) {
-          var p = projects[i];
-          if (!p || p.type === 'Internal') {
-            continue;
-          }
-          R += Number(p.revenueRecognized || 0);
-          L += Number(p.laborCosts || 0);
-          O += Number(p.materialsOdc || 0);
-        }
-        if (R <= 0) {
-          return { nodes: [], links: [], total: 0, linkOpacity: 0.38, caption: null };
-        }
-        var cost = L + O;
-        var laborAlloc;
-        var odcAlloc;
-        var marginAlloc;
-        var caption = null;
-        if (cost <= 0) {
-          laborAlloc = 0;
-          odcAlloc = 0;
-          marginAlloc = R;
-        } else if (R >= cost) {
-          laborAlloc = L;
-          odcAlloc = O;
-          marginAlloc = R - cost;
-        } else {
-          laborAlloc = R * (L / cost);
-          odcAlloc = R * (O / cost);
-          marginAlloc = 0;
-          caption = 'Recognized revenue in the visible set is less than labor + ODC; flows are split in proportion to costs.';
-        }
-        var nodes = [
-          { name: 'Recognized revenue', layer: 'status', color: '#38B2AC' },
-          { name: 'Labor', layer: 'customer', color: '#FC8181' },
-          { name: 'Materials & ODC', layer: 'customer', color: '#F6AD55' },
-          { name: 'Gross margin', layer: 'type', color: '#68D391' },
-        ];
-        var links = [
-          { source: 0, target: 1, value: laborAlloc },
-          { source: 0, target: 2, value: odcAlloc },
-          { source: 0, target: 3, value: marginAlloc },
-        ].filter(function (lk) {
-          return lk.value > 0.5;
-        });
-        return {
-          nodes: nodes,
-          links: links,
-          total: R,
-          linkOpacity: 0.38,
-          caption: caption,
-        };
-      }
-
-      function renderDeliveryPortfolioSankey_(projects) {
-        var wrap = els.deliverySankeyWrap || document.getElementById('delivery-sankey-wrap');
-        if (!wrap) {
-          return;
-        }
-        wrap.innerHTML = '';
-        var model = buildDeliveryPortfolioSankeyModel_(projects || []);
-        if (!model.links.length) {
-          var emptyEl = document.createElement('div');
-          emptyEl.className = 'empty';
-          emptyEl.textContent = 'No recognized revenue in the visible projects to chart.';
-          wrap.appendChild(emptyEl);
-          return;
-        }
-        if (model.caption) {
-          var cap = document.createElement('p');
-          cap.className = 'small mb-2';
-          cap.style.color = 'var(--ag-text-muted)';
-          cap.textContent = model.caption;
-          wrap.appendChild(cap);
-        }
-        var host = document.createElement('div');
-        host.className = 'fos-delivery-sankey-host';
-        wrap.appendChild(host);
-        loadD3Sankey()
-          .then(function (d3) {
-            drawSankey_(d3, host, model, { gradientPrefix: 'delivery-sankey-link-' });
-          })
-          .catch(function (e) {
-            host.innerHTML = '';
-            var err = document.createElement('div');
-            err.className = 'empty';
-            err.textContent = e && e.message ? e.message : 'Could not load Sankey chart.';
-            host.appendChild(err);
-          });
-      }
-
       function renderAttention(alerts) {
         var list = els.attentionList || document.getElementById('attention-list');
         if (!list) {
@@ -16305,8 +16796,14 @@
         var janDow = week1.getDay() || 7;
         var week1Mon = new Date(week1);
         week1Mon.setDate(week1.getDate() - (janDow - 1));
-        var diffMs = mondayDate.getTime() - week1Mon.getTime();
-        var weekNum = 1 + Math.floor(diffMs / 604800000);
+        // Count calendar days in UTC so US DST spring-forward does not shrink
+        // the ms span and under-count the ISO week (e.g. Jul 20 -> W29).
+        var dayCount = Math.round(
+          (Date.UTC(mondayDate.getFullYear(), mondayDate.getMonth(), mondayDate.getDate()) -
+            Date.UTC(week1Mon.getFullYear(), week1Mon.getMonth(), week1Mon.getDate())) /
+            86400000
+        );
+        var weekNum = 1 + Math.floor(dayCount / 7);
         return { isoYear: isoYear, week: weekNum };
       }
 
@@ -16355,6 +16852,25 @@
         var re = Date.parse(range.end);
         if (!isFinite(rs) || !isFinite(re)) return false;
         return rs <= ws && re >= we;
+      }
+
+      /**
+       * Labor Hours may slice the Utilization cache only when both the picker
+       * `range` and optional `dataWindow` (Datastore hydrate window) cover the
+       * week. Inflated Live ranges on a stale hydrate blob must not count.
+       */
+      function utilizationPayloadCoversWeekMs_(payload, ws, we) {
+        if (!payload || !payload.rows || !payload.rows.length) return false;
+        // Only trust Live Clockify mirror payloads for Labor Hours week slices.
+        // Hydrate / Fibery-shaped caches can inflate `range` while omitting recent days
+        // or using person keys that do not match fos_labor_costs rows.
+        if (payload.loadSource !== 'fos_labor_costs') return false;
+        if (!rangeCoversWeekMs_(payload.range, ws, we)) return false;
+        var dw = payload.dataWindow;
+        if (dw && dw.start && dw.end && !rangeCoversWeekMs_(dw, ws, we)) {
+          return false;
+        }
+        return true;
       }
 
       var LABOR_HOURS_ROSTER_LOOKBACK_DAYS_ = 60;
@@ -16420,24 +16936,32 @@
       }
 
       function laborMergePersonDimensions_(dimPersons, inferred) {
-        var byKey = {};
-        var list = dimPersons || [];
-        for (var di = 0; di < list.length; di++) {
-          var dp = list[di];
-          if (!dp) continue;
-          byKey[dp.id || dp.name || '(Unknown user)'] = dp;
+        var list = [];
+        function upsert(dp) {
+          if (!dp) return;
+          var pk = dp.id || dp.name || '(Unknown user)';
+          var name = dp.name || '(Unknown user)';
+          for (var i = 0; i < list.length; i++) {
+            var cur = list[i];
+            var curPk = cur.id || cur.name || '(Unknown user)';
+            if (laborPersonKeysMatch_(pk, name, curPk, cur.name)) {
+              if (!cur.clockifyUserWorkStatus && dp.clockifyUserWorkStatus) {
+                cur.clockifyUserWorkStatus = dp.clockifyUserWorkStatus;
+              }
+              // Prefer row-sourced id (email / Clockify id) over hydrate display names.
+              if (dp.id && (!cur.id || String(cur.id).indexOf('@') < 0) && String(dp.id).indexOf('@') >= 0) {
+                cur.id = dp.id;
+              }
+              return;
+            }
+          }
+          list.push(dp);
         }
+        var dims = dimPersons || [];
+        for (var di = 0; di < dims.length; di++) upsert(dims[di]);
         var inf = inferred || [];
-        for (var ij = 0; ij < inf.length; ij++) {
-          var item = inf[ij];
-          var k = item.id || item.name || '(Unknown user)';
-          if (!byKey[k]) byKey[k] = item;
-        }
-        var out = [];
-        for (var key in byKey) {
-          if (Object.prototype.hasOwnProperty.call(byKey, key)) out.push(byKey[key]);
-        }
-        return out;
+        for (var ij = 0; ij < inf.length; ij++) upsert(inf[ij]);
+        return list;
       }
 
       function laborRosterFetchRange_(bounds) {
@@ -16501,11 +17025,96 @@
         return false;
       }
 
-      function laborLookupCompanyForPersonKey_(rows, personKey) {
+      /** Collapse email local-part / dotted / spaced names for fuzzy person match. */
+      function laborNormalizePersonToken_(s) {
+        return String(s || '')
+          .trim()
+          .toLowerCase()
+          .replace(/@.*$/, '')
+          .replace(/[._\s\-]+/g, '');
+      }
+
+      /**
+       * Alias keys for matching roster dimensions to fos_labor_costs row keys
+       * (email vs "Jess Williams" vs "Jess.williams").
+       * @param {string=} personKey
+       * @param {string=} displayName
+       * @return {!Array<string>}
+       */
+      function laborPersonAliasKeys_(personKey, displayName) {
+        var out = [];
+        var seen = {};
+        function add(v) {
+          var s = v != null ? String(v).trim() : '';
+          if (!s || seen[s]) return;
+          seen[s] = true;
+          out.push(s);
+          var lower = s.toLowerCase();
+          if (!seen[lower]) {
+            seen[lower] = true;
+            out.push(lower);
+          }
+          var token = laborNormalizePersonToken_(s);
+          if (token) {
+            var alias = '~' + token;
+            if (!seen[alias]) {
+              seen[alias] = true;
+              out.push(alias);
+            }
+          }
+        }
+        add(personKey);
+        add(displayName);
+        if (personKey && String(personKey).indexOf('@') >= 0) {
+          add(String(personKey).split('@')[0]);
+        }
+        return out;
+      }
+
+      function laborPersonKeysMatch_(aKey, aName, bKey, bName) {
+        var a = laborPersonAliasKeys_(aKey, aName);
+        var bSet = {};
+        var b = laborPersonAliasKeys_(bKey, bName);
+        for (var i = 0; i < b.length; i++) bSet[b[i]] = true;
+        for (var j = 0; j < a.length; j++) {
+          if (bSet[a[j]]) return true;
+        }
+        return false;
+      }
+
+      function laborFindAggForPerson_(personMap, personKey, displayName) {
+        if (personMap && personMap[personKey]) return personMap[personKey];
+        for (var pk in personMap || {}) {
+          if (!Object.prototype.hasOwnProperty.call(personMap, pk)) continue;
+          var agg = personMap[pk];
+          if (
+            laborPersonKeysMatch_(
+              personKey,
+              displayName,
+              pk,
+              agg && agg.displayName
+            )
+          ) {
+            return agg;
+          }
+        }
+        return null;
+      }
+
+      function laborRowMatchesPersonKey_(r, personKey, displayName) {
+        if (!r) return false;
+        return laborPersonKeysMatch_(
+          personKey,
+          displayName,
+          personKeyForRow_(r),
+          r.userName
+        );
+      }
+
+      function laborLookupCompanyForPersonKey_(rows, personKey, displayName) {
         for (var i = 0; i < rows.length; i++) {
           var r = rows[i];
-          if (!r) continue;
-          if (personKeyForRow_(r) !== personKey) continue;
+          if (!laborRowMatchesPersonKey_(r, personKey, displayName)) continue;
           var co = String(r.clockifyUserCompany || '').trim();
           if (co) {
             return co;
@@ -16514,11 +17123,10 @@
         return ' - ';
       }
 
-      function laborLookupWorkStatusForPersonKey_(rows, personKey) {
+      function laborLookupWorkStatusForPersonKey_(rows, personKey, displayName) {
         for (var i = 0; i < rows.length; i++) {
           var r = rows[i];
-          if (!r) continue;
-          if (personKeyForRow_(r) !== personKey) continue;
+          if (!laborRowMatchesPersonKey_(r, personKey, displayName)) continue;
           var ws = r.clockifyUserWorkStatus;
           if (ws != null && String(ws).trim() !== '') {
             return String(ws).trim();
@@ -16708,17 +17316,17 @@
           var pk = dp.id || dp.name || '(Unknown user)';
           var workStatus =
             (dp && dp.clockifyUserWorkStatus) ||
-            laborLookupWorkStatusForPersonKey_(fullRows || [], pk);
+            laborLookupWorkStatusForPersonKey_(fullRows || [], pk, name);
           if (!laborClockifyUserIsActive_(workStatus)) continue;
-          var agg = personMap[pk];
+          var agg = laborFindAggForPerson_(personMap, pk, name);
           var th = agg ? agg.totalHours : 0;
           if (th >= eps) continue;
-          var company = laborLookupCompanyForPersonKey_(fullRows || [], pk);
+          var company = laborLookupCompanyForPersonKey_(fullRows || [], pk, name);
           if (!laborCompanyPassesFilter_(company, companyMap)) continue;
           var target = laborTargetHoursForCompany_(cfg, company);
           out.push({
-            personKey: pk,
-            displayName: name,
+            personKey: (agg && agg.personKey) || pk,
+            displayName: (agg && agg.displayName) || name,
             company: company,
             targetHours: target,
             totalHours: th,
@@ -17169,7 +17777,13 @@
         }
       }
 
-      function refreshLaborHoursView_() {
+      /**
+       * @param {{ forceLive?: boolean }=} opt When forceLive, skip util + session
+       *   caches and re-read fos_labor_costs for the roster window.
+       */
+      function refreshLaborHoursView_(opt) {
+        opt = opt || {};
+        var forceLive = !!opt.forceLive;
         if (!els.lhWeekInput) return;
         var weekVal = els.lhWeekInput.value;
         if (!weekVal) {
@@ -17195,9 +17809,12 @@
         }
 
         if (
-          basePayload &&
-          basePayload.rows &&
-          rangeCoversWeekMs_(basePayload.range, bounds.weekStartMs, bounds.weekEndMs)
+          !forceLive &&
+          utilizationPayloadCoversWeekMs_(
+            basePayload,
+            bounds.weekStartMs,
+            bounds.weekEndMs
+          )
         ) {
           var cfg0 = cfgFrom(basePayload);
           var rows0 = laborFilterRowsForWeek_(basePayload.rows, bounds, companyMap);
@@ -17205,21 +17822,31 @@
             rows0,
             cfg0,
             bounds,
-            'Slice from Utilization cache - no Fibery call for this week.',
+            'Slice from fos_labor_costs Utilization cache.',
             { dimensions: basePayload.dimensions, fullRows: basePayload.rows }
           );
           setLhLoading(false);
           return;
         }
 
-        if (laborHoursFetchCache_.key === cacheKey && laborHoursFetchCache_.payload) {
+        if (
+          !forceLive &&
+          laborHoursFetchCache_.key === cacheKey &&
+          laborHoursFetchCache_.payload
+        ) {
           var pay = laborHoursFetchCache_.payload;
           var cfg1 = cfgFrom(pay);
           var rows1 = laborFilterRowsForWeek_(pay.rows || [], bounds, companyMap);
-          refreshLaborHoursViewFromRows_(rows1, cfg1, bounds, 'Week data (fetched earlier this session).', {
-            dimensions: pay.dimensions,
-            fullRows: pay.rows,
-          });
+          refreshLaborHoursViewFromRows_(
+            rows1,
+            cfg1,
+            bounds,
+            'Week data from fos_labor_costs (fetched earlier this session).',
+            {
+              dimensions: pay.dimensions,
+              fullRows: pay.rows,
+            }
+          );
           setLhLoading(false);
           return;
         }
@@ -17257,10 +17884,16 @@
             laborHoursFetchCache_.payload = data;
             var cfg2 = cfgFrom(data);
             var rows2 = laborFilterRowsForWeek_(data.rows || [], bounds, companyMap);
-            refreshLaborHoursViewFromRows_(rows2, cfg2, bounds, 'Loaded roster window from Datastore.', {
-              dimensions: data.dimensions,
-              fullRows: data.rows,
-            });
+            refreshLaborHoursViewFromRows_(
+              rows2,
+              cfg2,
+              bounds,
+              'Loaded roster window from fos_labor_costs.',
+              {
+                dimensions: data.dimensions,
+                fullRows: data.rows,
+              }
+            );
           })
           .withFailureHandler(function (err) {
             setLhLoading(false);
@@ -17359,7 +17992,7 @@
             laborHoursFetchCache_.key = null;
             laborHoursFetchCache_.payload = null;
             logActivity_('labor_hours_refresh', 'labor_hours', '');
-            refreshLaborHoursView_();
+            refreshLaborHoursView_({ forceLive: true });
           });
         }
         if (els.lhExportCsvBtn) {
@@ -18785,6 +19418,7 @@
           customers: {},
           types: {},
           states: {},
+          owners: {},
         },
         pnlView: 'table',
         projectsByIndex: {},
@@ -18797,6 +19431,15 @@
         csvStatusTimer: null,
         statusUpdateRollback: null,
         statusHistoryDrawerOpen: false,
+        monthModal: {
+          monthKey: null,
+          people: [],
+          sort: { column: 'hours', dir: 'desc' },
+          search: '',
+          role: '',
+          orangeOnly: false,
+          filtersBound: false,
+        },
       };
       var deliveryRenderState = { lastRenderedFetchedAt: null };
 
@@ -18894,6 +19537,7 @@
               customers: deliveryState.filters.customers || {},
               types: deliveryState.filters.types || {},
               states: deliveryState.filters.states || {},
+              owners: deliveryState.filters.owners || {},
             },
           };
           localStorage.setItem(DELIVERY_FILTERS_PREF_KEY, JSON.stringify(payload));
@@ -18925,6 +19569,9 @@
             if (stored.filters.states && typeof stored.filters.states === 'object') {
               deliveryState.filters.states = stored.filters.states;
             }
+            if (stored.filters.owners && typeof stored.filters.owners === 'object') {
+              deliveryState.filters.owners = stored.filters.owners;
+            }
           }
         }
         // v1.20.0 (Phase B) - push restored search + view state into the
@@ -18941,6 +19588,36 @@
       function deliveryDimensionKey_(value) {
         var s = value === null || value === undefined ? '' : String(value).trim();
         return s || ' - ';
+      }
+
+      /**
+       * Assigned owner blank sentinel is `Unassigned` (server Active Projects
+       * rows). Treat empty / ` - ` as the same key so menu + filter stay aligned.
+       */
+      function deliveryOwnerKey_(value) {
+        var s = value === null || value === undefined ? '' : String(value).trim();
+        if (!s || s === '-' || s === ' - ') {
+          return 'Unassigned';
+        }
+        return s;
+      }
+
+      /**
+       * Prefer the in-memory payload for filter/sort/search re-renders.
+       * sessionStorage can be missing (quota) or schema-rejected after a bump
+       * while `applyDeliveryPayload` already painted the table - reading cache
+       * alone then incorrectly shows zero projects.
+       */
+      function getDeliveryProjectsForClientRender_() {
+        if (lastDeliveryPayload_ && Array.isArray(lastDeliveryPayload_.projects)) {
+          return lastDeliveryPayload_.projects;
+        }
+        if (!isLiveDataSource_() && dataSourceState.deliveryProjects &&
+            Array.isArray(dataSourceState.deliveryProjects.projects)) {
+          return dataSourceState.deliveryProjects.projects;
+        }
+        var cached = readDeliveryCache();
+        return (cached && Array.isArray(cached.projects)) ? cached.projects : [];
       }
 
       function deliveryFilterMapHits_(map, key) {
@@ -18963,6 +19640,9 @@
           if (!deliveryFilterMapHits_(f.states, deliveryDimensionKey_(p.state))) {
             return false;
           }
+          if (!deliveryFilterMapHits_(f.owners, deliveryOwnerKey_(p.assignedOwner))) {
+            return false;
+          }
           return true;
         });
       }
@@ -18972,13 +19652,13 @@
         expensesUpdateMultiTrigger_(els.deliveryCustomerTrigger, 'All customers', 'customer', f.customers);
         expensesUpdateMultiTrigger_(els.deliveryTypeTrigger, 'All types', 'type', f.types);
         expensesUpdateMultiTrigger_(els.deliveryStateTrigger, 'All statuses', 'status', f.states);
+        expensesUpdateMultiTrigger_(els.deliveryOwnerTrigger, 'All owners', 'owner', f.owners);
       }
 
       function deliveryOnFilterChange_() {
         deliveryUpdateFilterTriggers_();
         writeDeliveryFiltersStored();
-        var cached = readDeliveryCache();
-        renderDeliveryTable((cached && cached.projects) || []);
+        renderDeliveryTable(getDeliveryProjectsForClientRender_());
         if (deliveryState.selectedId) {
           markDeliveryRowSelected_(deliveryState.selectedId);
         }
@@ -18992,14 +19672,17 @@
         var custSet = {};
         var typeSet = {};
         var stateSet = {};
+        var ownerSet = {};
         for (var i = 0; i < projects.length; i++) {
           custSet[deliveryDimensionKey_(projects[i].customer)] = true;
           typeSet[deliveryDimensionKey_(projects[i].type)] = true;
           stateSet[deliveryDimensionKey_(projects[i].state)] = true;
+          ownerSet[deliveryOwnerKey_(projects[i].assignedOwner)] = true;
         }
         var custs = Object.keys(custSet).sort(function (a, b) { return a.localeCompare(b); });
         var types = Object.keys(typeSet).sort(function (a, b) { return a.localeCompare(b); });
         var states = Object.keys(stateSet).sort(function (a, b) { return a.localeCompare(b); });
+        var owners = Object.keys(ownerSet).sort(function (a, b) { return a.localeCompare(b); });
 
         function pruneMap_(map, valid) {
           var keys = setFromKeys(map);
@@ -19012,6 +19695,7 @@
         pruneMap_(deliveryState.filters.customers, custSet);
         pruneMap_(deliveryState.filters.types, typeSet);
         pruneMap_(deliveryState.filters.states, stateSet);
+        pruneMap_(deliveryState.filters.owners, ownerSet);
 
         var onChange = deliveryOnFilterChange_;
         expensesPopulateMultiMenu_(
@@ -19038,6 +19722,14 @@
           deliveryState.filters.states,
           onChange
         );
+        expensesPopulateMultiMenu_(
+          els.deliveryOwnerMenu,
+          owners,
+          function (k) { return k; },
+          function (k) { return k; },
+          deliveryState.filters.owners,
+          onChange
+        );
         deliveryUpdateFilterTriggers_();
       }
 
@@ -19045,6 +19737,7 @@
         deliveryState.filters.customers = {};
         deliveryState.filters.types = {};
         deliveryState.filters.states = {};
+        deliveryState.filters.owners = {};
         deliveryOnFilterChange_();
       }
 
@@ -20475,16 +21168,22 @@
         }
       }
 
-      // --- Feature 037: Engagement Review ---------------------------------
+      // --- Feature 037: Engagement Review + Engagement Update status packs ---
       var erState_ = {
         isAdmin: false,
+        canCreate: null,
         filter: 'all',
         reviews: [],
         currentReviewId: null,
         currentAgreementId: null,
         detail: null,
         project: null,
+        projectsCache: null,
+        editingUpdateId: null,
+        editingNoteId: null,
       };
+      var erViewerState_ = { updateId: null, html: '', fileName: 'engagement-update.html' };
+      var ER_DIM_KEYS_ = ['schedule', 'cost_hours', 'margin', 'client_sentiment'];
 
       function erSetLoading_(on) {
         var el = document.getElementById('er-loading');
@@ -20532,6 +21231,44 @@
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
       }
 
+      function erApplyCanCreateUi_() {
+        var canCreate = !!(erState_.isAdmin || erState_.canCreate);
+        var newBtn = document.getElementById('er-new-btn');
+        if (newBtn) newBtn.classList.toggle('d-none', !canCreate);
+        var createUpdateBtn = document.getElementById('er-create-update-btn');
+        if (createUpdateBtn) createUpdateBtn.classList.toggle('d-none', !canCreate);
+        var noteFormWrap = document.getElementById('er-note-form-wrap');
+        if (noteFormWrap) noteFormWrap.classList.toggle('d-none', !canCreate);
+      }
+
+      /**
+       * Determines `canCreate` for the list view (before any review is open) by
+       * opportunistically calling the existing project picker endpoint, which is
+       * gated the same way as review/update creation. Cached for the session.
+       */
+      function erRefreshCanCreate_() {
+        if (erState_.isAdmin) {
+          erState_.canCreate = true;
+          erApplyCanCreateUi_();
+          return;
+        }
+        if (erState_.canCreate !== null) {
+          erApplyCanCreateUi_();
+          return;
+        }
+        google.script.run
+          .withSuccessHandler(function (res) {
+            erState_.canCreate = !!(res && res.ok);
+            if (res && res.ok) erState_.projectsCache = res.projects || [];
+            erApplyCanCreateUi_();
+          })
+          .withFailureHandler(function () {
+            erState_.canCreate = false;
+            erApplyCanCreateUi_();
+          })
+          .listEngagementUpdateProjects();
+      }
+
       function showEngagementReview(opts) {
         if (!els.panelEngagementReview) return;
         hideOtherPanelsForEngagementReview_();
@@ -20542,9 +21279,9 @@
         // renderNav assigns the server model onto navState and sets navState.isAdmin
         // (there is no navState.model). Using .model left New review hidden for Admins.
         erState_.isAdmin = !!navState.isAdmin;
-        var newBtn = document.getElementById('er-new-btn');
-        if (newBtn) newBtn.classList.toggle('d-none', !erState_.isAdmin);
+        erApplyCanCreateUi_();
         erWireUi_();
+        erRefreshCanCreate_();
         var openReview = opts && opts.reviewId;
         var openAgreement = opts && opts.agreementId;
         if (openReview && openAgreement) {
@@ -20632,6 +21369,7 @@
       function erOpenDetail_(reviewId) {
         erState_.currentReviewId = reviewId;
         erState_.currentAgreementId = null;
+        erState_.editingNoteId = null;
         erShowView_('detail');
         erSetLoading_(true);
         google.script.run
@@ -20646,7 +21384,9 @@
               return;
             }
             erState_.isAdmin = !!res.isAdmin;
+            erState_.canCreate = !!res.canCreate;
             erState_.detail = res;
+            erApplyCanCreateUi_();
             erRenderDetail_();
           })
           .withFailureHandler(function (e) {
@@ -20674,8 +21414,9 @@
             ' · ' +
             (r.status || '') +
             ' · ' +
-            String((res.agreements || []).length) +
-            ' engagements';
+            String((res.updates || []).length) +
+            ' Engagement Update' +
+            ((res.updates || []).length === 1 ? '' : 's');
         }
         var adminActions = document.getElementById('er-admin-actions');
         if (adminActions) adminActions.classList.toggle('d-none', !admin);
@@ -20683,14 +21424,11 @@
         if (uploadWrap) uploadWrap.classList.toggle('d-none', !admin);
         var addPart = document.getElementById('er-add-participant-wrap');
         if (addPart) addPart.classList.toggle('d-none', !admin);
-        var addAg = document.getElementById('er-add-agreement-btn');
-        if (addAg) addAg.classList.toggle('d-none', !admin);
         var fieldMap = {
           'er-field-name': r.name || '',
           'er-field-date': erFmtDate_(r.target_date),
           'er-field-status': r.status || 'draft',
           'er-field-notes': r.notes || '',
-          'er-field-summary': r.call_summary_html || '',
         };
         Object.keys(fieldMap).forEach(function (id) {
           var el = document.getElementById(id);
@@ -20725,42 +21463,10 @@
             recList.appendChild(rli);
           }
         }
-        var agWrap = document.getElementById('er-agreements-list');
-        var agEmpty = document.getElementById('er-agreements-empty');
-        var ags = res.agreements || [];
-        if (agEmpty) agEmpty.classList.toggle('d-none', ags.length > 0);
-        if (agWrap) {
-          agWrap.innerHTML = '';
-          for (var a = 0; a < ags.length; a++) {
-            (function (ag) {
-              var updates =
-                (res.updatesByAgreement && res.updatesByAgreement[ag.agreement_fibery_id]) || [];
-              var latest = updates[0];
-              var btn = document.createElement('button');
-              btn.type = 'button';
-              btn.className = 'fos-section-card w-100 text-start mb-2 border-0';
-              btn.style.minHeight = '44px';
-              btn.style.color = 'var(--ag-text)';
-              btn.innerHTML =
-                '<div class="d-flex justify-content-between gap-2"><div class="fw-semibold">' +
-                escapeHtml(ag.agreement_name || ag.agreement_fibery_id) +
-                '</div><span class="small" style="color:var(--ag-text-muted)">Open</span></div>' +
-                '<div class="small" style="color:var(--ag-text-muted)">' +
-                escapeHtml(ag.company_name || '') +
-                (ag.owner_email ? ' · ' + escapeHtml(ag.owner_email) : '') +
-                (latest
-                  ? ' · ' +
-                    erTrafficDot_(latest.traffic_light) +
-                    escapeHtml(String(latest.executive_summary || '').slice(0, 80))
-                  : ' · No update yet') +
-                '</div>';
-              btn.addEventListener('click', function () {
-                erOpenProject_(erState_.currentReviewId, ag.agreement_fibery_id);
-              });
-              agWrap.appendChild(btn);
-            })(ags[a]);
-          }
-        }
+        erApplyCanCreateUi_();
+        erRenderNotesList_();
+        erRenderUpdatesList_();
+        erRenderSynopsis_();
       }
 
       function erOpenProject_(reviewId, agreementId) {
@@ -20906,6 +21612,936 @@
         }
       }
 
+      /* --------------------------------------------------------------------
+         Engagement Update status packs: shared helpers.
+         -------------------------------------------------------------------- */
+
+      function erRagPill_(overallRag) {
+        var r = String(overallRag || 'on_track').toLowerCase();
+        var label = r === 'at_risk' ? 'At risk' : r === 'off_track' ? 'Off track' : 'On track';
+        var fg = r === 'off_track' ? '#f07178' : r === 'at_risk' ? '#f5c542' : '#3dd68c';
+        var bg =
+          r === 'off_track'
+            ? 'rgba(240,113,120,0.16)'
+            : r === 'at_risk'
+              ? 'rgba(245,197,66,0.16)'
+              : 'rgba(61,214,140,0.16)';
+        return (
+          '<span class="er-rag-pill" style="background:' +
+          bg +
+          ';color:' +
+          fg +
+          '">' +
+          escapeHtml(label) +
+          '</span>'
+        );
+      }
+
+      function erCanEditUpdate_(u) {
+        if (!u) return false;
+        if (erState_.isAdmin) return true;
+        var my = String((navState && navState.userEmail) || '').trim().toLowerCase();
+        if (!my) return false;
+        var owner = String(u.assignedOwnerEmail || '').trim().toLowerCase();
+        var author = String(u.submittedByEmail || '').trim().toLowerCase();
+        return (!!owner && owner === my) || (!!author && author === my);
+      }
+
+      function erFindUpdateById_(updateId) {
+        var list = (erState_.detail && erState_.detail.updates) || [];
+        for (var i = 0; i < list.length; i++) {
+          if (String(list[i].id) === String(updateId)) return list[i];
+        }
+        return null;
+      }
+
+      function erLinesToArray_(text) {
+        return String(text || '')
+          .split('\n')
+          .map(function (l) {
+            return l.trim();
+          })
+          .filter(function (l) {
+            return !!l;
+          });
+      }
+
+      function erLinesToRisks_(text) {
+        return erLinesToArray_(text).map(function (line) {
+          var idx = line.indexOf('|');
+          if (idx < 0) return { severity: 'medium', text: line.trim() };
+          return {
+            severity: line.slice(0, idx).trim().toLowerCase() || 'medium',
+            text: line.slice(idx + 1).trim(),
+          };
+        });
+      }
+
+      function erRisksToLines_(risks) {
+        return (risks || [])
+          .map(function (r) {
+            return (r.severity || 'medium') + '|' + (r.text || '');
+          })
+          .join('\n');
+      }
+
+      function erTextToHtmlParagraphs_(text) {
+        var lines = erLinesToArray_(text);
+        if (!lines.length) return '';
+        return lines
+          .map(function (l) {
+            return '<p>' + escapeHtml(l) + '</p>';
+          })
+          .join('');
+      }
+
+      function erHtmlParagraphsToPlain_(html) {
+        var s = String(html || '');
+        if (!s) return '';
+        var tmp = document.createElement('div');
+        tmp.innerHTML = s.replace(/<\/p>\s*<p>/gi, '</p>\n<p>');
+        return (tmp.textContent || tmp.innerText || '').trim();
+      }
+
+      /* --------------------------------------------------------------------
+         Engagement Updates agenda (list + reorder).
+         -------------------------------------------------------------------- */
+
+      function erRenderUpdatesList_() {
+        var wrap = document.getElementById('er-updates-list');
+        var empty = document.getElementById('er-updates-empty');
+        if (!wrap) return;
+        var updates = ((erState_.detail && erState_.detail.updates) || []).slice().sort(function (a, b) {
+          return (a.sortOrder || 0) - (b.sortOrder || 0);
+        });
+        if (empty) empty.classList.toggle('d-none', updates.length > 0);
+        wrap.innerHTML = '';
+        var admin = !!erState_.isAdmin;
+        for (var i = 0; i < updates.length; i++) {
+          (function (u) {
+            var row = document.createElement('div');
+            row.className = 'er-update-row';
+            row.setAttribute('data-id', u.id);
+            row.draggable = admin;
+            var period = String(u.reportingPeriod || '').slice(0, 7);
+            var canEdit = erCanEditUpdate_(u);
+            row.innerHTML =
+              (admin
+                ? '<span class="er-drag-handle d-none d-md-inline-flex" title="Drag to reorder" aria-hidden="true"><i class="bi bi-grip-vertical"></i></span>' +
+                  '<div class="er-reorder-mobile d-flex d-md-none">' +
+                  '<button type="button" class="btn btn-sm btn-outline-secondary er-reorder-btn" data-dir="up" aria-label="Move up"><i class="bi bi-chevron-up"></i></button>' +
+                  '<button type="button" class="btn btn-sm btn-outline-secondary er-reorder-btn" data-dir="down" aria-label="Move down"><i class="bi bi-chevron-down"></i></button>' +
+                  '</div>'
+                : '') +
+              '<div class="er-update-row-main">' +
+              '<div class="fw-semibold text-truncate">' +
+              escapeHtml(u.agreementName || u.agreementFiberyId || '') +
+              '</div>' +
+              '<div class="small text-truncate" style="color:var(--ag-text-muted)">' +
+              escapeHtml(period) +
+              (u.companyName ? ' · ' + escapeHtml(u.companyName) : '') +
+              '</div>' +
+              '</div>' +
+              erRagPill_(u.overallRag) +
+              '<span class="small text-truncate er-update-owner" style="color:var(--ag-text-muted); max-width:140px;">' +
+              escapeHtml(u.assignedOwnerName || u.assignedOwnerEmail || 'Unassigned') +
+              '</span>' +
+              '<button type="button" class="btn btn-sm btn-outline-secondary er-update-view-btn" title="View status pack" aria-label="View status pack"><i class="bi bi-binoculars"></i></button>' +
+              (canEdit
+                ? '<button type="button" class="btn btn-sm btn-outline-secondary er-update-edit-btn" title="Edit status pack" aria-label="Edit status pack"><i class="bi bi-pencil"></i></button>'
+                : '');
+
+            row.querySelector('.er-update-view-btn').addEventListener('click', function (e) {
+              e.stopPropagation();
+              erOpenViewer_(u.id);
+            });
+            var editBtn = row.querySelector('.er-update-edit-btn');
+            if (editBtn) {
+              editBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                erOpenEditUpdateModal_(u.id);
+              });
+            }
+            if (admin) {
+              var upBtn = row.querySelector('.er-reorder-btn[data-dir="up"]');
+              var downBtn = row.querySelector('.er-reorder-btn[data-dir="down"]');
+              if (upBtn) {
+                upBtn.addEventListener('click', function (e) {
+                  e.stopPropagation();
+                  erMoveUpdate_(u.id, -1);
+                });
+              }
+              if (downBtn) {
+                downBtn.addEventListener('click', function (e) {
+                  e.stopPropagation();
+                  erMoveUpdate_(u.id, 1);
+                });
+              }
+              row.addEventListener('dragstart', function (e) {
+                e.dataTransfer.setData('text/plain', String(u.id));
+                row.classList.add('is-dragging');
+              });
+              row.addEventListener('dragend', function () {
+                row.classList.remove('is-dragging');
+              });
+              row.addEventListener('dragover', function (e) {
+                e.preventDefault();
+                var dragging = wrap.querySelector('.is-dragging');
+                if (!dragging || dragging === row) return;
+                var rect = row.getBoundingClientRect();
+                var before = (e.clientY - rect.top) / rect.height < 0.5;
+                wrap.insertBefore(dragging, before ? row : row.nextSibling);
+              });
+              row.addEventListener('drop', function (e) {
+                e.preventDefault();
+                erCommitReorderFromDom_();
+              });
+            }
+            wrap.appendChild(row);
+          })(updates[i]);
+        }
+      }
+
+      function erMoveUpdate_(updateId, dir) {
+        var list = (erState_.detail && erState_.detail.updates) || [];
+        var sorted = list.slice().sort(function (a, b) {
+          return (a.sortOrder || 0) - (b.sortOrder || 0);
+        });
+        var idx = -1;
+        for (var i = 0; i < sorted.length; i++) {
+          if (String(sorted[i].id) === String(updateId)) {
+            idx = i;
+            break;
+          }
+        }
+        var newIdx = idx + dir;
+        if (idx < 0 || newIdx < 0 || newIdx >= sorted.length) return;
+        var tmp = sorted[idx];
+        sorted[idx] = sorted[newIdx];
+        sorted[newIdx] = tmp;
+        erCommitReorder_(
+          sorted.map(function (u) {
+            return u.id;
+          })
+        );
+      }
+
+      function erCommitReorderFromDom_() {
+        var wrap = document.getElementById('er-updates-list');
+        if (!wrap) return;
+        var ids = Array.prototype.map.call(wrap.querySelectorAll('.er-update-row'), function (el) {
+          return el.getAttribute('data-id');
+        });
+        erCommitReorder_(ids);
+      }
+
+      function erCommitReorder_(orderedIds) {
+        erSetLoading_(true);
+        google.script.run
+          .withSuccessHandler(function (res) {
+            erSetLoading_(false);
+            if (!res || !res.ok) {
+              var err = document.getElementById('er-detail-error');
+              if (err) {
+                err.textContent = (res && res.message) || 'Could not reorder Engagement Updates.';
+                err.classList.remove('d-none');
+              }
+              erRenderUpdatesList_();
+              return;
+            }
+            logActivity_('engagement_update_reorder', 'engagement-review', erState_.currentReviewId || '');
+            var list = (erState_.detail && erState_.detail.updates) || [];
+            var indexOf = {};
+            for (var i = 0; i < orderedIds.length; i++) indexOf[String(orderedIds[i])] = i;
+            for (var j = 0; j < list.length; j++) {
+              if (indexOf.hasOwnProperty(String(list[j].id))) list[j].sortOrder = indexOf[String(list[j].id)];
+            }
+            erRenderUpdatesList_();
+          })
+          .withFailureHandler(function (e) {
+            erSetLoading_(false);
+            var err = document.getElementById('er-detail-error');
+            if (err) {
+              err.textContent = e && e.message ? e.message : 'Could not reorder Engagement Updates.';
+              err.classList.remove('d-none');
+            }
+            erRenderUpdatesList_();
+          })
+          .reorderEngagementStatusPacks(erState_.currentReviewId, orderedIds);
+      }
+
+      /* --------------------------------------------------------------------
+         Engagement Update create / edit modal.
+         -------------------------------------------------------------------- */
+
+      function erPopulateProjectSelect_() {
+        var select = document.getElementById('er-um-project-select');
+        if (!select) return;
+        function render(projects) {
+          select.innerHTML =
+            '<option value="">Select a project…</option>' +
+            (projects || [])
+              .map(function (p) {
+                return (
+                  '<option value="' +
+                  escapeHtml(p.fiberyId) +
+                  '">' +
+                  escapeHtml(p.name) +
+                  (p.companyName ? ' · ' + escapeHtml(p.companyName) : '') +
+                  '</option>'
+                );
+              })
+              .join('');
+        }
+        if (erState_.projectsCache) {
+          render(erState_.projectsCache);
+          return;
+        }
+        select.innerHTML = '<option value="">Loading projects…</option>';
+        google.script.run
+          .withSuccessHandler(function (res) {
+            if (!res || !res.ok) {
+              render([]);
+              return;
+            }
+            erState_.projectsCache = res.projects || [];
+            render(erState_.projectsCache);
+          })
+          .withFailureHandler(function () {
+            render([]);
+          })
+          .listEngagementUpdateProjects();
+      }
+
+      function erRenderQuantPanel_(snapshot) {
+        var el = document.getElementById('er-um-quant-panel');
+        if (!el) return;
+        var q = snapshot || {};
+        if (!q || !Object.keys(q).length) {
+          el.innerHTML =
+            '<p class="mb-0" style="color:var(--ag-text-muted)">No metrics yet. Save this Engagement Update to pull hours, cost, and revenue.</p>';
+          return;
+        }
+        var hours = q.hoursMtd || {};
+        var cost = q.costMtd || {};
+        var eacH = q.eacHours || {};
+        var eacD = q.eacDollars || {};
+        var rev = q.revenue || {};
+        var resources = q.resources || [];
+        function stat(label, value, sub) {
+          return (
+            '<div class="col-6 col-md-3"><div class="fos-section-card p-2 h-100"><div class="small" style="color:var(--ag-text-muted)">' +
+            escapeHtml(label) +
+            '</div><div class="fw-bold" style="color:var(--ag-text)">' +
+            escapeHtml(value) +
+            '</div>' +
+            (sub ? '<div class="small" style="color:var(--ag-text-muted)">' + escapeHtml(sub) + '</div>' : '') +
+            '</div></div>'
+          );
+        }
+        var html =
+          '<div class="row g-2 mb-2">' +
+          stat('Hours logged (MTD)', hours.actual != null ? String(hours.actual) : '-', hours.planned != null ? 'vs ' + hours.planned + ' planned' : '') +
+          stat('Cost actual (MTD)', formatMoneyCompact(cost.actual), cost.planned != null ? 'vs ' + formatMoneyCompact(cost.planned) + ' planned' : '') +
+          stat('EAC hours', eacH.value != null ? String(eacH.value) : '-', eacH.budgeted != null ? 'of ' + eacH.budgeted + ' budgeted' : '') +
+          stat('EAC dollars', formatMoneyCompact(eacD.value), eacD.budgeted != null ? 'vs budget ' + formatMoneyCompact(eacD.budgeted) : '') +
+          '</div>' +
+          '<div class="row g-2 mb-2">' +
+          stat(
+            'Revenue invoiced (MTD)',
+            formatMoneyCompact(rev.invoicedMtd),
+            rev.plannedMtd != null ? 'vs ' + formatMoneyCompact(rev.plannedMtd) + ' planned' : ''
+          ) +
+          stat('Revenue invoiced (FYTD)', formatMoneyCompact(rev.invoicedFytd), '') +
+          stat(
+            'Next milestone',
+            rev.nextMilestoneDate ? erFmtDate_(rev.nextMilestoneDate) : '-',
+            rev.nextMilestoneAmount != null ? formatMoneyCompact(rev.nextMilestoneAmount) : ''
+          ) +
+          '</div>';
+        if (resources.length) {
+          html +=
+            '<div class="table-responsive"><table class="table table-sm mb-0" style="color:var(--ag-text)"><thead><tr class="small" style="color:var(--ag-text-muted)"><th>Name</th><th>Role</th><th class="text-end">Alloc hrs</th><th class="text-end">Logged hrs</th><th class="text-end">%</th><th class="text-end">Cost</th><th>Billable</th></tr></thead><tbody>';
+          for (var i = 0; i < resources.length; i++) {
+            var r = resources[i];
+            html +=
+              '<tr><td>' +
+              escapeHtml(r.name || '') +
+              '</td><td>' +
+              escapeHtml(r.role || '') +
+              '</td><td class="text-end">' +
+              escapeHtml(r.allocatedHrsMo != null ? String(r.allocatedHrsMo) : '-') +
+              '</td><td class="text-end">' +
+              escapeHtml(r.loggedHrsMo != null ? String(r.loggedHrsMo) : '-') +
+              '</td><td class="text-end">' +
+              escapeHtml(r.pctAllocated != null ? String(r.pctAllocated) : '-') +
+              '</td><td class="text-end">' +
+              escapeHtml(formatMoneyCompact(r.costMo)) +
+              '</td><td>' +
+              (r.billable === false ? 'No' : r.billable === true ? 'Yes' : '-') +
+              '</td></tr>';
+          }
+          html += '</tbody></table></div>';
+        }
+        el.innerHTML = html;
+      }
+
+      function erFillUpdateModal_(mode, update) {
+        erState_.editingUpdateId = mode === 'edit' && update ? update.id : null;
+        var titleEl = document.getElementById('erUpdateModalLabel');
+        var saveBtn = document.getElementById('er-um-save-btn');
+        var projectSelect = document.getElementById('er-um-project-select');
+        var projectReadonlyWrap = document.getElementById('er-um-project-readonly-wrap');
+        var projectReadonly = document.getElementById('er-um-project-readonly');
+        var detailFields = document.getElementById('er-um-detail-fields');
+        var ownerEl = document.getElementById('er-um-owner-readonly');
+        var periodEl = document.getElementById('er-um-period');
+        var overallEl = document.getElementById('er-um-overall-rag');
+        var pulledEl = document.getElementById('er-um-metrics-pulled-at');
+
+        if (mode === 'create') {
+          if (titleEl) titleEl.textContent = 'Create Engagement Update';
+          if (saveBtn) saveBtn.textContent = 'Create';
+          if (projectSelect) {
+            projectSelect.classList.remove('d-none');
+            projectSelect.disabled = false;
+            projectSelect.value = '';
+          }
+          if (projectReadonlyWrap) projectReadonlyWrap.classList.add('d-none');
+          if (detailFields) detailFields.classList.add('d-none');
+          if (ownerEl) ownerEl.textContent = '-';
+          if (periodEl) {
+            var now = new Date();
+            var mm = String(now.getMonth() + 1);
+            if (mm.length < 2) mm = '0' + mm;
+            periodEl.value = now.getFullYear() + '-' + mm;
+          }
+          if (overallEl) overallEl.value = 'on_track';
+          erPopulateProjectSelect_();
+          if (projectSelect) {
+            projectSelect.onchange = function () {
+              var proj = (erState_.projectsCache || []).filter(function (p) {
+                return p.fiberyId === projectSelect.value;
+              })[0];
+              if (ownerEl) ownerEl.textContent = proj ? proj.ownerName || proj.ownerEmail || '-' : '-';
+            };
+          }
+        } else {
+          if (titleEl) titleEl.textContent = 'Edit Engagement Update';
+          if (saveBtn) saveBtn.textContent = 'Save';
+          if (projectSelect) {
+            projectSelect.classList.add('d-none');
+            projectSelect.disabled = true;
+          }
+          if (projectReadonlyWrap) projectReadonlyWrap.classList.remove('d-none');
+          if (projectReadonly) {
+            projectReadonly.textContent =
+              (update.agreementName || update.agreementFiberyId || '') +
+              (update.companyName ? ' · ' + update.companyName : '');
+          }
+          if (detailFields) detailFields.classList.remove('d-none');
+          if (ownerEl) ownerEl.textContent = update.assignedOwnerName || update.assignedOwnerEmail || '-';
+          if (periodEl) periodEl.value = String(update.reportingPeriod || '').slice(0, 7);
+          if (overallEl) overallEl.value = update.overallRag || 'on_track';
+
+          var qual = update.qualitative || {};
+          for (var i = 0; i < ER_DIM_KEYS_.length; i++) {
+            var key = ER_DIM_KEYS_[i];
+            var d = qual[key] || {};
+            var ragEl = document.getElementById('er-um-dim-' + key + '-rag');
+            var subEl = document.getElementById('er-um-dim-' + key + '-subtext');
+            var autoEl = document.getElementById('er-um-dim-' + key + '-auto');
+            if (ragEl) ragEl.value = d.rag || 'green';
+            if (subEl) subEl.value = d.subtext || '';
+            if (autoEl) autoEl.checked = d.auto !== false;
+          }
+          var kdEl = document.getElementById('er-um-key-developments');
+          if (kdEl) kdEl.value = (qual.key_developments || []).join('\n');
+          var pnEl = document.getElementById('er-um-priorities-next');
+          if (pnEl) pnEl.value = (qual.priorities_next || []).join('\n');
+          var riskEl = document.getElementById('er-um-risks');
+          if (riskEl) riskEl.value = erRisksToLines_(qual.risks || []);
+          var revEl = document.getElementById('er-um-revenue-callout');
+          if (revEl) revEl.value = erHtmlParagraphsToPlain_(qual.revenue_callout_html || '');
+          var mfEl = document.getElementById('er-um-margin-footnote');
+          if (mfEl) mfEl.value = qual.margin_footnote || '';
+
+          erRenderQuantPanel_(update.quantitativeSnapshot || {});
+          if (pulledEl) {
+            pulledEl.textContent = update.metricsPulledAt
+              ? 'Metrics pulled ' + erFmtDate_(update.metricsPulledAt)
+              : 'Metrics not pulled yet.';
+          }
+        }
+        var errEl = document.getElementById('er-um-error');
+        if (errEl) errEl.classList.add('d-none');
+        var modalEl = document.getElementById('erUpdateModal');
+        if (modalEl && window.bootstrap) bootstrap.Modal.getOrCreateInstance(modalEl).show();
+      }
+
+      function erOpenCreateUpdateModal_() {
+        erFillUpdateModal_('create', null);
+      }
+
+      function erOpenEditUpdateModal_(updateId) {
+        var cached = erFindUpdateById_(updateId);
+        if (cached) {
+          erFillUpdateModal_('edit', cached);
+          return;
+        }
+        erSetLoading_(true);
+        google.script.run
+          .withSuccessHandler(function (res) {
+            erSetLoading_(false);
+            if (!res || !res.ok) {
+              window.alert((res && res.message) || 'Could not load Engagement Update.');
+              return;
+            }
+            erFillUpdateModal_('edit', res.update);
+          })
+          .withFailureHandler(function (e) {
+            erSetLoading_(false);
+            window.alert(e && e.message ? e.message : 'Could not load Engagement Update.');
+          })
+          .getEngagementStatusPack(updateId);
+      }
+
+      function erUpdateCachedUpdate_(update) {
+        if (!update || !erState_.detail || !erState_.detail.updates) return;
+        var list = erState_.detail.updates;
+        for (var i = 0; i < list.length; i++) {
+          if (String(list[i].id) === String(update.id)) {
+            list[i] = update;
+            break;
+          }
+        }
+        erRenderUpdatesList_();
+      }
+
+      function erSaveUpdateModal_() {
+        var errEl = document.getElementById('er-um-error');
+        if (errEl) errEl.classList.add('d-none');
+        var period = (document.getElementById('er-um-period') || {}).value || '';
+        var overallRag = (document.getElementById('er-um-overall-rag') || {}).value || 'on_track';
+
+        if (!erState_.editingUpdateId) {
+          var aid = (document.getElementById('er-um-project-select') || {}).value || '';
+          if (!aid) {
+            if (errEl) {
+              errEl.textContent = 'Select a project.';
+              errEl.classList.remove('d-none');
+            }
+            return;
+          }
+          if (!period) {
+            if (errEl) {
+              errEl.textContent = 'Reporting period is required.';
+              errEl.classList.remove('d-none');
+            }
+            return;
+          }
+          erSetLoading_(true);
+          google.script.run
+            .withSuccessHandler(function (res) {
+              erSetLoading_(false);
+              if (!res || !res.ok) {
+                if (errEl) {
+                  errEl.textContent = (res && res.message) || 'Could not create Engagement Update.';
+                  errEl.classList.remove('d-none');
+                }
+                return;
+              }
+              logActivity_('engagement_update_create', 'engagement-review', (res.update && res.update.id) || '');
+              if (typeof showSaveToast_ === 'function') showSaveToast_();
+              erFillUpdateModal_('edit', res.update);
+              erOpenDetail_(erState_.currentReviewId);
+            })
+            .withFailureHandler(function (e) {
+              erSetLoading_(false);
+              if (errEl) {
+                errEl.textContent = e && e.message ? e.message : 'Could not create Engagement Update.';
+                errEl.classList.remove('d-none');
+              }
+            })
+            .createEngagementStatusPack(erState_.currentReviewId, {
+              agreementFiberyId: aid,
+              reportingPeriod: period,
+              overallRag: overallRag,
+            });
+          return;
+        }
+
+        var qualitative = {};
+        for (var i = 0; i < ER_DIM_KEYS_.length; i++) {
+          var key = ER_DIM_KEYS_[i];
+          var ragEl = document.getElementById('er-um-dim-' + key + '-rag');
+          var subEl = document.getElementById('er-um-dim-' + key + '-subtext');
+          var autoEl = document.getElementById('er-um-dim-' + key + '-auto');
+          qualitative[key] = {
+            rag: (ragEl && ragEl.value) || 'green',
+            subtext: (subEl && subEl.value) || '',
+            auto: !!(autoEl && autoEl.checked),
+          };
+        }
+        qualitative.key_developments = erLinesToArray_((document.getElementById('er-um-key-developments') || {}).value);
+        qualitative.priorities_next = erLinesToArray_((document.getElementById('er-um-priorities-next') || {}).value);
+        qualitative.risks = erLinesToRisks_((document.getElementById('er-um-risks') || {}).value);
+        qualitative.revenue_callout_html = erTextToHtmlParagraphs_(
+          (document.getElementById('er-um-revenue-callout') || {}).value
+        );
+        qualitative.margin_footnote = (document.getElementById('er-um-margin-footnote') || {}).value || '';
+
+        erSetLoading_(true);
+        google.script.run
+          .withSuccessHandler(function (res) {
+            erSetLoading_(false);
+            if (!res || !res.ok) {
+              if (errEl) {
+                errEl.textContent = (res && res.message) || 'Could not save Engagement Update.';
+                errEl.classList.remove('d-none');
+              }
+              return;
+            }
+            logActivity_('engagement_update_edit', 'engagement-review', (res.update && res.update.id) || '');
+            if (typeof showSaveToast_ === 'function') showSaveToast_();
+            var modalEl = document.getElementById('erUpdateModal');
+            if (modalEl && window.bootstrap) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+            erOpenDetail_(erState_.currentReviewId);
+          })
+          .withFailureHandler(function (e) {
+            erSetLoading_(false);
+            if (errEl) {
+              errEl.textContent = e && e.message ? e.message : 'Could not save Engagement Update.';
+              errEl.classList.remove('d-none');
+            }
+          })
+          .updateEngagementStatusPack(erState_.editingUpdateId, { qualitative: qualitative, overallRag: overallRag });
+      }
+
+      function erRefreshMetricsInModal_() {
+        if (!erState_.editingUpdateId) return;
+        var errEl = document.getElementById('er-um-error');
+        if (errEl) errEl.classList.add('d-none');
+        erSetLoading_(true);
+        google.script.run
+          .withSuccessHandler(function (res) {
+            erSetLoading_(false);
+            if (!res || !res.ok) {
+              if (errEl) {
+                errEl.textContent = (res && res.message) || 'Could not refresh metrics.';
+                errEl.classList.remove('d-none');
+              }
+              return;
+            }
+            logActivity_('engagement_update_refresh_metrics', 'engagement-review', (res.update && res.update.id) || '');
+            if (typeof showSaveToast_ === 'function') showSaveToast_();
+            erFillUpdateModal_('edit', res.update);
+            erUpdateCachedUpdate_(res.update);
+          })
+          .withFailureHandler(function (e) {
+            erSetLoading_(false);
+            if (errEl) {
+              errEl.textContent = e && e.message ? e.message : 'Could not refresh metrics.';
+              errEl.classList.remove('d-none');
+            }
+          })
+          .refreshEngagementStatusPackMetrics(erState_.editingUpdateId);
+      }
+
+      /* --------------------------------------------------------------------
+         Engagement Update viewer (DEAP-like report) modal.
+         -------------------------------------------------------------------- */
+
+      function erOpenViewer_(updateId) {
+        logActivity_('engagement_update_view', 'engagement-review', updateId || '');
+        var titleEl = document.getElementById('erViewerModalLabel');
+        var frame = document.getElementById('er-viewer-frame');
+        var errEl = document.getElementById('er-viewer-error');
+        if (errEl) errEl.classList.add('d-none');
+        if (frame) frame.srcdoc = '<p style="font-family:system-ui;padding:24px;color:#555">Loading…</p>';
+        var modalEl = document.getElementById('erViewerModal');
+        if (modalEl && window.bootstrap) bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        erViewerState_.updateId = updateId;
+        erViewerState_.html = '';
+        erViewerState_.fileName = 'engagement-update.html';
+        var cached = erFindUpdateById_(updateId);
+        if (titleEl) {
+          titleEl.textContent = cached
+            ? (cached.agreementName || cached.agreementFiberyId) + ' · ' + String(cached.reportingPeriod || '').slice(0, 7)
+            : 'Engagement Update';
+        }
+        google.script.run
+          .withSuccessHandler(function (res) {
+            if (!res || !res.ok) {
+              if (errEl) {
+                errEl.textContent = (res && res.message) || 'Could not load Engagement Update.';
+                errEl.classList.remove('d-none');
+              }
+              return;
+            }
+            erViewerState_.html = res.html || '';
+            erViewerState_.fileName = res.fileName || 'engagement-update.html';
+            if (frame) frame.srcdoc = erViewerState_.html;
+          })
+          .withFailureHandler(function (e) {
+            if (errEl) {
+              errEl.textContent = e && e.message ? e.message : 'Could not load Engagement Update.';
+              errEl.classList.remove('d-none');
+            }
+          })
+          .exportEngagementStatusPackHtml(updateId);
+      }
+
+      /* --------------------------------------------------------------------
+         Meeting notes.
+         -------------------------------------------------------------------- */
+
+      function erRenderNotesList_() {
+        var wrap = document.getElementById('er-notes-list');
+        var empty = document.getElementById('er-notes-empty');
+        if (!wrap) return;
+        var notes = (erState_.detail && erState_.detail.notes) || [];
+        if (empty) empty.classList.toggle('d-none', notes.length > 0);
+        wrap.innerHTML = '';
+        var canCreate = !!erState_.canCreate || !!erState_.isAdmin;
+        var admin = !!erState_.isAdmin;
+        for (var i = 0; i < notes.length; i++) {
+          (function (n) {
+            var item = document.createElement('div');
+            item.className = 'mb-2 pb-2 border-bottom';
+            item.style.borderColor = 'var(--ag-border)';
+            var meta = escapeHtml(n.created_by_email || '') + ' · ' + escapeHtml(erFmtDate_(n.created_at));
+            item.innerHTML =
+              (n.title ? '<div class="fw-semibold">' + escapeHtml(n.title) + '</div>' : '') +
+              '<div>' +
+              (n.body_html || '') +
+              '</div>' +
+              '<div class="d-flex align-items-center gap-2 mt-1">' +
+              '<span class="small" style="color:var(--ag-text-muted)">' +
+              meta +
+              '</span>' +
+              (canCreate
+                ? '<button type="button" class="btn btn-sm btn-link p-0 er-note-edit-btn" style="color:var(--ag-accent)">Edit</button>'
+                : '') +
+              (admin
+                ? '<button type="button" class="btn btn-sm btn-link p-0 er-note-delete-btn" style="color:var(--ag-danger)">Delete</button>'
+                : '') +
+              '</div>';
+            var editBtn = item.querySelector('.er-note-edit-btn');
+            if (editBtn) {
+              editBtn.addEventListener('click', function () {
+                erEditNote_(n);
+              });
+            }
+            var delBtn = item.querySelector('.er-note-delete-btn');
+            if (delBtn) {
+              delBtn.addEventListener('click', function () {
+                erDeleteNoteHandler_(n.id);
+              });
+            }
+            wrap.appendChild(item);
+          })(notes[i]);
+        }
+      }
+
+      function erEditNote_(note) {
+        erState_.editingNoteId = note.id;
+        var titleEl = document.getElementById('er-note-title');
+        var bodyEl = document.getElementById('er-note-body');
+        var saveBtn = document.getElementById('er-note-save-btn');
+        var cancelBtn = document.getElementById('er-note-cancel-edit-btn');
+        if (titleEl) titleEl.value = note.title || '';
+        if (bodyEl) bodyEl.value = erHtmlParagraphsToPlain_(note.body_html || '');
+        if (saveBtn) saveBtn.textContent = 'Save note';
+        if (cancelBtn) cancelBtn.classList.remove('d-none');
+      }
+
+      function erCancelEditNote_() {
+        erState_.editingNoteId = null;
+        var titleEl = document.getElementById('er-note-title');
+        var bodyEl = document.getElementById('er-note-body');
+        var saveBtn = document.getElementById('er-note-save-btn');
+        var cancelBtn = document.getElementById('er-note-cancel-edit-btn');
+        if (titleEl) titleEl.value = '';
+        if (bodyEl) bodyEl.value = '';
+        if (saveBtn) saveBtn.textContent = 'Add note';
+        if (cancelBtn) cancelBtn.classList.add('d-none');
+      }
+
+      function erSaveNoteHandler_() {
+        var titleEl = document.getElementById('er-note-title');
+        var bodyEl = document.getElementById('er-note-body');
+        var errEl = document.getElementById('er-note-error');
+        if (errEl) errEl.classList.add('d-none');
+        var title = titleEl ? titleEl.value.trim() : '';
+        var bodyText = bodyEl ? bodyEl.value : '';
+        var bodyHtml = erTextToHtmlParagraphs_(bodyText);
+        if (!bodyHtml && !title) {
+          if (errEl) {
+            errEl.textContent = 'Add a title or note text.';
+            errEl.classList.remove('d-none');
+          }
+          return;
+        }
+        erSetLoading_(true);
+        var fields = { title: title || null, bodyHtml: bodyHtml };
+        var runner = google.script.run
+          .withSuccessHandler(function (res) {
+            erSetLoading_(false);
+            if (!res || !res.ok) {
+              if (errEl) {
+                errEl.textContent = (res && res.message) || 'Could not save note.';
+                errEl.classList.remove('d-none');
+              }
+              return;
+            }
+            logActivity_('engagement_review_note_save', 'engagement-review', erState_.currentReviewId || '');
+            if (typeof showSaveToast_ === 'function') showSaveToast_();
+            erCancelEditNote_();
+            erOpenDetail_(erState_.currentReviewId);
+          })
+          .withFailureHandler(function (e) {
+            erSetLoading_(false);
+            if (errEl) {
+              errEl.textContent = e && e.message ? e.message : 'Could not save note.';
+              errEl.classList.remove('d-none');
+            }
+          });
+        if (erState_.editingNoteId) {
+          runner.updateEngagementReviewNote(erState_.editingNoteId, fields);
+        } else {
+          runner.createEngagementReviewNote(erState_.currentReviewId, fields);
+        }
+      }
+
+      function erDeleteNoteHandler_(noteId) {
+        if (!window.confirm('Delete this meeting note?')) return;
+        erSetLoading_(true);
+        google.script.run
+          .withSuccessHandler(function (res) {
+            erSetLoading_(false);
+            if (!res || !res.ok) {
+              window.alert((res && res.message) || 'Could not delete note.');
+              return;
+            }
+            erOpenDetail_(erState_.currentReviewId);
+          })
+          .withFailureHandler(function (e) {
+            erSetLoading_(false);
+            window.alert(e && e.message ? e.message : 'Could not delete note.');
+          })
+          .deleteEngagementReviewNote(noteId);
+      }
+
+      /* --------------------------------------------------------------------
+         AI synopsis (completed reviews, admin-only).
+         -------------------------------------------------------------------- */
+
+      function erRenderSynopsis_() {
+        var wrap = document.getElementById('er-synopsis-wrap');
+        var panel = document.getElementById('er-synopsis-panel');
+        var metaEl = document.getElementById('er-synopsis-meta');
+        var genBtn = document.getElementById('er-generate-synopsis-btn');
+        if (!wrap) return;
+        var review = erState_.detail && erState_.detail.review;
+        var admin = !!erState_.isAdmin;
+        var completed = !!review && String(review.status || '').toLowerCase() === 'completed';
+        wrap.classList.toggle('d-none', !(admin && completed));
+        if (!admin || !completed) return;
+        var synopsis = review.ai_synopsis_json;
+        if (metaEl) {
+          metaEl.textContent = review.ai_synopsis_generated_at
+            ? 'Generated ' +
+              erFmtDate_(review.ai_synopsis_generated_at) +
+              (review.ai_synopsis_generated_by ? ' by ' + review.ai_synopsis_generated_by : '')
+            : '';
+        }
+        if (genBtn) genBtn.textContent = synopsis ? 'Regenerate AI synopsis' : 'Generate AI synopsis';
+        if (!panel) return;
+        if (!synopsis) {
+          panel.innerHTML = '<p class="mb-0" style="color:var(--ag-text-muted)">No synopsis generated yet.</p>';
+          return;
+        }
+        function list(arr) {
+          if (!arr || !arr.length) return '<p class="mb-0" style="color:var(--ag-text-muted)">None</p>';
+          return (
+            '<ul class="mb-0 ps-3">' +
+            arr
+              .map(function (t) {
+                return '<li>' + escapeHtml(t) + '</li>';
+              })
+              .join('') +
+            '</ul>'
+          );
+        }
+        var perEng = synopsis.per_engagement || [];
+        panel.innerHTML =
+          '<p class="fw-semibold mb-2">' +
+          escapeHtml(synopsis.headline || '') +
+          '</p>' +
+          '<div class="row g-3">' +
+          '<div class="col-12 col-md-6"><div class="small fw-semibold mb-1" style="color:var(--ag-text-muted)">Themes</div>' +
+          list(synopsis.themes) +
+          '</div>' +
+          '<div class="col-12 col-md-6"><div class="small fw-semibold mb-1" style="color:var(--ag-text-muted)">Decisions</div>' +
+          list(synopsis.decisions) +
+          '</div>' +
+          '<div class="col-12 col-md-6"><div class="small fw-semibold mb-1" style="color:var(--ag-text-muted)">Risks</div>' +
+          list(synopsis.risks) +
+          '</div>' +
+          '<div class="col-12 col-md-6"><div class="small fw-semibold mb-1" style="color:var(--ag-text-muted)">Actions</div>' +
+          list(synopsis.actions) +
+          '</div>' +
+          '</div>' +
+          (perEng.length
+            ? '<div class="mt-3"><div class="small fw-semibold mb-1" style="color:var(--ag-text-muted)">Per engagement</div>' +
+              perEng
+                .map(function (p) {
+                  return (
+                    '<div class="mb-1"><strong>' +
+                    escapeHtml(p.name || p.agreement_fibery_id || '') +
+                    ':</strong> ' +
+                    escapeHtml(p.summary || '') +
+                    '</div>'
+                  );
+                })
+                .join('') +
+              '</div>'
+            : '');
+      }
+
+      function erGenerateSynopsisHandler_() {
+        var errEl = document.getElementById('er-synopsis-error');
+        if (errEl) errEl.classList.add('d-none');
+        erSetLoading_(true);
+        google.script.run
+          .withSuccessHandler(function (res) {
+            erSetLoading_(false);
+            if (!res || !res.ok) {
+              if (errEl) {
+                errEl.textContent = (res && res.message) || 'Could not generate synopsis.';
+                errEl.classList.remove('d-none');
+              }
+              return;
+            }
+            logActivity_('engagement_review_ai_synopsis', 'engagement-review', erState_.currentReviewId || '');
+            if (typeof showSaveToast_ === 'function') showSaveToast_();
+            if (erState_.detail && erState_.detail.review) {
+              erState_.detail.review.ai_synopsis_json = res.synopsis;
+              erState_.detail.review.ai_synopsis_generated_at = res.generatedAt;
+            }
+            erRenderSynopsis_();
+          })
+          .withFailureHandler(function (e) {
+            erSetLoading_(false);
+            if (errEl) {
+              errEl.textContent = e && e.message ? e.message : 'Could not generate synopsis.';
+              errEl.classList.remove('d-none');
+            }
+          })
+          .generateEngagementReviewSynopsis(erState_.currentReviewId);
+      }
+
       function erWireUi_() {
         if (erWireUi_._done) return;
         erWireUi_._done = true;
@@ -21009,7 +22645,6 @@
                 targetDate: (document.getElementById('er-field-date') || {}).value,
                 status: (document.getElementById('er-field-status') || {}).value,
                 notes: (document.getElementById('er-field-notes') || {}).value,
-                callSummaryHtml: (document.getElementById('er-field-summary') || {}).value,
               },
             ]);
           });
@@ -21045,17 +22680,6 @@
             erAdminAction_('addEngagementReviewParticipant', 'engagement_review_update', [
               erState_.currentReviewId,
               { email: email, participantRole: 'owner' },
-            ]);
-          });
-        }
-        var addAgBtn = document.getElementById('er-add-agreement-btn');
-        if (addAgBtn) {
-          addAgBtn.addEventListener('click', function () {
-            var aid = window.prompt('Agreement Fibery id to add:');
-            if (!aid) return;
-            erAdminAction_('addEngagementReviewAgreement', 'engagement_review_update', [
-              erState_.currentReviewId,
-              { agreementFiberyId: aid.trim(), agreementName: aid.trim() },
             ]);
           });
         }
@@ -21145,6 +22769,63 @@
               });
           });
         }
+
+        var createUpdateBtn = document.getElementById('er-create-update-btn');
+        if (createUpdateBtn) {
+          createUpdateBtn.addEventListener('click', function () {
+            erOpenCreateUpdateModal_();
+          });
+        }
+        var umSaveBtn = document.getElementById('er-um-save-btn');
+        if (umSaveBtn) umSaveBtn.addEventListener('click', erSaveUpdateModal_);
+        var umRefreshBtn = document.getElementById('er-um-refresh-metrics-btn');
+        if (umRefreshBtn) umRefreshBtn.addEventListener('click', erRefreshMetricsInModal_);
+        var umModalEl = document.getElementById('erUpdateModal');
+        if (umModalEl) {
+          umModalEl.addEventListener('hidden.bs.modal', function () {
+            erState_.editingUpdateId = null;
+            var errEl = document.getElementById('er-um-error');
+            if (errEl) errEl.classList.add('d-none');
+          });
+        }
+        var viewerDlBtn = document.getElementById('er-viewer-download-btn');
+        if (viewerDlBtn) {
+          viewerDlBtn.addEventListener('click', function () {
+            if (!erViewerState_.html) return;
+            logActivity_('engagement_update_export', 'engagement-review', erViewerState_.updateId || '');
+            var blob = new Blob([erViewerState_.html], { type: 'text/html' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = erViewerState_.fileName || 'engagement-update.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(function () {
+              URL.revokeObjectURL(url);
+            }, 1000);
+          });
+        }
+        var viewerPrintBtn = document.getElementById('er-viewer-print-btn');
+        if (viewerPrintBtn) {
+          viewerPrintBtn.addEventListener('click', function () {
+            var frame = document.getElementById('er-viewer-frame');
+            if (frame && frame.contentWindow) {
+              try {
+                frame.contentWindow.focus();
+                frame.contentWindow.print();
+              } catch (e) {
+                window.print();
+              }
+            }
+          });
+        }
+        var noteSaveBtn = document.getElementById('er-note-save-btn');
+        if (noteSaveBtn) noteSaveBtn.addEventListener('click', erSaveNoteHandler_);
+        var noteCancelBtn = document.getElementById('er-note-cancel-edit-btn');
+        if (noteCancelBtn) noteCancelBtn.addEventListener('click', erCancelEditNote_);
+        var genSynopsisBtn = document.getElementById('er-generate-synopsis-btn');
+        if (genSynopsisBtn) genSynopsisBtn.addEventListener('click', erGenerateSynopsisHandler_);
       }
 
       /* ===================================================================
@@ -26676,14 +28357,20 @@
 
       // v1.20.0 (Phase B, FR-98) - substring filter on the Active Projects
       // table. Tokenizes the search input on whitespace and requires every
-      // token to appear in either the Project name or the Customer name
+      // token to appear in Project name, Customer name, or Assigned owner
       // (case-insensitive). Empty input returns the input list unchanged.
       function filterDeliveryRowsBySearch_(rows) {
         var term = String(deliveryState.searchTerm || '').trim().toLowerCase();
         if (!term) return rows;
         var tokens = term.split(/\s+/);
         return rows.filter(function (p) {
-          var hay = ((p.name || '') + ' ' + (p.customer || '')).toLowerCase();
+          var hay = (
+            (p.name || '') +
+            ' ' +
+            (p.customer || '') +
+            ' ' +
+            (p.assignedOwner || '')
+          ).toLowerCase();
           for (var i = 0; i < tokens.length; i++) {
             if (hay.indexOf(tokens[i]) < 0) return false;
           }
@@ -26746,7 +28433,6 @@
           if (els.deliveryProjectsNoMatch) els.deliveryProjectsNoMatch.classList.add('d-none');
           updateDeliverySortIndicators_();
           renderDeliveryAttentionStrip_([]);
-          renderDeliveryPortfolioSankey_([]);
           return;
         }
         if (els.deliveryProjectsEmpty) els.deliveryProjectsEmpty.classList.add('d-none');
@@ -26754,7 +28440,6 @@
           if (els.deliveryProjectsNoMatch) els.deliveryProjectsNoMatch.classList.remove('d-none');
           updateDeliverySortIndicators_();
           renderDeliveryAttentionStrip_([]);
-          renderDeliveryPortfolioSankey_([]);
           return;
         }
         if (els.deliveryProjectsNoMatch) els.deliveryProjectsNoMatch.classList.add('d-none');
@@ -26798,7 +28483,6 @@
           body.appendChild(tr);
         }
         renderDeliveryAttentionStrip_(rows);
-        renderDeliveryPortfolioSankey_(rows);
         updateDeliverySortIndicators_();
       }
       function updateDeliverySortIndicators_() {
@@ -27843,81 +29527,267 @@
         return lines;
       }
 
-      function resolveAllocatedByRoleForMonth_(payload, monthKey) {
-        var alloc = payload && payload.resourceAllocations;
-        if (!alloc || !alloc.hasAllocations || !alloc.months) return null;
-        for (var i = 0; i < alloc.months.length; i++) {
-          var row = alloc.months[i];
-          if (row && row.key === monthKey) {
-            return row.allocatedByRole || {};
+      function formatDeliveryPnlAllocPct_(pct) {
+        if (pct === null || pct === undefined || pct === '') return ' - ';
+        var n = Number(pct);
+        if (!isFinite(n)) return ' - ';
+        if (Math.abs(n - Math.round(n)) < 0.05) return String(Math.round(n)) + '%';
+        return (Math.round(n * 10) / 10).toString() + '%';
+      }
+
+      function filterDeliveryPnlMonthModalPeople_(people) {
+        var mm = deliveryState.monthModal;
+        var term = String(mm.search || '').trim().toLowerCase();
+        var role = String(mm.role || '');
+        var orangeOnly = !!mm.orangeOnly;
+        return (people || []).filter(function (p) {
+          if (orangeOnly && !p.highlightOrange) return false;
+          if (role && String(p.role || '') !== role) return false;
+          if (term) {
+            var hay = String(p.name || '').toLowerCase();
+            if (hay.indexOf(term) < 0) return false;
+          }
+          return true;
+        });
+      }
+
+      function sortDeliveryPnlMonthModalPeople_(people) {
+        var mm = deliveryState.monthModal;
+        var col = mm.sort.column || 'hours';
+        var dir = mm.sort.dir === 'asc' ? 1 : -1;
+        var sorted = (people || []).slice();
+        sorted.sort(function (a, b) {
+          var av = a == null ? null : a[col];
+          var bv = b == null ? null : b[col];
+          if (av === null || av === undefined || (typeof av === 'number' && !isFinite(av))) av = null;
+          if (bv === null || bv === undefined || (typeof bv === 'number' && !isFinite(bv))) bv = null;
+          if (av === null && bv === null) return 0;
+          if (av === null) return 1;
+          if (bv === null) return -1;
+          if (typeof av === 'number' && typeof bv === 'number') {
+            return (av - bv) * dir;
+          }
+          var as = String(av).toLowerCase();
+          var bs = String(bv).toLowerCase();
+          if (as < bs) return -1 * dir;
+          if (as > bs) return 1 * dir;
+          return 0;
+        });
+        return sorted;
+      }
+
+      function updateDeliveryPnlMonthModalSortHeaders_() {
+        var head = els.deliveryPnlMonthModalHead;
+        if (!head) return;
+        var mm = deliveryState.monthModal;
+        var ths = head.querySelectorAll('th.fos-delivery-sortable');
+        for (var i = 0; i < ths.length; i++) {
+          var th = ths[i];
+          var key = th.getAttribute('data-sort-key');
+          var icon = th.querySelector('.sort-icon');
+          if (key === mm.sort.column) {
+            th.classList.add('is-active-sort');
+            if (icon) icon.textContent = mm.sort.dir === 'asc' ? '↑' : '↓';
+          } else {
+            th.classList.remove('is-active-sort');
+            if (icon) icon.textContent = '↕';
           }
         }
-        return {};
       }
 
-      function deliveryPnlModalHasAllocationDetail_(payload) {
-        var alloc = payload && payload.resourceAllocations;
-        return !!(alloc && alloc.hasAllocations && !alloc.emptyMessage);
-      }
-
-      function formatDeliveryPnlPlanCell_(amount, hasDetail) {
-        if (!hasDetail) return ' - ';
-        var n = Number(amount || 0);
-        if (!n) return ' - ';
-        return formatExpense_(n);
-      }
-
-      function formatDeliveryPnlVarianceCell_(actual, planned, hasDetail) {
-        if (!hasDetail) return ' - ';
-        var a = Number(actual || 0);
-        var p = Number(planned || 0);
-        if (!a && !p) return '$0';
-        var variance = a - p;
-        var cls = variance > 0 ? ' is-negative' : '';
-        return '<span class="num' + cls + '">' + formatExpense_(variance) + '</span>';
-      }
-
-      function mergeDeliveryPnlModalRoleNames_(laborRoles, allocatedByRole, monthRow) {
-        var seen = {};
-        var out = [];
-        var push = function (name) {
-          if (!name || seen[name]) return;
-          seen[name] = true;
-          out.push(name);
-        };
-        for (var i = 0; i < laborRoles.length; i++) push(laborRoles[i]);
-        var allocKeys = allocatedByRole ? Object.keys(allocatedByRole) : [];
-        for (var j = 0; j < allocKeys.length; j++) push(allocKeys[j]);
-        if (!out.length && monthRow) {
-          var laborTotal = Number(monthRow.labor || 0);
-          if (laborTotal) out.push('Labor');
+      function populateDeliveryPnlMonthModalRoleFilter_(people) {
+        var sel = els.deliveryPnlMonthModalRoleFilter;
+        if (!sel) return;
+        var prev = deliveryState.monthModal.role || '';
+        var roles = {};
+        for (var i = 0; i < (people || []).length; i++) {
+          var r = people[i].role || '(No role)';
+          roles[r] = true;
         }
-        return out;
+        var keys = Object.keys(roles).sort();
+        sel.innerHTML = '<option value="">All roles</option>';
+        for (var k = 0; k < keys.length; k++) {
+          var opt = document.createElement('option');
+          opt.value = keys[k];
+          opt.textContent = keys[k];
+          sel.appendChild(opt);
+        }
+        sel.value = prev && roles[prev] ? prev : '';
+        deliveryState.monthModal.role = sel.value;
       }
 
-      function appendDeliveryPnlMonthModalRow_(tbody, label, actualHtml, planHtml, varianceHtml, rowClass) {
-        var tr = document.createElement('tr');
-        if (rowClass) tr.className = rowClass;
-        tr.innerHTML =
-          '<td>' + label + '</td>' +
-          '<td class="num">' + actualHtml + '</td>' +
-          '<td class="num">' + planHtml + '</td>' +
-          '<td class="num">' + varianceHtml + '</td>';
-        tbody.appendChild(tr);
-        return tr;
+      function bindDeliveryPnlMonthModalFiltersOnce_() {
+        var mm = deliveryState.monthModal;
+        if (mm.filtersBound) return;
+        mm.filtersBound = true;
+        if (els.deliveryPnlMonthModalSearch) {
+          els.deliveryPnlMonthModalSearch.addEventListener('input', function () {
+            deliveryState.monthModal.search = els.deliveryPnlMonthModalSearch.value || '';
+            renderDeliveryPnlMonthModalTable_();
+          });
+        }
+        if (els.deliveryPnlMonthModalRoleFilter) {
+          els.deliveryPnlMonthModalRoleFilter.addEventListener('change', function () {
+            deliveryState.monthModal.role = els.deliveryPnlMonthModalRoleFilter.value || '';
+            renderDeliveryPnlMonthModalTable_();
+          });
+        }
+        if (els.deliveryPnlMonthModalOrangeOnly) {
+          els.deliveryPnlMonthModalOrangeOnly.addEventListener('change', function () {
+            deliveryState.monthModal.orangeOnly = !!els.deliveryPnlMonthModalOrangeOnly.checked;
+            renderDeliveryPnlMonthModalTable_();
+          });
+        }
+        if (els.deliveryPnlMonthModalHead) {
+          els.deliveryPnlMonthModalHead.addEventListener('click', function (ev) {
+            var th = ev.target && ev.target.closest
+              ? ev.target.closest('th.fos-delivery-sortable')
+              : null;
+            if (!th) return;
+            var key = th.getAttribute('data-sort-key');
+            if (!key) return;
+            if (deliveryState.monthModal.sort.column === key) {
+              deliveryState.monthModal.sort.dir =
+                deliveryState.monthModal.sort.dir === 'asc' ? 'desc' : 'asc';
+            } else {
+              deliveryState.monthModal.sort.column = key;
+              deliveryState.monthModal.sort.dir =
+                key === 'name' || key === 'role' ? 'asc' : 'desc';
+            }
+            renderDeliveryPnlMonthModalTable_();
+          });
+          els.deliveryPnlMonthModalHead.addEventListener('keydown', function (ev) {
+            if (ev.key !== 'Enter' && ev.key !== ' ') return;
+            var th = ev.target && ev.target.closest
+              ? ev.target.closest('th.fos-delivery-sortable')
+              : null;
+            if (!th) return;
+            ev.preventDefault();
+            th.click();
+          });
+        }
+      }
+
+      function renderDeliveryPnlMonthModalTable_() {
+        var people = sortDeliveryPnlMonthModalPeople_(
+          filterDeliveryPnlMonthModalPeople_(deliveryState.monthModal.people || [])
+        );
+        updateDeliveryPnlMonthModalSortHeaders_();
+        var totalLogged = 0;
+        var totalAlloc = 0;
+        var totalCost = 0;
+        for (var i = 0; i < people.length; i++) {
+          totalLogged += Number(people[i].hours || 0);
+          totalAlloc += Number(people[i].allocatedHours || 0);
+          totalCost += Number(people[i].cost || 0);
+        }
+        if (els.deliveryPnlMonthModalBody) {
+          var body = els.deliveryPnlMonthModalBody;
+          body.innerHTML = '';
+          for (var ri = 0; ri < people.length; ri++) {
+            var person = people[ri];
+            var tr = document.createElement('tr');
+            if (person.highlightOrange) tr.className = 'fos-delivery-pnl-person-orange';
+            tr.innerHTML =
+              '<td>' + escapeHtml(person.name || '(Unknown user)') + '</td>' +
+              '<td>' + escapeHtml(person.role || '(No role)') + '</td>' +
+              '<td class="num">' + escapeHtml(formatHours(person.hours || 0)) + '</td>' +
+              '<td class="num">' + escapeHtml(formatHours(person.allocatedHours || 0)) + '</td>' +
+              '<td class="num">' + escapeHtml(formatDeliveryPnlAllocPct_(person.percentAllocated)) + '</td>' +
+              '<td class="num">' +
+                (Number(person.cost || 0) === 0 ? '$0' : formatExpense_(person.cost)) +
+              '</td>';
+            body.appendChild(tr);
+          }
+        }
+        if (els.deliveryPnlMonthModalFoot) {
+          var foot = els.deliveryPnlMonthModalFoot;
+          foot.innerHTML = '';
+          if (people.length) {
+            foot.innerHTML =
+              '<tr class="is-total">' +
+                '<td colspan="2"><strong>Total</strong></td>' +
+                '<td class="num"><strong>' + escapeHtml(formatHours(totalLogged)) + '</strong></td>' +
+                '<td class="num"><strong>' + escapeHtml(formatHours(totalAlloc)) + '</strong></td>' +
+                '<td class="num"></td>' +
+                '<td class="num"><strong>' +
+                  (totalCost === 0 ? '$0' : formatExpense_(totalCost)) +
+                '</strong></td>' +
+              '</tr>';
+          }
+        }
+        if (els.deliveryPnlMonthModalMobile) {
+          var mobile = els.deliveryPnlMonthModalMobile;
+          mobile.innerHTML = '';
+          if (!people.length) {
+            mobile.innerHTML =
+              '<p class="small mb-0" style="color: var(--ag-text-muted)">No matching people for this month.</p>';
+          } else {
+            for (var mi = 0; mi < people.length; mi++) {
+              var mp = people[mi];
+              var card = document.createElement('div');
+              card.className = 'fos-delivery-pnl-person-card' +
+                (mp.highlightOrange ? ' is-orange' : '');
+              card.innerHTML =
+                '<div class="fos-delivery-pnl-person-name">' +
+                  escapeHtml(mp.name || '(Unknown user)') +
+                '</div>' +
+                '<div class="fos-delivery-pnl-person-role">' +
+                  escapeHtml(mp.role || '(No role)') +
+                '</div>' +
+                '<div class="fos-delivery-pnl-person-metrics">' +
+                  '<span>Logged&nbsp;<strong>' + escapeHtml(formatHours(mp.hours || 0)) + '</strong>&nbsp;h</span>' +
+                  '<span>Alloc&nbsp;<strong>' + escapeHtml(formatHours(mp.allocatedHours || 0)) + '</strong>&nbsp;h</span>' +
+                  '<span><strong>' + escapeHtml(formatDeliveryPnlAllocPct_(mp.percentAllocated)) + '</strong></span>' +
+                  '<span><strong>' +
+                    (Number(mp.cost || 0) === 0 ? '$0' : formatExpense_(mp.cost)) +
+                  '</strong></span>' +
+                '</div>';
+              mobile.appendChild(card);
+            }
+            var totalCard = document.createElement('div');
+            totalCard.className = 'fos-delivery-pnl-person-card';
+            totalCard.innerHTML =
+              '<div class="fos-delivery-pnl-person-name">Total</div>' +
+              '<div class="fos-delivery-pnl-person-metrics">' +
+                '<span>Logged&nbsp;<strong>' + escapeHtml(formatHours(totalLogged)) + '</strong>&nbsp;h</span>' +
+                '<span>Alloc&nbsp;<strong>' + escapeHtml(formatHours(totalAlloc)) + '</strong>&nbsp;h</span>' +
+                '<span><strong>' +
+                  (totalCost === 0 ? '$0' : formatExpense_(totalCost)) +
+                '</strong></span>' +
+              '</div>';
+            mobile.appendChild(totalCard);
+          }
+        }
+        if (els.deliveryPnlMonthModalNote) {
+          var noteEl = els.deliveryPnlMonthModalNote;
+          var allPeople = deliveryState.monthModal.people || [];
+          if (!allPeople.length) {
+            noteEl.textContent = 'No labor hours or allocations for this month.';
+            noteEl.classList.remove('d-none');
+          } else if (!people.length) {
+            noteEl.textContent = 'No people match the current filters.';
+            noteEl.classList.remove('d-none');
+          } else {
+            noteEl.textContent = '';
+            noteEl.classList.add('d-none');
+          }
+        }
       }
 
       function openDeliveryPnlMonthModal_(monthKey) {
         var m = (deliveryState.monthsByKey && deliveryState.monthsByKey[monthKey]) || null;
         if (!m) return;
-        var payload = deliveryState.lastPnlPayload || {};
-        var laborRoles = resolveDeliveryPnlLaborRoles_(payload, payload.months || []);
-        var allocatedByRole = resolveAllocatedByRoleForMonth_(payload, monthKey) || {};
-        var hasAllocDetail = deliveryPnlModalHasAllocationDetail_(payload);
+        var people = Array.isArray(m.laborByPerson) ? m.laborByPerson.slice() : [];
+        var orangeCount = 0;
+        for (var oi = 0; oi < people.length; oi++) {
+          if (people[oi].highlightOrange) orangeCount++;
+        }
         logActivity_('delivery_pnl_chart_month_click', 'delivery',
           'monthKey=' + monthKey +
           ' · projected=' + (m.projected ? 'yes' : 'no') +
-          ' · hasAllocationDetail=' + (hasAllocDetail ? 'true' : 'false'));
+          ' · personCount=' + people.length +
+          ' · orangeCount=' + orangeCount);
         var modalEl = els.deliveryPnlMonthModal;
         if (!modalEl) return;
         var project = deliveryState.selectedId && deliveryState.projectsByIndex
@@ -27925,129 +29795,31 @@
         var projectName = project ? (project.name || '') : '';
         if (els.deliveryPnlMonthModalTitle) {
           els.deliveryPnlMonthModalTitle.textContent =
-            'P&L - ' + (m.label || monthKey);
+            'Labor hours - ' + (m.label || monthKey);
         }
         if (els.deliveryPnlMonthModalSubtitle) {
           var subParts = [];
           if (projectName) subParts.push(projectName);
           if (m.projected) subParts.push('Projected month');
           if (m.outOfRange) subParts.push('Out of range');
-          var allocBlock = payload.resourceAllocations;
-          if (allocBlock && allocBlock.emptyMessage) subParts.push(allocBlock.emptyMessage);
+          subParts.push(people.length + (people.length === 1 ? ' person' : ' people'));
+          if (orangeCount) {
+            subParts.push(orangeCount + ' need allocation attention');
+          }
           els.deliveryPnlMonthModalSubtitle.textContent = subParts.length
             ? subParts.join(' · ') : ' - ';
         }
-        if (els.deliveryPnlMonthModalNote) {
-          var noteEl = els.deliveryPnlMonthModalNote;
-          if (!hasAllocDetail) {
-            noteEl.textContent = 'No resource allocations for this agreement.';
-            noteEl.classList.remove('d-none');
-          } else {
-            noteEl.textContent = '';
-            noteEl.classList.add('d-none');
-          }
-        }
-        var totalAllocatedLabor = 0;
-        if (els.deliveryPnlMonthModalBody) {
-          var body = els.deliveryPnlMonthModalBody;
-          body.innerHTML = '';
-          var revActual = Number(m.revenue || 0) === 0 ? '$0' : formatMoneyCompact(m.revenue);
-          appendDeliveryPnlMonthModalRow_(
-            body,
-            'Revenue',
-            revActual,
-            ' - ',
-            ' - '
-          );
-          var modalRoles = mergeDeliveryPnlModalRoleNames_(laborRoles, allocatedByRole, m);
-          var roleCount = 0;
-          for (var ri = 0; ri < modalRoles.length; ri++) {
-            var roleName = modalRoles[ri];
-            var roleActual = 0;
-            if (roleName === 'Labor') {
-              roleActual = Number(m.labor || 0);
-            } else if (m.laborByRole && m.laborByRole[roleName]) {
-              roleActual = Number(m.laborByRole[roleName]);
-            }
-            var rolePlan = allocatedByRole[roleName]
-              ? Number(allocatedByRole[roleName]) : 0;
-            if (!roleActual && !rolePlan) continue;
-            roleCount++;
-            totalAllocatedLabor += rolePlan;
-            appendDeliveryPnlMonthModalRow_(
-              body,
-              escapeHtml(roleName),
-              roleActual === 0 ? '$0' : formatExpense_(roleActual),
-              formatDeliveryPnlPlanCell_(rolePlan, hasAllocDetail),
-              formatDeliveryPnlVarianceCell_(roleActual, rolePlan, hasAllocDetail),
-              'fos-delivery-pnl-month-role'
-            );
-          }
-          if (!roleCount) {
-            var laborActual = Number(m.labor || 0);
-            var laborPlan = 0;
-            if (hasAllocDetail) {
-              var allocMonths = (payload.resourceAllocations && payload.resourceAllocations.months) || [];
-              for (var am = 0; am < allocMonths.length; am++) {
-                if (allocMonths[am].key === monthKey) {
-                  laborPlan = Number(allocMonths[am].allocatedCost || 0);
-                  break;
-                }
-              }
-            }
-            totalAllocatedLabor = laborPlan;
-            appendDeliveryPnlMonthModalRow_(
-              body,
-              'Labor',
-              laborActual === 0 ? '$0' : formatExpense_(laborActual),
-              formatDeliveryPnlPlanCell_(laborPlan, hasAllocDetail),
-              formatDeliveryPnlVarianceCell_(laborActual, laborPlan, hasAllocDetail)
-            );
-          }
-          var expActual = Number(m.expenses || 0);
-          appendDeliveryPnlMonthModalRow_(
-            body,
-            'Expenses',
-            expActual === 0 ? '$0' : formatExpense_(expActual),
-            ' - ',
-            ' - '
-          );
-        }
-        if (els.deliveryPnlMonthModalFoot) {
-          var foot = els.deliveryPnlMonthModalFoot;
-          foot.innerHTML = '';
-          var grossNegClass = Number(m.grossProfit || 0) < 0 ? ' is-negative' : '';
-          var bucket = m.marginBucket || 'neutral';
-          var totalActual = Number(m.totalCost || 0);
-          var totalPlan = hasAllocDetail ? Number(totalAllocatedLabor || 0) : 0;
-          foot.innerHTML =
-            '<tr class="is-total">' +
-              '<td><strong>Total cost</strong></td>' +
-              '<td class="num is-negative"><strong>' +
-                (totalActual === 0 ? '$0' : formatExpense_(totalActual)) +
-              '</strong></td>' +
-              '<td class="num"><strong>' +
-                formatDeliveryPnlPlanCell_(totalPlan, hasAllocDetail) +
-              '</strong></td>' +
-              '<td class="num"><strong>' +
-                formatDeliveryPnlVarianceCell_(totalActual, totalPlan, hasAllocDetail) +
-              '</strong></td>' +
-            '</tr>' +
-            '<tr class="is-total">' +
-              '<td><strong>Gross profit</strong></td>' +
-              '<td class="num' + grossNegClass + '"><strong>' +
-                formatMoneyParenIfNegative_(m.grossProfit) +
-              '</strong></td>' +
-              '<td colspan="2"></td>' +
-            '</tr>' +
-            '<tr class="is-total">' +
-              '<td><strong>Margin</strong></td>' +
-              '<td class="num margin-cell bucket-' + bucket + '"><strong>' +
-                formatMarginPct(m.marginPct) +
-              '</strong></td>' +
-              '<td colspan="2"></td>' +
-            '</tr>';
-        }
+        deliveryState.monthModal.monthKey = monthKey;
+        deliveryState.monthModal.people = people;
+        deliveryState.monthModal.search = '';
+        deliveryState.monthModal.role = '';
+        deliveryState.monthModal.orangeOnly = false;
+        deliveryState.monthModal.sort = { column: 'hours', dir: 'desc' };
+        if (els.deliveryPnlMonthModalSearch) els.deliveryPnlMonthModalSearch.value = '';
+        if (els.deliveryPnlMonthModalOrangeOnly) els.deliveryPnlMonthModalOrangeOnly.checked = false;
+        populateDeliveryPnlMonthModalRoleFilter_(people);
+        bindDeliveryPnlMonthModalFiltersOnce_();
+        renderDeliveryPnlMonthModalTable_();
         try {
           var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
           modal.show();
@@ -28474,8 +30246,7 @@
               }
               writeDeliveryFiltersStored();
               logActivity_('delivery_table_sort', 'delivery', 'column=' + col + ' · direction=' + deliveryState.sort.dir);
-              var cached = readDeliveryCache();
-              renderDeliveryTable((cached && cached.projects) || []);
+              renderDeliveryTable(getDeliveryProjectsForClientRender_());
               if (deliveryState.selectedId) markDeliveryRowSelected_(deliveryState.selectedId);
             });
           })(ths[i]);
@@ -28570,8 +30341,7 @@
                 'len=' + trimmed.length);
             }
           }, 400);
-          var cached = readDeliveryCache();
-          renderDeliveryTable((cached && cached.projects) || []);
+          renderDeliveryTable(getDeliveryProjectsForClientRender_());
           if (deliveryState.selectedId) markDeliveryRowSelected_(deliveryState.selectedId);
         });
       }
@@ -28582,8 +30352,7 @@
             deliveryState.searchTerm = '';
             updateDeliverySearchClearVisibility_();
             writeDeliveryFiltersStored();
-            var cached = readDeliveryCache();
-            renderDeliveryTable((cached && cached.projects) || []);
+            renderDeliveryTable(getDeliveryProjectsForClientRender_());
             if (deliveryState.selectedId) markDeliveryRowSelected_(deliveryState.selectedId);
             els.deliverySearchInput.focus();
           }
