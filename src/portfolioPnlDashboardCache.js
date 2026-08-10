@@ -1,5 +1,5 @@
 /**
- * PRD version 3.5.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.6.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Daily Drive cache for Portfolio P&L (feature 025). First Fibery build each
  * calendar day writes portfolio-pnl-cache/YYYY-MM-DD/ on Drive; later loads

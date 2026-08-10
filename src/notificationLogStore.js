@@ -1,5 +1,5 @@
 /**
- * PRD version 3.5.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.6.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Notification Log sheet for Feature 033: email audit + in-app tray.
  *

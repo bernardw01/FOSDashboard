@@ -1,5 +1,5 @@
 /**
- * PRD version 3.5.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.6.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `delivery`, panel
  * `#panel-delivery`). Public endpoints, all authorized via
@@ -96,9 +96,11 @@ var DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_ = 2;
  *        `laborByRole`.
  *   v13 - v3.4.12: laborByPerson enriched with month-prorated allocatedHours,
  *        Fibery percentAllocated, allocatedAndBillable, highlightOrange.
+ *   v14 - v3.6.0 / feature 040: `performance` block (planned/projected margin,
+ *        EAC hours/$, timing review, resourcesLifetime).
  * @const {number}
  */
-var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 13;
+var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 14;
 
 /** @const {number} Default TTL (minutes) for the client-side cache. */
 var DELIVERY_DEFAULT_CACHE_TTL_MIN_ = 10;
@@ -515,6 +517,14 @@ function buildDeliveryProjectMonthlyPnLInternal_(agreementId, options) {
     out.discrepancyCheck = built.discrepancyCheck;
     out.statusUpdates = statusUpdates;
     out.resourceAllocations = resourceAllocations;
+    if (typeof buildProjectPerformanceBlock_ === 'function') {
+      out.performance = buildProjectPerformanceBlock_({
+        months: built.months,
+        resourceAllocations: resourceAllocations,
+        targetMarginPct: ctx.agreement.targetMargin,
+        assignments: resourceAllocations.assignments || [],
+      });
+    }
   }
   return out;
 }
@@ -1374,6 +1384,7 @@ function buildResourceAllocationAssignmentsList_(rows) {
       percentAllocated: (pctNum !== null && isFinite(pctNum))
         ? deliveryPnlNormalizePercent_(pctNum) : null,
       allocatedHours: Number(row.allocatedHours || 0),
+      allocatedCost: Number(row.allocatedCost || 0),
       allocatedAndBillable: row.allocatedAndBillable === true
         ? true
         : row.allocatedAndBillable === false

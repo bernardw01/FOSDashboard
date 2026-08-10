@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.5.2 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.6.0 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -1548,6 +1548,58 @@
       flex-wrap: wrap;
       align-items: center;
       gap: 10px;
+    }
+    .fos-delivery-mode-group .fos-delivery-mode-btn,
+    .fos-delivery-perf-metric-group .fos-delivery-perf-metric-btn {
+      background: transparent;
+      border: 1px solid var(--ag-border);
+      color: var(--ag-text-muted);
+      font-weight: 600;
+      padding: 4px 12px;
+      min-height: 44px;
+    }
+    .fos-delivery-mode-group .fos-delivery-mode-btn.active,
+    .fos-delivery-perf-metric-group .fos-delivery-perf-metric-btn.active {
+      background: var(--ag-accent);
+      border-color: var(--ag-accent);
+      color: #061b30;
+    }
+    .fos-delivery-perf-badge {
+      border: 1px solid var(--ag-warn, #d69e2e);
+      background: rgba(214, 158, 46, 0.12);
+      color: var(--ag-text);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 0.875rem;
+    }
+    .fos-delivery-perf-kpi-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .fos-delivery-perf-resource-card {
+      border: 1px solid var(--ag-border);
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 8px;
+      background: var(--surface, #fff);
+    }
+    .fos-delivery-perf-resource-card.is-orange {
+      border-color: #ed8936;
+      background: rgba(237, 137, 54, 0.08);
+    }
+    @media (max-width: 767.98px) {
+      .fos-delivery-perf-desktop-table {
+        display: none !important;
+      }
+      .fos-delivery-perf-mobile-cards.fos-mobile-only {
+        display: block !important;
+      }
+    }
+    @media (min-width: 768px) {
+      .fos-delivery-perf-mobile-cards.fos-mobile-only {
+        display: none !important;
+      }
     }
     .fos-delivery-view-group .fos-delivery-view-btn {
       background: transparent;
@@ -6007,24 +6059,26 @@
             <section class="fos-section-card fos-delivery-pnl" aria-labelledby="delivery-pnl-heading">
               <div class="d-flex flex-wrap align-items-start gap-3 mb-2">
                 <div class="flex-grow-1 min-w-0">
-                  <h2 id="delivery-pnl-heading" class="mb-1">Profit &amp; Loss</h2>
-                  <div class="small" style="color: var(--ag-text-muted)" id="delivery-pnl-subtitle">Select a project above to see its monthly P&amp;L.</div>
+                  <h2 id="delivery-pnl-heading" class="mb-1">Project financials</h2>
+                  <div class="small" style="color: var(--ag-text-muted)" id="delivery-pnl-subtitle">Select a project above to see performance and P&amp;L.</div>
                 </div>
-                <div class="d-none d-flex flex-wrap gap-2" id="delivery-pnl-kpi-strip" aria-label="Profit &amp; Loss summary"></div>
+                <div class="d-none d-flex flex-wrap gap-2" id="delivery-pnl-kpi-strip" aria-label="Project summary"></div>
               </div>
-              <!-- v1.21.0 Phase C.1 - pacing strip (trailing burn / recognition,
-                   linear plan vs actual). Shown when monthly P&L is loaded. -->
               <div class="d-none fos-delivery-pacing mb-3" id="delivery-pnl-pacing" aria-label="Project pacing"></div>
-              <!-- v1.20.0 (Phase B, FR-94 / FR-96) - view toggle (Table /
-                   Chart) and a Copy CSV button. Hidden until a project is
-                   selected; the empty-state placeholder above the grid
-                   stays the source of truth for "nothing to show". -->
               <div class="d-none fos-delivery-pnl-toolbar mb-2" id="delivery-pnl-toolbar">
-                <div class="btn-group btn-group-sm fos-delivery-view-group" role="group" aria-label="Profit &amp; Loss view">
+                <div class="btn-group btn-group-sm fos-delivery-mode-group" role="group" aria-label="Project financial view">
+                  <button type="button" class="btn fos-delivery-mode-btn active" data-pnl-mode="accounting" aria-pressed="true">Accounting P&amp;L</button>
+                  <button type="button" class="btn fos-delivery-mode-btn" data-pnl-mode="performance" aria-pressed="false">Project Performance</button>
+                </div>
+                <div class="btn-group btn-group-sm fos-delivery-view-group fos-delivery-accounting-only" role="group" aria-label="Profit &amp; Loss view">
                   <button type="button" class="btn fos-delivery-view-btn active" data-pnl-view="table" aria-pressed="true">Table</button>
                   <button type="button" class="btn fos-delivery-view-btn" data-pnl-view="chart" aria-pressed="false">Chart</button>
                 </div>
-                <button type="button" class="btn btn-sm fos-delivery-csv-btn" id="delivery-pnl-csv-btn" aria-label="Copy monthly P&amp;L as CSV to clipboard">
+                <div class="btn-group btn-group-sm fos-delivery-perf-metric-group fos-delivery-perf-only d-none" role="group" aria-label="Cost metric">
+                  <button type="button" class="btn fos-delivery-perf-metric-btn active" data-perf-metric="dollars" aria-pressed="true">$</button>
+                  <button type="button" class="btn fos-delivery-perf-metric-btn" data-perf-metric="hours" aria-pressed="false">Hours</button>
+                </div>
+                <button type="button" class="btn btn-sm fos-delivery-csv-btn fos-delivery-accounting-only" id="delivery-pnl-csv-btn" aria-label="Copy monthly P&amp;L as CSV to clipboard">
                   Copy CSV
                 </button>
                 <span class="small fos-delivery-csv-status" id="delivery-pnl-csv-status" aria-live="polite"></span>
@@ -6035,7 +6089,27 @@
                   <div class="fos-delivery-pnl-spinner" aria-hidden="true"></div>
                   <span class="fos-delivery-pnl-loading-label">Fetching monthly P&amp;L…</span>
                 </div>
-                <div class="fos-financial-scroll fos-delivery-monthly-wrap d-none" id="delivery-pnl-grid-wrap">
+                <div class="d-none" id="delivery-pnl-performance" aria-label="Project Performance">
+                  <div class="fos-delivery-perf-kpi-strip mb-3" id="delivery-pnl-perf-kpis"></div>
+                  <div class="d-none fos-delivery-perf-badge mb-3" id="delivery-pnl-perf-badge" role="status"></div>
+                  <div class="fos-financial-scroll fos-delivery-perf-desktop-table mb-2">
+                    <table class="fos-financial-table" aria-label="Resource performance">
+                      <thead>
+                        <tr>
+                          <th scope="col">Name</th>
+                          <th scope="col">Role</th>
+                          <th scope="col" class="num">Allocated hrs (life)</th>
+                          <th scope="col" class="num">Logged hrs (life)</th>
+                          <th scope="col" class="num" data-perf-col="cost">Cost (life)</th>
+                        </tr>
+                      </thead>
+                      <tbody id="delivery-pnl-perf-body"></tbody>
+                    </table>
+                  </div>
+                  <div class="fos-delivery-perf-mobile-cards fos-mobile-only d-none" id="delivery-pnl-perf-cards"></div>
+                  <p class="small mb-0 d-none" id="delivery-pnl-perf-empty" style="color: var(--ag-text-muted)">No resource performance rows for this project yet.</p>
+                </div>
+                <div class="fos-financial-scroll fos-delivery-monthly-wrap d-none fos-delivery-accounting-only" id="delivery-pnl-grid-wrap">
                   <table class="fos-financial-table fos-delivery-monthly" aria-describedby="delivery-pnl-heading">
                     <thead>
                       <tr>
@@ -6052,10 +6126,7 @@
                     <tfoot id="delivery-pnl-grid-foot"></tfoot>
                   </table>
                 </div>
-                <!-- v1.20.0 (Phase B, FR-94) - Chart.js stacked bar
-                     (Labor by role + Expenses) with a Revenue overlay line.
-                     Same month time-series as the table view. -->
-                <div class="d-none fos-delivery-pnl-chart-wrap" id="delivery-pnl-chart-wrap">
+                <div class="d-none fos-delivery-pnl-chart-wrap fos-delivery-accounting-only" id="delivery-pnl-chart-wrap">
                   <canvas id="delivery-pnl-chart" role="img" aria-label="Monthly Revenue, planned allocation cost, labor by role, and Expenses chart"></canvas>
                   <p class="small mb-0 mt-2 fos-delivery-chart-hint" id="delivery-pnl-chart-hint">
                     Bars stack labor by role + expenses per month; lines overlay revenue and planned allocation cost. Lighter bars indicate projected months. Hover for details; click a month to open its P&amp;L.
@@ -7804,8 +7875,8 @@
       // flag or `revenueItems[]` per month) is invalidated cleanly when
       // the user upgrades.
       var DELIVERY_PNL_KEY_PREFIX = 'fos_delivery_pnl_';
-      var DELIVERY_PNL_KEY_SUFFIX = '_v13';
-      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 13;
+      var DELIVERY_PNL_KEY_SUFFIX = '_v14';
+      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 14;
       var DELIVERY_STATUS_CLIENT_META_ = {
         on_track: { enumName: 'Agreement On Track', trafficLight: 'green' },
         at_risk: { enumName: 'Agreement At Risk', trafficLight: 'yellow' },
@@ -8313,6 +8384,12 @@
         deliveryPnlAllocationNote: document.getElementById('delivery-pnl-allocation-note'),
         deliveryPnlAssignmentsLinkWrap: document.getElementById('delivery-pnl-assignments-link-wrap'),
         deliveryPnlAssignmentsLink: document.getElementById('delivery-pnl-assignments-link'),
+        deliveryPnlPerformance: document.getElementById('delivery-pnl-performance'),
+        deliveryPnlPerfKpis: document.getElementById('delivery-pnl-perf-kpis'),
+        deliveryPnlPerfBadge: document.getElementById('delivery-pnl-perf-badge'),
+        deliveryPnlPerfBody: document.getElementById('delivery-pnl-perf-body'),
+        deliveryPnlPerfCards: document.getElementById('delivery-pnl-perf-cards'),
+        deliveryPnlPerfEmpty: document.getElementById('delivery-pnl-perf-empty'),
         deliveryPnlAssignmentsModal: document.getElementById('deliveryPnlAssignmentsModal'),
         deliveryPnlAssignmentsModalSubtitle: document.getElementById('deliveryPnlAssignmentsModalSubtitle'),
         deliveryPnlAssignmentsModalBody: document.getElementById('deliveryPnlAssignmentsModalBody'),
@@ -19421,6 +19498,8 @@
           owners: {},
         },
         pnlView: 'table',
+        cardMode: 'accounting',
+        perfMetric: 'dollars',
         projectsByIndex: {},
         lastRenderedFetchedAt: null,
         lastRenderedSelectedId: null,
@@ -19583,6 +19662,8 @@
           updateDeliverySearchClearVisibility_();
         }
         syncDeliveryViewButtons_(deliveryState.pnlView === 'chart' ? 'chart' : 'table');
+        deliveryState.cardMode = resolveDefaultDeliveryCardMode_();
+        syncDeliveryModeButtons_(deliveryState.cardMode);
       }
 
       function deliveryDimensionKey_(value) {
@@ -29401,18 +29482,232 @@
       }
 
       /* ---------------------------------------------------------------
-       * v1.20.0 (Phase B) - Table / Chart view router.
-       * FR-94: stacked bar (Labor + Expenses) with an overlaid Revenue line.
-       * The Chart.js bundle is lazily loaded the first time the user
-       * switches to the Chart view; subsequent toggles reuse the same
-       * instance.
+       * Feature 040 - Accounting P&L vs Project Performance card modes.
+       * Table / Chart remains under Accounting only.
        * ------------------------------------------------------------- */
+      var DELIVERY_CARD_MODE_KEY_ = 'fos_delivery_pnl_card_mode_v1';
+
+      function resolveDefaultDeliveryCardMode_() {
+        try {
+          var stored = sessionStorage.getItem(DELIVERY_CARD_MODE_KEY_);
+          if (stored === 'performance' || stored === 'accounting') return stored;
+        } catch (e) { /* ignore */ }
+        var team = String((navState && navState.team) || '').toUpperCase();
+        if (team === 'CLIENT-ENGAGEMENT') return 'performance';
+        return 'accounting';
+      }
+
+      function writeDeliveryCardMode_(mode) {
+        try {
+          sessionStorage.setItem(DELIVERY_CARD_MODE_KEY_, mode);
+        } catch (e) { /* ignore */ }
+      }
+
+      function syncDeliveryModeButtons_(mode) {
+        if (!els.deliveryPnlToolbar) return;
+        var btns = els.deliveryPnlToolbar.querySelectorAll('.fos-delivery-mode-btn');
+        for (var i = 0; i < btns.length; i++) {
+          var m = btns[i].getAttribute('data-pnl-mode');
+          if (m === mode) {
+            btns[i].classList.add('active');
+            btns[i].setAttribute('aria-pressed', 'true');
+          } else {
+            btns[i].classList.remove('active');
+            btns[i].setAttribute('aria-pressed', 'false');
+          }
+        }
+      }
+
+      function syncDeliveryPerfMetricButtons_(metric) {
+        if (!els.deliveryPnlToolbar) return;
+        var btns = els.deliveryPnlToolbar.querySelectorAll('.fos-delivery-perf-metric-btn');
+        for (var i = 0; i < btns.length; i++) {
+          var m = btns[i].getAttribute('data-perf-metric');
+          if (m === metric) {
+            btns[i].classList.add('active');
+            btns[i].setAttribute('aria-pressed', 'true');
+          } else {
+            btns[i].classList.remove('active');
+            btns[i].setAttribute('aria-pressed', 'false');
+          }
+        }
+      }
+
+      function setDeliveryCardMode_(mode, opts) {
+        opts = opts || {};
+        var next = mode === 'performance' ? 'performance' : 'accounting';
+        if (deliveryState.cardMode === next && !opts.force) return;
+        deliveryState.cardMode = next;
+        writeDeliveryCardMode_(next);
+        if (!opts.silent) {
+          logActivity_('delivery_pnl_performance_tab', 'delivery', 'mode=' + next);
+        }
+        applyDeliveryPnLView_();
+      }
+
+      function setDeliveryPerfMetric_(metric, opts) {
+        opts = opts || {};
+        var next = metric === 'hours' ? 'hours' : 'dollars';
+        if (deliveryState.perfMetric === next && !opts.force) return;
+        deliveryState.perfMetric = next;
+        if (!opts.silent) {
+          logActivity_('delivery_pnl_hours_toggle', 'delivery', 'metric=' + next);
+        }
+        renderDeliveryPerformance_(deliveryState.lastPnlPayload);
+        syncDeliveryPerfMetricButtons_(next);
+      }
+
+      function formatPerfPct_(v) {
+        if (v === null || v === undefined || !isFinite(Number(v))) return 'N/A';
+        return formatMarginPct(Number(v));
+      }
+
+      function renderDeliveryPerformance_(payload) {
+        var perf = payload && payload.performance;
+        if (els.deliveryPnlPerfKpis) {
+          if (!perf) {
+            els.deliveryPnlPerfKpis.innerHTML =
+              '<div class="fos-delivery-pnl-kpi-chip"><div class="label">Performance</div>' +
+              '<div class="value">Unavailable</div><div class="sub">Refresh or upgrade snapshot schema</div></div>';
+          } else {
+            var eacH = perf.eacHours || {};
+            var eacD = perf.eacDollars || {};
+            els.deliveryPnlPerfKpis.innerHTML =
+              '<div class="fos-delivery-pnl-kpi-chip">' +
+                '<div class="label">Planned margin</div>' +
+                '<div class="value">' + escapeHtml(formatPerfPct_(perf.plannedMarginPct)) + '</div>' +
+                '<div class="sub">Target margin</div></div>' +
+              '<div class="fos-delivery-pnl-kpi-chip">' +
+                '<div class="label">Projected margin</div>' +
+                '<div class="value">' + escapeHtml(formatPerfPct_(perf.projectedMarginPct)) + '</div>' +
+                '<div class="sub">Project-level (smoothed)</div></div>' +
+              '<div class="fos-delivery-pnl-kpi-chip">' +
+                '<div class="label">EAC hours</div>' +
+                '<div class="value">' + escapeHtml(formatHours(eacH.value || 0)) + '</div>' +
+                '<div class="sub">' +
+                  (eacH.budgeted == null ? 'No budget' : 'Budget ' + formatHours(eacH.budgeted)) +
+                '</div></div>' +
+              '<div class="fos-delivery-pnl-kpi-chip">' +
+                '<div class="label">EAC $</div>' +
+                '<div class="value">' + formatExpense_(eacD.value || 0) + '</div>' +
+                '<div class="sub">Labor + expenses/ODC' +
+                  (eacD.budgeted == null ? '' : ' · budg ' + formatMoneyCompact(eacD.budgeted)) +
+                '</div></div>' +
+              '<div class="fos-delivery-pnl-kpi-chip">' +
+                '<div class="label">Actual margin to date</div>' +
+                '<div class="value">' + escapeHtml(formatPerfPct_(perf.actualMarginPctToDate)) + '</div>' +
+                '<div class="sub">As of ' + escapeHtml(perf.asOfMonthKey || '') + '</div></div>';
+          }
+        }
+
+        var badge = els.deliveryPnlPerfBadge;
+        if (badge) {
+          var tr = perf && perf.timingReview;
+          if (tr && tr.recommended) {
+            var cta = '';
+            if (navState && navState.engagementReviewAccess === true) {
+              cta =
+                ' <button type="button" class="btn btn-sm btn-outline-secondary ms-2" id="delivery-pnl-timing-cta" style="min-height:44px">Open Engagement review</button>';
+            }
+            badge.innerHTML =
+              '<strong>Timing review recommended.</strong> ' +
+              escapeHtml(tr.message || 'Period gross profit is negative while revenue is planned later.') +
+              cta;
+            badge.classList.remove('d-none');
+            var ctaBtn = document.getElementById('delivery-pnl-timing-cta');
+            if (ctaBtn) {
+              ctaBtn.addEventListener('click', function () {
+                logActivity_('delivery_pnl_timing_badge_click', 'delivery',
+                  'agreementId=' + (deliveryState.selectedId || ''));
+                if (typeof navigateToNavId_ === 'function') {
+                  navigateToNavId_('engagement-review');
+                } else if (typeof showEngagementReview === 'function') {
+                  setActiveNav('engagement-review');
+                  showEngagementReview();
+                }
+              });
+            }
+          } else {
+            badge.classList.add('d-none');
+            badge.innerHTML = '';
+          }
+        }
+
+        var rows = (perf && perf.resourcesLifetime) || [];
+        var metric = deliveryState.perfMetric === 'hours' ? 'hours' : 'dollars';
+        var tbody = els.deliveryPnlPerfBody;
+        var cards = els.deliveryPnlPerfCards;
+        var empty = els.deliveryPnlPerfEmpty;
+        if (!rows.length) {
+          if (tbody) tbody.innerHTML = '';
+          if (cards) cards.innerHTML = '';
+          if (empty) empty.classList.remove('d-none');
+          return;
+        }
+        if (empty) empty.classList.add('d-none');
+        var html = '';
+        var cardsHtml = '';
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          var orange = r.highlightOrange ? ' fos-delivery-pnl-person-orange' : '';
+          var metricCell = metric === 'hours'
+            ? escapeHtml(formatHours(r.loggedHoursLife || 0))
+            : formatExpense_(r.loggedCostLife || 0);
+          html +=
+            '<tr class="' + orange.trim() + '">' +
+              '<td>' + escapeHtml(r.name || ' - ') + '</td>' +
+              '<td>' + escapeHtml(r.role || ' - ') + '</td>' +
+              '<td class="num">' + escapeHtml(formatHours(r.allocatedHoursLife || 0)) + '</td>' +
+              '<td class="num">' + escapeHtml(formatHours(r.loggedHoursLife || 0)) + '</td>' +
+              '<td class="num">' + metricCell + '</td>' +
+            '</tr>';
+          cardsHtml +=
+            '<div class="fos-delivery-perf-resource-card' + (r.highlightOrange ? ' is-orange' : '') + '">' +
+              '<div class="fw-semibold">' + escapeHtml(r.name || ' - ') + '</div>' +
+              '<div class="small" style="color:var(--ag-text-muted)">' + escapeHtml(r.role || '') + '</div>' +
+              '<div class="small mt-2">Allocated: ' + escapeHtml(formatHours(r.allocatedHoursLife || 0)) +
+                ' · Logged: ' + escapeHtml(formatHours(r.loggedHoursLife || 0)) + '</div>' +
+              '<div class="small">' + (metric === 'hours' ? 'Hours focus' : 'Cost: ' + formatExpense_(r.loggedCostLife || 0)) + '</div>' +
+            '</div>';
+        }
+        if (tbody) tbody.innerHTML = html;
+        if (cards) {
+          cards.innerHTML = cardsHtml;
+          cards.classList.remove('d-none');
+        }
+      }
+
       function applyDeliveryPnLView_() {
+        var mode = deliveryState.cardMode === 'performance' ? 'performance' : 'accounting';
+        syncDeliveryModeButtons_(mode);
+        syncDeliveryPerfMetricButtons_(deliveryState.perfMetric === 'hours' ? 'hours' : 'dollars');
+        var accountingEls = document.querySelectorAll('#panel-delivery .fos-delivery-accounting-only');
+        var perfOnlyEls = document.querySelectorAll('#panel-delivery .fos-delivery-perf-only');
+        var ai;
+        for (ai = 0; ai < accountingEls.length; ai++) {
+          if (mode === 'accounting') accountingEls[ai].classList.remove('d-none');
+          else accountingEls[ai].classList.add('d-none');
+        }
+        for (ai = 0; ai < perfOnlyEls.length; ai++) {
+          if (mode === 'performance') perfOnlyEls[ai].classList.remove('d-none');
+          else perfOnlyEls[ai].classList.add('d-none');
+        }
+        if (els.deliveryPnlPerformance) {
+          if (mode === 'performance') els.deliveryPnlPerformance.classList.remove('d-none');
+          else els.deliveryPnlPerformance.classList.add('d-none');
+        }
+
         var view = deliveryState.pnlView === 'chart' ? 'chart' : 'table';
         syncDeliveryViewButtons_(view);
         var hasData = !!(deliveryState.lastPnlPayload
           && deliveryState.lastPnlPayload.months
           && deliveryState.lastPnlPayload.months.length);
+        if (mode === 'performance') {
+          if (els.deliveryPnlGridWrap) els.deliveryPnlGridWrap.classList.add('d-none');
+          if (els.deliveryPnlChartWrap) els.deliveryPnlChartWrap.classList.add('d-none');
+          if (hasData) renderDeliveryPerformance_(deliveryState.lastPnlPayload);
+          return;
+        }
         if (!hasData) {
           if (els.deliveryPnlGridWrap) els.deliveryPnlGridWrap.classList.add('d-none');
           if (els.deliveryPnlChartWrap) els.deliveryPnlChartWrap.classList.add('d-none');
@@ -30288,6 +30583,24 @@
         });
       }
       if (els.deliveryPnlToolbar) {
+        var modeBtns = els.deliveryPnlToolbar.querySelectorAll('.fos-delivery-mode-btn');
+        for (var dmi = 0; dmi < modeBtns.length; dmi++) {
+          (function (btn) {
+            btn.addEventListener('click', function () {
+              var m = btn.getAttribute('data-pnl-mode') || 'accounting';
+              setDeliveryCardMode_(m);
+            });
+          })(modeBtns[dmi]);
+        }
+        var metricBtns = els.deliveryPnlToolbar.querySelectorAll('.fos-delivery-perf-metric-btn');
+        for (var dmpi = 0; dmpi < metricBtns.length; dmpi++) {
+          (function (btn) {
+            btn.addEventListener('click', function () {
+              var m = btn.getAttribute('data-perf-metric') || 'dollars';
+              setDeliveryPerfMetric_(m);
+            });
+          })(metricBtns[dmpi]);
+        }
         var viewBtns = els.deliveryPnlToolbar.querySelectorAll('.fos-delivery-view-btn');
         for (var dvi = 0; dvi < viewBtns.length; dvi++) {
           (function (btn) {

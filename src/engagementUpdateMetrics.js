@@ -1,5 +1,5 @@
 /**
- * PRD version 3.5.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.6.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 037: Engagement Update quantitative snapshot builders. Supabase
  * only - no Fibery HTTP calls at read/render time (locked decision #7, #31).
@@ -460,47 +460,23 @@ function buildEngagementUpdateQuantitativeSnapshot_(agreementFiberyId, reporting
     delta: plannedCostMtd !== null ? euRound2_(actualCostMtd - plannedCostMtd) : null,
   };
 
-  var totalAllocatedHours = 0;
-  var totalAllocatedCost = 0;
-  for (var ai = 0; ai < allocRows.length; ai++) {
-    totalAllocatedHours += Number(allocRows[ai].allocatedHours || 0);
-    totalAllocatedCost += Number(allocRows[ai].allocatedCost || 0);
-  }
-
-  var actualHoursToDate = 0;
-  var actualCostToDate = 0;
-  var remainingPlannedHours = 0;
-  var remainingPlannedCost = 0;
-  for (var mk = 0; mk < months.length; mk++) {
-    var mEntry = months[mk];
-    var aH = euActualHoursForMonth_(mEntry);
-    var aC = Number(mEntry.labor || 0);
-    if (mEntry.key <= periodMonthKey) {
-      actualHoursToDate += aH;
-      actualCostToDate += aC;
-    } else {
-      remainingPlannedHours += euPlannedHoursForMonth_(mEntry);
-      var pc = euPlannedCostForMonth_(pnl.resourceAllocations, mEntry.key);
-      if (pc !== null) remainingPlannedCost += pc;
-    }
-  }
-
-  var eacHoursValue = hasAllocationData ? actualHoursToDate + remainingPlannedHours : actualHoursToDate;
-  var eacHours = {
-    value: euRound2_(eacHoursValue),
-    budgeted: hasAllocationData ? euRound2_(totalAllocatedHours) : null,
-  };
-
-  var eacCostValue = actualCostToDate + remainingPlannedCost;
-  var eacDollarsBudgeted = totalAllocatedCost > 0 ? euRound2_(totalAllocatedCost) : null;
-  var eacDollars = {
-    value: euRound2_(eacCostValue),
-    budgeted: eacDollarsBudgeted,
-    variancePct:
-      eacDollarsBudgeted && eacDollarsBudgeted !== 0
-        ? euRound1_(((eacCostValue - eacDollarsBudgeted) / Math.abs(eacDollarsBudgeted)) * 100)
-        : null,
-  };
+  // Feature 040: shared EAC / projected margin (labor + expenses/ODC).
+  var perf =
+    typeof buildProjectPerformanceBlock_ === 'function'
+      ? buildProjectPerformanceBlock_({
+          months: months,
+          resourceAllocations: pnl.resourceAllocations,
+          targetMarginPct: plannedMarginPct,
+          asOfMonthKey: periodMonthKey,
+          assignments: (pnl.resourceAllocations && pnl.resourceAllocations.assignments) || [],
+        })
+      : null;
+  var eacHours = perf
+    ? perf.eacHours
+    : { value: euRound2_(euActualHoursForMonth_(currentMonth)), budgeted: null };
+  var eacDollars = perf
+    ? perf.eacDollars
+    : { value: null, budgeted: null, variancePct: null };
 
   var revenue = euBuildRevenueBlock_(months, periodMonthKey, period);
 

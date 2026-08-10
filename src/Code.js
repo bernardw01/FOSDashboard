@@ -1,11 +1,11 @@
 /**
- * PRD version 3.5.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.6.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.5.2';
+var FOS_PRD_VERSION = '3.6.0';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.5.2';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.5.2 Engagement Update create/edit modal: solid opaque surfaces, form and option contrast, darker backdrop.';
+  'v3.6.0 Project Performance layer on Delivery: planned/projected margin, EAC, hours, timing badge.';
 
 /**
  * @return {string}
