@@ -1,5 +1,5 @@
 /**
- * PRD version 3.6.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.7.4 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -15,7 +15,7 @@ var ADMIN_SETTINGS_GROUPS_ = [
   { id: 'agreement', title: 'Agreement Dashboard' },
   { id: 'utilization', title: 'Utilization (Operations)' },
   { id: 'labor-hours', title: 'Labor hours' },
-  { id: 'delivery', title: 'Delivery - Projects & P&L' },
+  { id: 'delivery', title: 'Delivery - PM Overview' },
   { id: 'engagement-review', title: 'Engagement Review' },
   { id: 'snapshots', title: 'Historical snapshots' },
   { id: 'expenses-dashboard', title: 'Expenses dashboard' },

@@ -20,7 +20,7 @@
 | Platform and shell | Home, navigation, auth, data source, snapshots infra | v2.8.0 snapshots |
 | Agreement | Agreement dashboard, revenue review | Revenue review phases |
 | Operations | Utilization, labor hours, alerts | v2.11.0 utilization simplification |
-| Delivery | Projects and P&L, status updates | v2.12.0 status updates |
+| Delivery | PM Overview, status updates | v3.7.0 PM Overview rebrand; v2.12.0 status updates |
 | Finance | Expenses dashboard | v2.11.2 expenses chart labels |
 | Sales | Pipeline dashboard | v2.11.1 pipeline stages |
 | Admin and settings | Settings UI, app versions, usage analytics | v2.3.0 admin settings |

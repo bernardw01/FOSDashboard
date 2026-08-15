@@ -1,11 +1,11 @@
 /**
- * PRD version 3.6.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.7.4 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.6.0';
+var FOS_PRD_VERSION = '3.7.4';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.6.0';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.6.0 Project Performance layer on Delivery: planned/projected margin, EAC, hours, timing badge.';
+  'v3.7.4 Resource assignments Live date range rebuilds week grid from Supabase typed tables.';
 
 /**
  * @return {string}
@@ -194,7 +194,7 @@ function buildNavigationModel_(auth) {
       label: 'Delivery',
       active: false,
       children: [
-        { id: 'delivery', label: 'Projects & P&L', active: false },
+        { id: 'pm-overview', label: 'PM Overview', active: false },
         { id: 'revenue-review', label: 'Revenue review', active: false },
         { id: 'engagement-review', label: 'Engagement review', active: false },
       ],

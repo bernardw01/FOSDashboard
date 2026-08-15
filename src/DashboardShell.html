@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.6.0 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.7.4 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -111,7 +111,7 @@
 
     #panel-agreement-dashboard.fos-agreement-root,
     #panel-operations.fos-agreement-root,
-    #panel-delivery.fos-agreement-root,
+    #panel-pm-overview.fos-agreement-root,
     #panel-revenue-review.fos-agreement-root,
     #panel-engagement-review.fos-agreement-root,
     #panel-expenses.fos-agreement-root,
@@ -351,6 +351,47 @@
     .ra-plan-actual-legend {
       font-size: 0.8125rem;
       color: var(--ag-text-muted);
+    }
+    .ra-grid .ra-pv-person-row td.ra-sticky-col,
+    .ra-grid .ra-pv-group-row td.ra-sticky-col {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--ag-text);
+    }
+    .ra-grid .ra-pv-group-row td.ra-sticky-col {
+      padding-left: 1.75rem;
+      font-weight: 500;
+    }
+    .ra-grid .ra-pv-project-row td.ra-sticky-col {
+      padding-left: 2.75rem;
+      font-weight: 400;
+      font-size: 0.8125rem;
+    }
+    .ra-grid .ra-pv-person-row.ra-highlight-orange td.ra-sticky-col,
+    .ra-grid .ra-pv-project-row.ra-highlight-orange .ra-orange-text {
+      color: var(--ag-warn);
+    }
+    .ra-grid td.ra-cell-clickable {
+      cursor: pointer;
+    }
+    .ra-grid td.ra-cell-clickable:hover {
+      background: rgba(0, 127, 167, 0.08);
+    }
+    @media (max-width: 767.98px) {
+      .ra-grid-tabs {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 0;
+      }
+      .ra-grid-tabs .nav-item {
+        flex: 0 0 auto;
+      }
+      .ra-grid-tabs .nav-link {
+        min-height: 44px;
+        white-space: nowrap;
+      }
     }
     .fos-attention-group-children .fos-attention-group {
       margin-top: 8px;
@@ -5895,18 +5936,21 @@
               <h2 id="ra-grid-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Weekly assignment grid</h2>
               <ul class="nav ra-grid-tabs mb-2" id="ra-grid-tabs" role="tablist">
                 <li class="nav-item" role="presentation">
-                  <button type="button" class="nav-link active" id="ra-tab-person" data-ra-tab="person" role="tab" aria-selected="true" aria-controls="ra-tab-panel-person">By person</button>
+                  <button type="button" class="nav-link active" id="ra-tab-person-variances" data-ra-tab="personVariances" role="tab" aria-selected="true" aria-controls="ra-tab-panel-person-variances">By person variances</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button type="button" class="nav-link" id="ra-tab-person" data-ra-tab="person" role="tab" aria-selected="false" aria-controls="ra-tab-panel-person">By person allocations</button>
                 </li>
                 <li class="nav-item" role="presentation">
                   <button type="button" class="nav-link" id="ra-tab-project" data-ra-tab="project" role="tab" aria-selected="false" aria-controls="ra-tab-panel-project">By project</button>
                 </li>
               </ul>
-              <p class="small mb-2" id="ra-grid-intro" style="color: var(--ag-text-muted)">Collapsed rows show planned % of work week as a heatmap. Expand a person to see hours per project.</p>
-              <div id="ra-legend-wrap" class="mb-2">
+              <p class="small mb-2" id="ra-grid-intro" style="color: var(--ag-text-muted)">Person → Assigned / Actual / Variance → project. Click a week cell for daily detail. Collapse rows to see group totals only.</p>
+              <div id="ra-legend-wrap" class="mb-2 d-none">
                 <div class="small fw-semibold mb-1" style="color: var(--ag-text)">Allocation heatmap</div>
                 <div id="ra-legend" class="ra-heat-scale" aria-label="Allocation percent heatmap legend"></div>
               </div>
-              <div id="ra-plan-actual-legend-wrap" class="mb-2 d-none">
+              <div id="ra-plan-actual-legend-wrap" class="mb-2">
                 <div class="small fw-semibold mb-1" style="color: var(--ag-text)">Plan vs actual</div>
                 <p class="ra-plan-actual-legend mb-0">Expand a project, then a person, to see <strong>Assigned</strong>, <strong>Actual</strong>, and <strong>Variance</strong> rows per week. Orange name and actual hours = no assignment or allocation not marked <em>Allocated &amp; Billable</em> in Fibery.</p>
               </div>
@@ -5921,9 +5965,35 @@
           </div>
         </div>
 
+        <div class="modal fade" id="raDayDetailModal" tabindex="-1" aria-labelledby="raDayDetailModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-scrollable modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h2 class="modal-title h6 mb-0" id="raDayDetailModalLabel">Week detail</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-sm mb-0" aria-label="Daily hours breakdown">
+                    <thead>
+                      <tr>
+                        <th scope="col">Day</th>
+                        <th scope="col" class="text-end">Assigned h</th>
+                        <th scope="col" class="text-end">Actual h</th>
+                        <th scope="col" class="text-end">Variance h</th>
+                      </tr>
+                    </thead>
+                    <tbody id="ra-day-detail-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- v1.19.0 - FR-89..93. Delivery Dashboard panel. Active Projects
              table at the top, per-project monthly P&L below on selection. -->
-        <div id="panel-delivery" class="d-none fos-agreement-root">
+        <div id="panel-pm-overview" class="d-none fos-agreement-root">
           <div id="delivery-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
           <div class="fos-agreement-inner shadow-lg">
             <div class="fos-loading-overlay d-none" id="delivery-loading" role="status" aria-live="polite" aria-hidden="true">
@@ -5932,7 +6002,7 @@
             </div>
             <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
               <div class="flex-grow-1 min-w-0">
-                <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Delivery Dashboard</h1>
+                <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">PM Overview</h1>
                 <p class="small mb-0" id="delivery-subtitle" style="color: var(--ag-text-muted)">
                   Active projects …
                 </p>
@@ -6098,9 +6168,9 @@
                         <tr>
                           <th scope="col">Name</th>
                           <th scope="col">Role</th>
-                          <th scope="col" class="num">Allocated hrs (life)</th>
-                          <th scope="col" class="num">Logged hrs (life)</th>
-                          <th scope="col" class="num" data-perf-col="cost">Cost (life)</th>
+                          <th scope="col" class="num">Allocated hrs</th>
+                          <th scope="col" class="num">Logged hrs</th>
+                          <th scope="col" class="num" data-perf-col="cost">Cost</th>
                         </tr>
                       </thead>
                       <tbody id="delivery-pnl-perf-body"></tbody>
@@ -7876,7 +7946,7 @@
       // the user upgrades.
       var DELIVERY_PNL_KEY_PREFIX = 'fos_delivery_pnl_';
       var DELIVERY_PNL_KEY_SUFFIX = '_v14';
-      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 14;
+      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 15;
       var DELIVERY_STATUS_CLIENT_META_ = {
         on_track: { enumName: 'Agreement On Track', trafficLight: 'green' },
         at_risk: { enumName: 'Agreement At Risk', trafficLight: 'yellow' },
@@ -7901,14 +7971,16 @@
       var EXPENSES_FILTERS_SCHEMA_VERSION = 1;
       var DEFAULT_TTL_MINUTES = 10;
       var RA_CACHE_KEY = 'fos_resource_assignments_v1';
-      var RA_CACHE_SCHEMA_VERSION = 2;
+      var RA_CACHE_SCHEMA_VERSION = 3;
       var RA_TTL_PREF_KEY = 'fos_resource_assignments_ttl_minutes_v1';
       var RA_FILTERS_PREF_KEY = 'fos_resource_assignments_filters_v1';
       var RA_FILTERS_SCHEMA_VERSION = 1;
       var RA_EXPAND_SESSION_KEY = 'fos_resource_assignments_expanded_v1';
       var RA_EXPAND_PROJECT_SESSION_KEY = 'fos_resource_assignments_expanded_projects_v1';
       var RA_EXPAND_PROJ_PERSON_SESSION_KEY = 'fos_resource_assignments_expanded_proj_persons_v1';
-      var RA_TAB_SESSION_KEY = 'fos_resource_assignments_active_tab_v1';
+      var RA_EXPAND_PV_PERSON_SESSION_KEY = 'fos_resource_assignments_expanded_pv_persons_v2';
+      var RA_EXPAND_PV_GROUP_SESSION_KEY = 'fos_resource_assignments_expanded_pv_groups_v2';
+      var RA_TAB_SESSION_KEY = 'fos_resource_assignments_active_tab_v2';
       var SESSION_ID_KEY = 'fos_session_id_v1';
       /** Feature 035 - which sidebar nav groups are expanded this tab session. */
       var NAV_GROUP_COLLAPSE_KEY_ = 'fos_nav_group_collapse_v1';
@@ -8077,7 +8149,7 @@
         'operations': 'bi-kanban-fill',
         'labor-hours': 'bi-clock-history',
         'resource-assignments': 'bi-people-fill',
-        'delivery': 'bi-truck',
+        'pm-overview': 'bi-truck',
         'revenue-review': 'bi-cash-stack',
         'engagement-review': 'bi-clipboard2-check',
         'expenses': 'bi-receipt-cutoff',
@@ -8223,7 +8295,11 @@
         raLegend: document.getElementById('ra-legend'),
         raGridIntro: document.getElementById('ra-grid-intro'),
         raTabPerson: document.getElementById('ra-tab-person'),
+        raTabPersonVariances: document.getElementById('ra-tab-person-variances'),
         raTabProject: document.getElementById('ra-tab-project'),
+        raDayDetailModal: document.getElementById('raDayDetailModal'),
+        raDayDetailTbody: document.getElementById('ra-day-detail-tbody'),
+        raDayDetailModalLabel: document.getElementById('raDayDetailModalLabel'),
         raCurrentWeekValue: document.getElementById('ra-current-week-value'),
         raCurrentWeekDetail: document.getElementById('ra-current-week-detail'),
         raGridThead: document.getElementById('ra-grid-thead'),
@@ -8310,7 +8386,7 @@
         utilDrawerFiberyLink: document.getElementById('util-drawer-fibery-link'),
         utilDrawerTitle: document.getElementById('util-drawer-title'),
         // v1.19.0 - Delivery Dashboard.
-        panelDelivery: document.getElementById('panel-delivery'),
+        panelDelivery: document.getElementById('panel-pm-overview'),
         deliveryRefreshBtn: document.getElementById('delivery-refresh-btn'),
         deliveryLastRefresh: document.getElementById('delivery-last-refresh'),
         deliveryFetchError: document.getElementById('delivery-fetch-error'),
@@ -8877,7 +8953,8 @@
           showAiUsage();
         } else if (id === 'pipeline') {
           showPipeline();
-        } else if (id === 'delivery') {
+        } else if (id === 'pm-overview' || id === 'delivery') {
+          setActiveNav('pm-overview');
           showDelivery();
         }
       }
@@ -9074,7 +9151,7 @@
         { id: 'home', label: 'Home' },
         { id: 'agreement-dashboard', label: 'Agreements' },
         { id: 'operations', label: 'Ops' },
-        { id: 'delivery', label: 'Delivery' },
+        { id: 'pm-overview', label: 'PM Overview' },
         { id: '__more__', label: 'More' },
       ];
 
@@ -9082,7 +9159,7 @@
         { id: 'agreement-dashboard', label: 'Agreements' },
         { id: 'pipeline', label: 'Pipeline', requiresPipeline: true },
         { id: 'operations', label: 'Utilization' },
-        { id: 'delivery', label: 'Delivery' },
+        { id: 'pm-overview', label: 'PM Overview' },
       ];
 
       var AGREEMENT_FIN_TAB_LABELS_ = {
@@ -9130,6 +9207,9 @@
       }
 
       function navItemById_(id) {
+        if (id === 'delivery') {
+          id = 'pm-overview';
+        }
         var flat = mobileShellState_.flatNavItems || [];
         for (var i = 0; i < flat.length; i++) {
           if (flat[i].id === id) {
@@ -9140,6 +9220,9 @@
       }
 
       function navigateToNavId_(id) {
+        if (id === 'delivery') {
+          id = 'pm-overview';
+        }
         if (id === 'settings') {
           if (typeof showSettingsPanel === 'function') {
             showSettingsPanel();
@@ -9879,7 +9962,8 @@
           'agreement-dashboard': 'Agreements',
           operations: 'Utilization',
           'labor-hours': 'Labor hours',
-          delivery: 'Delivery - Projects & P&L',
+          delivery: 'PM Overview',
+          'pm-overview': 'PM Overview',
           'revenue-review': 'Revenue review',
           'engagement-review': 'Engagement review',
           expenses: 'Expenses',
@@ -11664,6 +11748,7 @@
         'labor-hours': true,
         'resource-assignments': true,
         delivery: true,
+        'pm-overview': true,
         'revenue-review': true,
         'portfolio-pnl': true,
         expenses: true,
@@ -11997,7 +12082,7 @@
           return { ok: false, _askEmpty: true, panelId: panelId };
         }
 
-        if (panelId === 'delivery') {
+        if (panelId === 'pm-overview' || panelId === 'delivery') {
           data =
             askCloneJson_(lastDeliveryPayload_) ||
             (typeof readDeliveryCache === 'function' ? askCloneJson_(readDeliveryCache()) : null) ||
@@ -18131,7 +18216,9 @@
         expanded: {},
         expandedProjects: {},
         expandedProjectPersons: {},
-        activeTab: 'person',
+        expandedPersonVariances: {},
+        expandedPersonVarianceGroups: {},
+        activeTab: 'personVariances',
         wired: false,
         csvStatusTimer: null,
         filterTimer: null,
@@ -18272,19 +18359,174 @@
         } catch (e) { /* ignore */ }
       }
 
+      function readRaExpandedPersonVariancesSession_() {
+        try {
+          var raw = sessionStorage.getItem(RA_EXPAND_PV_PERSON_SESSION_KEY);
+          if (!raw) return {};
+          var o = JSON.parse(raw);
+          return o && typeof o === 'object' ? o : {};
+        } catch (e) {
+          return {};
+        }
+      }
+
+      function writeRaExpandedPersonVariancesSession_() {
+        try {
+          sessionStorage.setItem(
+            RA_EXPAND_PV_PERSON_SESSION_KEY,
+            JSON.stringify(raState.expandedPersonVariances || {})
+          );
+        } catch (e) { /* ignore */ }
+      }
+
+      function readRaExpandedPersonVarianceGroupsSession_() {
+        try {
+          var raw = sessionStorage.getItem(RA_EXPAND_PV_GROUP_SESSION_KEY);
+          if (!raw) return {};
+          var o = JSON.parse(raw);
+          return o && typeof o === 'object' ? o : {};
+        } catch (e) {
+          return {};
+        }
+      }
+
+      function writeRaExpandedPersonVarianceGroupsSession_() {
+        try {
+          sessionStorage.setItem(
+            RA_EXPAND_PV_GROUP_SESSION_KEY,
+            JSON.stringify(raState.expandedPersonVarianceGroups || {})
+          );
+        } catch (e) { /* ignore */ }
+      }
+
       function readRaActiveTabSession_() {
         try {
           var t = sessionStorage.getItem(RA_TAB_SESSION_KEY);
-          return t === 'project' ? 'project' : 'person';
+          if (t === 'project' || t === 'person' || t === 'personVariances') return t;
+          return 'personVariances';
         } catch (e) {
-          return 'person';
+          return 'personVariances';
         }
       }
 
       function writeRaActiveTabSession_() {
         try {
-          sessionStorage.setItem(RA_TAB_SESSION_KEY, raState.activeTab || 'person');
+          sessionStorage.setItem(RA_TAB_SESSION_KEY, raState.activeTab || 'personVariances');
         } catch (e) { /* ignore */ }
+      }
+
+      /** Build personVariances from projects when payload predates schema 3 field. */
+      function buildRaPersonVariancesFromProjects_(projects) {
+        var personMap = {};
+        function ensurePerson(pKey, meta) {
+          if (!personMap[pKey]) {
+            personMap[pKey] = {
+              personKey: pKey,
+              name: meta.name,
+              roleName: meta.roleName,
+              company: meta.company,
+              highlightOrange: false,
+              groups: { assigned: {}, actual: {}, variance: {} },
+            };
+          }
+          return personMap[pKey];
+        }
+        function ensureProj(groupMap, projKey, meta) {
+          if (!groupMap[projKey]) {
+            groupMap[projKey] = {
+              key: projKey,
+              agreementId: meta.agreementId || '',
+              projectName: meta.projectName,
+              customerName: meta.customerName || '',
+              highlightOrange: !!meta.highlightOrange,
+              byWeek: {},
+            };
+          }
+          return groupMap[projKey];
+        }
+        for (var pi = 0; pi < (projects || []).length; pi++) {
+          var proj = projects[pi];
+          var aid = proj.agreementId || proj.key || '';
+          var projKey = aid || 'project:' + (proj.projectName || '');
+          var persons = proj.persons || [];
+          for (var ui = 0; ui < persons.length; ui++) {
+            var pers = persons[ui];
+            var pKey = pers.personKey;
+            var entry = ensurePerson(pKey, pers);
+            if (pers.highlightOrange) entry.highlightOrange = true;
+            var meta = {
+              agreementId: aid,
+              projectName: proj.projectName,
+              customerName: proj.customerName,
+              highlightOrange: pers.highlightOrange,
+            };
+            var byWeek = pers.byWeek || {};
+            for (var wk in byWeek) {
+              if (!Object.prototype.hasOwnProperty.call(byWeek, wk)) continue;
+              var b = byWeek[wk];
+              var ah = b.assignedHours || 0;
+              var act = b.actualHours || 0;
+              var vh = b.varianceHours || 0;
+              var cell = {
+                assignedHours: ah,
+                actualHours: act,
+                varianceHours: vh,
+                partial: !!b.partial,
+              };
+              if (ah > 0) {
+                ensureProj(entry.groups.assigned, projKey, meta).byWeek[wk] = cell;
+              }
+              if (act > 0) {
+                ensureProj(entry.groups.actual, projKey, meta).byWeek[wk] = cell;
+              }
+              if (vh !== 0) {
+                ensureProj(entry.groups.variance, projKey, meta).byWeek[wk] = cell;
+              }
+            }
+          }
+        }
+        var out = [];
+        var keys = Object.keys(personMap).sort(function (a, b) {
+          var na = personMap[a].name || '';
+          var nb = personMap[b].name || '';
+          if (na !== nb) return na.localeCompare(nb);
+          return a.localeCompare(b);
+        });
+        function listFromMap(m) {
+          var pkeys = Object.keys(m).sort(function (a, b) {
+            return String(m[a].projectName || '').localeCompare(String(m[b].projectName || ''));
+          });
+          var arr = [];
+          for (var i = 0; i < pkeys.length; i++) arr.push(m[pkeys[i]]);
+          return arr;
+        }
+        for (var ki = 0; ki < keys.length; ki++) {
+          var row = personMap[keys[ki]];
+          var assigned = listFromMap(row.groups.assigned);
+          var actual = listFromMap(row.groups.actual);
+          var variance = listFromMap(row.groups.variance);
+          if (!assigned.length && !actual.length && !variance.length) continue;
+          out.push({
+            personKey: row.personKey,
+            name: row.name,
+            roleName: row.roleName,
+            company: row.company,
+            highlightOrange: row.highlightOrange,
+            groups: { assigned: assigned, actual: actual, variance: variance },
+          });
+        }
+        return out;
+      }
+
+      function getRaPersonVariances_(payload) {
+        if (!payload) return [];
+        if (payload.personVariances && payload.personVariances.length) {
+          return payload.personVariances;
+        }
+        if (payload.projects && payload.projects.length) {
+          return buildRaPersonVariancesFromProjects_(payload.projects);
+        }
+        return [];
       }
 
       function raProjPersonExpandKey_(projectKey, personKey) {
@@ -18320,13 +18562,63 @@
         return prefix + formatHours(n);
       }
 
+      function raPersonVarianceGroupKey_(personKey, groupId) {
+        return String(personKey || '') + '|' + String(groupId || '');
+      }
+
+      function filterRaPersonVariances_(rows) {
+        var f = raState.filters || {};
+        return (rows || []).filter(function (row) {
+          if (!raFilterMapHits_(f.persons, row.personKey)) return false;
+          if (!raFilterMapHits_(f.companies, row.company || '')) return false;
+          if (!raFilterMapHits_(f.roles, row.roleName || '')) return false;
+          var hasProjectFilter = setFromKeys(f.projects).length;
+          if (!hasProjectFilter) return true;
+          var groups = row.groups || {};
+          var groupIds = ['assigned', 'actual', 'variance'];
+          for (var gi = 0; gi < groupIds.length; gi++) {
+            var projects = groups[groupIds[gi]] || [];
+            for (var pi = 0; pi < projects.length; pi++) {
+              var pk = projects[pi].agreementId || projects[pi].key || '';
+              if (raFilterMapHits_(f.projects, pk)) return true;
+            }
+          }
+          return false;
+        });
+      }
+
+      function raSumGroupWeek_(projects, weekKey, field) {
+        var total = 0;
+        var has = false;
+        for (var i = 0; i < (projects || []).length; i++) {
+          var bucket = projects[i].byWeek && projects[i].byWeek[weekKey];
+          if (!bucket) continue;
+          var val = bucket[field];
+          if (val) {
+            total += val;
+            has = true;
+          }
+        }
+        return has ? total : null;
+      }
+
+      function raSumPersonWeekActual_(personRow, weekKey) {
+        return raSumGroupWeek_((personRow.groups && personRow.groups.actual) || [], weekKey, 'actualHours');
+      }
+
       function setRaActiveTab_(tab) {
-        raState.activeTab = tab === 'project' ? 'project' : 'person';
+        raState.activeTab =
+          tab === 'project' ? 'project' : tab === 'personVariances' ? 'personVariances' : 'person';
         writeRaActiveTabSession_();
         if (els.raTabPerson) {
           var personOn = raState.activeTab === 'person';
           els.raTabPerson.classList.toggle('active', personOn);
           els.raTabPerson.setAttribute('aria-selected', personOn ? 'true' : 'false');
+        }
+        if (els.raTabPersonVariances) {
+          var pvOn = raState.activeTab === 'personVariances';
+          els.raTabPersonVariances.classList.toggle('active', pvOn);
+          els.raTabPersonVariances.setAttribute('aria-selected', pvOn ? 'true' : 'false');
         }
         if (els.raTabProject) {
           var projOn = raState.activeTab === 'project';
@@ -18337,13 +18629,22 @@
           els.raLegendWrap.classList.toggle('d-none', raState.activeTab !== 'person');
         }
         if (els.raPlanActualLegendWrap) {
-          els.raPlanActualLegendWrap.classList.toggle('d-none', raState.activeTab !== 'project');
+          els.raPlanActualLegendWrap.classList.toggle(
+            'd-none',
+            raState.activeTab !== 'project' && raState.activeTab !== 'personVariances'
+          );
         }
         if (els.raGridIntro) {
-          els.raGridIntro.textContent =
-            raState.activeTab === 'project'
-              ? 'Expand a project, then a person, to see assigned, actual, and variance hours by week.'
-              : 'Collapsed rows show planned % of work week as a heatmap. Expand a person to see hours per project.';
+          if (raState.activeTab === 'project') {
+            els.raGridIntro.textContent =
+              'Expand a project, then a person, to see assigned, actual, and variance hours by week.';
+          } else if (raState.activeTab === 'personVariances') {
+            els.raGridIntro.textContent =
+              'Expand a person, then Assigned, Actual, or Variance, to see hours by project. Click a week cell for daily detail.';
+          } else {
+            els.raGridIntro.textContent =
+              'Collapsed rows show planned % of work week as a heatmap. Expand a person to see hours per project.';
+          }
         }
       }
 
@@ -19143,11 +19444,257 @@
         }
       }
 
+      function openRaDayDetailModal_(ctx) {
+        if (!ctx || !els.raDayDetailModal) return;
+        var bucket = ctx.bucket || {};
+        var byDay = bucket.byDay || {};
+        var dayKeys = Object.keys(byDay).sort();
+        if (els.raDayDetailModalLabel) {
+          els.raDayDetailModalLabel.textContent =
+            (ctx.personName || 'Person') +
+            ' · ' +
+            (ctx.projectName || 'Project') +
+            ' · ' +
+            (ctx.weekKey || '') +
+            ' · ' +
+            (ctx.groupLabel || '');
+        }
+        if (els.raDayDetailTbody) {
+          els.raDayDetailTbody.innerHTML = '';
+          if (!dayKeys.length) {
+            var emptyRow = document.createElement('tr');
+            var emptyCell = document.createElement('td');
+            emptyCell.colSpan = 4;
+            emptyCell.textContent = 'No daily breakdown available for this cell.';
+            emptyRow.appendChild(emptyCell);
+            els.raDayDetailTbody.appendChild(emptyRow);
+          } else {
+            var dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            for (var di = 0; di < dayKeys.length; di++) {
+              var ymd = dayKeys[di];
+              var dayBucket = byDay[ymd] || {};
+              var parts = ymd.split('-');
+              var dt = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));
+              var label =
+                dayNames[dt.getUTCDay()] +
+                ' ' +
+                dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+              var tr = document.createElement('tr');
+              tr.innerHTML =
+                '<td>' + escapeHtml(label) + '</td>' +
+                '<td class="text-end">' + escapeHtml(formatHours(dayBucket.assignedHours || 0)) + '</td>' +
+                '<td class="text-end">' + escapeHtml(formatHours(dayBucket.actualHours || 0)) + '</td>' +
+                '<td class="text-end">' + escapeHtml(raFormatVarianceHours_(dayBucket.varianceHours || 0)) + '</td>';
+              els.raDayDetailTbody.appendChild(tr);
+            }
+          }
+        }
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+          bootstrap.Modal.getOrCreateInstance(els.raDayDetailModal).show();
+        }
+        logActivity_(
+          'resource_assignments_cell_drilldown',
+          'resource-assignments',
+          (ctx.personKey || '') + '|' + (ctx.projectKey || '') + '|' + (ctx.weekKey || '')
+        );
+      }
+
+      function raAttachWeekCellClick_(td, ctx, hasValue) {
+        if (!hasValue) return;
+        td.classList.add('ra-cell-clickable');
+        td.setAttribute('role', 'button');
+        td.setAttribute('tabindex', '0');
+        td.addEventListener('click', function () {
+          openRaDayDetailModal_(ctx);
+        });
+        td.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter' || ev.key === ' ') {
+            ev.preventDefault();
+            openRaDayDetailModal_(ctx);
+          }
+        });
+      }
+
+      function renderResourceAssignmentPersonVariancesGrid_(payload, filteredRows) {
+        if (!els.raGridThead || !els.raGridTbody) return;
+        var weeks = (payload && payload.weeks) || [];
+        var rows = filteredRows || [];
+        var currentWeekKey = raCurrentIsoWeekKey_();
+        var groupMeta = [
+          { id: 'assigned', label: 'Assigned', field: 'assignedHours' },
+          { id: 'actual', label: 'Actual', field: 'actualHours' },
+          { id: 'variance', label: 'Variance', field: 'varianceHours', format: raFormatVarianceHours_ },
+        ];
+
+        els.raGridThead.innerHTML = '';
+        els.raGridTbody.innerHTML = '';
+        var headRow = document.createElement('tr');
+        var th0 = document.createElement('th');
+        th0.className = 'ra-sticky-col';
+        th0.textContent = 'Person / Group / Project';
+        headRow.appendChild(th0);
+        for (var wi = 0; wi < weeks.length; wi++) {
+          var wth = document.createElement('th');
+          wth.className = 'ra-week-cell';
+          var wk = weeks[wi];
+          var isCurrent = wk.key === currentWeekKey;
+          if (isCurrent) wth.classList.add('ra-current-week');
+          wth.textContent =
+            (wk.key || '').replace(/^\d{4}-/, '') + (wk.partial ? '*' : '') + (isCurrent ? ' · now' : '');
+          wth.title = (wk.label || wk.key || '') + (isCurrent ? ' (current week)' : '');
+          headRow.appendChild(wth);
+        }
+        els.raGridThead.appendChild(headRow);
+
+        if (!rows.length) {
+          if (els.raEmpty) {
+            els.raEmpty.textContent =
+              getRaPersonVariances_(payload).length
+                ? 'No rows match the current filters.'
+                : 'No variance data in this range. Refresh live data or pick another date range.';
+            els.raEmpty.classList.remove('d-none');
+          }
+          var raTable = document.getElementById('ra-grid-table');
+          if (raTable) raTable.classList.add('d-none');
+          return;
+        }
+        if (els.raEmpty) els.raEmpty.classList.add('d-none');
+        var raTableShow = document.getElementById('ra-grid-table');
+        if (raTableShow) raTableShow.classList.remove('d-none');
+
+        for (var ri = 0; ri < rows.length; ri++) {
+          (function (personRow) {
+            var personOpen = !!raState.expandedPersonVariances[personRow.personKey];
+            var prow = document.createElement('tr');
+            prow.className = 'ra-pv-person-row' + (personRow.highlightOrange ? ' ra-highlight-orange' : '');
+            var pcell = document.createElement('td');
+            pcell.className = 'ra-sticky-col';
+            pcell.innerHTML =
+              '<span class="ra-chevron" aria-hidden="true">' + (personOpen ? '▾' : '▸') + '</span>' +
+              escapeHtml(personRow.name || '(Unnamed)') +
+              (personRow.roleName
+                ? '<span class="d-block small" style="color:var(--ag-text-muted)">' + escapeHtml(personRow.roleName) + '</span>'
+                : '');
+            pcell.addEventListener('click', function () {
+              raState.expandedPersonVariances[personRow.personKey] = !raState.expandedPersonVariances[personRow.personKey];
+              writeRaExpandedPersonVariancesSession_();
+              renderResourceAssignmentPersonVariancesGrid_(
+                raState.payload,
+                filterRaPersonVariances_(getRaPersonVariances_(raState.payload))
+              );
+              logActivity_('resource_assignments_expand_person', 'resource-assignments', personRow.personKey);
+            });
+            prow.appendChild(pcell);
+            for (var pw = 0; pw < weeks.length; pw++) {
+              var pwkey = weeks[pw].key;
+              var pwc = document.createElement('td');
+              pwc.className = 'ra-hours-cell ra-week-cell';
+              if (pwkey === currentWeekKey) pwc.classList.add('ra-current-week');
+              if (!personOpen) {
+                var actTotal = raSumPersonWeekActual_(personRow, pwkey);
+                if (actTotal != null) {
+                  pwc.textContent = formatHours(actTotal);
+                }
+              }
+              prow.appendChild(pwc);
+            }
+            els.raGridTbody.appendChild(prow);
+            if (!personOpen) return;
+
+            for (var gi = 0; gi < groupMeta.length; gi++) {
+              (function (groupDef) {
+                var projects = (personRow.groups && personRow.groups[groupDef.id]) || [];
+                if (!projects.length) return;
+                var groupKey = raPersonVarianceGroupKey_(personRow.personKey, groupDef.id);
+                var groupOpen = !!raState.expandedPersonVarianceGroups[groupKey];
+                var grow = document.createElement('tr');
+                grow.className = 'ra-pv-group-row';
+                var gcell = document.createElement('td');
+                gcell.className = 'ra-sticky-col';
+                gcell.innerHTML =
+                  '<span class="ra-chevron" aria-hidden="true">' + (groupOpen ? '▾' : '▸') + '</span>' +
+                  escapeHtml(groupDef.label);
+                gcell.addEventListener('click', function () {
+                  raState.expandedPersonVarianceGroups[groupKey] = !raState.expandedPersonVarianceGroups[groupKey];
+                  writeRaExpandedPersonVarianceGroupsSession_();
+                  renderResourceAssignmentPersonVariancesGrid_(
+                    raState.payload,
+                    filterRaPersonVariances_(getRaPersonVariances_(raState.payload))
+                  );
+                });
+                grow.appendChild(gcell);
+                for (var gw = 0; gw < weeks.length; gw++) {
+                  var gwk = weeks[gw].key;
+                  var gtd = document.createElement('td');
+                  gtd.className = 'ra-hours-cell ra-week-cell';
+                  if (gwk === currentWeekKey) gtd.classList.add('ra-current-week');
+                  if (!groupOpen) {
+                    var groupTotal = raSumGroupWeek_(projects, gwk, groupDef.field);
+                    if (groupTotal != null) {
+                      var fmt = groupDef.format || formatHours;
+                      gtd.textContent = fmt(groupTotal);
+                    }
+                  }
+                  grow.appendChild(gtd);
+                }
+                els.raGridTbody.appendChild(grow);
+                if (!groupOpen) return;
+
+                for (var pi = 0; pi < projects.length; pi++) {
+                  (function (proj) {
+                    var orange = !!proj.highlightOrange && groupDef.id === 'actual';
+                    var projRow = document.createElement('tr');
+                    projRow.className = 'ra-pv-project-row' + (orange ? ' ra-highlight-orange' : '');
+                    var projCell = document.createElement('td');
+                    projCell.className = 'ra-sticky-col';
+                    projCell.textContent = proj.projectName || '(Project)';
+                    projRow.appendChild(projCell);
+                    for (var pj = 0; pj < weeks.length; pj++) {
+                      var pjwk = weeks[pj].key;
+                      var pjtd = document.createElement('td');
+                      pjtd.className = 'ra-hours-cell ra-week-cell';
+                      if (pjwk === currentWeekKey) pjtd.classList.add('ra-current-week');
+                      var bucket = proj.byWeek && proj.byWeek[pjwk];
+                      if (bucket) {
+                        var val = bucket[groupDef.field];
+                        if (val != null && (val !== 0 || groupDef.id !== 'variance')) {
+                          var fmt2 = groupDef.format || formatHours;
+                          var span = document.createElement('span');
+                          span.textContent = fmt2(val);
+                          if (orange) span.className = 'ra-orange-text';
+                          pjtd.appendChild(span);
+                          raAttachWeekCellClick_(pjtd, {
+                            personKey: personRow.personKey,
+                            personName: personRow.name,
+                            projectKey: proj.key || proj.agreementId,
+                            projectName: proj.projectName,
+                            weekKey: pjwk,
+                            groupLabel: groupDef.label,
+                            bucket: bucket,
+                          }, true);
+                        }
+                      }
+                      projRow.appendChild(pjtd);
+                    }
+                    els.raGridTbody.appendChild(projRow);
+                  })(projects[pi]);
+                }
+              })(groupMeta[gi]);
+            }
+          })(rows[ri]);
+        }
+      }
+
       function renderResourceAssignmentGridOrTab_() {
         var payload = raState.payload;
         if (!payload) return;
         if (raState.activeTab === 'project') {
           renderResourceAssignmentProjectGrid_(payload, filterRaProjects_(payload.projects || []));
+        } else if (raState.activeTab === 'personVariances') {
+          renderResourceAssignmentPersonVariancesGrid_(
+            payload,
+            filterRaPersonVariances_(getRaPersonVariances_(payload))
+          );
         } else {
           renderResourceAssignmentGrid_(payload, filterRaPersons_(payload.persons || []));
         }
@@ -19156,7 +19703,7 @@
       function renderResourceAssignmentView_() {
         var payload = raState.payload;
         renderResourceAssignmentCurrentWeek_();
-        setRaActiveTab_(raState.activeTab || 'person');
+        setRaActiveTab_(raState.activeTab || 'personVariances');
         if (raState.activeTab === 'person') {
           renderResourceAssignmentHeatLegend_();
         }
@@ -19178,6 +19725,12 @@
           raState.alertsExpanded = { types: {}, persons: {} };
         }
         raState.payload = payload || null;
+        if (raState.payload && (!raState.payload.personVariances || !raState.payload.personVariances.length)) {
+          var builtPv = getRaPersonVariances_(raState.payload);
+          if (builtPv.length) {
+            raState.payload.personVariances = builtPv;
+          }
+        }
         renderResourceAssignmentWarnings_(payload);
         renderResourceAssignmentMeta_(payload);
         if (els.raRangeStart && payload.rangeStart) els.raRangeStart.value = payload.rangeStart;
@@ -19261,6 +19814,38 @@
               }
             }
           }
+        } else if (raState.activeTab === 'personVariances') {
+          lines.push('Person,Role,Company,Group,Project,Customer,Week,AssignedHours,ActualHours,VarianceHours');
+          var pvRows = filterRaPersonVariances_(getRaPersonVariances_(payload));
+          var pvGroups = ['assigned', 'actual', 'variance'];
+          for (var pvi = 0; pvi < pvRows.length; pvi++) {
+            var pvPerson = pvRows[pvi];
+            for (var pvg = 0; pvg < pvGroups.length; pvg++) {
+              var groupId = pvGroups[pvg];
+              var pvProjects = (pvPerson.groups && pvPerson.groups[groupId]) || [];
+              for (var pvp = 0; pvp < pvProjects.length; pvp++) {
+                var pvProj = pvProjects[pvp];
+                for (var pvw = 0; pvw < weeks.length; pvw++) {
+                  var pvwk = weeks[pvw].key;
+                  var pvBucket = pvProj.byWeek && pvProj.byWeek[pvwk];
+                  if (!pvBucket) continue;
+                  if (!pvBucket.assignedHours && !pvBucket.actualHours && !pvBucket.varianceHours) continue;
+                  lines.push([
+                    csvEscapeLh_(pvPerson.name || ''),
+                    csvEscapeLh_(pvPerson.roleName || ''),
+                    csvEscapeLh_(pvPerson.company || ''),
+                    csvEscapeLh_(groupId),
+                    csvEscapeLh_(pvProj.projectName || ''),
+                    csvEscapeLh_(pvProj.customerName || ''),
+                    csvEscapeLh_(pvwk),
+                    pvBucket.assignedHours != null ? String(pvBucket.assignedHours) : '',
+                    pvBucket.actualHours != null ? String(pvBucket.actualHours) : '',
+                    pvBucket.varianceHours != null ? String(pvBucket.varianceHours) : '',
+                  ].join(','));
+                }
+              }
+            }
+          }
         } else {
           lines.push('Person,Role,Company,Project,Customer,Week,Hours,Percent');
           var personsByPerson = filterRaPersons_(payload.persons || []);
@@ -19336,6 +19921,8 @@
         raState.expanded = readRaExpandedSession_();
         raState.expandedProjects = readRaExpandedProjectsSession_();
         raState.expandedProjectPersons = readRaExpandedProjectPersonsSession_();
+        raState.expandedPersonVariances = readRaExpandedPersonVariancesSession_();
+        raState.expandedPersonVarianceGroups = readRaExpandedPersonVarianceGroupsSession_();
         raState.activeTab = readRaActiveTabSession_();
         setRaActiveTab_(raState.activeTab);
         var ttl = readRaTtlMinutes();
@@ -19387,6 +19974,9 @@
         }
         if (els.raTabProject) {
           els.raTabProject.addEventListener('click', function () { onRaTabClick_('project'); });
+        }
+        if (els.raTabPersonVariances) {
+          els.raTabPersonVariances.addEventListener('click', function () { onRaTabClick_('personVariances'); });
         }
       }
 
@@ -19743,7 +20333,7 @@
         if (deliveryState.selectedId) {
           markDeliveryRowSelected_(deliveryState.selectedId);
         }
-        logActivity_('delivery_filter', 'delivery', 'client');
+        logActivity_('delivery_filter', 'pm-overview', 'client');
       }
 
       function populateDeliveryFilterMenus_(projects) {
@@ -19824,7 +20414,7 @@
 
       function setDeliveryLoading(on, sourceCtx) {
         setOverlayLoadSource_(els.deliveryLoading, 'delivery-loading-source', on ? sourceCtx : null);
-        setGlobalLoading_('delivery', on, 'Loading data…', sourceCtx);
+        setGlobalLoading_('pm-overview', on, 'Loading data…', sourceCtx);
       }
       function setDeliveryPnLLoading(on, sourceCtx) {
         setOverlayLoadSource_(els.deliveryPnlLoading, 'delivery-pnl-loading-source', on ? sourceCtx : null);
@@ -20122,7 +20712,7 @@
         var truncatedName = name.length > 80 ? name.slice(0, 77) + '…' : name;
         var src = opts.source || 'table';
         var detail = 'agreementId=' + agreementId + ' · name=' + truncatedName + ' · source=' + src;
-        logActivity_('delivery_project_select', 'delivery', detail);
+        logActivity_('delivery_project_select', 'pm-overview', detail);
         writeDeliveryFiltersStored();
         renderDeliveryPnlHeader(project);
         loadDeliveryPnLForProject_(project, { source: src });
@@ -20165,9 +20755,9 @@
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.remove('d-none');
         hideAccountChromePanels_();
-        els.topbarTitle.textContent = 'Delivery';
+        els.topbarTitle.textContent = 'PM Overview';
         if (els.deliveryFetchError) els.deliveryFetchError.classList.add('d-none');
-        logActivity_('delivery_panel_open', 'delivery', '');
+        logActivity_('delivery_panel_open', 'pm-overview', '');
         if (!isLiveDataSource_()) {
           if (dataSourceState.deliveryProjects) {
             applyDeliveryStoredFilters_();
@@ -28608,7 +29198,7 @@
           deliveryState.selectedId = null;
           markDeliveryRowSelected_(null);
           clearDeliveryPnL();
-          logActivity_('delivery_project_deselect', 'delivery', 'agreementId=' + agreementId);
+          logActivity_('delivery_project_deselect', 'pm-overview', 'agreementId=' + agreementId);
           writeDeliveryFiltersStored();
           return;
         }
@@ -28763,7 +29353,7 @@
           els.deliveryStatusDrawer.classList.add('open');
         });
         try { els.deliveryStatusDrawer.focus(); } catch (e) { /* ignore */ }
-        logActivity_('delivery_status_update_history_open', 'delivery',
+        logActivity_('delivery_status_update_history_open', 'pm-overview',
           'agreementId=' + deliveryState.selectedId + ' · count=' +
           statusUpdatesHistoryFromBlock_(resolvedPayload && resolvedPayload.statusUpdates).length);
       }
@@ -28971,7 +29561,7 @@
         if (els.deliveryStatusUpdateSubmit) {
           els.deliveryStatusUpdateSubmit.disabled = false;
         }
-        logActivity_('delivery_status_update_modal_open', 'delivery',
+        logActivity_('delivery_status_update_modal_open', 'pm-overview',
           'agreementId=' + deliveryState.selectedId);
         var modal = bootstrap.Modal.getOrCreateInstance(els.deliveryStatusUpdateModal);
         modal.show();
@@ -29108,7 +29698,7 @@
           bootstrap.Modal.getOrCreateInstance(els.deliveryStatusUpdateModal).hide();
         }
 
-        logActivity_('delivery_status_update_submit', 'delivery',
+        logActivity_('delivery_status_update_submit', 'pm-overview',
           'agreementId=' + agreementId + ' · status=' + statusKey);
         google.script.run
           .withSuccessHandler(function (result) {
@@ -29190,7 +29780,7 @@
         if (els.deliveryPnlEmpty) els.deliveryPnlEmpty.classList.add('d-none');
         if (els.deliveryPnlError) els.deliveryPnlError.classList.add('d-none');
         var t0 = Date.now();
-        logActivity_('delivery_pnl_fetch_start', 'delivery', 'agreementId=' + agreementId);
+        logActivity_('delivery_pnl_fetch_start', 'pm-overview', 'agreementId=' + agreementId);
         var run = google.script.run
           .withSuccessHandler(function (data) {
             // Stale-response guard: if the user selected a different
@@ -29203,7 +29793,7 @@
                 els.deliveryPnlError.textContent = msg;
                 els.deliveryPnlError.classList.remove('d-none');
               }
-              logActivity_('delivery_pnl_fetch_error', 'delivery',
+              logActivity_('delivery_pnl_fetch_error', 'pm-overview',
                 'agreementId=' + agreementId + ' · code=' + ((data && data.warnings && data.warnings[0]) || 'UNKNOWN'));
               return;
             }
@@ -29214,7 +29804,7 @@
             }
             renderDeliveryMonthlyPnL_(data, project);
             var elapsed = Date.now() - t0;
-            logActivity_('delivery_pnl_fetch_done', 'delivery',
+            logActivity_('delivery_pnl_fetch_done', 'pm-overview',
               'agreementId=' + agreementId + ' · monthCount=' + ((data.months || []).length) + ' · ms=' + elapsed);
           })
           .withFailureHandler(function (err) {
@@ -29228,7 +29818,7 @@
               els.deliveryPnlError.textContent = msg;
               els.deliveryPnlError.classList.remove('d-none');
             }
-            logActivity_('delivery_pnl_fetch_error', 'delivery',
+            logActivity_('delivery_pnl_fetch_error', 'pm-overview',
               'agreementId=' + agreementId + ' · code=EXCEPTION');
           });
         if (!isLiveDataSource_() && snapshotDate) {
@@ -29471,7 +30061,7 @@
             tbody.innerHTML = html;
           }
         }
-        logActivity_('delivery_pnl_assignments_modal_open', 'delivery', 'count=' + rows.length);
+        logActivity_('delivery_pnl_assignments_modal_open', 'pm-overview', 'count=' + rows.length);
         try {
           var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
           modal.show();
@@ -29540,7 +30130,7 @@
         deliveryState.cardMode = next;
         writeDeliveryCardMode_(next);
         if (!opts.silent) {
-          logActivity_('delivery_pnl_performance_tab', 'delivery', 'mode=' + next);
+          logActivity_('delivery_pnl_performance_tab', 'pm-overview', 'mode=' + next);
         }
         applyDeliveryPnLView_();
       }
@@ -29551,7 +30141,7 @@
         if (deliveryState.perfMetric === next && !opts.force) return;
         deliveryState.perfMetric = next;
         if (!opts.silent) {
-          logActivity_('delivery_pnl_hours_toggle', 'delivery', 'metric=' + next);
+          logActivity_('delivery_pnl_hours_toggle', 'pm-overview', 'metric=' + next);
         }
         renderDeliveryPerformance_(deliveryState.lastPnlPayload);
         syncDeliveryPerfMetricButtons_(next);
@@ -29617,7 +30207,7 @@
             var ctaBtn = document.getElementById('delivery-pnl-timing-cta');
             if (ctaBtn) {
               ctaBtn.addEventListener('click', function () {
-                logActivity_('delivery_pnl_timing_badge_click', 'delivery',
+                logActivity_('delivery_pnl_timing_badge_click', 'pm-overview',
                   'agreementId=' + (deliveryState.selectedId || ''));
                 if (typeof navigateToNavId_ === 'function') {
                   navigateToNavId_('engagement-review');
@@ -29681,8 +30271,8 @@
         var mode = deliveryState.cardMode === 'performance' ? 'performance' : 'accounting';
         syncDeliveryModeButtons_(mode);
         syncDeliveryPerfMetricButtons_(deliveryState.perfMetric === 'hours' ? 'hours' : 'dollars');
-        var accountingEls = document.querySelectorAll('#panel-delivery .fos-delivery-accounting-only');
-        var perfOnlyEls = document.querySelectorAll('#panel-delivery .fos-delivery-perf-only');
+        var accountingEls = document.querySelectorAll('#panel-pm-overview .fos-delivery-accounting-only');
+        var perfOnlyEls = document.querySelectorAll('#panel-pm-overview .fos-delivery-perf-only');
         var ai;
         for (ai = 0; ai < accountingEls.length; ai++) {
           if (mode === 'accounting') accountingEls[ai].classList.remove('d-none');
@@ -29749,7 +30339,7 @@
           var alloc = deliveryState.lastPnlPayload && deliveryState.lastPnlPayload.resourceAllocations;
           var allocFlag = alloc && alloc.hasAllocations && alloc.months && alloc.months.length
             ? 'allocationOverlay=true' : 'allocationOverlay=false';
-          logActivity_('delivery_pnl_view_toggle', 'delivery', 'view=' + next + ' · ' + allocFlag);
+          logActivity_('delivery_pnl_view_toggle', 'pm-overview', 'view=' + next + ' · ' + allocFlag);
         }
         applyDeliveryPnLView_();
       }
@@ -30078,7 +30668,7 @@
         for (var oi = 0; oi < people.length; oi++) {
           if (people[oi].highlightOrange) orangeCount++;
         }
-        logActivity_('delivery_pnl_chart_month_click', 'delivery',
+        logActivity_('delivery_pnl_chart_month_click', 'pm-overview',
           'monthKey=' + monthKey +
           ' · projected=' + (m.projected ? 'yes' : 'no') +
           ' · personCount=' + people.length +
@@ -30317,7 +30907,7 @@
         var m = (deliveryState.monthsByKey && deliveryState.monthsByKey[monthKey]) || null;
         if (!m) return;
         var items = m.revenueItems || [];
-        logActivity_('delivery_pnl_month_drilldown', 'delivery',
+        logActivity_('delivery_pnl_month_drilldown', 'pm-overview',
           'monthKey=' + monthKey + ' · itemCount=' + items.length);
         var modalEl = els.deliveryRevenueMonthModal;
         if (!modalEl) return;
@@ -30451,7 +31041,7 @@
         writeTextToClipboard_(text)
           .then(function () {
             flashDeliveryCsvStatus_('Copied ' + payload.months.length + ' rows');
-            logActivity_('delivery_pnl_copy_csv', 'delivery',
+            logActivity_('delivery_pnl_copy_csv', 'pm-overview',
               'agreementId=' + (payload.agreementId || '') + ' · rows=' + payload.months.length);
           })
           .catch(function () {
@@ -30503,7 +31093,7 @@
             return;
           }
           var sig = item.getAttribute('data-signal') || '';
-          logActivity_('delivery_attention_click', 'delivery', 'agreementId=' + aid + ' · signal=' + sig);
+          logActivity_('delivery_attention_click', 'pm-overview', 'agreementId=' + aid + ' · signal=' + sig);
           selectDeliveryProject_(aid, { source: 'attention', scrollIntoView: true });
         });
       }
@@ -30526,7 +31116,7 @@
         });
       }
       (function wireDeliverySortHeaders() {
-        var ths = document.querySelectorAll('#panel-delivery .fos-delivery-table thead th.fos-delivery-sortable');
+        var ths = document.querySelectorAll('#panel-pm-overview .fos-delivery-table thead th.fos-delivery-sortable');
         for (var i = 0; i < ths.length; i++) {
           (function (th) {
             th.addEventListener('click', function () {
@@ -30540,7 +31130,7 @@
                   || col === 'completionPct' || col === 'marginPct') ? 'desc' : 'asc';
               }
               writeDeliveryFiltersStored();
-              logActivity_('delivery_table_sort', 'delivery', 'column=' + col + ' · direction=' + deliveryState.sort.dir);
+              logActivity_('delivery_table_sort', 'pm-overview', 'column=' + col + ' · direction=' + deliveryState.sort.dir);
               renderDeliveryTable(getDeliveryProjectsForClientRender_());
               if (deliveryState.selectedId) markDeliveryRowSelected_(deliveryState.selectedId);
             });
@@ -30550,7 +31140,7 @@
 
       if (els.deliveryRefreshBtn) {
         els.deliveryRefreshBtn.addEventListener('click', function () {
-          logActivity_('delivery_refresh', 'delivery', 'manual=true');
+          logActivity_('delivery_refresh', 'pm-overview', 'manual=true');
           invalidateAllDeliveryPnlCaches();
           deliveryRenderState.lastRenderedFetchedAt = null;
           fetchDeliveryFromServer({ manual: true });
@@ -30650,7 +31240,7 @@
             writeDeliveryFiltersStored();
             var trimmed = v.trim();
             if (trimmed) {
-              logActivity_('delivery_table_search', 'delivery',
+              logActivity_('delivery_table_search', 'pm-overview',
                 'len=' + trimmed.length);
             }
           }, 400);
@@ -30691,7 +31281,7 @@
           var n = parseInt(els.deliveryTtlSelect.value, 10);
           if (!isFinite(n) || n < 0) n = DEFAULT_TTL_MINUTES;
           writeDeliveryTtlMinutes(n);
-          logActivity_('ttl_change', 'delivery', String(n) + 'm');
+          logActivity_('ttl_change', 'pm-overview', String(n) + 'm');
           var cached = readDeliveryCache();
           if (cached && els.deliveryStaleBadge) {
             if (n > 0 && isCacheStale(cached, n)) els.deliveryStaleBadge.classList.remove('d-none');
@@ -30879,8 +31469,8 @@
             showEngagementReview();
             return;
           }
-          if (item.id === 'delivery') {
-            setActiveNav('delivery');
+          if (item.id === 'pm-overview' || item.id === 'delivery') {
+            setActiveNav('pm-overview');
             showDelivery();
             return;
           }

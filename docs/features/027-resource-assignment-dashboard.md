@@ -1,6 +1,6 @@
 # Feature: Resource assignment dashboard (Operations)
 
-> **PRD version 2.18.3** - sync with `docs/FOS-Dashboard-PRD.md` (**FR-122**, **AC-81**).  
+> **PRD version 3.7.4** - sync with `docs/FOS-Dashboard-PRD.md` (**FR-122**, **AC-81**).  
 > **Intake:** Inbox task [40228925 - Resource Assignment Dashboard](https://win.godeap.io/app/tasks/40228925).  
 > **Feature id:** 027 | **Task list:** Operations  
 > **Extends / reuses:** [Feature 019](019-resource-allocation-pnl-chart.md) (Fibery Resource Allocations, calendar-day proration), [Feature 024](024-delivery-pnl-resource-assignments-modal.md) (assignment row fields), [Feature 007](007-labor-hours-dashboard.md) (expand/collapse project breakdown UX), [Feature 005](005-utilization-management-dashboard.md) (Operations date range + filter patterns).  
@@ -108,8 +108,9 @@ Phase B and C are **out of scope** for initial implementation unless explicitly 
 | **2.18.1** | 2026-06-09 | **Access gate.** Route visible when **Team = CLIENT-ENGAGEMENT**, **Role = EXEC**, or **Role = ADMIN** (same rule as Pipeline). |
 | **2.18.2** | 2026-06-09 | **Alerts UX.** Alerts grouped by **type** then **person**; both levels collapsible. |
 | **2.18.3** | 2026-06-09 | **Current week + heatmap.** Prominent **current ISO week** banner near panel top; collapsed grid cells use allocation **% heatmap** (blue → green **100-110%** → yellow/red) instead of per-project stacked bars. |
+| **3.7.4** | 2026-08-15 | **Live date range.** `getResourceAssignmentDashboardData` rebuilds weeks from Supabase typed tables for the From/To picker (hydrate blob is default-range fallback only). |
 
-**Current product version:** **2.18.3** (`FOS_PRD_VERSION` in `src/Code.js`).
+**Current product version:** **3.7.4** (`FOS_PRD_VERSION` in `src/Code.js`).
 
 ## UI notes
 
@@ -124,7 +125,8 @@ Phase B and C are **out of scope** for initial implementation unless explicitly 
 
 ### Components (new / edited)
 
-- **`src/resourceAssignmentDashboard.js`** (new): Fibery fetch, weekly proration builder, alerts, `getResourceAssignmentDashboardData`.
+- **`src/resourceAssignmentDashboard.js`**: weekly proration builder, alerts, `getResourceAssignmentDashboardData` (Live: rebuild from Supabase typed tables for requested range; hydrate blob fallback).
+- **`src/supabasePanelBuilders.js`**: `buildResourceAssignmentDashboardPayloadFromSupabase_(rangeStart, rangeEnd)`.
 - **`src/Code.js`**: register route in **`buildNavigationModel_`**, expose server handler.
 - **`src/DashboardShell.html`**: panel markup, weekly grid renderer (stacked bars + expandable project rows), date range controls, alerts strip, client cache key **`fos_resource_assignments_v1`** (Phase A: invalidate on range change only).
 - **`src/userActivityLog.js`**: new event types above.
@@ -194,7 +196,7 @@ Daily snapshot job writes **`resource-assignments.json`** via **`buildResourceAs
 
 ### Queries
 
-- **`getResourceAssignmentDashboardData(rangeStart?, rangeEnd?)`**: primary read; paginated Fibery query with date overlap filter on **`Duration`** (allocations overlapping `[rangeStart, rangeEnd]`).
+- **`getResourceAssignmentDashboardData(rangeStart?, rangeEnd?)`**: primary Live read. **As of v3.7.4**, rebuilds from Supabase (`fos_resource_allocations` + labor mirror) for the requested range so week columns follow From/To; falls back to the default-range hydrated panel blob when the typed rebuild fails. Snapshot mode uses Drive **`resource-assignments.json`**. Fibery portfolio fetch remains for snapshot builders / diagnostics only (not Live).
 - Reuse **`fiberyQuery_`**, **`requireAuthForApi_`**, date parsing helpers from `deliveryDashboard.js` / `fiberyUtil.js`.
 
 ### Actions

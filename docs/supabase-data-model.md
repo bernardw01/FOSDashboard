@@ -57,7 +57,7 @@ As of **v3.4.0**, panel hydrate (`supabaseSyncJob.js`) builds every Live panel p
 | Agreement | `fos_panel_payloads` (`panel_key='agreement'`) | `fos_agreements`, `fos_companies`, `fos_company_segments`, `fos_revenue_items` |
 | Utilization | `fos_panel_payloads` (Live already preferred `fos_labor_costs` pre-cutover) | `fos_labor_costs` (Clockify) |
 | Pipeline | `fos_panel_payloads` (`panel_key='pipeline'`) | `fos_hubspot_deals` (full-replace mirrored from Fibery `HubSpot/Deal` immediately before build; sheet side unchanged) |
-| Resource assignments | `fos_panel_payloads` | `fos_resource_allocations`, `fos_agreements`, `fos_clockify_users`, `fos_team_member_roles`, `fos_labor_costs` |
+| Resource assignments | Live API rebuilds from typed tables for requested From/To (**v3.7.4**); hydrate blob is default-range fallback | `fos_resource_allocations`, `fos_agreements`, `fos_clockify_users`, `fos_team_member_roles`, `fos_labor_costs` |
 | AI Usage | `fos_panel_payloads` (`panel_key='ai-usage'`) | `fos_ai_usage_rows` (full-replace mirrored from Fibery `Claude API Costs` immediately before build) |
 | Delivery P&L | `fos_delivery_pnl` | `fos_agreements`, `fos_revenue_items`, `fos_other_direct_costs`, `fos_labor_costs`, `fos_status_updates`, `fos_resource_allocations` |
 | Portfolio P&L | `fos_panel_payloads` (`panel_key='portfolio-pnl'`) | Per-project Delivery P&L build (above) over the delivery project index |

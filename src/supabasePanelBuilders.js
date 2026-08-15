@@ -1,5 +1,5 @@
 /**
- * PRD version 3.6.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.7.4 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: panel hydrate builders that read Supabase typed
  * tables (Agreement Management mirror from `supabaseAmMirror.js`, labor
@@ -681,6 +681,25 @@ function buildResourceAssignmentDashboardPayloadFromSupabase_(rangeStartYmd, ran
     laborAgg.projectMeta,
     weeks
   );
+  var assignedByDay = aggregateResourceAssignmentAssignedByDay_(
+    rawRows,
+    weeks,
+    weeklyCapacity,
+    range.startYmd,
+    range.endYmd,
+    warnings
+  );
+  var laborByDay = remapResourceAssignmentLaborByDay_(
+    laborAgg.byDay || {},
+    laborAgg.personMeta,
+    buildResourceAssignmentPersonResolver_(built.persons)
+  );
+  var personVariances = buildResourceAssignmentPersonVariances_(
+    projects,
+    assignedByDay,
+    laborByDay,
+    weeks
+  );
   var dimensions = buildResourceAssignmentDimensions_(built.persons, projects);
   var alerts = buildResourceAssignmentAlerts_(built.persons, rawRows, weeks, warnings);
   var kpis = {
@@ -702,6 +721,7 @@ function buildResourceAssignmentDashboardPayloadFromSupabase_(rangeStartYmd, ran
     weeks: weeks,
     persons: built.persons,
     projects: projects,
+    personVariances: personVariances,
     dimensions: dimensions,
     kpis: kpis,
     alerts: alerts.items,
@@ -772,7 +792,7 @@ function aggregateResourceAssignmentLaborByProjectFromSupabase_(startYmd, endYmd
   var fetched = fetchFosLaborCostsByRange_(rangeIso.startIso, rangeIso.endIsoExclusive);
   if (!fetched.ok) {
     warningsOut.push('Labor costs fetch failed for plan vs actual: ' + (fetched.message || 'unknown error'));
-    return { ok: false, byProject: {}, personMeta: {}, projectMeta: {}, rowCount: 0, truncated: false };
+    return { ok: false, byProject: {}, byDay: {}, personMeta: {}, projectMeta: {}, rowCount: 0, truncated: false };
   }
   if (fetched.truncated) {
     warningsOut.push('Labor costs fetch truncated; actual hours may be incomplete.');
@@ -795,6 +815,7 @@ function aggregateResourceAssignmentLaborByProjectFromSupabase_(startYmd, endYmd
   }
   var rows = normalizeLaborRows_(rawRows, thresholds);
   var byProject = {};
+  var byDay = {};
   var personMeta = {};
   var projectMeta = {};
 
@@ -809,6 +830,14 @@ function aggregateResourceAssignmentLaborByProjectFromSupabase_(startYmd, endYmd
     if (!byProject[agreementId][personKey]) byProject[agreementId][personKey] = {};
     byProject[agreementId][personKey][weekKey] =
       (byProject[agreementId][personKey][weekKey] || 0) + (r.hours || 0);
+
+    var dayKey = r.day || extractDayKey_(r.startDateTime);
+    if (dayKey) {
+      if (!byDay[agreementId]) byDay[agreementId] = {};
+      if (!byDay[agreementId][personKey]) byDay[agreementId][personKey] = {};
+      byDay[agreementId][personKey][dayKey] =
+        (byDay[agreementId][personKey][dayKey] || 0) + (r.hours || 0);
+    }
 
     if (!personMeta[personKey]) {
       personMeta[personKey] = {
@@ -829,6 +858,7 @@ function aggregateResourceAssignmentLaborByProjectFromSupabase_(startYmd, endYmd
   return {
     ok: true,
     byProject: byProject,
+    byDay: byDay,
     personMeta: personMeta,
     projectMeta: projectMeta,
     rowCount: rows.length,

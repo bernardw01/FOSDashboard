@@ -1,5 +1,5 @@
 /**
- * PRD version 3.6.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.7.4 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 032 - Anthropic Messages API client for FinOps Ask.
  */

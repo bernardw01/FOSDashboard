@@ -362,6 +362,42 @@
       "publishedAt": "2026-07-23",
       "lastSyncedAt": "2026-08-04",
       "gitMirror": "docs/features/037-engagement-review-implementation-plan.md"
+    },
+    "feature_041": {
+      "id": 313282,
+      "title": "Feature 041 - PM Overview rebrand",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/313282",
+      "featureId": "041",
+      "publishedAt": "2026-08-14",
+      "lastSyncedAt": "2026-08-14",
+      "shippedVersion": "3.7.0"
+    },
+    "feature_041_implementation_plan": {
+      "id": 313283,
+      "title": "Feature 041 - Implementation plan (PM Overview rebrand)",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/313283",
+      "featureId": "041",
+      "publishedAt": "2026-08-14",
+      "lastSyncedAt": "2026-08-14",
+      "shippedVersion": "3.7.0"
+    },
+    "feature_042": {
+      "id": 313284,
+      "title": "Feature 042 - Resource assignments By person variances",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/313284",
+      "featureId": "042",
+      "publishedAt": "2026-08-14",
+      "lastSyncedAt": "2026-08-14",
+      "shippedVersion": "3.7.0"
+    },
+    "feature_042_implementation_plan": {
+      "id": 313285,
+      "title": "Feature 042 - Implementation plan (By person variances)",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/313285",
+      "featureId": "042",
+      "publishedAt": "2026-08-14",
+      "lastSyncedAt": "2026-08-14",
+      "shippedVersion": "3.7.0"
     }
   },
   "tasks": {
@@ -1123,6 +1159,76 @@
         "Explicit --est-dev-hours: 6.0h"
       ],
       "estDevHoursGitBase": "(manual)"
+    },
+    "Feature request - Resource assignments by person variances": {
+      "id": 40793086,
+      "url": "https://win.godeap.io/app/tasks/40793086",
+      "featureId": "042",
+      "releaseType": "Enhancement",
+      "tasklist": "Inbox",
+      "tasklistId": 4175395,
+      "workflowStage": "Shipped",
+      "createdAt": "2026-08-14",
+      "shippedVersion": "3.7.0",
+      "lastSyncedAt": "2026-08-14"
+    },
+    "v3.7.0 - PM Overview rebrand": {
+      "id": 40793088,
+      "url": "https://win.godeap.io/app/tasks/40793088",
+      "featureId": "041",
+      "releaseType": "Enhancement",
+      "tasklist": "Delivery",
+      "tasklistId": 4174283,
+      "notebookKey": "feature_041",
+      "workflowStage": "Shipped",
+      "createdAt": "2026-08-14",
+      "shippedVersion": "v3.7.0",
+      "provisionalTaskName": false,
+      "releaseTitle": "PM Overview rebrand",
+      "shippedAt": "2026-08-14",
+      "estDevHours": 12,
+      "estDevHoursRationale": [
+        "Git range: ac9a8102..HEAD (70 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +337 lines): +3.4h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +13 lines): +2.1h",
+        "Apps Script module `src/engagementUpdateMetrics.js`: +0.8h",
+        "Apps Script module `src/projectPerformanceMetrics.js`: +2.2h",
+        "Feature spec / docs (+523 lines): +2.0h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 11.5h"
+      ],
+      "estDevHoursGitBase": "ac9a8102c6b5322c6cb78bb089a58d9c185316a1"
+    },
+    "v3.7.0 - Resource assignments By person variances": {
+      "id": 40793089,
+      "url": "https://win.godeap.io/app/tasks/40793089",
+      "featureId": "042",
+      "releaseType": "Enhancement",
+      "tasklist": "Operations",
+      "tasklistId": 4174282,
+      "notebookKey": "feature_042",
+      "workflowStage": "Shipped",
+      "createdAt": "2026-08-14",
+      "shippedVersion": "v3.7.0",
+      "provisionalTaskName": false,
+      "releaseTitle": "Resource assignments By person variances",
+      "shippedAt": "2026-08-14",
+      "estDevHours": 12,
+      "estDevHoursRationale": [
+        "Git range: ac9a8102..HEAD (70 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +337 lines): +3.4h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +13 lines): +2.1h",
+        "Apps Script module `src/engagementUpdateMetrics.js`: +0.8h",
+        "Apps Script module `src/projectPerformanceMetrics.js`: +2.2h",
+        "Feature spec / docs (+523 lines): +2.0h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 11.5h"
+      ],
+      "estDevHoursGitBase": "ac9a8102c6b5322c6cb78bb089a58d9c185316a1"
     }
   },
   "lastBootstrappedAt": "2026-06-10"

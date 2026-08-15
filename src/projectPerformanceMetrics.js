@@ -1,5 +1,5 @@
 /**
- * PRD version 3.6.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.7.4 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 040: shared project performance metrics (planned / projected margin,
  * EAC hours and dollars, timing-review flag, lifetime resources). Consumed by
@@ -95,6 +95,105 @@ function ppPlannedAllocCostForMonth_(resourceAllocations, monthKey) {
  */
 function ppPersonKey_(name, role) {
   return String(name || '(Unknown user)') + '\0' + String(role || '(No role)');
+}
+
+/**
+ * Prefer a human display name over a login-style token (e.g. "Josh Bass"
+ * over "josh" / "josh.bass").
+ * @param {?string} a
+ * @param {?string} b
+ * @return {string}
+ * @private
+ */
+function ppPreferDisplayName_(a, b) {
+  var as = String(a || '').trim();
+  var bs = String(b || '').trim();
+  if (!as) return bs;
+  if (!bs) return as;
+  var aSpace = /\s/.test(as);
+  var bSpace = /\s/.test(bs);
+  if (aSpace && !bSpace) return as;
+  if (bSpace && !aSpace) return bs;
+  var aDot = as.indexOf('.') >= 0;
+  var bDot = bs.indexOf('.') >= 0;
+  if (!aDot && bDot) return as;
+  if (!bDot && aDot) return bs;
+  return as.length >= bs.length ? as : bs;
+}
+
+/**
+ * Match labor vs allocation display names (aliases + first-name-only).
+ * @param {?string} aName
+ * @param {?string} bName
+ * @return {boolean}
+ * @private
+ */
+function ppPersonNamesMatch_(aName, bName) {
+  if (typeof deliveryPnlPersonNamesMatch_ === 'function') {
+    if (deliveryPnlPersonNamesMatch_(aName, bName)) return true;
+  } else {
+    var norm =
+      typeof deliveryPnlNormalizePersonToken_ === 'function'
+        ? deliveryPnlNormalizePersonToken_
+        : function (s) {
+            return String(s || '')
+              .trim()
+              .toLowerCase()
+              .replace(/@.*$/, '')
+              .replace(/[._\s\-]+/g, '');
+          };
+    if (norm(aName) && norm(aName) === norm(bName)) return true;
+  }
+  // First-name-only vs full name: "josh" <-> "Josh Bass"
+  function words(n) {
+    return String(n || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[._\-]+/g, ' ')
+      .split(/\s+/)
+      .filter(Boolean);
+  }
+  var wa = words(aName);
+  var wb = words(bName);
+  if (!wa.length || !wb.length) return false;
+  if (wa.length === 1 && wb.length >= 2 && wa[0] === wb[0]) return true;
+  if (wb.length === 1 && wa.length >= 2 && wb[0] === wa[0]) return true;
+  return false;
+}
+
+/**
+ * @param {!Object} byKey
+ * @param {string} name
+ * @param {string} role
+ * @return {!Object}
+ * @private
+ */
+function ppEnsureResourcesLifetimeRow_(byKey, name, role) {
+  var roleNorm = String(role || '(No role)').trim().toLowerCase();
+  var keys = Object.keys(byKey);
+  for (var i = 0; i < keys.length; i++) {
+    var existing = byKey[keys[i]];
+    if (String(existing.role || '').trim().toLowerCase() !== roleNorm) {
+      continue;
+    }
+    if (ppPersonNamesMatch_(existing.name, name)) {
+      existing.name = ppPreferDisplayName_(existing.name, name);
+      return existing;
+    }
+  }
+  var key = ppPersonKey_(name, role);
+  byKey[key] = {
+    personKey: key,
+    name: name,
+    role: role || '(No role)',
+    allocatedHoursLife: 0,
+    loggedHoursLife: 0,
+    allocatedCostLife: 0,
+    loggedCostLife: 0,
+    allocatedAndBillable: null,
+    highlightOrange: false,
+  };
+  return byKey[key];
 }
 
 /**
@@ -246,61 +345,66 @@ function buildProjectPerformanceBlock_(args) {
  */
 function ppBuildResourcesLifetime_(months, assignments) {
   var byKey = {};
-  for (var i = 0; i < months.length; i++) {
+
+  for (var i = 0; i < (months || []).length; i++) {
     var people = (months[i] && months[i].laborByPerson) || [];
+    var monthMap = {};
     for (var j = 0; j < people.length; j++) {
       var p = people[j];
       var name = p.name || '(Unknown user)';
       var role = p.role || '(No role)';
-      var key = ppPersonKey_(name, role);
-      if (!byKey[key]) {
-        byKey[key] = {
-          personKey: key,
-          name: name,
-          role: role,
-          allocatedHoursLife: 0,
-          loggedHoursLife: 0,
-          allocatedCostLife: 0,
-          loggedCostLife: 0,
-          allocatedAndBillable: null,
-          highlightOrange: false,
-        };
+      var mRow = ppEnsureResourcesLifetimeRow_(monthMap, name, role);
+      mRow.loggedHoursLife += Number(p.hours || 0);
+      mRow.loggedCostLife += Number(p.cost || 0);
+      // Within a month, take max allocated so alias duplicates do not double-count.
+      var monthAlloc = Number(p.allocatedHours || 0);
+      if (monthAlloc > mRow.allocatedHoursLife) {
+        mRow.allocatedHoursLife = monthAlloc;
       }
-      var row = byKey[key];
-      row.loggedHoursLife += Number(p.hours || 0);
-      row.loggedCostLife += Number(p.cost || 0);
-      row.allocatedHoursLife += Number(p.allocatedHours || 0);
       if (p.allocatedAndBillable === false) {
-        row.allocatedAndBillable = false;
-        row.highlightOrange = true;
-      } else if (p.allocatedAndBillable === true && row.allocatedAndBillable !== false) {
-        row.allocatedAndBillable = true;
+        mRow.allocatedAndBillable = false;
+        mRow.highlightOrange = true;
+      } else if (p.allocatedAndBillable === true && mRow.allocatedAndBillable !== false) {
+        mRow.allocatedAndBillable = true;
       }
-      if (p.highlightOrange === true) row.highlightOrange = true;
+      if (p.highlightOrange === true) mRow.highlightOrange = true;
+    }
+
+    var mKeys = Object.keys(monthMap);
+    for (var mi = 0; mi < mKeys.length; mi++) {
+      var src = monthMap[mKeys[mi]];
+      var life = ppEnsureResourcesLifetimeRow_(byKey, src.name, src.role);
+      life.loggedHoursLife += src.loggedHoursLife;
+      life.loggedCostLife += src.loggedCostLife;
+      life.allocatedHoursLife += src.allocatedHoursLife;
+      if (src.allocatedAndBillable === false) {
+        life.allocatedAndBillable = false;
+        life.highlightOrange = true;
+      } else if (src.allocatedAndBillable === true && life.allocatedAndBillable !== false) {
+        life.allocatedAndBillable = true;
+      }
+      if (src.highlightOrange) life.highlightOrange = true;
+      life.name = ppPreferDisplayName_(life.name, src.name);
     }
   }
 
-  // Seed allocation-only people (no labor yet) from assignments list.
+  // Seed / top up from Fibery assignments (allocation-only people + lifetime totals).
   for (var a = 0; a < (assignments || []).length; a++) {
     var asg = assignments[a];
     var aName = asg.name || '(Unknown user)';
     var aRole = asg.roleName || '(No role)';
-    var aKey = ppPersonKey_(aName, aRole);
-    if (!byKey[aKey]) {
-      byKey[aKey] = {
-        personKey: aKey,
-        name: aName,
-        role: aRole,
-        allocatedHoursLife: Number(asg.allocatedHours || 0),
-        loggedHoursLife: 0,
-        allocatedCostLife: Number(asg.allocatedCost || 0),
-        loggedCostLife: 0,
-        allocatedAndBillable: null,
-        highlightOrange: false,
-      };
-    } else if (!byKey[aKey].allocatedHoursLife && asg.allocatedHours) {
-      byKey[aKey].allocatedHoursLife = Number(asg.allocatedHours || 0);
-      byKey[aKey].allocatedCostLife = Number(asg.allocatedCost || 0);
+    var aRow = ppEnsureResourcesLifetimeRow_(byKey, aName, aRole);
+    var asgHours = Number(asg.allocatedHours || 0);
+    var asgCost = Number(asg.allocatedCost || 0);
+    if (asgHours > aRow.allocatedHoursLife) {
+      aRow.allocatedHoursLife = asgHours;
+    }
+    if (asgCost > aRow.allocatedCostLife) {
+      aRow.allocatedCostLife = asgCost;
+    }
+    if (asg.allocatedAndBillable === false) {
+      aRow.allocatedAndBillable = false;
+      aRow.highlightOrange = true;
     }
   }
 

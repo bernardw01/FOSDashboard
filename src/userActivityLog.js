@@ -1,5 +1,5 @@
 /**
- * PRD version 3.6.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.7.4 - sync with docs/FOS-Dashboard-PRD.md
  *
  * User activity logging - append-only event rows to the "User Activity" tab
  * in the Users spreadsheet (AUTH_SPREADSHEET_ID). Implements Section 3.8 / FR-60-FR-66.
@@ -132,6 +132,7 @@ var ACTIVITY_VALID_EVENT_TYPES_ = {
   resource_assignments_tab_change: true,
   resource_assignments_expand_project: true,
   resource_assignments_expand_proj_person: true,
+  resource_assignments_cell_drilldown: true,
   app_version_update_click: true,
   mobile_bottom_nav: true,
   mobile_data_source_open: true,

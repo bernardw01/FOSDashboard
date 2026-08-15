@@ -1,8 +1,8 @@
 /**
- * PRD version 3.6.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.7.4 - sync with docs/FOS-Dashboard-PRD.md
  *
- * Delivery Dashboard orchestrator (route id `delivery`, panel
- * `#panel-delivery`). Public endpoints, all authorized via
+ * Delivery Dashboard orchestrator (route id `pm-overview`, panel
+ * `#panel-pm-overview`). Public endpoints, all authorized via
  * `requireAuthForApi_()`:
  *
  *   getDeliveryDashboardData(forceRefresh?)
@@ -98,9 +98,10 @@ var DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_ = 2;
  *        Fibery percentAllocated, allocatedAndBillable, highlightOrange.
  *   v14 - v3.6.0 / feature 040: `performance` block (planned/projected margin,
  *        EAC hours/$, timing review, resourcesLifetime).
+ *   v15 - v3.7.3: resourcesLifetime merges alias / first-name duplicates.
  * @const {number}
  */
-var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 14;
+var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 15;
 
 /** @const {number} Default TTL (minutes) for the client-side cache. */
 var DELIVERY_DEFAULT_CACHE_TTL_MIN_ = 10;

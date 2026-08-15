@@ -1,12 +1,12 @@
 /**
- * PRD version 3.6.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.7.4 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Resource assignment dashboard (feature 027): portfolio-wide Fibery
  * Resource Allocations by ISO week with alerts.
  */
 
 /** @const {number} */
-var RESOURCE_ASSIGNMENTS_CACHE_SCHEMA_VERSION_ = 2;
+var RESOURCE_ASSIGNMENTS_CACHE_SCHEMA_VERSION_ = 3;
 
 /** @const {number} */
 var RESOURCE_ASSIGNMENTS_QUERY_PAGE_LIMIT_ = 500;
@@ -80,8 +80,23 @@ function getResourceAssignmentDashboardData(rangeStart, rangeEnd) {
     };
   }
   try {
-    // Live Datastore only. Client may pass a date range for UX; server returns
-    // the hydrated resource-assignments payload (no Fibery rebuild on Live).
+    // Prefer rebuild from typed Supabase tables for the requested From/To range
+    // (same pattern as Utilization + fos_labor_costs). Hydrate blob uses the
+    // default lookback/lookahead only and must not freeze the week grid.
+    if (
+      typeof isSupabaseConfigured_ === 'function' &&
+      isSupabaseConfigured_() &&
+      typeof buildResourceAssignmentDashboardPayloadFromSupabase_ === 'function'
+    ) {
+      var fromTables = buildResourceAssignmentDashboardPayloadFromSupabase_(
+        rangeStart,
+        rangeEnd
+      );
+      if (fromTables && fromTables.ok) {
+        return fromTables;
+      }
+    }
+    // Fallback: default-range hydrated panel blob (digests / legacy).
     return serveLivePanelFromSupabaseOrFail_(
       'resource-assignments',
       RESOURCE_ASSIGNMENTS_CACHE_SCHEMA_VERSION_
@@ -160,6 +175,25 @@ function buildResourceAssignmentDashboardPayload_(rangeStartYmd, rangeEndYmd) {
     laborAgg.projectMeta,
     weeks
   );
+  var assignedByDay = aggregateResourceAssignmentAssignedByDay_(
+    rawRows,
+    weeks,
+    weeklyCapacity,
+    range.startYmd,
+    range.endYmd,
+    warnings
+  );
+  var laborByDay = remapResourceAssignmentLaborByDay_(
+    laborAgg.byDay || {},
+    laborAgg.personMeta,
+    buildResourceAssignmentPersonResolver_(built.persons)
+  );
+  var personVariances = buildResourceAssignmentPersonVariances_(
+    projects,
+    assignedByDay,
+    laborByDay,
+    weeks
+  );
   var dimensions = buildResourceAssignmentDimensions_(built.persons, projects);
   var alerts = buildResourceAssignmentAlerts_(built.persons, rawRows, weeks, warnings);
   var kpis = {
@@ -181,6 +215,7 @@ function buildResourceAssignmentDashboardPayload_(rangeStartYmd, rangeEndYmd) {
     weeks: weeks,
     persons: built.persons,
     projects: projects,
+    personVariances: personVariances,
     dimensions: dimensions,
     kpis: kpis,
     alerts: alerts.items,
@@ -712,6 +747,7 @@ function aggregateResourceAssignmentLaborByProject_(
     return {
       ok: false,
       byProject: {},
+      byDay: {},
       personMeta: {},
       projectMeta: {},
       rowCount: 0,
@@ -724,6 +760,7 @@ function aggregateResourceAssignmentLaborByProject_(
   var thresholds = getUtilizationThresholds_();
   var rows = normalizeLaborRows_(fetched.rows || [], thresholds);
   var byProject = {};
+  var byDay = {};
   var personMeta = {};
   var projectMeta = {};
 
@@ -747,6 +784,18 @@ function aggregateResourceAssignmentLaborByProject_(
     byProject[agreementId][personKey][weekKey] =
       (byProject[agreementId][personKey][weekKey] || 0) + (r.hours || 0);
 
+    var dayKey = r.day || extractDayKey_(r.startDateTime);
+    if (dayKey) {
+      if (!byDay[agreementId]) {
+        byDay[agreementId] = {};
+      }
+      if (!byDay[agreementId][personKey]) {
+        byDay[agreementId][personKey] = {};
+      }
+      byDay[agreementId][personKey][dayKey] =
+        (byDay[agreementId][personKey][dayKey] || 0) + (r.hours || 0);
+    }
+
     if (!personMeta[personKey]) {
       personMeta[personKey] = {
         name: r.userName || '(Unknown user)',
@@ -766,6 +815,7 @@ function aggregateResourceAssignmentLaborByProject_(
   return {
     ok: true,
     byProject: byProject,
+    byDay: byDay,
     personMeta: personMeta,
     projectMeta: projectMeta,
     rowCount: rows.length,
@@ -791,6 +841,361 @@ function resourceAssignmentSetPlanActualWeek_(
     varianceHours: variance,
     partial: !!partial,
   };
+}
+
+/**
+ * @param {!Object} byDay
+ * @param {!Object} laborPersonMeta
+ * @param {!Object} resolver
+ * @return {!Object}
+ * @private
+ */
+function remapResourceAssignmentLaborByDay_(byDay, laborPersonMeta, resolver) {
+  var out = {};
+  var aids = Object.keys(byDay || {});
+  for (var ai = 0; ai < aids.length; ai++) {
+    var aid = aids[ai];
+    var laborPersons = byDay[aid];
+    var rawKeys = Object.keys(laborPersons || {});
+    out[aid] = out[aid] || {};
+    for (var ri = 0; ri < rawKeys.length; ri++) {
+      var rawKey = rawKeys[ri];
+      var rawMeta = laborPersonMeta[rawKey] || {};
+      var resolved = resolver.resolveLaborKey(rawKey, rawMeta);
+      var cKey = resolved.key;
+      if (!out[aid][cKey]) {
+        out[aid][cKey] = {};
+      }
+      var days = laborPersons[rawKey];
+      for (var ymd in days) {
+        if (!Object.prototype.hasOwnProperty.call(days, ymd)) {
+          continue;
+        }
+        out[aid][cKey][ymd] = (out[aid][cKey][ymd] || 0) + days[ymd];
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * @param {!Array<!Object>} rawRows
+ * @param {!Array<!Object>} weeks
+ * @param {number} weeklyCapacity
+ * @param {string} rangeStartYmd
+ * @param {string} rangeEndYmd
+ * @param {!Array<string>} warningsOut
+ * @return {!Object}
+ * @private
+ */
+function aggregateResourceAssignmentAssignedByDay_(
+  rawRows, weeks, weeklyCapacity, rangeStartYmd, rangeEndYmd, warningsOut
+) {
+  var out = {};
+  var rangeStart = parseIsoDateOnlyUtc_(rangeStartYmd);
+  var rangeEnd = parseIsoDateOnlyUtc_(rangeEndYmd);
+  for (var ri = 0; ri < rawRows.length; ri++) {
+    var row = rawRows[ri];
+    var agreementId = row.agreementId ? String(row.agreementId).trim() : '';
+    if (!agreementId) {
+      continue;
+    }
+    var personKey = row.personKey;
+    var weekBuckets = computeResourceAssignmentWeekBuckets_(
+      row,
+      weeks,
+      weeklyCapacity,
+      rangeStart,
+      rangeEnd,
+      warningsOut
+    );
+    for (var bi = 0; bi < weekBuckets.length; bi++) {
+      var bucket = weekBuckets[bi];
+      if (!bucket.hours) {
+        continue;
+      }
+      var wb = resourceAssignmentWeekBoundsInclusiveUtc_(bucket.weekKey);
+      var allocStart = parseIsoDateOnlyUtc_(row.durStart || row.durEnd);
+      var allocEnd = parseIsoDateOnlyUtc_(row.durEnd || row.durStart);
+      if (!allocStart && !allocEnd) {
+        allocStart = wb.start;
+        allocEnd = wb.end;
+      }
+      if (!allocStart) {
+        allocStart = allocEnd;
+      }
+      if (!allocEnd) {
+        allocEnd = allocStart;
+      }
+      var intersect = intersectDateRangesInclusiveUtc_(wb.start, wb.end, allocStart, allocEnd);
+      if (!intersect) {
+        continue;
+      }
+      if (rangeStart && rangeEnd) {
+        intersect = intersectDateRangesInclusiveUtc_(
+          intersect.start,
+          intersect.end,
+          rangeStart,
+          rangeEnd
+        );
+        if (!intersect) {
+          continue;
+        }
+      }
+      var overlapDays = calendarDaysInclusiveUtc_(intersect.start, intersect.end);
+      if (overlapDays <= 0) {
+        continue;
+      }
+      var dayHours = bucket.hours / overlapDays;
+      var cursor = new Date(intersect.start.getTime());
+      while (cursor.getTime() <= intersect.end.getTime()) {
+        var ymd = Utilities.formatDate(cursor, 'UTC', 'yyyy-MM-dd');
+        if (!out[agreementId]) {
+          out[agreementId] = {};
+        }
+        if (!out[agreementId][personKey]) {
+          out[agreementId][personKey] = {};
+        }
+        out[agreementId][personKey][ymd] =
+          (out[agreementId][personKey][ymd] || 0) + dayHours;
+        cursor.setUTCDate(cursor.getUTCDate() + 1);
+      }
+    }
+  }
+  var aids = Object.keys(out);
+  for (var ai = 0; ai < aids.length; ai++) {
+    var aid = aids[ai];
+    var pkeys = Object.keys(out[aid]);
+    for (var pi = 0; pi < pkeys.length; pi++) {
+      var pk = pkeys[pi];
+      var days = out[aid][pk];
+      for (var ymd2 in days) {
+        if (Object.prototype.hasOwnProperty.call(days, ymd2)) {
+          days[ymd2] = Math.round(days[ymd2] * 10) / 10;
+        }
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * @param {string} weekKey
+ * @return {!Array<string>}
+ * @private
+ */
+function resourceAssignmentIsoWeekDayKeys_(weekKey) {
+  var wb = resourceAssignmentWeekBoundsInclusiveUtc_(weekKey);
+  var keys = [];
+  var cursor = new Date(wb.start.getTime());
+  while (cursor.getTime() <= wb.end.getTime()) {
+    keys.push(Utilities.formatDate(cursor, 'UTC', 'yyyy-MM-dd'));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return keys;
+}
+
+/**
+ * @param {!Object} byWeekEntry
+ * @param {string} weekKey
+ * @param {string} agreementId
+ * @param {string} personKey
+ * @param {!Object} assignedByDay
+ * @param {!Object} laborByDay
+ * @private
+ */
+function resourceAssignmentAttachByDayToWeek_(
+  byWeekEntry, weekKey, agreementId, personKey, assignedByDay, laborByDay
+) {
+  var dayKeys = resourceAssignmentIsoWeekDayKeys_(weekKey);
+  var byDay = {};
+  var has = false;
+  for (var di = 0; di < dayKeys.length; di++) {
+    var ymd = dayKeys[di];
+    var assigned =
+      assignedByDay[agreementId] &&
+      assignedByDay[agreementId][personKey] &&
+      assignedByDay[agreementId][personKey][ymd]
+        ? assignedByDay[agreementId][personKey][ymd]
+        : 0;
+    var actual =
+      laborByDay[agreementId] &&
+      laborByDay[agreementId][personKey] &&
+      laborByDay[agreementId][personKey][ymd]
+        ? laborByDay[agreementId][personKey][ymd]
+        : 0;
+    if (assigned || actual) {
+      has = true;
+      byDay[ymd] = {
+        assignedHours: Math.round(assigned * 10) / 10,
+        actualHours: Math.round(actual * 10) / 10,
+        varianceHours: Math.round((actual - assigned) * 10) / 10,
+      };
+    }
+  }
+  if (has) {
+    byWeekEntry.byDay = byDay;
+  }
+}
+
+/**
+ * @param {!Array<!Object>} projects
+ * @param {!Object} assignedByDay
+ * @param {!Object} laborByDay
+ * @param {!Array<!Object>} weeks
+ * @return {!Array<!Object>}
+ * @private
+ */
+function buildResourceAssignmentPersonVariances_(
+  projects, assignedByDay, laborByDay, weeks
+) {
+  var personMap = {};
+
+  function ensureProjectInGroup_(groupMap, projKey, meta) {
+    if (!groupMap[projKey]) {
+      groupMap[projKey] = {
+        key: projKey,
+        agreementId: meta.agreementId || '',
+        projectName: meta.projectName || '(Unnamed project)',
+        customerName: meta.customerName || '',
+        highlightOrange: !!meta.highlightOrange,
+        byWeek: {},
+      };
+    }
+    return groupMap[projKey];
+  }
+
+  function projectsFromGroupMap_(groupMap) {
+    var keys = Object.keys(groupMap).sort(function (a, b) {
+      var na = groupMap[a].projectName || '';
+      var nb = groupMap[b].projectName || '';
+      if (na !== nb) {
+        return na.localeCompare(nb);
+      }
+      return a.localeCompare(b);
+    });
+    var arr = [];
+    for (var i = 0; i < keys.length; i++) {
+      arr.push(groupMap[keys[i]]);
+    }
+    return arr;
+  }
+
+  for (var pi = 0; pi < projects.length; pi++) {
+    var proj = projects[pi];
+    var aid = proj.agreementId || proj.key || '';
+    var projKey = aid || 'project:' + (proj.projectName || '');
+    var projPersons = proj.persons || [];
+    for (var ui = 0; ui < projPersons.length; ui++) {
+      var pers = projPersons[ui];
+      var pKey = pers.personKey;
+      if (!personMap[pKey]) {
+        personMap[pKey] = {
+          personKey: pKey,
+          name: pers.name,
+          roleName: pers.roleName,
+          company: pers.company,
+          highlightOrange: false,
+          groups: {
+            assigned: {},
+            actual: {},
+            variance: {},
+          },
+        };
+      }
+      var personEntry = personMap[pKey];
+      if (pers.highlightOrange) {
+        personEntry.highlightOrange = true;
+      }
+      var meta = {
+        agreementId: aid,
+        projectName: proj.projectName,
+        customerName: proj.customerName,
+        highlightOrange: pers.highlightOrange,
+      };
+
+      for (var wi = 0; wi < weeks.length; wi++) {
+        var wk = weeks[wi].key;
+        var b = pers.byWeek && pers.byWeek[wk];
+        if (!b) {
+          continue;
+        }
+        var ah = b.assignedHours || 0;
+        var acth = b.actualHours || 0;
+        var vh = b.varianceHours || 0;
+        if (ah > 0) {
+          var assignedProj = ensureProjectInGroup_(personEntry.groups.assigned, projKey, meta);
+          assignedProj.byWeek[wk] = {
+            assignedHours: ah,
+            actualHours: acth,
+            varianceHours: vh,
+            partial: !!b.partial,
+          };
+          resourceAssignmentAttachByDayToWeek_(
+            assignedProj.byWeek[wk], wk, aid, pKey, assignedByDay, laborByDay
+          );
+        }
+        if (acth > 0) {
+          var actualProj = ensureProjectInGroup_(personEntry.groups.actual, projKey, meta);
+          actualProj.byWeek[wk] = {
+            assignedHours: ah,
+            actualHours: acth,
+            varianceHours: vh,
+            partial: !!b.partial,
+          };
+          resourceAssignmentAttachByDayToWeek_(
+            actualProj.byWeek[wk], wk, aid, pKey, assignedByDay, laborByDay
+          );
+        }
+        // Non-zero variance only (positive = over actual, negative = under actual).
+        if (vh !== 0) {
+          var varProj = ensureProjectInGroup_(personEntry.groups.variance, projKey, meta);
+          varProj.byWeek[wk] = {
+            assignedHours: ah,
+            actualHours: acth,
+            varianceHours: vh,
+            partial: !!b.partial,
+          };
+          resourceAssignmentAttachByDayToWeek_(
+            varProj.byWeek[wk], wk, aid, pKey, assignedByDay, laborByDay
+          );
+        }
+      }
+    }
+  }
+
+  var out = [];
+  var personKeys = Object.keys(personMap).sort(function (a, b) {
+    var na = personMap[a].name || '';
+    var nb = personMap[b].name || '';
+    if (na !== nb) {
+      return na.localeCompare(nb);
+    }
+    return a.localeCompare(b);
+  });
+  for (var pk = 0; pk < personKeys.length; pk++) {
+    var entry = personMap[personKeys[pk]];
+    var groups = entry.groups;
+    var assignedList = projectsFromGroupMap_(groups.assigned);
+    var actualList = projectsFromGroupMap_(groups.actual);
+    var varianceList = projectsFromGroupMap_(groups.variance);
+    if (!assignedList.length && !actualList.length && !varianceList.length) {
+      continue;
+    }
+    out.push({
+      personKey: entry.personKey,
+      name: entry.name,
+      roleName: entry.roleName,
+      company: entry.company,
+      highlightOrange: entry.highlightOrange,
+      groups: {
+        assigned: assignedList,
+        actual: actualList,
+        variance: varianceList,
+      },
+    });
+  }
+  return out;
 }
 
 /**

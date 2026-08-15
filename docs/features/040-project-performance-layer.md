@@ -1,7 +1,7 @@
 # Feature: Project Performance layer (Delivery)
 
 > **Status:** Implemented in code (**v3.6.0**); Spec Draft product decisions locked; Teamwork intake pending  
-> **PRD version:** **3.6.0** (`FR-137`, `AC-99`)  
+> **PRD version:** **3.7.3** (`FR-137`, `AC-99`)  
 > **Feature ID:** **040**  
 > **Release type:** Enhancement  
 > **Task list:** Delivery  

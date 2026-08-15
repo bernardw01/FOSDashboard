@@ -11,7 +11,7 @@ Extend the **Resource assignments** Operations dashboard so delivery leads can c
 
 Add a **tabbed** weekly grid:
 
-1. **By person** - the current view (person → project breakdown; allocation **% heatmap** on collapsed cells).
+1. **By person** - the current view (person → project breakdown; allocation **% heatmap** on collapsed cells). **Tab label rename** to **By person allocations** and new **By person variances** tab are specified in feature **042** (this spec remains authoritative for the original **By person** / **By project** behavior shipped in **028**).
 2. **By project** - project → person; expanding a person reveals **Assigned**, **Actual**, and **Variance** sub-rows per ISO week.
 
 **Orange styling:** person name and **actual hours** when the allocation is not **`Allocated & Billable`** in Fibery, or when the person has **no assignment** (labor only, assigned = 0).
