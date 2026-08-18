@@ -1,7 +1,7 @@
 # Feature: Project Performance layer (Delivery)
 
-> **Status:** Implemented in code (**v3.6.0**); Spec Draft product decisions locked; Teamwork intake pending  
-> **PRD version:** **3.7.3** (`FR-137`, `AC-99`)  
+> **Status:** Implemented in code (**v3.6.0**; patched **v3.7.5**); Spec Draft product decisions locked; Teamwork intake pending  
+> **PRD version:** **3.7.5** (`FR-137`, `AC-99`)  
 > **Feature ID:** **040**  
 > **Release type:** Enhancement  
 > **Task list:** Delivery  
@@ -73,7 +73,7 @@ Extend the **Delivery** selected-project experience with a **Project Performance
 | 7 | Timing anomaly flag | Show **Engagement review recommended** / **Timing review** when **period (as-of month) gross profit is negative** **and** **revenue is planned later** (remaining / future planned or projected revenue &gt; 0 after as-of). No $ floor. Do **not** require percentage-of-completion accounting. Optional deep-link to Engagement Review when user has access (**037**). |
 | 8 | EAC hours | `actual hours to date + remaining planned allocation hours` (same construction as **037** `eacHours`). Budgeted = sum of allocation hours when present. |
 | 9 | EAC dollars | **Labor cost + expenses (ODC) actuals to date** + **remaining planned allocation cost** (+ remaining planned ODC/expenses when available on the P&L). Budgeted = planned labor (allocations) + planned expenses/ODC when present. EAC $ is **not** labor-only. |
-| 10 | Hours in cost table | On **Project Performance**: cost breakdown supports **$ / Hours** toggle or dual columns. Lifetime hours per resource = sum of logged hours across all project months + lifetime allocated hours from assignments. |
+| 10 | Hours in cost table | On **Project Performance**: one table with **allocated hours, logged hours, and cost** (no $ / Hours toggle as of **v3.7.5**). Default range is **all time**. Custom start/end dates filter actual margin and resource rows by calendar month. Lifetime hours per resource = sum of logged hours across all project months + lifetime allocated hours from assignments. |
 | 11 | Formula ownership | Extract shared builders used by **037** `buildEngagementUpdateQuantitativeSnapshot_` into a shared module (e.g. `projectPerformanceMetrics.js`) consumed by Delivery P&L payload and Engagement Update snapshots so the two surfaces cannot drift. Update **037** EAC $ path to the same labor + expenses/ODC definition when extracting. |
 | 12 | Cache / snapshots | Extend Delivery P&L payload; bump **`DELIVERY_PNL_CACHE_SCHEMA_VERSION_`** and client constant; snapshot job continues to use shared builder (**009**). |
 | 13 | Historical | Snapshot / Datastore modes must render Project Performance from payload fields (no live Fibery). |
@@ -87,6 +87,8 @@ Extend the **Delivery** selected-project experience with a **Project Performance
 - As a **CSM**, I want **planned margin and projected margin** on the project view so I can tell if an account is tracking to plan without asking finance to interpret a negative month.
 - As a **delivery lead**, I want **EAC hours and EAC dollars** so I can see completion risk before the engagement ends.
 - As a **CSM**, I want **hours next to dollars** (and **lifetime hours per resource**) so staffing burn is visible without exporting Clockify.
+- As a **CSM**, I want a **custom date range** (default all time) on Project Performance so I can inspect actual margin and resource burn for a period without leaving the tab.
+- As a **CSM**, I want **orange highlighting explained** so I know which people logged time without an allocation or are not Allocated & Billable.
 - As a **Client Engagement lead**, I want a **Project Performance** tab separate from the accounting P&L so I am not forced to read ledger rows to judge health.
 - As a **facilitator**, I want **timing anomaly** cases flagged for engagement review instead of looking like failed projects.
 - As a **mobile user**, I want the same performance KPIs and tab switch usable under **768px**.
@@ -127,9 +129,15 @@ Extend the **Delivery** selected-project experience with a **Project Performance
 
 ### Hours alongside dollars
 
-- [ ] **Given** Project Performance cost / resource section, **when** the user chooses **Hours** (toggle or dual view), **then** hours are shown for the cost breakdown (not dollars only).
-- [ ] **Given** resource rows, **when** rendered, **then** each resource can show **lifetime logged hours** and **lifetime allocated hours** for the project (full life), not only the selected month.
-- [ ] **Given** orange / non-billable / unallocated rules already live, **when** hours views render, **then** those rules continue to apply.
+- [ ] **Given** Project Performance cost / resource section, **when** the card renders, **then** allocated hours, logged hours, and cost appear in one table (no $ / Hours toggle).
+- [ ] **Given** resource rows, **when** rendered with the default date range, **then** each resource can show **lifetime logged hours** and **lifetime allocated hours** for the project (full life), not only the selected month.
+- [ ] **Given** orange / non-billable / unallocated rules already live, **when** the table renders, **then** those rules continue to apply and a legend/tooltip explains orange highlighting.
+
+### Date range
+
+- [ ] **Given** Project Performance, **when** the KPI strip renders, **then** a custom start and end date control appears to the right of **Actual margin to date**, defaulting to **all time** (empty dates).
+- [ ] **Given** the user enters a start and/or end date, **when** the range applies, **then** actual margin and resource rows include only calendar months in that range; planned/projected/EAC stay project-level.
+- [ ] **Given** mobile width (&lt; 768px), **when** the user uses the date control, **then** start/end inputs are usable (≥ 44px) and wrap below the KPI cards.
 
 ### Mobile
 
@@ -138,7 +146,7 @@ Extend the **Delivery** selected-project experience with a **Project Performance
 ### Cache / observability
 
 - [ ] Delivery P&L `cacheSchemaVersion` bumped on server and client; stale session cache invalidates.
-- [ ] Activity events for tab switch and (if added) hours toggle / EAC expand are whitelisted in `userActivityLog.js`.
+- [ ] Activity events for tab switch and date-range changes are whitelisted in `userActivityLog.js`.
 - [ ] Snapshot / Datastore historical load renders Project Performance from stored payload fields.
 
 ---
@@ -151,16 +159,16 @@ Extend the **Delivery** selected-project experience with a **Project Performance
 - **Surface:** Selected-project card below Active Projects.
 - **Tabs:** `Accounting P&L` | `Project Performance` in the card toolbar (near existing Table/Chart controls; Chart stays under Accounting).
 - **Project Performance layout (proposed):**
-  1. KPI strip: Planned margin % · Projected margin % · EAC hours · EAC $ · (optional) Actual MTD margin
+  1. KPI strip: Planned margin % · Projected margin % · EAC hours · EAC $ · Actual margin to date · **Date range** (start/end, default all time) immediately to the right of Actual margin
   2. Timing / engagement-review badge row when rules fire
-  3. Hours vs $ toggle for cost/resource block
-  4. Resource performance table: Name · Role · Lifetime allocated hrs · Lifetime logged hrs · % · Cost · billable flag styling
+  3. Orange-highlight legend (logged without allocation, or not Allocated & Billable)
+  4. Resource performance table: Name · Role · Allocated hrs · Logged hrs · Cost (orange row styling)
   5. Optional compact monthly spark/series for hours and margin planned vs projected (reuse **037** series concepts; keep light for v1)
 
 ### Mobile (`DashboardShell.html`, &lt; 768px)
 
 - Tab switch via toolbar buttons (≥ 44px) or **`openMobileFilterSheet_`** if toolbar overflows.
-- KPI strip → 2-col cards; resource table → person cards.
+- KPI strip → 2-col cards; date range wraps full width with ≥ 44px date inputs; resource table → person cards.
 - Progressive disclosure: charts/series behind **Show details** if included.
 - Bottom nav / Delivery access gates unchanged.
 
@@ -220,12 +228,12 @@ performance: {
 
 ### Actions (client)
 
-- Tab switch; hours/$ toggle; optional "Open Engagement Review" CTA.
+- Tab switch; date range start/end (default all time); optional "Open Engagement Review" CTA.
 
 ### Activity events (proposed)
 
 - `delivery_pnl_performance_tab`
-- `delivery_pnl_hours_toggle`
+- `delivery_pnl_perf_date_range`
 - `delivery_pnl_timing_badge_click` (if CTA)
 
 ---
@@ -247,12 +255,14 @@ performance: {
 
 1. **Desktop:** Open Delivery → select engagement with known Target Margin and allocations → **Project Performance** shows planned/projected/EAC; switch to **Accounting P&L** and confirm prior behavior.
 2. **Timing fixture:** Month with negative GP and later planned/projected revenue → badge on; month with negative GP and no later revenue → badge off.
-3. **Hours:** Toggle Hours; confirm lifetime hours per resource match sum of month modal person hours across months (± rounding).
-4. **EAC $:** Confirm labor + expenses/ODC actuals are included (not labor-only).
-5. **Default tabs:** CE user lands on Performance; Finance on Accounting (clear session tab key first).
-6. **Mobile (~390px):** Tab switch, KPI cards, resource cards usable; no horizontal-only table as sole UX.
-7. **Snapshot:** Load historical date; Performance fields render without Fibery.
-8. **Regression:** Month modal logged vs allocated (**v3.4.12**), orange non-billable, assignments modal still work on Accounting tab.
+3. **Resources:** Confirm allocated hours, logged hours, and cost appear together; lifetime hours per resource match sum of month modal person hours across months (± rounding) on the default all-time range.
+4. **Date range:** Enter start/end; actual margin and resource rows follow calendar months in range; **All time** clears back to lifetime. Planned/projected/EAC unchanged.
+5. **Orange:** Legend and orange-row tooltip explain logged without allocation / not Allocated & Billable.
+6. **EAC $:** Confirm labor + expenses/ODC actuals are included (not labor-only).
+7. **Default tabs:** CE user lands on Performance; Finance on Accounting (clear session tab key first).
+8. **Mobile (~390px):** Tab switch, KPI cards, date inputs (≥ 44px), resource cards usable; no horizontal-only table as sole UX.
+9. **Snapshot:** Load historical date; Performance fields render without Fibery.
+10. **Regression:** Month modal logged vs allocated (**v3.4.12**), orange non-billable, assignments modal still work on Accounting tab.
 
 ---
 
@@ -303,3 +313,4 @@ Ship **R1–R4 together** as a single MINOR when ready.
 | --- | --- |
 | 2026-08-10 | Spec Draft from Aug 4 demo feedback; Feature **040** proposed. |
 | 2026-08-10 | Locked: CE/Finance default tabs; project-level projected margin smoothing; EAC $ = labor + expenses/ODC; timing badge = negative period GP with later planned revenue; one Feature / one ship. |
+| 2026-08-18 | **v3.7.5:** Remove $ / Hours toggle; orange legend/tooltip; custom date range (default all time) to the right of Actual margin to date. |

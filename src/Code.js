@@ -1,11 +1,11 @@
 /**
- * PRD version 3.7.4 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.7.5 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.7.4';
+var FOS_PRD_VERSION = '3.7.5';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.7.4';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.7.4 Resource assignments Live date range rebuilds week grid from Supabase typed tables.';
+  'v3.7.5 PM Overview Project Performance: orange legend, single hours+cost table, custom date range (default all time).';
 
 /**
  * @return {string}

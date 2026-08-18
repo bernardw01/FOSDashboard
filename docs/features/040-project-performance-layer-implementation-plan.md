@@ -118,7 +118,7 @@ Bump **`DELIVERY_PNL_CACHE_SCHEMA_VERSION_`** (server) and client `_vN` / schema
 | Area | Work |
 | --- | --- |
 | Toolbar | Tabs `Accounting P&L` / `Project Performance`; persist last tab in `sessionStorage` key e.g. `fos_delivery_pnl_view_v1` |
-| Performance panel | KPI chips; timing badge; hours toggle; resource table/cards |
+| Performance panel | KPI chips; date range; timing badge; resource table/cards |
 | Accounting panel | Existing table/chart/modals unchanged |
 | Mobile | Tab targets ≥ 44px; KPI 2-col; resource cards; optional sheet for view mode |
 | Activity | Whitelist new events in `userActivityLog.js` |

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.7.4 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.7.5 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -1590,8 +1590,7 @@
       align-items: center;
       gap: 10px;
     }
-    .fos-delivery-mode-group .fos-delivery-mode-btn,
-    .fos-delivery-perf-metric-group .fos-delivery-perf-metric-btn {
+    .fos-delivery-mode-group .fos-delivery-mode-btn {
       background: transparent;
       border: 1px solid var(--ag-border);
       color: var(--ag-text-muted);
@@ -1599,8 +1598,7 @@
       padding: 4px 12px;
       min-height: 44px;
     }
-    .fos-delivery-mode-group .fos-delivery-mode-btn.active,
-    .fos-delivery-perf-metric-group .fos-delivery-perf-metric-btn.active {
+    .fos-delivery-mode-group .fos-delivery-mode-btn.active {
       background: var(--ag-accent);
       border-color: var(--ag-accent);
       color: #061b30;
@@ -1613,10 +1611,67 @@
       padding: 10px 12px;
       font-size: 0.875rem;
     }
-    .fos-delivery-perf-kpi-strip {
+    .fos-delivery-perf-kpi-row {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
+      align-items: stretch;
+    }
+    .fos-delivery-perf-kpi-strip {
+      display: contents;
+    }
+    .fos-delivery-perf-date-range {
+      min-width: 220px;
+      max-width: 360px;
+    }
+    .fos-delivery-perf-date-fields {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: flex-end;
+      margin-top: 4px;
+    }
+    .fos-delivery-perf-date-fields label {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 0.72rem;
+      color: var(--ag-text-muted);
+      margin: 0;
+    }
+    .fos-delivery-perf-date-fields input[type="date"] {
+      min-height: 44px;
+      min-width: 9.5rem;
+      background: var(--ag-surface2);
+      color: var(--ag-text);
+      border: 1px solid var(--ag-border);
+      border-radius: 6px;
+      padding: 4px 8px;
+    }
+    .fos-delivery-perf-date-clear {
+      min-height: 44px;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--ag-accent);
+      background: transparent;
+      border: 1px solid var(--ag-border);
+      border-radius: 6px;
+    }
+    .fos-delivery-perf-orange-legend {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      cursor: help;
+    }
+    .fos-delivery-perf-orange-swatch {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      background: #ed8936;
+      flex-shrink: 0;
     }
     .fos-delivery-perf-resource-card {
       border: 1px solid var(--ag-border);
@@ -1628,6 +1683,7 @@
     .fos-delivery-perf-resource-card.is-orange {
       border-color: #ed8936;
       background: rgba(237, 137, 54, 0.08);
+      cursor: help;
     }
     @media (max-width: 767.98px) {
       .fos-delivery-perf-desktop-table {
@@ -1635,6 +1691,17 @@
       }
       .fos-delivery-perf-mobile-cards.fos-mobile-only {
         display: block !important;
+      }
+      .fos-delivery-perf-date-range {
+        flex: 1 1 100%;
+        max-width: none;
+      }
+      .fos-delivery-perf-date-fields label {
+        flex: 1 1 calc(50% - 8px);
+      }
+      .fos-delivery-perf-date-fields input[type="date"] {
+        min-width: 0;
+        width: 100%;
       }
     }
     @media (min-width: 768px) {
@@ -1730,6 +1797,10 @@
     .fos-delivery-pnl-person-card.is-orange,
     tr.fos-delivery-pnl-person-orange td {
       color: var(--ag-warn);
+    }
+    .fos-delivery-pnl-person-card.is-orange,
+    tr.fos-delivery-pnl-person-orange {
+      cursor: help;
     }
     .fos-delivery-pnl-person-card.is-orange {
       border-color: var(--ag-warn);
@@ -6144,10 +6215,6 @@
                   <button type="button" class="btn fos-delivery-view-btn active" data-pnl-view="table" aria-pressed="true">Table</button>
                   <button type="button" class="btn fos-delivery-view-btn" data-pnl-view="chart" aria-pressed="false">Chart</button>
                 </div>
-                <div class="btn-group btn-group-sm fos-delivery-perf-metric-group fos-delivery-perf-only d-none" role="group" aria-label="Cost metric">
-                  <button type="button" class="btn fos-delivery-perf-metric-btn active" data-perf-metric="dollars" aria-pressed="true">$</button>
-                  <button type="button" class="btn fos-delivery-perf-metric-btn" data-perf-metric="hours" aria-pressed="false">Hours</button>
-                </div>
                 <button type="button" class="btn btn-sm fos-delivery-csv-btn fos-delivery-accounting-only" id="delivery-pnl-csv-btn" aria-label="Copy monthly P&amp;L as CSV to clipboard">
                   Copy CSV
                 </button>
@@ -6160,8 +6227,27 @@
                   <span class="fos-delivery-pnl-loading-label">Fetching monthly P&amp;L…</span>
                 </div>
                 <div class="d-none" id="delivery-pnl-performance" aria-label="Project Performance">
-                  <div class="fos-delivery-perf-kpi-strip mb-3" id="delivery-pnl-perf-kpis"></div>
+                  <div class="fos-delivery-perf-kpi-row mb-3">
+                    <div class="fos-delivery-perf-kpi-strip" id="delivery-pnl-perf-kpis"></div>
+                    <div class="fos-delivery-pnl-kpi-chip fos-delivery-perf-date-range" id="delivery-pnl-perf-date-range">
+                      <div class="label">Date range</div>
+                      <div class="fos-delivery-perf-date-fields">
+                        <label for="delivery-pnl-perf-date-start">Start
+                          <input type="date" id="delivery-pnl-perf-date-start" aria-label="Project performance start date" />
+                        </label>
+                        <label for="delivery-pnl-perf-date-end">End
+                          <input type="date" id="delivery-pnl-perf-date-end" aria-label="Project performance end date" />
+                        </label>
+                        <button type="button" class="fos-delivery-perf-date-clear d-none" id="delivery-pnl-perf-date-clear" aria-label="Reset date range to all time">All time</button>
+                      </div>
+                      <div class="sub" id="delivery-pnl-perf-date-sub">All time · filters by calendar month</div>
+                    </div>
+                  </div>
                   <div class="d-none fos-delivery-perf-badge mb-3" id="delivery-pnl-perf-badge" role="status"></div>
+                  <p class="small mb-2 fos-delivery-perf-orange-legend" style="color: var(--ag-text-muted)" title="Orange highlight: logged time without a Fibery allocation, or allocation not marked Allocated &amp; Billable (not on the SOW).">
+                    <span class="fos-delivery-perf-orange-swatch" aria-hidden="true"></span>
+                    Orange highlight: logged time without an allocation, or allocation not marked Allocated &amp; Billable in Fibery.
+                  </p>
                   <div class="fos-financial-scroll fos-delivery-perf-desktop-table mb-2">
                     <table class="fos-financial-table" aria-label="Resource performance">
                       <thead>
@@ -8463,6 +8549,10 @@
         deliveryPnlPerformance: document.getElementById('delivery-pnl-performance'),
         deliveryPnlPerfKpis: document.getElementById('delivery-pnl-perf-kpis'),
         deliveryPnlPerfBadge: document.getElementById('delivery-pnl-perf-badge'),
+        deliveryPnlPerfDateStart: document.getElementById('delivery-pnl-perf-date-start'),
+        deliveryPnlPerfDateEnd: document.getElementById('delivery-pnl-perf-date-end'),
+        deliveryPnlPerfDateClear: document.getElementById('delivery-pnl-perf-date-clear'),
+        deliveryPnlPerfDateSub: document.getElementById('delivery-pnl-perf-date-sub'),
         deliveryPnlPerfBody: document.getElementById('delivery-pnl-perf-body'),
         deliveryPnlPerfCards: document.getElementById('delivery-pnl-perf-cards'),
         deliveryPnlPerfEmpty: document.getElementById('delivery-pnl-perf-empty'),
@@ -20089,7 +20179,8 @@
         },
         pnlView: 'table',
         cardMode: 'accounting',
-        perfMetric: 'dollars',
+        perfDateStart: '',
+        perfDateEnd: '',
         projectsByIndex: {},
         lastRenderedFetchedAt: null,
         lastRenderedSelectedId: null,
@@ -30108,21 +30199,6 @@
         }
       }
 
-      function syncDeliveryPerfMetricButtons_(metric) {
-        if (!els.deliveryPnlToolbar) return;
-        var btns = els.deliveryPnlToolbar.querySelectorAll('.fos-delivery-perf-metric-btn');
-        for (var i = 0; i < btns.length; i++) {
-          var m = btns[i].getAttribute('data-perf-metric');
-          if (m === metric) {
-            btns[i].classList.add('active');
-            btns[i].setAttribute('aria-pressed', 'true');
-          } else {
-            btns[i].classList.remove('active');
-            btns[i].setAttribute('aria-pressed', 'false');
-          }
-        }
-      }
-
       function setDeliveryCardMode_(mode, opts) {
         opts = opts || {};
         var next = mode === 'performance' ? 'performance' : 'accounting';
@@ -30135,25 +30211,281 @@
         applyDeliveryPnLView_();
       }
 
-      function setDeliveryPerfMetric_(metric, opts) {
-        opts = opts || {};
-        var next = metric === 'hours' ? 'hours' : 'dollars';
-        if (deliveryState.perfMetric === next && !opts.force) return;
-        deliveryState.perfMetric = next;
-        if (!opts.silent) {
-          logActivity_('delivery_pnl_hours_toggle', 'pm-overview', 'metric=' + next);
-        }
-        renderDeliveryPerformance_(deliveryState.lastPnlPayload);
-        syncDeliveryPerfMetricButtons_(next);
-      }
-
       function formatPerfPct_(v) {
         if (v === null || v === undefined || !isFinite(Number(v))) return 'N/A';
         return formatMarginPct(Number(v));
       }
 
+      var PERF_ORANGE_TITLE_ =
+        'Logged time without a Fibery allocation, or allocation not marked Allocated & Billable (not on the SOW).';
+
+      function ymdToMonthKey_(ymd) {
+        var s = String(ymd || '').slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return '';
+        return s.slice(0, 7);
+      }
+
+      function monthKeyLastDay_(ym) {
+        var p = String(ym || '').split('-');
+        var y = Number(p[0]);
+        var m = Number(p[1]);
+        if (!y || !m) return '31';
+        var d = new Date(Date.UTC(y, m, 0)).getUTCDate();
+        return d < 10 ? '0' + d : String(d);
+      }
+
+      function formatPerfMonthLabel_(ym) {
+        var p = String(ym || '').split('-');
+        var y = Number(p[0]);
+        var m = Number(p[1]);
+        if (!y || !m) return String(ym || '');
+        var names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return names[m - 1] + ' ' + y;
+      }
+
+      function getDeliveryPerfDateRange_() {
+        var startYmd = String(deliveryState.perfDateStart || '').slice(0, 10);
+        var endYmd = String(deliveryState.perfDateEnd || '').slice(0, 10);
+        var startMonth = ymdToMonthKey_(startYmd);
+        var endMonth = ymdToMonthKey_(endYmd);
+        if (startMonth && endMonth && startMonth > endMonth) {
+          var tmp = startMonth;
+          startMonth = endMonth;
+          endMonth = tmp;
+        }
+        return {
+          startYmd: startYmd,
+          endYmd: endYmd,
+          startMonth: startMonth,
+          endMonth: endMonth,
+          isAllTime: !startMonth && !endMonth,
+        };
+      }
+
+      function monthKeyInPerfRange_(monthKey, range) {
+        var key = String(monthKey || '').slice(0, 7);
+        if (!key) return false;
+        if (range.startMonth && key < range.startMonth) return false;
+        if (range.endMonth && key > range.endMonth) return false;
+        return true;
+      }
+
+      function filterDeliveryPerfMonths_(months, range) {
+        var out = [];
+        for (var i = 0; i < (months || []).length; i++) {
+          var m = months[i];
+          if (m && monthKeyInPerfRange_(m.key, range)) out.push(m);
+        }
+        return out;
+      }
+
+      function actualMarginFromMonths_(months) {
+        var rev = 0;
+        var cost = 0;
+        for (var i = 0; i < (months || []).length; i++) {
+          var m = months[i];
+          if (!m) continue;
+          rev += Number(m.revenue || 0);
+          cost += Number(m.labor || 0) + Number(m.expenses || 0);
+        }
+        if (!(rev > 0)) return null;
+        return Math.round(((rev - cost) / rev) * 1000) / 10;
+      }
+
+      function deliveryPerfPersonNamesMatch_(aName, bName) {
+        function norm(s) {
+          if (typeof laborNormalizePersonToken_ === 'function') {
+            return laborNormalizePersonToken_(s);
+          }
+          return String(s || '')
+            .trim()
+            .toLowerCase()
+            .replace(/@.*$/, '')
+            .replace(/[._\s\-]+/g, '');
+        }
+        var na = norm(aName);
+        var nb = norm(bName);
+        if (na && na === nb) return true;
+        function words(n) {
+          return String(n || '')
+            .trim()
+            .toLowerCase()
+            .replace(/[._\-]+/g, ' ')
+            .split(/\s+/)
+            .filter(Boolean);
+        }
+        var wa = words(aName);
+        var wb = words(bName);
+        if (!wa.length || !wb.length) return false;
+        if (wa.length === 1 && wb.length >= 2 && wa[0] === wb[0]) return true;
+        if (wb.length === 1 && wa.length >= 2 && wb[0] === wa[0]) return true;
+        return false;
+      }
+
+      function ensureDeliveryPerfResourceRow_(byKey, name, role) {
+        var roleNorm = String(role || '(No role)').trim().toLowerCase();
+        var keys = Object.keys(byKey);
+        for (var i = 0; i < keys.length; i++) {
+          var existing = byKey[keys[i]];
+          if (String(existing.role || '').trim().toLowerCase() !== roleNorm) continue;
+          if (deliveryPerfPersonNamesMatch_(existing.name, name)) {
+            var a = String(existing.name || '').trim();
+            var b = String(name || '').trim();
+            if (/\s/.test(b) && !/\s/.test(a)) existing.name = b;
+            else if (b.length > a.length && b.indexOf('.') < 0) existing.name = b;
+            return existing;
+          }
+        }
+        var key = String(name || '(Unknown user)') + '\0' + String(role || '(No role)');
+        byKey[key] = {
+          name: name,
+          role: role || '(No role)',
+          allocatedHoursLife: 0,
+          loggedHoursLife: 0,
+          loggedCostLife: 0,
+          highlightOrange: false,
+        };
+        return byKey[key];
+      }
+
+      function buildDeliveryPerfResourcesFromMonths_(months) {
+        var byKey = {};
+        for (var i = 0; i < (months || []).length; i++) {
+          var people = (months[i] && months[i].laborByPerson) || [];
+          var monthMap = {};
+          for (var j = 0; j < people.length; j++) {
+            var p = people[j];
+            var mRow = ensureDeliveryPerfResourceRow_(
+              monthMap,
+              p.name || '(Unknown user)',
+              p.role || '(No role)'
+            );
+            mRow.loggedHoursLife += Number(p.hours || 0);
+            mRow.loggedCostLife += Number(p.cost || 0);
+            var monthAlloc = Number(p.allocatedHours || 0);
+            if (monthAlloc > mRow.allocatedHoursLife) mRow.allocatedHoursLife = monthAlloc;
+            if (p.allocatedAndBillable === false || p.highlightOrange === true) {
+              mRow.highlightOrange = true;
+            }
+          }
+          var mKeys = Object.keys(monthMap);
+          for (var mi = 0; mi < mKeys.length; mi++) {
+            var src = monthMap[mKeys[mi]];
+            var life = ensureDeliveryPerfResourceRow_(byKey, src.name, src.role);
+            life.loggedHoursLife += src.loggedHoursLife;
+            life.loggedCostLife += src.loggedCostLife;
+            life.allocatedHoursLife += src.allocatedHoursLife;
+            if (src.highlightOrange) life.highlightOrange = true;
+          }
+        }
+        var out = [];
+        var keys = Object.keys(byKey);
+        for (var k = 0; k < keys.length; k++) {
+          var r = byKey[keys[k]];
+          if (r.loggedHoursLife <= 0 && r.allocatedHoursLife <= 0 && r.loggedCostLife <= 0) {
+            continue;
+          }
+          if (r.loggedHoursLife > 0 && r.allocatedHoursLife <= 0) r.highlightOrange = true;
+          out.push(r);
+        }
+        out.sort(function (a, b) {
+          return String(a.name).localeCompare(String(b.name));
+        });
+        return out;
+      }
+
+      function syncDeliveryPerfDateControls_(payload) {
+        var months = (payload && payload.months) || [];
+        var first = '';
+        var last = '';
+        for (var i = 0; i < months.length; i++) {
+          var key = months[i] && months[i].key ? String(months[i].key).slice(0, 7) : '';
+          if (!key) continue;
+          if (!first || key < first) first = key;
+          if (!last || key > last) last = key;
+        }
+        var min = first ? first + '-01' : '';
+        var max = last ? last + '-' + monthKeyLastDay_(last) : '';
+        if (els.deliveryPnlPerfDateStart) {
+          els.deliveryPnlPerfDateStart.min = min;
+          els.deliveryPnlPerfDateStart.max = max;
+          if (els.deliveryPnlPerfDateStart.value !== (deliveryState.perfDateStart || '')) {
+            els.deliveryPnlPerfDateStart.value = deliveryState.perfDateStart || '';
+          }
+        }
+        if (els.deliveryPnlPerfDateEnd) {
+          els.deliveryPnlPerfDateEnd.min = min;
+          els.deliveryPnlPerfDateEnd.max = max;
+          if (els.deliveryPnlPerfDateEnd.value !== (deliveryState.perfDateEnd || '')) {
+            els.deliveryPnlPerfDateEnd.value = deliveryState.perfDateEnd || '';
+          }
+        }
+        var range = getDeliveryPerfDateRange_();
+        if (els.deliveryPnlPerfDateClear) {
+          if (range.isAllTime) els.deliveryPnlPerfDateClear.classList.add('d-none');
+          else els.deliveryPnlPerfDateClear.classList.remove('d-none');
+        }
+        if (els.deliveryPnlPerfDateSub) {
+          if (range.isAllTime) {
+            els.deliveryPnlPerfDateSub.textContent = 'All time · filters by calendar month';
+          } else if (range.startMonth && range.endMonth) {
+            els.deliveryPnlPerfDateSub.textContent =
+              formatPerfMonthLabel_(range.startMonth) + ' - ' + formatPerfMonthLabel_(range.endMonth) +
+              ' · by calendar month';
+          } else if (range.startMonth) {
+            els.deliveryPnlPerfDateSub.textContent =
+              'From ' + formatPerfMonthLabel_(range.startMonth) + ' · by calendar month';
+          } else {
+            els.deliveryPnlPerfDateSub.textContent =
+              'Through ' + formatPerfMonthLabel_(range.endMonth) + ' · by calendar month';
+          }
+        }
+      }
+
+      function setDeliveryPerfDateRange_(startYmd, endYmd, opts) {
+        opts = opts || {};
+        var start = String(startYmd || '').slice(0, 10);
+        var end = String(endYmd || '').slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(start)) start = '';
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(end)) end = '';
+        if (start && end && start > end) {
+          var tmp = start;
+          start = end;
+          end = tmp;
+        }
+        if (deliveryState.perfDateStart === start && deliveryState.perfDateEnd === end && !opts.force) {
+          return;
+        }
+        deliveryState.perfDateStart = start;
+        deliveryState.perfDateEnd = end;
+        if (!opts.silent) {
+          logActivity_('delivery_pnl_perf_date_range', 'pm-overview',
+            (start || 'all') + '..' + (end || 'all'));
+        }
+        renderDeliveryPerformance_(deliveryState.lastPnlPayload);
+      }
+
       function renderDeliveryPerformance_(payload) {
+        syncDeliveryPerfDateControls_(payload);
         var perf = payload && payload.performance;
+        var range = getDeliveryPerfDateRange_();
+        var monthsInRange = range.isAllTime
+          ? ((payload && payload.months) || [])
+          : filterDeliveryPerfMonths_((payload && payload.months) || [], range);
+        var actualMargin = range.isAllTime
+          ? (perf ? perf.actualMarginPctToDate : null)
+          : actualMarginFromMonths_(monthsInRange);
+        var actualSub;
+        if (range.isAllTime) {
+          actualSub = 'As of ' + ((perf && perf.asOfMonthKey) || '');
+        } else if (range.startMonth && range.endMonth) {
+          actualSub = formatPerfMonthLabel_(range.startMonth) + ' - ' + formatPerfMonthLabel_(range.endMonth);
+        } else if (range.startMonth) {
+          actualSub = 'From ' + formatPerfMonthLabel_(range.startMonth);
+        } else {
+          actualSub = 'Through ' + formatPerfMonthLabel_(range.endMonth);
+        }
+
         if (els.deliveryPnlPerfKpis) {
           if (!perf) {
             els.deliveryPnlPerfKpis.innerHTML =
@@ -30185,8 +30517,8 @@
                 '</div></div>' +
               '<div class="fos-delivery-pnl-kpi-chip">' +
                 '<div class="label">Actual margin to date</div>' +
-                '<div class="value">' + escapeHtml(formatPerfPct_(perf.actualMarginPctToDate)) + '</div>' +
-                '<div class="sub">As of ' + escapeHtml(perf.asOfMonthKey || '') + '</div></div>';
+                '<div class="value">' + escapeHtml(formatPerfPct_(actualMargin)) + '</div>' +
+                '<div class="sub">' + escapeHtml(actualSub) + '</div></div>';
           }
         }
 
@@ -30223,8 +30555,9 @@
           }
         }
 
-        var rows = (perf && perf.resourcesLifetime) || [];
-        var metric = deliveryState.perfMetric === 'hours' ? 'hours' : 'dollars';
+        var rows = range.isAllTime
+          ? ((perf && perf.resourcesLifetime) || [])
+          : buildDeliveryPerfResourcesFromMonths_(monthsInRange);
         var tbody = els.deliveryPnlPerfBody;
         var cards = els.deliveryPnlPerfCards;
         var empty = els.deliveryPnlPerfEmpty;
@@ -30240,24 +30573,23 @@
         for (var i = 0; i < rows.length; i++) {
           var r = rows[i];
           var orange = r.highlightOrange ? ' fos-delivery-pnl-person-orange' : '';
-          var metricCell = metric === 'hours'
-            ? escapeHtml(formatHours(r.loggedHoursLife || 0))
-            : formatExpense_(r.loggedCostLife || 0);
+          var orangeTitle = r.highlightOrange ? ' title="' + escapeHtml(PERF_ORANGE_TITLE_) + '"' : '';
           html +=
-            '<tr class="' + orange.trim() + '">' +
+            '<tr class="' + orange.trim() + '"' + orangeTitle + '>' +
               '<td>' + escapeHtml(r.name || ' - ') + '</td>' +
               '<td>' + escapeHtml(r.role || ' - ') + '</td>' +
               '<td class="num">' + escapeHtml(formatHours(r.allocatedHoursLife || 0)) + '</td>' +
               '<td class="num">' + escapeHtml(formatHours(r.loggedHoursLife || 0)) + '</td>' +
-              '<td class="num">' + metricCell + '</td>' +
+              '<td class="num">' + formatExpense_(r.loggedCostLife || 0) + '</td>' +
             '</tr>';
           cardsHtml +=
-            '<div class="fos-delivery-perf-resource-card' + (r.highlightOrange ? ' is-orange' : '') + '">' +
+            '<div class="fos-delivery-perf-resource-card' + (r.highlightOrange ? ' is-orange' : '') + '"' +
+              orangeTitle + '>' +
               '<div class="fw-semibold">' + escapeHtml(r.name || ' - ') + '</div>' +
               '<div class="small" style="color:var(--ag-text-muted)">' + escapeHtml(r.role || '') + '</div>' +
               '<div class="small mt-2">Allocated: ' + escapeHtml(formatHours(r.allocatedHoursLife || 0)) +
                 ' · Logged: ' + escapeHtml(formatHours(r.loggedHoursLife || 0)) + '</div>' +
-              '<div class="small">' + (metric === 'hours' ? 'Hours focus' : 'Cost: ' + formatExpense_(r.loggedCostLife || 0)) + '</div>' +
+              '<div class="small">Cost: ' + formatExpense_(r.loggedCostLife || 0) + '</div>' +
             '</div>';
         }
         if (tbody) tbody.innerHTML = html;
@@ -30270,7 +30602,6 @@
       function applyDeliveryPnLView_() {
         var mode = deliveryState.cardMode === 'performance' ? 'performance' : 'accounting';
         syncDeliveryModeButtons_(mode);
-        syncDeliveryPerfMetricButtons_(deliveryState.perfMetric === 'hours' ? 'hours' : 'dollars');
         var accountingEls = document.querySelectorAll('#panel-pm-overview .fos-delivery-accounting-only');
         var perfOnlyEls = document.querySelectorAll('#panel-pm-overview .fos-delivery-perf-only');
         var ai;
@@ -30295,7 +30626,7 @@
         if (mode === 'performance') {
           if (els.deliveryPnlGridWrap) els.deliveryPnlGridWrap.classList.add('d-none');
           if (els.deliveryPnlChartWrap) els.deliveryPnlChartWrap.classList.add('d-none');
-          if (hasData) renderDeliveryPerformance_(deliveryState.lastPnlPayload);
+          if (deliveryState.lastPnlPayload) renderDeliveryPerformance_(deliveryState.lastPnlPayload);
           return;
         }
         if (!hasData) {
@@ -31182,15 +31513,6 @@
             });
           })(modeBtns[dmi]);
         }
-        var metricBtns = els.deliveryPnlToolbar.querySelectorAll('.fos-delivery-perf-metric-btn');
-        for (var dmpi = 0; dmpi < metricBtns.length; dmpi++) {
-          (function (btn) {
-            btn.addEventListener('click', function () {
-              var m = btn.getAttribute('data-perf-metric') || 'dollars';
-              setDeliveryPerfMetric_(m);
-            });
-          })(metricBtns[dmpi]);
-        }
         var viewBtns = els.deliveryPnlToolbar.querySelectorAll('.fos-delivery-view-btn');
         for (var dvi = 0; dvi < viewBtns.length; dvi++) {
           (function (btn) {
@@ -31200,6 +31522,21 @@
             });
           })(viewBtns[dvi]);
         }
+      }
+      if (els.deliveryPnlPerfDateStart) {
+        els.deliveryPnlPerfDateStart.addEventListener('change', function () {
+          setDeliveryPerfDateRange_(els.deliveryPnlPerfDateStart.value, deliveryState.perfDateEnd);
+        });
+      }
+      if (els.deliveryPnlPerfDateEnd) {
+        els.deliveryPnlPerfDateEnd.addEventListener('change', function () {
+          setDeliveryPerfDateRange_(deliveryState.perfDateStart, els.deliveryPnlPerfDateEnd.value);
+        });
+      }
+      if (els.deliveryPnlPerfDateClear) {
+        els.deliveryPnlPerfDateClear.addEventListener('click', function () {
+          setDeliveryPerfDateRange_('', '');
+        });
       }
       if (els.deliveryPnlCsvBtn) {
         els.deliveryPnlCsvBtn.addEventListener('click', function () {
