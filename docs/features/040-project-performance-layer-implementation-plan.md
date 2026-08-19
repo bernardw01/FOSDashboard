@@ -1,7 +1,7 @@
 # Implementation plan: Feature 040 - Project Performance layer
 
 > **Feature spec:** [040-project-performance-layer.md](040-project-performance-layer.md)  
-> **Status:** Implemented in `src/` (**v3.6.0**)  
+> **Status:** R1-R4 implemented in `src/` (**v3.6.0**; patched **v3.7.5**). **R5** shipped **v3.7.6**.  
 > **Feature ID:** **040**  
 > **Task list:** Delivery  
 > **Ship type:** Enhancement (single MINOR **3.6.0**; one Teamwork release)  
@@ -46,8 +46,9 @@
 | **R2 - Hours** | $ / Hours toggle; `resourcesLifetime[]`; Performance resource table | Hours sit beside dollars; lifetime burn visible | S–M |
 | **R3 - EAC** | EAC hours + EAC $ (labor + expenses/ODC) | Forward-looking completion view | S |
 | **R4 - Tab UX** | Hard tab split; CE/Finance defaults; Engagement Review CTA | Accounting vs performance split | S |
+| **R5 - Variances, tooltips, CSV** | Allocated cost + hours/cost variance columns; KPI formula tooltips; Performance Copy CSV | PMs see plan vs actual $ and hours; can explain KPIs and paste the table | S |
 
-Build in R1→R4 order; do not open separate release tasks per slice.
+Build R1→R4 first (shipped). **R5** is a follow-on PATCH. Do not open a new Feature ID.
 
 ## Architecture
 
@@ -209,6 +210,107 @@ Persist on every tab change.
 - [x] EAC $ = labor + expenses/ODC
 - [x] Timing badge = negative period GP with later planned revenue
 - [x] One Feature / one ship
+- [x] **R5:** Hours variance = logged - allocated; cost variance $ = logged cost - allocated cost
+- [x] **R5:** KPI tooltips on project-summary and Performance chips
+- [x] **R5:** Performance Copy CSV of visible table rows
+
+## R5 implementation plan (follow-on PATCH)
+
+> **Spec:** Feature 040 Change request 2026-08-19 (allocated cost, variances, KPI tooltips, Performance Copy CSV).
+> **Ship:** PATCH after **v3.7.5** (version chosen at ship, not intake).
+> **Surface:** `#panel-pm-overview` Project Performance tab plus project-summary KPI strip.
+
+### Problem
+
+The resource table shows allocated hours, logged hours, and **logged** cost only. PMs cannot see allocated cost or plan-vs-actual variance without the month modal. KPI chips have short sublabels but not a full formula on hover. Accounting P&amp;L already has Copy CSV; Performance does not.
+
+### Locked formulas
+
+```text
+hoursVariance  = loggedHours  - allocatedHours
+costVariance$  = loggedCost   - allocatedCost
+```
+
+Positive = over plan. Missing allocated cost/hours treat allocated as 0 (variance = logged).
+
+**Allocated cost source**
+
+| Date range | Source |
+| --- | --- |
+| All time | `performance.resourcesLifetime[].allocatedCostLife` (already built from Fibery assignments in `ppBuildResourcesLifetime_`) |
+| Custom months | Sum month-prorated **allocated cost** on `laborByPerson` (same join as allocated hours). Today `laborByPerson` has `allocatedHours` but not `allocatedCost`. |
+
+### Work items
+
+| ID | Work | Files |
+| --- | --- | --- |
+| R5.1 | When enriching `laborByPerson` with allocations, add month-prorated `allocatedCost` next to `allocatedHours` (use existing assignment `allocatedCost` / role agg). Include allocated-only people. | `src/deliveryDashboard.js` |
+| R5.2 | Confirm `ppBuildResourcesLifetime_` still fills `allocatedCostLife` from assignments. Variances may be client-derived. | `src/projectPerformanceMetrics.js` |
+| R5.3 | Payload shape change (`laborByPerson.allocatedCost`) requires **`DELIVERY_PNL_CACHE_SCHEMA_VERSION_`** 15 → **16** (server, `DashboardShell.html`, snapshot map). | `deliveryDashboard.js`, `DashboardShell.html`, `dashboardSnapshotStore.js` |
+| R5.4 | Table columns: Name, Role, Allocated hrs, Logged hrs, Hours variance, Allocated cost, Logged cost, Cost variance $. Hours via `formatHours`; money via `formatExpense_`; over-plan variance prefixed `+` or existing negative helper. | `DashboardShell.html` |
+| R5.5 | Date-range builder `buildDeliveryPerfResourcesFromMonths_` / `ensureDeliveryPerfResourceRow_`: accumulate allocated cost from `p.allocatedCost` using the same max-within-month then sum-across-months pattern as hours. | `DashboardShell.html` |
+| R5.6 | Mobile cards: allocated cost, hours variance, cost variance $ under existing lines. | `DashboardShell.html` |
+| R5.7 | KPI tooltips: native `title` plus `aria-describedby` on visually hidden formula text so mobile focus works. Project-summary chips and Performance chips. Copy from the RD tooltip table. Skip Status update chip. | `DashboardShell.html` |
+| R5.8 | Copy CSV: keep `#delivery-pnl-csv-btn` visible on both tabs (remove `fos-delivery-accounting-only` from that button only). Performance serializes visible resource rows (date filter applied). Reuse `writeTextToClipboard_` / `flashDeliveryCsvStatus_`. Activity `delivery_pnl_perf_copy_csv`. Accounting stays `delivery_pnl_copy_csv`. | `DashboardShell.html`, `src/userActivityLog.js` |
+| R5.9 | At ship: extend PRD **FR-137** / **AC-99**; PATCH changelog; `src/*` header sweep; feature 009 if schema bump; overview shipped line. | docs |
+
+### Client helpers
+
+```js
+function perfHoursVariance_(row) {
+  return Number(row.loggedHoursLife || 0) - Number(row.allocatedHoursLife || 0);
+}
+function perfCostVariance_(row) {
+  return Number(row.loggedCostLife || 0) - Number(row.allocatedCostLife || 0);
+}
+```
+
+CSV headers (stable): `Name,Role,Allocated hrs,Logged hrs,Hours variance,Allocated cost,Logged cost,Cost variance $`
+
+Numeric cells: two-decimal hours and dollars (same as Accounting CSV), unformatted so paste is sortable.
+
+### Month-prorate allocated cost (R5.1)
+
+Reuse the hours prorate already on role aggregates. Assignment rows have `allocatedHours` and `allocatedCost`. Carry **cost** the same way as hours (chart allocation line already uses this cost). Do not invent a blended Clockify rate.
+
+If a month has allocated hours but zero allocated cost, show **$0** allocated cost.
+
+### Cache / snapshots
+
+- New `laborByPerson.allocatedCost` → schema **16**.
+- Older snapshots: date-range allocated cost and cost variance fall back to 0; all-time still uses `allocatedCostLife` when present. Do not hide the Performance tab.
+- Confirm `dashboardSnapshotJob.js` still calls `buildDeliveryProjectMonthlyPnLInternal_`.
+
+### Mobile
+
+Same PR as desktop R5. Cards required. Copy CSV in toolbar (≥ 44px). KPI explanations via focus, not hover-only.
+
+### Test plan (R5)
+
+| # | Case | Expect |
+| --- | --- | --- |
+| 1 | Person with allocation + logged time (all time) | Allocated cost matches assignment; variances = logged - allocated |
+| 2 | Logged with no allocation (orange) | Allocated hrs/cost 0; variances = logged amounts |
+| 3 | Custom date range | Hours, allocated cost, and variances follow selected months only |
+| 4 | KPI hover/focus | Each summary + Performance chip shows locked formula text |
+| 5 | Copy CSV Performance | Clipboard matches visible table including new columns |
+| 6 | Copy CSV Accounting | Unchanged monthly P&amp;L CSV |
+| 7 | Empty resources | Nothing to copy; no throw |
+| 8 | Mobile 390px | Cards show new fields; Copy CSV + KPI focus work |
+| 9 | Schema 16 | Old session P&amp;L cache ignored |
+| 10 | Snapshot pre-16 | Tab still renders; missing allocatedCost treated as 0 on filtered rows |
+
+### Risks
+
+| Risk | Mitigation |
+| --- | --- |
+| Date-range allocated cost uses lifetime assignment totals | Keep the same aggregation as allocated hours |
+| Wide table | Existing `.fos-financial-scroll`; mobile cards required |
+| Dual-mode Copy CSV | Branch on `deliveryState.cardMode`; never mix month-grid rows into Performance CSV |
+
+### Effort
+
+Small (S): mostly `DashboardShell.html` plus `laborByPerson` enrich and schema bump.
 
 ## Changelog (plan doc)
 
@@ -216,3 +318,4 @@ Persist on every tab change.
 | --- | --- |
 | 2026-08-10 | Initial Spec Draft plan from Aug 4 feedback. |
 | 2026-08-10 | Locked product decisions; single-ship R1–R4. |
+| 2026-08-19 | **R5** shipped **v3.7.6**: allocated cost + variances, KPI formula tooltips, Performance Copy CSV. |

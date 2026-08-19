@@ -1,6 +1,6 @@
 # Dashboard historical snapshots
 
-> **PRD version 3.6.0** - see `docs/FOS-Dashboard-PRD.md` (**FR-42**, **FR-40**, **FR-104**, **FR-126**, **FR-130**, **FR-137**, **AC-60**, **AC-88**, **AC-92**, **AC-99**). Feature **034** reuses the snapshot root for Live daily caches without changing historical snapshot artifacts. Agreement `cacheSchemaVersion` **4**; Delivery projects **2**; Delivery P&L **14** (feature **040** `performance` block; was **13** for laborByPerson logged vs allocated + Allocated & Billable; was **12** for person hours only).
+> **PRD version 3.7.6** - see `docs/FOS-Dashboard-PRD.md` (**FR-42**, **FR-40**, **FR-104**, **FR-126**, **FR-130**, **FR-137**, **AC-60**, **AC-88**, **AC-92**, **AC-99**). Feature **034** reuses the snapshot root for Live daily caches without changing historical snapshot artifacts. Agreement `cacheSchemaVersion` **4**; Delivery projects **2**; Delivery P&L **16** (feature **040** R5 `laborByPerson.allocatedCost`; was **15** for resource alias merge; was **14** for `performance` block; was **13** for laborByPerson logged vs allocated + Allocated & Billable; was **12** for person hours only).
 
 ## Goal
 
@@ -51,7 +51,7 @@ The `agreement-cache/` and `portfolio-pnl-cache/` folders are **Live-mode daily 
 | `expenses.json` | `buildExpensesDashboardPayload_()` | Spreadsheet tab at job run time; `cacheSchemaVersion: 3` (v2.17.2: category column resolution; was **2** through v2.11.2); skip when **`SNAPSHOT_INCLUDE_EXPENSES`** is false |
 | `pipeline.json` | `buildPipelineDashboardPayload_()` | Merged Opportunity Tracker + Fibery `HubSpot/Deal`; `cacheSchemaVersion: 3` (v2.21.0; was **2** in v2.11.1); skip when **`SNAPSHOT_INCLUDE_PIPELINE`** is false |
 | `resource-assignments.json` | `buildResourceAssignmentDashboardPayload_(start, end)` | Fibery Resource Allocations + Labor Costs actuals; range snapshot date **-30 / +90** days; `cacheSchemaVersion: 2` (v2.19.0; was **1** in v2.18.x); skip when **`SNAPSHOT_INCLUDE_RESOURCE_ASSIGNMENTS`** is false |
-| `delivery-pnl/*.json` | `buildDeliveryProjectMonthlyPnLInternal_` | Batched; continuation trigger if needed; `cacheSchemaVersion: 14` (v3.6.0 / feature **040**: `performance` block with planned/projected margin, EAC, timing review, resourcesLifetime; was **13** in v3.4.12 for laborByPerson allocated hours / % / billable flag; was **12** in v3.4.11 for person hours; was **11** in v3.4.9 for full `resourceAllocations`) |
+| `delivery-pnl/*.json` | `buildDeliveryProjectMonthlyPnLInternal_` | Batched; continuation trigger if needed; `cacheSchemaVersion: 16` (v3.7.6 / feature **040** R5: `laborByPerson.allocatedCost`; was **15** in v3.7.3 for resourcesLifetime alias merge; was **14** in v3.6.0 for `performance` block; was **13** in v3.4.12 for laborByPerson allocated hours / % / billable flag; was **12** in v3.4.11 for person hours; was **11** in v3.4.9 for full `resourceAllocations`) |
 | `portfolio-pnl.json` | `writePortfolioPnlSnapshotBundle_` (aggregates per-project artifacts) | Written at manifest finalize; schema **1** (v2.16.0 / feature **025**); slim portfolio payloads (`portfolioMode`) |
 
 ### Failure policy

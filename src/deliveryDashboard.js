@@ -1,5 +1,5 @@
 /**
- * PRD version 3.7.5 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.7.6 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `pm-overview`, panel
  * `#panel-pm-overview`). Public endpoints, all authorized via
@@ -99,9 +99,10 @@ var DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_ = 2;
  *   v14 - v3.6.0 / feature 040: `performance` block (planned/projected margin,
  *        EAC hours/$, timing review, resourcesLifetime).
  *   v15 - v3.7.3: resourcesLifetime merges alias / first-name duplicates.
+ *   v16 - v3.7.6 / feature 040 R5: laborByPerson.allocatedCost (month-prorated).
  * @const {number}
  */
-var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 15;
+var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 16;
 
 /** @const {number} Default TTL (minutes) for the client-side cache. */
 var DELIVERY_DEFAULT_CACHE_TTL_MIN_ = 10;
@@ -1485,7 +1486,7 @@ function deliveryPnlPersonNamesMatch_(aName, bName) {
  * Calendar-day prorate of Allocated Hours into one month.
  * @param {!Object} row
  * @param {string} monthKey
- * @return {?{ hours: number, percent: ?number, billable: ?boolean, name: string, role: string }}
+ * @return {?{ hours: number, cost: number, percent: ?number, billable: ?boolean, name: string, role: string }}
  * @private
  */
 function prorateAllocationHoursForMonth_(row, monthKey) {
@@ -1493,6 +1494,8 @@ function prorateAllocationHoursForMonth_(row, monthKey) {
   var durEndIso = row.durEnd || null;
   var rowHours = Number(row.allocatedHours || 0);
   if (!isFinite(rowHours) || rowHours < 0) rowHours = 0;
+  var rowCost = Number(row.allocatedCost || 0);
+  if (!isFinite(rowCost) || rowCost < 0) rowCost = 0;
   var pct = deliveryPnlNormalizePercent_(row.percentAllocated);
   var name = stringOrNull_(row.clockifyUserName)
     || stringOrNull_(row.allocationName)
@@ -1527,8 +1530,10 @@ function prorateAllocationHoursForMonth_(row, monthKey) {
   var daysInMonth = calendarDaysInclusiveUtc_(intersection.start, intersection.end);
   if (daysInMonth <= 0) return null;
   var hours = rowHours > 0 ? rowHours * (daysInMonth / totalDays) : 0;
+  var cost = rowCost > 0 ? rowCost * (daysInMonth / totalDays) : 0;
   return {
     hours: hours,
+    cost: cost,
     percent: pct,
     billable: billable,
     name: name,
@@ -1581,6 +1586,7 @@ function enrichMonthsLaborByPersonWithAllocations_(months, allocRows) {
       if (!pers.byRole[roleKey]) {
         pers.byRole[roleKey] = {
           hours: 0,
+          cost: 0,
           pctWeight: 0,
           pctSum: 0,
           billableTrue: false,
@@ -1588,6 +1594,7 @@ function enrichMonthsLaborByPersonWithAllocations_(months, allocRows) {
       }
       var roleAgg = pers.byRole[roleKey];
       roleAgg.hours += slice.hours;
+      roleAgg.cost += Number(slice.cost || 0);
       if (slice.percent != null && isFinite(slice.percent)) {
         var w = slice.hours > 0 ? slice.hours : 1;
         roleAgg.pctWeight += w;
@@ -1627,6 +1634,7 @@ function enrichMonthsLaborByPersonWithAllocations_(months, allocRows) {
       var cost = Number(row.cost || 0);
       var allocPers = findAllocPerson(lName);
       var allocHours = 0;
+      var allocCost = 0;
       var pct = null;
       var billable = null;
       if (allocPers) {
@@ -1635,6 +1643,7 @@ function enrichMonthsLaborByPersonWithAllocations_(months, allocRows) {
         var roleAgg = allocPers.byRole[lRole];
         if (roleAgg) {
           allocHours = roleAgg.hours;
+          allocCost = roleAgg.cost || 0;
           pct = resolvePercent(roleAgg);
         } else {
           var roles = Object.keys(allocPers.byRole);
@@ -1643,6 +1652,7 @@ function enrichMonthsLaborByPersonWithAllocations_(months, allocRows) {
           for (var ri = 0; ri < roles.length; ri++) {
             var ra = allocPers.byRole[roles[ri]];
             allocHours += ra.hours;
+            allocCost += ra.cost || 0;
             if (ra.pctWeight > 0) {
               pctW += ra.pctWeight;
               pctS += ra.pctSum;
@@ -1661,6 +1671,7 @@ function enrichMonthsLaborByPersonWithAllocations_(months, allocRows) {
         hours: logged,
         cost: cost,
         allocatedHours: Math.round(allocHours * 100) / 100,
+        allocatedCost: Math.round(allocCost * 100) / 100,
         percentAllocated: pct,
         allocatedAndBillable: billable,
         highlightOrange: orange,
@@ -1677,13 +1688,14 @@ function enrichMonthsLaborByPersonWithAllocations_(months, allocRows) {
       for (var rj = 0; rj < roleKeys.length; rj++) {
         var rk = roleKeys[rj];
         var rAgg = ap.byRole[rk];
-        if (!(rAgg.hours > 0) && resolvePercent(rAgg) == null) continue;
+        if (!(rAgg.hours > 0) && !(rAgg.cost > 0) && resolvePercent(rAgg) == null) continue;
         enriched.push({
           name: ap.displayName,
           role: rk,
           hours: 0,
           cost: 0,
           allocatedHours: Math.round(rAgg.hours * 100) / 100,
+          allocatedCost: Math.round((rAgg.cost || 0) * 100) / 100,
           percentAllocated: resolvePercent(rAgg),
           allocatedAndBillable: ap.anyBillable ? true : false,
           highlightOrange: false,

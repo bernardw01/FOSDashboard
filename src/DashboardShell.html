@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.7.5 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.7.6 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -6215,7 +6215,7 @@
                   <button type="button" class="btn fos-delivery-view-btn active" data-pnl-view="table" aria-pressed="true">Table</button>
                   <button type="button" class="btn fos-delivery-view-btn" data-pnl-view="chart" aria-pressed="false">Chart</button>
                 </div>
-                <button type="button" class="btn btn-sm fos-delivery-csv-btn fos-delivery-accounting-only" id="delivery-pnl-csv-btn" aria-label="Copy monthly P&amp;L as CSV to clipboard">
+                <button type="button" class="btn btn-sm fos-delivery-csv-btn" id="delivery-pnl-csv-btn" aria-label="Copy table as CSV to clipboard" style="min-height:44px">
                   Copy CSV
                 </button>
                 <span class="small fos-delivery-csv-status" id="delivery-pnl-csv-status" aria-live="polite"></span>
@@ -6256,7 +6256,10 @@
                           <th scope="col">Role</th>
                           <th scope="col" class="num">Allocated hrs</th>
                           <th scope="col" class="num">Logged hrs</th>
-                          <th scope="col" class="num" data-perf-col="cost">Cost</th>
+                          <th scope="col" class="num">Hours variance</th>
+                          <th scope="col" class="num">Allocated cost</th>
+                          <th scope="col" class="num">Logged cost</th>
+                          <th scope="col" class="num">Cost variance $</th>
                         </tr>
                       </thead>
                       <tbody id="delivery-pnl-perf-body"></tbody>
@@ -8031,8 +8034,8 @@
       // flag or `revenueItems[]` per month) is invalidated cleanly when
       // the user upgrades.
       var DELIVERY_PNL_KEY_PREFIX = 'fos_delivery_pnl_';
-      var DELIVERY_PNL_KEY_SUFFIX = '_v14';
-      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 15;
+      var DELIVERY_PNL_KEY_SUFFIX = '_v16';
+      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 16;
       var DELIVERY_STATUS_CLIENT_META_ = {
         on_track: { enumName: 'Agreement On Track', trafficLight: 'green' },
         at_risk: { enumName: 'Agreement At Risk', trafficLight: 'yellow' },
@@ -20189,6 +20192,7 @@
         monthsByKey: {},
         pnlChart: null,
         csvStatusTimer: null,
+        lastPerfRows: [],
         statusUpdateRollback: null,
         statusHistoryDrawerOpen: false,
         monthModal: {
@@ -20830,6 +20834,81 @@
         var x = Number(n);
         if (!isFinite(x) || x === 0) return '$0';
         return '(' + formatMoneyCompact(Math.abs(x)) + ')';
+      }
+
+      function formatPerfSignedHours_(n) {
+        var x = Number(n);
+        if (!isFinite(x) || x === 0) return '0';
+        var body = formatHours(Math.abs(x));
+        if (x > 0) return '+' + body;
+        return '-' + body;
+      }
+
+      function formatPerfSignedMoney_(n) {
+        var x = Number(n);
+        if (!isFinite(x) || x === 0) return '$0';
+        if (x < 0) return '(' + formatMoneyCompact(Math.abs(x)) + ')';
+        return '+' + formatMoneyCompact(x);
+      }
+
+      function deliveryKpiChipHtml_(opts) {
+        opts = opts || {};
+        var title = opts.title ? String(opts.title) : '';
+        var tipId = opts.tipId ? String(opts.tipId) : '';
+        var titleAttr = title ? ' title="' + escapeHtml(title) + '"' : '';
+        var described = tipId ? ' aria-describedby="' + escapeHtml(tipId) + '"' : '';
+        var hidden = tipId && title
+          ? '<span id="' + escapeHtml(tipId) + '" class="visually-hidden">' + escapeHtml(title) + '</span>'
+          : '';
+        return (
+          '<div class="fos-delivery-pnl-kpi-chip' +
+          (opts.chipClass || '') +
+          '"' +
+          titleAttr +
+          described +
+          '>' +
+          '<div class="label">' +
+          escapeHtml(opts.label || '') +
+          '</div>' +
+          '<div class="value">' +
+          (opts.valueHtml || '') +
+          '</div>' +
+          '<div class="sub">' +
+          (opts.subHtml || '') +
+          '</div>' +
+          hidden +
+          '</div>'
+        );
+      }
+
+      var DELIVERY_KPI_TIPS_ = {
+        contract:
+          'Lifetime planned contract value from the agreement (same as Active Projects).',
+        recognized:
+          'Sum of recognized revenue items for this agreement to date.',
+        totalCost:
+          'Labor cost plus Materials and ODC for the agreement to date.',
+        gp:
+          'Revenue recognized minus total cost (recognized basis).',
+        margin:
+          'Gross profit divided by revenue recognized, as a percent. Subtext shows agreement Target Margin when present.',
+        planned:
+          'Agreement Target Margin. Fixed plan for the engagement; not the current month accounting margin.',
+        projected:
+          'Project-level: (revenue to date + remaining planned revenue - cost to date - remaining planned cost) divided by (revenue to date + remaining planned revenue). Smooths lumpy invoice timing.',
+        eacHours:
+          'Actual hours through the as-of month plus remaining planned allocation hours. Budget is total allocated hours when allocations exist.',
+        eacDollars:
+          'Labor plus expenses/ODC actuals to date plus remaining planned allocation cost (and remaining planned ODC when on the P&L). Not labor-only.',
+        actualMargin:
+          '(Revenue - labor - expenses) divided by revenue for months in the selected date range (all time = through as-of). Planned, projected, and EAC stay project-level.',
+      };
+
+      function perfHoursVariance_(row) {
+        return Number(row.loggedHoursLife || 0) - Number(row.allocatedHoursLife || 0);
+      }
+      function perfCostVariance_(row) {
+        return Number(row.loggedCostLife || 0) - Number(row.allocatedCostLife || 0);
       }
 
       function showDelivery() {
@@ -29487,31 +29566,45 @@
         els.deliveryPnlKpiStrip.classList.remove('d-none');
         els.deliveryPnlKpiStrip.classList.add('d-flex');
         els.deliveryPnlKpiStrip.innerHTML =
-          '<div class="fos-delivery-pnl-kpi-chip">' +
-            '<div class="label">Contract value</div>' +
-            '<div class="value">' + formatMoneyCompact(project.contractValue) + '</div>' +
-            '<div class="sub">Lifetime planned</div>' +
-          '</div>' +
-          '<div class="fos-delivery-pnl-kpi-chip">' +
-            '<div class="label">Revenue recognized</div>' +
-            '<div class="value">' + formatMoneyCompact(project.revenueRecognized) + '</div>' +
-            '<div class="sub">' + (project.completionPct === null ? ' - ' : formatPct(project.completionPct) + '% complete') + '</div>' +
-          '</div>' +
-          '<div class="fos-delivery-pnl-kpi-chip">' +
-            '<div class="label">Total cost</div>' +
-            '<div class="value">' + formatExpense_(totalCost) + '</div>' +
-            '<div class="sub">Labor + Materials &amp; ODC</div>' +
-          '</div>' +
-          '<div class="fos-delivery-pnl-kpi-chip' + grossChipClass + '">' +
-            '<div class="label">Gross profit</div>' +
-            '<div class="value">' + formatMoneyParenIfNegative_(grossProfit) + '</div>' +
-            '<div class="sub">Recognized basis</div>' +
-          '</div>' +
-          '<div class="fos-delivery-pnl-kpi-chip' + marginChipClass + '">' +
-            '<div class="label">Margin</div>' +
-            '<div class="value">' + formatMarginPct(marginPct) + '</div>' +
-            '<div class="sub">' + (targetPct === null ? 'No target' : 'tgt ' + formatMarginPct(targetPct)) + '</div>' +
-          '</div>';
+          deliveryKpiChipHtml_({
+            tipId: 'delivery-kpi-tip-contract',
+            title: DELIVERY_KPI_TIPS_.contract,
+            label: 'Contract value',
+            valueHtml: formatMoneyCompact(project.contractValue),
+            subHtml: 'Lifetime planned',
+          }) +
+          deliveryKpiChipHtml_({
+            tipId: 'delivery-kpi-tip-recognized',
+            title: DELIVERY_KPI_TIPS_.recognized,
+            label: 'Revenue recognized',
+            valueHtml: formatMoneyCompact(project.revenueRecognized),
+            subHtml: escapeHtml(
+              project.completionPct === null ? ' - ' : formatPct(project.completionPct) + '% complete'
+            ),
+          }) +
+          deliveryKpiChipHtml_({
+            tipId: 'delivery-kpi-tip-cost',
+            title: DELIVERY_KPI_TIPS_.totalCost,
+            label: 'Total cost',
+            valueHtml: formatExpense_(totalCost),
+            subHtml: 'Labor + Materials &amp; ODC',
+          }) +
+          deliveryKpiChipHtml_({
+            tipId: 'delivery-kpi-tip-gp',
+            title: DELIVERY_KPI_TIPS_.gp,
+            label: 'Gross profit',
+            valueHtml: formatMoneyParenIfNegative_(grossProfit),
+            subHtml: 'Recognized basis',
+            chipClass: grossChipClass,
+          }) +
+          deliveryKpiChipHtml_({
+            tipId: 'delivery-kpi-tip-margin',
+            title: DELIVERY_KPI_TIPS_.margin,
+            label: 'Margin',
+            valueHtml: formatMarginPct(marginPct),
+            subHtml: escapeHtml(targetPct === null ? 'No target' : 'tgt ' + formatMarginPct(targetPct)),
+            chipClass: marginChipClass,
+          });
         removeDeliveryStatusChip_();
       }
 
@@ -30342,6 +30435,7 @@
           role: role || '(No role)',
           allocatedHoursLife: 0,
           loggedHoursLife: 0,
+          allocatedCostLife: 0,
           loggedCostLife: 0,
           highlightOrange: false,
         };
@@ -30364,6 +30458,8 @@
             mRow.loggedCostLife += Number(p.cost || 0);
             var monthAlloc = Number(p.allocatedHours || 0);
             if (monthAlloc > mRow.allocatedHoursLife) mRow.allocatedHoursLife = monthAlloc;
+            var monthAllocCost = Number(p.allocatedCost || 0);
+            if (monthAllocCost > mRow.allocatedCostLife) mRow.allocatedCostLife = monthAllocCost;
             if (p.allocatedAndBillable === false || p.highlightOrange === true) {
               mRow.highlightOrange = true;
             }
@@ -30375,6 +30471,7 @@
             life.loggedHoursLife += src.loggedHoursLife;
             life.loggedCostLife += src.loggedCostLife;
             life.allocatedHoursLife += src.allocatedHoursLife;
+            life.allocatedCostLife += src.allocatedCostLife || 0;
             if (src.highlightOrange) life.highlightOrange = true;
           }
         }
@@ -30382,7 +30479,7 @@
         var keys = Object.keys(byKey);
         for (var k = 0; k < keys.length; k++) {
           var r = byKey[keys[k]];
-          if (r.loggedHoursLife <= 0 && r.allocatedHoursLife <= 0 && r.loggedCostLife <= 0) {
+          if (r.loggedHoursLife <= 0 && r.allocatedHoursLife <= 0 && r.loggedCostLife <= 0 && !(r.allocatedCostLife > 0)) {
             continue;
           }
           if (r.loggedHoursLife > 0 && r.allocatedHoursLife <= 0) r.highlightOrange = true;
@@ -30495,30 +30592,45 @@
             var eacH = perf.eacHours || {};
             var eacD = perf.eacDollars || {};
             els.deliveryPnlPerfKpis.innerHTML =
-              '<div class="fos-delivery-pnl-kpi-chip">' +
-                '<div class="label">Planned margin</div>' +
-                '<div class="value">' + escapeHtml(formatPerfPct_(perf.plannedMarginPct)) + '</div>' +
-                '<div class="sub">Target margin</div></div>' +
-              '<div class="fos-delivery-pnl-kpi-chip">' +
-                '<div class="label">Projected margin</div>' +
-                '<div class="value">' + escapeHtml(formatPerfPct_(perf.projectedMarginPct)) + '</div>' +
-                '<div class="sub">Project-level (smoothed)</div></div>' +
-              '<div class="fos-delivery-pnl-kpi-chip">' +
-                '<div class="label">EAC hours</div>' +
-                '<div class="value">' + escapeHtml(formatHours(eacH.value || 0)) + '</div>' +
-                '<div class="sub">' +
-                  (eacH.budgeted == null ? 'No budget' : 'Budget ' + formatHours(eacH.budgeted)) +
-                '</div></div>' +
-              '<div class="fos-delivery-pnl-kpi-chip">' +
-                '<div class="label">EAC $</div>' +
-                '<div class="value">' + formatExpense_(eacD.value || 0) + '</div>' +
-                '<div class="sub">Labor + expenses/ODC' +
-                  (eacD.budgeted == null ? '' : ' · budg ' + formatMoneyCompact(eacD.budgeted)) +
-                '</div></div>' +
-              '<div class="fos-delivery-pnl-kpi-chip">' +
-                '<div class="label">Actual margin to date</div>' +
-                '<div class="value">' + escapeHtml(formatPerfPct_(actualMargin)) + '</div>' +
-                '<div class="sub">' + escapeHtml(actualSub) + '</div></div>';
+              deliveryKpiChipHtml_({
+                tipId: 'delivery-perf-kpi-planned',
+                title: DELIVERY_KPI_TIPS_.planned,
+                label: 'Planned margin',
+                valueHtml: escapeHtml(formatPerfPct_(perf.plannedMarginPct)),
+                subHtml: 'Target margin',
+              }) +
+              deliveryKpiChipHtml_({
+                tipId: 'delivery-perf-kpi-projected',
+                title: DELIVERY_KPI_TIPS_.projected,
+                label: 'Projected margin',
+                valueHtml: escapeHtml(formatPerfPct_(perf.projectedMarginPct)),
+                subHtml: 'Project-level (smoothed)',
+              }) +
+              deliveryKpiChipHtml_({
+                tipId: 'delivery-perf-kpi-eac-h',
+                title: DELIVERY_KPI_TIPS_.eacHours,
+                label: 'EAC hours',
+                valueHtml: escapeHtml(formatHours(eacH.value || 0)),
+                subHtml: escapeHtml(
+                  eacH.budgeted == null ? 'No budget' : 'Budget ' + formatHours(eacH.budgeted)
+                ),
+              }) +
+              deliveryKpiChipHtml_({
+                tipId: 'delivery-perf-kpi-eac-d',
+                title: DELIVERY_KPI_TIPS_.eacDollars,
+                label: 'EAC $',
+                valueHtml: formatExpense_(eacD.value || 0),
+                subHtml:
+                  'Labor + expenses/ODC' +
+                  (eacD.budgeted == null ? '' : ' · budg ' + formatMoneyCompact(eacD.budgeted)),
+              }) +
+              deliveryKpiChipHtml_({
+                tipId: 'delivery-perf-kpi-actual',
+                title: DELIVERY_KPI_TIPS_.actualMargin,
+                label: 'Actual margin to date',
+                valueHtml: escapeHtml(formatPerfPct_(actualMargin)),
+                subHtml: escapeHtml(actualSub),
+              });
           }
         }
 
@@ -30562,25 +30674,32 @@
         var cards = els.deliveryPnlPerfCards;
         var empty = els.deliveryPnlPerfEmpty;
         if (!rows.length) {
+          deliveryState.lastPerfRows = [];
           if (tbody) tbody.innerHTML = '';
           if (cards) cards.innerHTML = '';
           if (empty) empty.classList.remove('d-none');
           return;
         }
         if (empty) empty.classList.add('d-none');
+        deliveryState.lastPerfRows = rows;
         var html = '';
         var cardsHtml = '';
         for (var i = 0; i < rows.length; i++) {
           var r = rows[i];
           var orange = r.highlightOrange ? ' fos-delivery-pnl-person-orange' : '';
           var orangeTitle = r.highlightOrange ? ' title="' + escapeHtml(PERF_ORANGE_TITLE_) + '"' : '';
+          var hVar = perfHoursVariance_(r);
+          var cVar = perfCostVariance_(r);
           html +=
             '<tr class="' + orange.trim() + '"' + orangeTitle + '>' +
               '<td>' + escapeHtml(r.name || ' - ') + '</td>' +
               '<td>' + escapeHtml(r.role || ' - ') + '</td>' +
               '<td class="num">' + escapeHtml(formatHours(r.allocatedHoursLife || 0)) + '</td>' +
               '<td class="num">' + escapeHtml(formatHours(r.loggedHoursLife || 0)) + '</td>' +
+              '<td class="num">' + escapeHtml(formatPerfSignedHours_(hVar)) + '</td>' +
+              '<td class="num">' + formatExpense_(r.allocatedCostLife || 0) + '</td>' +
               '<td class="num">' + formatExpense_(r.loggedCostLife || 0) + '</td>' +
+              '<td class="num">' + formatPerfSignedMoney_(cVar) + '</td>' +
             '</tr>';
           cardsHtml +=
             '<div class="fos-delivery-perf-resource-card' + (r.highlightOrange ? ' is-orange' : '') + '"' +
@@ -30588,8 +30707,11 @@
               '<div class="fw-semibold">' + escapeHtml(r.name || ' - ') + '</div>' +
               '<div class="small" style="color:var(--ag-text-muted)">' + escapeHtml(r.role || '') + '</div>' +
               '<div class="small mt-2">Allocated: ' + escapeHtml(formatHours(r.allocatedHoursLife || 0)) +
-                ' · Logged: ' + escapeHtml(formatHours(r.loggedHoursLife || 0)) + '</div>' +
-              '<div class="small">Cost: ' + formatExpense_(r.loggedCostLife || 0) + '</div>' +
+                ' · Logged: ' + escapeHtml(formatHours(r.loggedHoursLife || 0)) +
+                ' · Hours var: ' + escapeHtml(formatPerfSignedHours_(hVar)) + '</div>' +
+              '<div class="small">Allocated cost: ' + formatExpense_(r.allocatedCostLife || 0) +
+                ' · Logged cost: ' + formatExpense_(r.loggedCostLife || 0) +
+                ' · Cost var: ' + formatPerfSignedMoney_(cVar) + '</div>' +
             '</div>';
         }
         if (tbody) tbody.innerHTML = html;
@@ -31314,7 +31436,65 @@
        * Uses navigator.clipboard with a textarea fallback so the
        * older privacy-mode / non-secure-context case still works.
        * ------------------------------------------------------------- */
+      function copyDeliveryPerfAsCsv_() {
+        var people = deliveryState.lastPerfRows || [];
+        if (!people.length) {
+          flashDeliveryCsvStatus_('Nothing to copy');
+          return;
+        }
+        var headers = [
+          'Name',
+          'Role',
+          'Allocated hrs',
+          'Logged hrs',
+          'Hours variance',
+          'Allocated cost',
+          'Logged cost',
+          'Cost variance $',
+        ];
+        var numFmt = function (n) {
+          var x = Number(n);
+          if (!isFinite(x)) return '0.00';
+          return (Math.round(x * 100) / 100).toFixed(2);
+        };
+        var esc = function (s) {
+          var v = String(s == null ? '' : s);
+          if (v.indexOf(',') >= 0 || v.indexOf('"') >= 0 || v.indexOf('\n') >= 0) {
+            v = '"' + v.replace(/"/g, '""') + '"';
+          }
+          return v;
+        };
+        var rows = [headers.join(',')];
+        for (var i = 0; i < people.length; i++) {
+          var r = people[i] || {};
+          rows.push([
+            esc(r.name || ''),
+            esc(r.role || ''),
+            numFmt(r.allocatedHoursLife),
+            numFmt(r.loggedHoursLife),
+            numFmt(perfHoursVariance_(r)),
+            numFmt(r.allocatedCostLife),
+            numFmt(r.loggedCostLife),
+            numFmt(perfCostVariance_(r)),
+          ].join(','));
+        }
+        writeTextToClipboard_(rows.join('\n'))
+          .then(function () {
+            flashDeliveryCsvStatus_('Copied ' + people.length + ' rows');
+            var payload = deliveryState.lastPnlPayload || {};
+            logActivity_('delivery_pnl_perf_copy_csv', 'pm-overview',
+              'agreementId=' + (payload.agreementId || '') + ' · rows=' + people.length);
+          })
+          .catch(function () {
+            flashDeliveryCsvStatus_('Copy failed');
+          });
+      }
+
       function copyDeliveryPnLAsCsv_() {
+        if (deliveryState.cardMode === 'performance') {
+          copyDeliveryPerfAsCsv_();
+          return;
+        }
         var payload = deliveryState.lastPnlPayload;
         if (!payload || !payload.months || !payload.months.length) {
           flashDeliveryCsvStatus_('Nothing to copy');
