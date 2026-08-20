@@ -1,5 +1,5 @@
 /**
- * PRD version 3.7.6 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.8.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * AI Usage dashboard (feature 023). Reads Fibery Claude API Costs via daily Drive
  * cache (`aiUsageDashboardCache.js`) with Clockify User join for classification.

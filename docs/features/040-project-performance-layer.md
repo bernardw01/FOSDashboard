@@ -1,14 +1,16 @@
 # Feature: Project Performance layer (Delivery)
 
-> **Status:** Implemented in code (**v3.6.0**; patched through **v3.7.6**); Teamwork intake pending  
-> **PRD version:** **3.7.6** (`FR-137`, `AC-99`)
+> **Status:** Shipped (**v3.6.0**; patched through **v3.8.2**)  
+> **PRD version:** **3.8.2** (`FR-137`, `AC-99`)  
 > **Feature ID:** **040**  
 > **Release type:** Enhancement  
 > **Task list:** Delivery  
 > **Depends on:** Delivery project P&L (**006**); Resource allocation chart / assignments (**019**, **024**); Month modal hours by person (**v3.4.11** / **v3.4.12**); Mobile shell (**029**); Supabase Live data layer (**036**); Engagement Update metrics (**037**) for shared plan / EAC formulas  
 > **Implementation plan:** [040-project-performance-layer-implementation-plan.md](040-project-performance-layer-implementation-plan.md)  
 > **Source:** [Performance Hub Requested Changes 2026-08-04](file:///c:/code/DEAP-Vault/01-PROJECTS/Clients/Harpin/Initiatives/Performance-Hub-Requested-Changes-2026-08-04.md) (demo feedback: Bernard, Jordan, Guy, Jess, Niurvi)  
-> **Teamwork:** Create notebook + single release task `Feature 040 - Project Performance layer` after intake. See `docs/teamwork-workflow.md`.  
+> **Teamwork notebook:** [Feature 040 - Project Performance layer](https://win.godeap.io/app/projects/1615262/notebooks/313386)  
+> **Implementation plan notebook:** [Feature 040 - Implementation plan (Project Performance)](https://win.godeap.io/app/projects/1615262/notebooks/313387)  
+> **Release task:** [v3.6.0 - Project Performance layer](https://win.godeap.io/app/tasks/40848294)  
 > **Template reference:** `docs/FEATURE_TEMPLATE.md`
 
 ---
@@ -135,11 +137,18 @@ Extend the **Delivery** selected-project experience with a **Project Performance
 
 ### Hours alongside dollars
 
-- [ ] **Given** Project Performance cost / resource section, **when** the card renders, **then** allocated hours, logged hours, allocated cost, logged cost, hours variance, and cost variance $ appear in one table (no $ / Hours toggle).
+- [ ] **Given** Project Performance cost / resource section **and** the project has at least one resource allocation record, **when** the card renders, **then** allocated hours, logged hours, allocated cost, logged cost, hours variance, and cost variance $ appear in one table (no $ / Hours toggle).
 - [ ] **Given** resource rows, **when** rendered with the default date range, **then** each resource can show **lifetime logged hours**, **lifetime allocated hours**, **lifetime allocated cost**, and **lifetime logged cost** for the project (full life), not only the selected month.
 - [ ] **Given** orange / non-billable / unallocated rules already live, **when** the table renders, **then** those rules continue to apply and a legend/tooltip explains orange highlighting.
 - [ ] **Given** a resource with allocated hours/cost and logged hours/cost, **when** the table renders, **then** **Hours variance** = logged − allocated and **Cost variance $** = logged cost − allocated cost (positive over plan). Zero allocated with logged time still shows variance equal to logged amounts.
 - [ ] **Given** the custom date range is not all time, **when** resource rows render, **then** allocated cost and both variances use the same calendar-month filter as hours and logged cost (month-prorated allocation cost, not the unfiltered lifetime assignment total).
+
+### No resource plan (v3.8.2)
+
+- [ ] **Given** a selected project whose Delivery P&L payload has **`resourceAllocations.hasAllocations !== true`** (no Fibery/Datastore allocation records), **when** the user opens **Project Performance**, **then** the resource table (desktop) and mobile resource cards are hidden, and an inline dialog / empty-state panel shows the title **No Resource Plan Found**.
+- [ ] **Given** the same project has allocation records (`hasAllocations === true`), **when** Project Performance renders, **then** the resource table and orange legend behave as before (including labor-only orange rows when present).
+- [ ] **Given** no resource plan, **when** Project Performance renders, **then** Performance KPIs and the date-range control remain visible (only the resource table is replaced).
+- [ ] **Given** viewport width **&lt; 768px**, **when** there is no resource plan, **then** the **No Resource Plan Found** panel is readable and not desktop-only (no reliance on a wide table).
 
 ### Date range
 
@@ -339,8 +348,9 @@ Internal build order for one Feature **040** / one Teamwork release task (do not
 | **R3** | EAC hours + EAC dollars (labor + expenses/ODC) |
 | **R4** | Accounting vs Project Performance tabs; CE/Finance defaults; Engagement Review CTA |
 | **R5** | Allocated cost + hours/cost variance columns; KPI formula tooltips; Performance Copy CSV (follow-on PATCH after **v3.7.5**) |
+| **R6** | No resource plan empty dialog when `hasAllocations` is false (**v3.8.2**) |
 
-Ship **R1-R4 together** as a single MINOR (**v3.6.0**). **R5** is a follow-on PATCH. Implementation: [040-project-performance-layer-implementation-plan.md](040-project-performance-layer-implementation-plan.md) **R5** section.
+Ship **R1-R4 together** as a single MINOR (**v3.6.0**). **R5** / **R6** are follow-on PATCHes. Implementation: [040-project-performance-layer-implementation-plan.md](040-project-performance-layer-implementation-plan.md); empty-state plan: [040-no-resource-plan-empty-implementation-plan.md](040-no-resource-plan-empty-implementation-plan.md).
 
 ---
 
@@ -354,7 +364,7 @@ Ship **R1-R4 together** as a single MINOR (**v3.6.0**). **R5** is a follow-on PA
 
 | Date | Request | Disposition |
 | --- | --- | --- |
-| 2026-08-19 | Project Performance table: add **Allocated cost**, **cost variance $**, and **hours variance**. PM Overview KPIs: hover text explaining each calculation. Project Performance: **Copy CSV** of table values. | Accepted as **R5**. Locked formulas: hours variance = logged − allocated; cost variance $ = logged cost − allocated cost. Tooltips cover project-summary chips and Performance chips. |
+| 2026-08-20 | Project Performance: when no resource allocation records exist for the selected project, hide the resource table and show **No Resource Plan Found**. | Accepted as **R6** (**v3.8.2**). Gate on `resourceAllocations.hasAllocations`; KPIs stay visible. |
 
 ---
 
@@ -366,3 +376,4 @@ Ship **R1-R4 together** as a single MINOR (**v3.6.0**). **R5** is a follow-on PA
 | 2026-08-10 | Locked: CE/Finance default tabs; project-level projected margin smoothing; EAC $ = labor + expenses/ODC; timing badge = negative period GP with later planned revenue; one Feature / one ship. |
 | 2026-08-18 | **v3.7.5:** Remove $ / Hours toggle; orange legend/tooltip; custom date range (default all time) to the right of Actual margin to date. |
 | 2026-08-19 | **v3.7.6 / R5:** Allocated cost + hours/cost variance columns; KPI formula tooltips on PM Overview; Performance Copy CSV. Delivery P&L schema **16**. |
+| 2026-08-20 | **v3.8.2 / R6:** When `resourceAllocations.hasAllocations` is false, hide the Performance resource table and show **No Resource Plan Found**. |

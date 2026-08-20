@@ -1,5 +1,5 @@
 /**
- * PRD version 3.7.6 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.8.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 032 - FinOps Ask AI (panel-scoped Q&A).
  */
@@ -22,6 +22,7 @@ var FINOPS_ASK_SUPPORTED_PANELS_ = {
   'resource-assignments': true,
   delivery: true,
   'pm-overview': true,
+  'services-summary': true,
   'revenue-review': true,
   'portfolio-pnl': true,
   expenses: true,
@@ -65,13 +66,21 @@ function finopsAskCanAccessPanel_(auth, panelId) {
     return typeof canAccessExpensesDashboard_ === 'function' ? canAccessExpensesDashboard_(auth) : false;
   }
   if (
-    panelId === 'agreement-dashboard' ||
     panelId === 'operations' ||
     panelId === 'labor-hours' ||
     panelId === 'delivery' ||
     panelId === 'pm-overview' ||
+    panelId === 'services-summary' ||
     panelId === 'revenue-review'
   ) {
+    if (auth.fiberyAccess === false) {
+      return false;
+    }
+  }
+  if (panelId === 'agreement-dashboard') {
+    if (typeof canAccessAgreementDashboard_ === 'function' && !canAccessAgreementDashboard_(auth)) {
+      return false;
+    }
     if (auth.fiberyAccess === false) {
       return false;
     }

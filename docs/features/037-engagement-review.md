@@ -1,6 +1,6 @@
 # Feature: Engagement Review (Delivery)
 
-> **Status:** Implemented in code (**v3.5.2**); Teamwork Spec Draft notebooks synced  
+> **Status:** Shipped (**v3.5.2**; foundation **v3.2.0**)  
 > **PRD version:** **3.5.2** (`FR-135`, `FR-136`, `AC-97`, `AC-98`) (extends prior **v3.2.x** Engagement Review foundation in `src/`)  
 > **Feature ID:** **037**  
 > **Release type:** Enhancement  
@@ -10,7 +10,7 @@
 > **Inbox source:** [Idea - View for Monthly Financial Health Check](https://win.godeap.io/app/tasks/40478571) (Jess Williams)  
 > **Teamwork notebook:** [Feature 037 - Engagement Review](https://win.godeap.io/app/projects/1615262/notebooks/312850)  
 > **Implementation plan notebook:** [Feature 037 - Implementation plan (Engagement Review)](https://win.godeap.io/app/projects/1615262/notebooks/312851)  
-> **Release task:** [Feature 037 - Engagement Review](https://win.godeap.io/app/tasks/40579193)  
+> **Release task:** [v3.5.2 - Engagement Review](https://win.godeap.io/app/tasks/40579193)  
 > **Teamwork workflow:** See `docs/teamwork-workflow.md`.  
 > **Template reference:** DEAP Monthly Project Status Report (`deap-monthly-status-template.html`)
 

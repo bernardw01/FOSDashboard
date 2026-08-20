@@ -1,5 +1,5 @@
 /**
- * PRD version 3.7.6 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.8.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin usage analytics (feature 012).
  *
@@ -32,6 +32,8 @@ var USAGE_STATS_ROUTE_LABELS_ = {
   'labor-hours': 'Labor hours',
   delivery: 'Delivery - Projects & P&L',
   'revenue-review': 'Revenue review',
+  'services-summary': 'Services Summary',
+  'pm-overview': 'PM Overview',
   settings: 'Settings',
   shell: 'Shell / data source',
   unknown: 'Unknown',

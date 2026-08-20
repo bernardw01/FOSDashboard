@@ -1,12 +1,15 @@
 # Implementation plan: Feature 040 - Project Performance layer
 
 > **Feature spec:** [040-project-performance-layer.md](040-project-performance-layer.md)  
-> **Status:** R1-R4 implemented in `src/` (**v3.6.0**; patched **v3.7.5**). **R5** shipped **v3.7.6**.  
+> **Status:** Shipped (**v3.6.0**; patched through **v3.8.2**). R1-R6 in product.  
 > **Feature ID:** **040**  
 > **Task list:** Delivery  
-> **Ship type:** Enhancement (single MINOR **3.6.0**; one Teamwork release)  
+> **Ship type:** Enhancement (single MINOR **3.6.0**; one Teamwork release; patches through **v3.8.2**)  
 > **Depends on:** Delivery P&L (**006**); allocation overlays (**019** / **024**); person hours modal (**v3.4.11+**); Mobile (**029**); Supabase (**036**); Engagement Update metrics (**037**)  
 > **Source feedback:** Performance Hub Requested Changes 2026-08-04  
+> **Teamwork notebook:** [Feature 040 - Implementation plan (Project Performance)](https://win.godeap.io/app/projects/1615262/notebooks/313387)  
+> **Feature notebook:** [Feature 040 - Project Performance layer](https://win.godeap.io/app/projects/1615262/notebooks/313386)  
+> **Release task:** [v3.6.0 - Project Performance layer](https://win.godeap.io/app/tasks/40848294)
 
 ## Summary
 

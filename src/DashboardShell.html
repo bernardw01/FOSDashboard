@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.7.6 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.8.2 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -112,6 +112,7 @@
     #panel-agreement-dashboard.fos-agreement-root,
     #panel-operations.fos-agreement-root,
     #panel-pm-overview.fos-agreement-root,
+    #panel-services-summary.fos-agreement-root,
     #panel-revenue-review.fos-agreement-root,
     #panel-engagement-review.fos-agreement-root,
     #panel-expenses.fos-agreement-root,
@@ -1673,6 +1674,27 @@
       background: #ed8936;
       flex-shrink: 0;
     }
+    .fos-delivery-perf-no-plan {
+      display: flex;
+      justify-content: center;
+      padding: 1.25rem 0.75rem 1.5rem;
+    }
+    .fos-delivery-perf-no-plan-dialog {
+      width: 100%;
+      max-width: 28rem;
+      padding: 1.25rem 1.5rem;
+      border: 1px solid var(--ag-border);
+      border-radius: 12px;
+      background: var(--surface2, #092747);
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+    }
+    .fos-delivery-perf-no-plan-title {
+      margin: 0 0 0.35rem;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--ag-text);
+    }
     .fos-delivery-perf-resource-card {
       border: 1px solid var(--ag-border);
       border-radius: 6px;
@@ -1707,6 +1729,67 @@
     @media (min-width: 768px) {
       .fos-delivery-perf-mobile-cards.fos-mobile-only {
         display: none !important;
+      }
+    }
+    #panel-services-summary .ss-table-wrap {
+      overflow-x: auto;
+    }
+    #panel-services-summary .ss-mobile-cards {
+      display: none;
+    }
+    #panel-services-summary .ss-mobile-card {
+      border: 1px solid var(--ag-border);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      margin-bottom: 0.65rem;
+      background: var(--ag-surface2);
+    }
+    #panel-services-summary .ss-mobile-card .ss-card-title {
+      font-weight: 700;
+      margin-bottom: 0.15rem;
+    }
+    #panel-services-summary .ss-mobile-card .ss-card-meta {
+      color: var(--ag-text-muted);
+      font-size: 0.8125rem;
+      margin-bottom: 0.5rem;
+    }
+    #panel-services-summary .ss-mobile-card dl {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.2rem 0.75rem;
+      margin: 0;
+    }
+    #panel-services-summary .ss-mobile-card dt {
+      color: var(--ag-text-muted);
+      font-weight: 500;
+    }
+    #panel-services-summary .ss-mobile-card dd {
+      margin: 0;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    #panel-services-summary .fos-ss-sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+    #panel-services-summary .fos-ss-sortable:hover {
+      color: var(--ag-accent);
+    }
+    #panel-services-summary .fos-ss-sortable.sort-active {
+      color: var(--ag-accent);
+    }
+    #panel-services-summary .ss-row-low-margin td:first-child {
+      box-shadow: inset 3px 0 0 var(--ag-warn);
+    }
+    @media (max-width: 767.98px) {
+      #panel-services-summary .ss-desktop-filters .fos-util-multi .multi-trigger {
+        min-height: 44px;
+      }
+      #panel-services-summary .ss-table-wrap {
+        display: none;
+      }
+      #panel-services-summary .ss-mobile-cards {
+        display: block;
       }
     }
     .fos-delivery-view-group .fos-delivery-view-btn {
@@ -6244,11 +6327,17 @@
                     </div>
                   </div>
                   <div class="d-none fos-delivery-perf-badge mb-3" id="delivery-pnl-perf-badge" role="status"></div>
-                  <p class="small mb-2 fos-delivery-perf-orange-legend" style="color: var(--ag-text-muted)" title="Orange highlight: logged time without a Fibery allocation, or allocation not marked Allocated &amp; Billable (not on the SOW).">
+                  <div class="d-none fos-delivery-perf-no-plan" id="delivery-pnl-perf-no-plan" role="status" aria-live="polite">
+                    <div class="fos-delivery-perf-no-plan-dialog">
+                      <p class="fos-delivery-perf-no-plan-title">No Resource Plan Found</p>
+                      <p class="small mb-0" style="color: var(--ag-text-muted)">This project has no resource allocation records.</p>
+                    </div>
+                  </div>
+                  <p class="small mb-2 fos-delivery-perf-orange-legend" id="delivery-pnl-perf-orange-legend" style="color: var(--ag-text-muted)" title="Orange highlight: logged time without a Fibery allocation, or allocation not marked Allocated &amp; Billable (not on the SOW).">
                     <span class="fos-delivery-perf-orange-swatch" aria-hidden="true"></span>
                     Orange highlight: logged time without an allocation, or allocation not marked Allocated &amp; Billable in Fibery.
                   </p>
-                  <div class="fos-financial-scroll fos-delivery-perf-desktop-table mb-2">
+                  <div class="fos-financial-scroll fos-delivery-perf-desktop-table mb-2" id="delivery-pnl-perf-table-wrap">
                     <table class="fos-financial-table" aria-label="Resource performance">
                       <thead>
                         <tr>
@@ -6303,6 +6392,109 @@
                 <p class="small mb-0 mt-2 d-none" id="delivery-pnl-error" style="color: var(--ag-danger)" role="alert"></p>
                 <p class="small mb-0 mt-2 d-none fos-delivery-reconcile" id="delivery-pnl-reconcile"></p>
               </div>
+            </section>
+          </div>
+        </div>
+
+        <!-- Feature 043: Services Summary (active Services agreements). -->
+        <div id="panel-services-summary" class="d-none fos-agreement-root">
+          <div id="ss-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
+          <div class="fos-agreement-inner shadow-lg">
+            <div class="fos-loading-overlay d-none" id="ss-loading" role="status" aria-live="polite" aria-hidden="true">
+              <div class="fos-loading-spinner" aria-hidden="true"></div>
+              <span class="fos-loading-label">Loading Services Summary…</span>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <div class="flex-grow-1 min-w-0">
+                <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Services Summary</h1>
+                <p class="small mb-0" id="ss-subtitle" style="color: var(--ag-text-muted)">
+                  Portfolio of active Services agreements
+                </p>
+              </div>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 mb-4 pb-3 border-bottom" style="border-color: var(--ag-border) !important">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="ss-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
+                Refresh
+              </button>
+              <span class="small" id="ss-last-refresh" style="color: var(--ag-text-muted)">Last refreshed:  - </span>
+              <span class="d-none small" id="ss-stale-badge" style="color: var(--ag-warn); font-weight: 600">Stale</span>
+              <span class="small d-none text-danger" id="ss-fetch-error" role="alert"></span>
+            </div>
+
+            <section class="fos-section-card mb-3 ss-desktop-filters" aria-labelledby="ss-filters-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="ss-filters-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Filters</h2>
+                <button type="button" class="fos-util-clear-btn ms-auto" id="ss-clear-filters-btn">Clear filters</button>
+              </div>
+              <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-4">
+                  <label class="small d-block mb-1" style="color: var(--ag-text-muted)">Customer</label>
+                  <div class="fos-util-multi">
+                    <button type="button" class="multi-trigger w-100" id="ss-customer-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">All customers</button>
+                    <ul class="dropdown-menu" id="ss-customer-menu" aria-label="Customer filter"></ul>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <div class="row row-cols-1 row-cols-md-3 g-3 mb-3">
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-blue h-100" title="Count of active Services agreements after filters. Same active-state rules as PM Overview (Closed-Lost excluded).">
+                  <div class="label">Active Engagements</div>
+                  <div class="value" id="ss-kpi-active">0</div>
+                  <div class="sub" id="ss-kpi-active-sub">Services agreements</div>
+                </div>
+              </div>
+              <div class="col">
+                  <div class="fos-agreement-kpi kpi-yellow h-100" title="Count of visible Services agreements whose current margin is below Target Margin when set, otherwise below the portfolio low-margin threshold (35%).">
+                  <div class="label">Low Margin Projects</div>
+                  <div class="value" id="ss-kpi-low-margin">0</div>
+                  <div class="sub" id="ss-kpi-low-margin-sub">Below target or 35%</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-green h-100" title="This calendar month: sum of revenue-item Target Amounts whose Target Date falls in the month, versus recognized items invoiced in the month (Actual Amount if non-zero, else Target Amount).">
+                  <div class="label">Scheduled vs invoiced</div>
+                  <div class="value" id="ss-kpi-month">$0 / $0</div>
+                  <div class="sub" id="ss-kpi-month-sub">This month</div>
+                </div>
+              </div>
+            </div>
+
+            <section class="fos-section-card mb-3" aria-labelledby="ss-table-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="ss-table-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Active agreements</h2>
+                <span class="small" style="color: var(--ag-text-muted)" id="ss-table-count">0 agreements</span>
+                <div class="ms-auto fos-delivery-search-wrap">
+                  <input
+                    type="search"
+                    class="form-control form-control-sm fos-delivery-search"
+                    id="ss-search-input"
+                    aria-label="Filter agreements by title, customer, or owner"
+                    placeholder="Filter agreements…"
+                    autocomplete="off"
+                    spellcheck="false"
+                  />
+                </div>
+              </div>
+              <div class="ss-table-wrap fos-financial-scroll">
+                <table class="fos-financial-table fos-delivery-table" aria-describedby="ss-table-heading">
+                  <thead>
+                    <tr>
+                      <th scope="col" class="fos-ss-sortable" data-ss-sort="name">Agreement <span class="sort-icon">↕</span></th>
+                      <th scope="col" class="num fos-ss-sortable" data-ss-sort="contractValue">Total value <span class="sort-icon">↕</span></th>
+                      <th scope="col" class="num fos-ss-sortable" data-ss-sort="plannedRevToDate">Planned rev to date <span class="sort-icon">↕</span></th>
+                      <th scope="col" class="num fos-ss-sortable" data-ss-sort="actualRevToDate">Actual rev to date <span class="sort-icon">↕</span></th>
+                      <th scope="col" class="num fos-ss-sortable" data-ss-sort="plannedHoursToDate">Planned hours to date <span class="sort-icon">↕</span></th>
+                      <th scope="col" class="num fos-ss-sortable" data-ss-sort="actualHoursToDate">Actual hours to date <span class="sort-icon">↕</span></th>
+                      <th scope="col" class="fos-ss-sortable" data-ss-sort="assignedOwner">Owner <span class="sort-icon">↕</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="ss-tbody"></tbody>
+                </table>
+              </div>
+              <div class="ss-mobile-cards" id="ss-mobile-cards" aria-label="Active agreements"></div>
+              <p class="small mb-0 mt-2 d-none" id="ss-empty" style="color: var(--ag-text-muted)">No active Services agreements match the current filters.</p>
             </section>
           </div>
         </div>
@@ -8239,6 +8431,7 @@
         'labor-hours': 'bi-clock-history',
         'resource-assignments': 'bi-people-fill',
         'pm-overview': 'bi-truck',
+        'services-summary': 'bi-clipboard-data',
         'revenue-review': 'bi-cash-stack',
         'engagement-review': 'bi-clipboard2-check',
         'expenses': 'bi-receipt-cutoff',
@@ -8500,6 +8693,7 @@
         deliveryPnlEmpty: document.getElementById('delivery-pnl-empty'),
         // Monthly Revenue Review (agreement cache).
         panelRevenueReview: document.getElementById('panel-revenue-review'),
+        panelServicesSummary: document.getElementById('panel-services-summary'),
         panelEngagementReview: document.getElementById('panel-engagement-review'),
         rrWarn: document.getElementById('rr-warn'),
         rrLoading: document.getElementById('rr-loading'),
@@ -8559,6 +8753,9 @@
         deliveryPnlPerfBody: document.getElementById('delivery-pnl-perf-body'),
         deliveryPnlPerfCards: document.getElementById('delivery-pnl-perf-cards'),
         deliveryPnlPerfEmpty: document.getElementById('delivery-pnl-perf-empty'),
+        deliveryPnlPerfNoPlan: document.getElementById('delivery-pnl-perf-no-plan'),
+        deliveryPnlPerfTableWrap: document.getElementById('delivery-pnl-perf-table-wrap'),
+        deliveryPnlPerfOrangeLegend: document.getElementById('delivery-pnl-perf-orange-legend'),
         deliveryPnlAssignmentsModal: document.getElementById('deliveryPnlAssignmentsModal'),
         deliveryPnlAssignmentsModalSubtitle: document.getElementById('deliveryPnlAssignmentsModalSubtitle'),
         deliveryPnlAssignmentsModalBody: document.getElementById('deliveryPnlAssignmentsModalBody'),
@@ -9027,13 +9224,19 @@
       function refreshActivePanelAfterDataSource_() {
         var id = navState.activeNavId || 'home';
         if (id === 'agreement-dashboard') {
-          showAgreementDashboard();
+          if (!navItemById_('agreement-dashboard')) {
+            showHome();
+          } else {
+            showAgreementDashboard();
+          }
         } else if (id === 'operations') {
           showOperations();
         } else if (id === 'labor-hours') {
           showLaborHours();
         } else if (id === 'resource-assignments') {
           showResourceAssignments();
+        } else if (id === 'services-summary') {
+          showServicesSummary();
         } else if (id === 'revenue-review') {
           showRevenueReview();
         } else if (id === 'engagement-review') {
@@ -9818,6 +10021,7 @@
       function hideAccountChromePanels_() {
         hidePanelSettings_();
         hidePanelProfile_();
+        if (els.panelServicesSummary) els.panelServicesSummary.classList.add('d-none');
       }
 
       function setActiveProfileNav_() {
@@ -10057,6 +10261,7 @@
           'labor-hours': 'Labor hours',
           delivery: 'PM Overview',
           'pm-overview': 'PM Overview',
+          'services-summary': 'Services Summary',
           'revenue-review': 'Revenue review',
           'engagement-review': 'Engagement review',
           expenses: 'Expenses',
@@ -11407,6 +11612,7 @@
         if (els.panelResourceAssignments) els.panelResourceAssignments.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelEngagementReview) els.panelEngagementReview.classList.add('d-none');
+        if (els.panelServicesSummary) els.panelServicesSummary.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
         if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
@@ -11582,6 +11788,7 @@
         if (els.panelResourceAssignments) els.panelResourceAssignments.classList.add('d-none');
         if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
         if (els.panelEngagementReview) els.panelEngagementReview.classList.add('d-none');
+        if (els.panelServicesSummary) els.panelServicesSummary.classList.add('d-none');
         if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
         if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
@@ -11741,6 +11948,10 @@
             panelId === 'profile' ||
             panelId === 'engagement-review'
           ) {
+            if (panelId === 'agreement-dashboard' && !navItemById_('agreement-dashboard')) {
+              navigateToNavId_('home');
+              return;
+            }
             navigateToNavId_(panelId);
           }
         } catch (e) {
@@ -11826,6 +12037,8 @@
       var lastAgreementPayload_ = null;
       /** In-memory last Delivery list payload for Ask. */
       var lastDeliveryPayload_ = null;
+      /** In-memory last Services Summary payload for Ask. */
+      var lastServicesSummaryPayload_ = null;
 
       var FINOPS_ASK_THINKING_PHASES_ = [
         'Reading the dashboard context…',
@@ -11842,6 +12055,7 @@
         'resource-assignments': true,
         delivery: true,
         'pm-overview': true,
+        'services-summary': true,
         'revenue-review': true,
         'portfolio-pnl': true,
         expenses: true,
@@ -12198,6 +12412,21 @@
                 askStripVisualPayloadKeys_(data._askSelectedProjectPnL);
               }
             }
+          }
+          return data;
+        }
+
+        if (panelId === 'services-summary') {
+          data = askCloneJson_(lastServicesSummaryPayload_);
+          if (!data) {
+            return { ok: false, _askEmpty: true, panelId: panelId };
+          }
+          askStripVisualPayloadKeys_(data);
+          if (typeof servicesSummaryState_ !== 'undefined' && servicesSummaryState_) {
+            data._askFilters = {
+              customers: servicesSummaryState_.filters.customers || {},
+              search: servicesSummaryState_.searchTerm || '',
+            };
           }
           return data;
         }
@@ -14004,7 +14233,7 @@
           els.agreementFetchError.classList.add('d-none');
           setAgreementLoading(true, liveLoadSourceHint_());
         }
-        google.script.run
+        var runner = google.script.run
           .withSuccessHandler(function (data) {
             if (isRr) {
               setRrLoading(false);
@@ -14059,8 +14288,12 @@
               els.agreementFetchError.textContent = msg2;
               els.agreementFetchError.classList.remove('d-none');
             }
-          })
-          .getAgreementDashboardData(forceRefresh);
+          });
+        if (isRr) {
+          runner.getRevenueReviewDashboardData(forceRefresh);
+        } else {
+          runner.getAgreementDashboardData(forceRefresh);
+        }
       }
 
       if (els.agreementRefreshBtn) {
@@ -14208,6 +14441,11 @@
       }
 
       function showAgreementDashboard() {
+        if (typeof navItemById_ === 'function' && !navItemById_('agreement-dashboard')) {
+          setActiveNav('home');
+          showHome();
+          return;
+        }
         els.panelHome.classList.add('d-none');
         if (els.panelOperations) {
           els.panelOperations.classList.add('d-none');
@@ -20959,6 +21197,495 @@
           fetchDeliveryFromServer({ manual: false });
         }
       }
+
+      /* =====================================================================
+         Feature 043: Services Summary (Delivery).
+         ================================================================== */
+
+      var SS_CACHE_KEY_ = 'fos_services_summary_v1';
+      var SS_CACHE_SCHEMA_ = 1;
+      var servicesSummaryState_ = {
+        payload: null,
+        filters: { customers: {} },
+        searchTerm: '',
+        sort: { key: 'contractValue', dir: 'desc' },
+        lastRenderedFetchedAt: null,
+        searchTimer: null,
+      };
+
+      function ssReadCache_() {
+        try {
+          var raw = sessionStorage.getItem(SS_CACHE_KEY_);
+          if (!raw) return null;
+          var o = JSON.parse(raw);
+          if (!o || o.cacheSchemaVersion !== SS_CACHE_SCHEMA_) return null;
+          return o;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function ssWriteCache_(payload) {
+        try {
+          sessionStorage.setItem(SS_CACHE_KEY_, JSON.stringify(payload));
+        } catch (e) { /* ignore quota */ }
+      }
+
+      function ssSetLoading_(on, sourceCtx) {
+        if (els.panelServicesSummary) {
+          var ov = document.getElementById('ss-loading');
+          if (ov) {
+            if (on) {
+              ov.classList.remove('d-none');
+              ov.setAttribute('aria-hidden', 'false');
+            } else {
+              ov.classList.add('d-none');
+              ov.setAttribute('aria-hidden', 'true');
+            }
+            setOverlayLoadSource_(ov, 'ss-loading-source', on ? sourceCtx : null);
+          }
+        }
+        setGlobalLoading_('servicesSummary', on, 'Loading Services Summary…', sourceCtx);
+      }
+
+      function ssFormatHours_(n) {
+        if (n === null || n === undefined || n === '') return 'N/A';
+        var x = Number(n);
+        if (!isFinite(x)) return 'N/A';
+        return (typeof formatHours === 'function' ? formatHours(x) : String(Math.round(x * 10) / 10));
+      }
+
+      function ssSelectedCustomerCount_() {
+        var m = servicesSummaryState_.filters.customers || {};
+        var n = 0;
+        for (var k in m) {
+          if (Object.prototype.hasOwnProperty.call(m, k) && m[k]) n += 1;
+        }
+        return n;
+      }
+
+      function ssRowVisible_(row) {
+        var selected = ssSelectedCustomerCount_();
+        if (selected > 0 && !servicesSummaryState_.filters.customers[row.customer]) {
+          return false;
+        }
+        var q = String(servicesSummaryState_.searchTerm || '').trim().toLowerCase();
+        if (!q) return true;
+        var blob = [row.name, row.customer, row.assignedOwner].join(' ').toLowerCase();
+        return blob.indexOf(q) >= 0;
+      }
+
+      function ssVisibleRows_() {
+        var rows = (servicesSummaryState_.payload && servicesSummaryState_.payload.rows) || [];
+        var out = [];
+        for (var i = 0; i < rows.length; i++) {
+          if (ssRowVisible_(rows[i])) out.push(rows[i]);
+        }
+        var st = servicesSummaryState_.sort;
+        out.sort(function (a, b) {
+          var ka = a[st.key];
+          var kb = b[st.key];
+          var na = typeof ka === 'number' || (ka != null && isFinite(Number(ka)));
+          var nb = typeof kb === 'number' || (kb != null && isFinite(Number(kb)));
+          var cmp;
+          if (ka == null && kb == null) cmp = 0;
+          else if (ka == null) cmp = 1;
+          else if (kb == null) cmp = -1;
+          else if (na && nb) cmp = Number(ka) - Number(kb);
+          else cmp = String(ka).toLowerCase().localeCompare(String(kb).toLowerCase());
+          return st.dir === 'asc' ? cmp : -cmp;
+        });
+        return out;
+      }
+
+      function ssRecomputeKpis_(rows) {
+        var kpis = {
+          activeEngagements: rows.length,
+          lowMarginCount: 0,
+          scheduledThisMonth: 0,
+          invoicedThisMonth: 0,
+        };
+        for (var i = 0; i < rows.length; i++) {
+          if (rows[i].lowMargin) kpis.lowMarginCount += 1;
+          kpis.scheduledThisMonth += Number(rows[i].scheduledThisMonth || 0);
+          kpis.invoicedThisMonth += Number(rows[i].invoicedThisMonth || 0);
+        }
+        return kpis;
+      }
+
+      function paintServicesSummary_() {
+        var payload = servicesSummaryState_.payload;
+        var errEl = document.getElementById('ss-fetch-error');
+        var warnEl = document.getElementById('ss-warn');
+        var emptyEl = document.getElementById('ss-empty');
+        var tbody = document.getElementById('ss-tbody');
+        var cards = document.getElementById('ss-mobile-cards');
+        var countEl = document.getElementById('ss-table-count');
+        var subEl = document.getElementById('ss-subtitle');
+        var lastEl = document.getElementById('ss-last-refresh');
+        var staleEl = document.getElementById('ss-stale-badge');
+        if (!payload || payload.ok === false) {
+          if (errEl) {
+            errEl.textContent = (payload && payload.message) || 'Could not load Services Summary.';
+            errEl.classList.remove('d-none');
+          }
+          return;
+        }
+        if (errEl) errEl.classList.add('d-none');
+        var warns = payload.warnings || [];
+        if (warnEl) {
+          if (warns.length) {
+            warnEl.textContent = warns.join(' ');
+            warnEl.classList.remove('d-none');
+          } else {
+            warnEl.classList.add('d-none');
+          }
+        }
+        var rows = ssVisibleRows_();
+        var kpis = ssRecomputeKpis_(rows);
+        var activeEl = document.getElementById('ss-kpi-active');
+        var lowEl = document.getElementById('ss-kpi-low-margin');
+        var monthEl = document.getElementById('ss-kpi-month');
+        var monthSub = document.getElementById('ss-kpi-month-sub');
+        if (activeEl) activeEl.textContent = String(kpis.activeEngagements);
+        if (lowEl) lowEl.textContent = String(kpis.lowMarginCount);
+        if (monthEl) {
+          monthEl.textContent =
+            formatMoneyCompact(kpis.scheduledThisMonth) + ' / ' + formatMoneyCompact(kpis.invoicedThisMonth);
+        }
+        if (monthSub) {
+          monthSub.textContent = payload.monthKey
+            ? 'Calendar month ' + payload.monthKey + ' (scheduled / invoiced)'
+            : 'This month (scheduled / invoiced)';
+        }
+        if (subEl) {
+          subEl.textContent =
+            kpis.activeEngagements +
+            ' active Services agreement' +
+            (kpis.activeEngagements === 1 ? '' : 's') +
+            (payload.hoursSource ? '' : ' · hours N/A until Datastore labor is available');
+        }
+        if (lastEl && payload.fetchedAt) {
+          try {
+            lastEl.textContent = 'Last refreshed: ' + new Date(payload.fetchedAt).toLocaleString();
+          } catch (e) {
+            lastEl.textContent = 'Last refreshed: ' + String(payload.fetchedAt);
+          }
+        }
+        if (staleEl) {
+          if (payload.fetchedAt && isCacheStale(payload, 10)) staleEl.classList.remove('d-none');
+          else staleEl.classList.add('d-none');
+        }
+        if (countEl) {
+          countEl.textContent = rows.length + ' agreement' + (rows.length === 1 ? '' : 's');
+        }
+        var html = [];
+        var cardHtml = [];
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          var lowCls = r.lowMargin ? ' class="ss-row-low-margin"' : '';
+          html.push(
+            '<tr' +
+              lowCls +
+              '><td>' +
+              escapeHtml(r.name) +
+              '<div class="small" style="color:var(--ag-text-muted)">' +
+              escapeHtml(r.customer) +
+              '</div></td><td class="num">' +
+              formatMoneyCompact(r.contractValue) +
+              '</td><td class="num">' +
+              formatMoneyCompact(r.plannedRevToDate) +
+              '</td><td class="num">' +
+              formatMoneyCompact(r.actualRevToDate) +
+              '</td><td class="num">' +
+              ssFormatHours_(r.plannedHoursToDate) +
+              '</td><td class="num">' +
+              ssFormatHours_(r.actualHoursToDate) +
+              '</td><td>' +
+              escapeHtml(r.assignedOwner) +
+              '</td></tr>'
+          );
+          cardHtml.push(
+            '<article class="ss-mobile-card">' +
+              '<div class="ss-card-title">' +
+              escapeHtml(r.name) +
+              '</div>' +
+              '<div class="ss-card-meta">' +
+              escapeHtml(r.customer) +
+              ' · ' +
+              escapeHtml(r.assignedOwner) +
+              '</div>' +
+              '<dl>' +
+              '<dt>Total value</dt><dd>' +
+              formatMoneyCompact(r.contractValue) +
+              '</dd>' +
+              '<dt>Planned rev to date</dt><dd>' +
+              formatMoneyCompact(r.plannedRevToDate) +
+              '</dd>' +
+              '<dt>Actual rev to date</dt><dd>' +
+              formatMoneyCompact(r.actualRevToDate) +
+              '</dd>' +
+              '<dt>Planned hours to date</dt><dd>' +
+              ssFormatHours_(r.plannedHoursToDate) +
+              '</dd>' +
+              '<dt>Actual hours to date</dt><dd>' +
+              ssFormatHours_(r.actualHoursToDate) +
+              '</dd>' +
+              '</dl></article>'
+          );
+        }
+        if (tbody) tbody.innerHTML = html.join('');
+        if (cards) cards.innerHTML = cardHtml.join('');
+        if (emptyEl) {
+          if (!rows.length) emptyEl.classList.remove('d-none');
+          else emptyEl.classList.add('d-none');
+        }
+        var ths = (els.panelServicesSummary || document).querySelectorAll('th.fos-ss-sortable');
+        for (var t = 0; t < ths.length; t++) {
+          var th = ths[t];
+          th.classList.toggle('sort-active', th.getAttribute('data-ss-sort') === servicesSummaryState_.sort.key);
+        }
+      }
+
+      function ssPopulateCustomerMenu_(customers) {
+        expensesPopulateMultiMenu_(
+          document.getElementById('ss-customer-menu'),
+          customers || [],
+          function (k) { return k; },
+          function (k) { return k; },
+          servicesSummaryState_.filters.customers,
+          function () {
+            logActivity_('services_summary_filter', 'services-summary', 'customer');
+            paintServicesSummary_();
+            expensesUpdateMultiTrigger_(
+              document.getElementById('ss-customer-trigger'),
+              'All customers',
+              'customer',
+              servicesSummaryState_.filters.customers
+            );
+          }
+        );
+        expensesUpdateMultiTrigger_(
+          document.getElementById('ss-customer-trigger'),
+          'All customers',
+          'customer',
+          servicesSummaryState_.filters.customers
+        );
+      }
+
+      function applyServicesSummaryPayload_(payload) {
+        servicesSummaryState_.payload = payload || { ok: false, rows: [], kpis: {} };
+        lastServicesSummaryPayload_ = servicesSummaryState_.payload;
+        if (payload && payload.ok !== false && payload.cacheSchemaVersion === SS_CACHE_SCHEMA_) {
+          ssWriteCache_(payload);
+        }
+        ssPopulateCustomerMenu_((payload && payload.customers) || []);
+        paintServicesSummary_();
+      }
+
+      function ssBuildFromAgreementClient_(agreementPayload) {
+        if (!agreementPayload || agreementPayload.ok === false) {
+          return {
+            ok: false,
+            message: (agreementPayload && agreementPayload.message) || 'No agreement snapshot.',
+            rows: [],
+            kpis: {},
+            customers: [],
+            cacheSchemaVersion: SS_CACHE_SCHEMA_,
+          };
+        }
+        var todayIso = new Date().toISOString().slice(0, 10);
+        var monthKey = todayIso.slice(0, 7);
+        var itemsBy = agreementPayload.revenueItemsByAgreement || {};
+        var agreements = agreementPayload.agreements || [];
+        var rows = [];
+        var customersMap = {};
+        var kpis = { activeEngagements: 0, lowMarginCount: 0, scheduledThisMonth: 0, invoicedThisMonth: 0 };
+        for (var i = 0; i < agreements.length; i++) {
+          var a = agreements[i];
+          if (!a || String(a.type || '').trim().toLowerCase() !== 'services') continue;
+          if (a.state === 'Closed-Lost') continue;
+          var items = itemsBy[a.id] || [];
+          var plannedToDate = 0;
+          var dated = 0;
+          var scheduled = 0;
+          var invoiced = 0;
+          for (var j = 0; j < items.length; j++) {
+            var it = items[j];
+            var td = it && it.targetDate ? String(it.targetDate).slice(0, 10) : '';
+            var tk = td ? td.slice(0, 7) : '';
+            var ak = it && it.actualDate ? String(it.actualDate).slice(0, 7) : '';
+            if (td) {
+              dated += 1;
+              if (td <= todayIso) plannedToDate += Number(it.targetAmount || 0);
+            }
+            if (tk === monthKey) scheduled += Number(it.targetAmount || 0);
+            if (it && it.recognized === true) {
+              var invKey = ak || tk;
+              if (invKey === monthKey) {
+                var actual = Number(it.actualAmount || 0);
+                invoiced += actual !== 0 ? actual : Number(it.targetAmount || 0);
+              }
+            }
+          }
+          if (dated === 0) plannedToDate = Number(a.plannedRev || 0);
+          var margin = a.margin == null ? null : Number(a.margin);
+          var target = a.targetMargin == null ? null : Number(a.targetMargin);
+          var low = false;
+          if (margin != null && isFinite(margin)) {
+            low = target != null && isFinite(target) ? margin < target : margin < 35;
+          }
+          var customer = a.customer && String(a.customer).trim() ? String(a.customer).trim() : '(Unknown)';
+          customersMap[customer] = true;
+          if (low) kpis.lowMarginCount += 1;
+          kpis.scheduledThisMonth += scheduled;
+          kpis.invoicedThisMonth += invoiced;
+          rows.push({
+            id: a.id,
+            name: a.name || '(Unnamed agreement)',
+            customer: customer,
+            assignedOwner:
+              a.assignedOwner && String(a.assignedOwner).trim()
+                ? String(a.assignedOwner).trim()
+                : 'Unassigned',
+            contractValue: Number(a.plannedRev || 0),
+            plannedRevToDate: Math.round(plannedToDate * 100) / 100,
+            actualRevToDate: Number(a.revRec || 0),
+            plannedHoursToDate: null,
+            actualHoursToDate: null,
+            scheduledThisMonth: Math.round(scheduled * 100) / 100,
+            invoicedThisMonth: Math.round(invoiced * 100) / 100,
+            lowMargin: low,
+          });
+        }
+        kpis.activeEngagements = rows.length;
+        var customers = Object.keys(customersMap).sort(function (x, y) {
+          return String(x).toLowerCase() < String(y).toLowerCase() ? -1 : 1;
+        });
+        return {
+          ok: true,
+          fetchedAt: agreementPayload.fetchedAt || null,
+          cacheSchemaVersion: SS_CACHE_SCHEMA_,
+          monthKey: monthKey,
+          rows: rows,
+          kpis: kpis,
+          customers: customers,
+          hoursSource: null,
+          warnings: agreementPayload.warnings || [],
+        };
+      }
+
+      function fetchServicesSummaryFromServer_(manual) {
+        ssSetLoading_(true, { transport: 'datastore' });
+        google.script.run
+          .withSuccessHandler(function (payload) {
+            ssSetLoading_(false);
+            applyServicesSummaryPayload_(payload);
+            servicesSummaryState_.lastRenderedFetchedAt = payload && payload.fetchedAt;
+            logActivity_('services_summary_refresh', 'services-summary', manual ? 'manual' : 'auto');
+          })
+          .withFailureHandler(function (err) {
+            ssSetLoading_(false);
+            var errEl = document.getElementById('ss-fetch-error');
+            if (errEl) {
+              errEl.textContent = err && err.message ? err.message : 'Could not load Services Summary.';
+              errEl.classList.remove('d-none');
+            }
+          })
+          .getServicesSummaryDashboardData(!!manual);
+      }
+
+      function showServicesSummary() {
+        if (!els.panelServicesSummary) return;
+        els.panelHome.classList.add('d-none');
+        if (els.panelAgreementDashboard) els.panelAgreementDashboard.classList.add('d-none');
+        if (els.panelOperations) els.panelOperations.classList.add('d-none');
+        if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
+        if (els.panelResourceAssignments) els.panelResourceAssignments.classList.add('d-none');
+        if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
+        if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        if (els.panelEngagementReview) els.panelEngagementReview.classList.add('d-none');
+        if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
+        if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
+        if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
+        hideAccountChromePanels_();
+        els.panelServicesSummary.classList.remove('d-none');
+        els.topbarTitle.textContent = 'Services Summary';
+        if (!isLiveDataSource_()) {
+          if (dataSourceState.agreement) {
+            applyServicesSummaryPayload_(ssBuildFromAgreementClient_(dataSourceState.agreement));
+            return;
+          }
+          if (dataSourceState.snapshotDate && !dataSourceState.bundleLoading) {
+            loadSnapshotBundle_(dataSourceState.snapshotDate, true);
+          }
+          return;
+        }
+        var cached = ssReadCache_();
+        if (cached && cached.ok !== false) {
+          applyServicesSummaryPayload_(cached);
+          if (isCacheStale(cached, 10)) {
+            fetchServicesSummaryFromServer_(false);
+          }
+        } else {
+          fetchServicesSummaryFromServer_(false);
+        }
+      }
+
+      (function wireServicesSummaryUi_() {
+        var refreshBtn = document.getElementById('ss-refresh-btn');
+        if (refreshBtn) {
+          refreshBtn.addEventListener('click', function () {
+            if (!isLiveDataSource_()) return;
+            fetchServicesSummaryFromServer_(true);
+          });
+        }
+        var clearBtn = document.getElementById('ss-clear-filters-btn');
+        if (clearBtn) {
+          clearBtn.addEventListener('click', function () {
+            servicesSummaryState_.filters.customers = {};
+            servicesSummaryState_.searchTerm = '';
+            var inp = document.getElementById('ss-search-input');
+            if (inp) inp.value = '';
+            ssPopulateCustomerMenu_((servicesSummaryState_.payload && servicesSummaryState_.payload.customers) || []);
+            logActivity_('services_summary_filter', 'services-summary', 'clear');
+            paintServicesSummary_();
+          });
+        }
+        var search = document.getElementById('ss-search-input');
+        if (search) {
+          search.addEventListener('input', function () {
+            var val = search.value || '';
+            if (servicesSummaryState_.searchTimer) clearTimeout(servicesSummaryState_.searchTimer);
+            servicesSummaryState_.searchTimer = setTimeout(function () {
+              servicesSummaryState_.searchTerm = val;
+              if (String(val).trim()) {
+                logActivity_('services_summary_search', 'services-summary', 'len=' + String(val).trim().length);
+              }
+              paintServicesSummary_();
+            }, 400);
+          });
+        }
+        var table = els.panelServicesSummary && els.panelServicesSummary.querySelector('table');
+        if (table) {
+          table.addEventListener('click', function (ev) {
+            var th = ev.target.closest ? ev.target.closest('th.fos-ss-sortable') : null;
+            if (!th) return;
+            var key = th.getAttribute('data-ss-sort');
+            if (!key) return;
+            if (servicesSummaryState_.sort.key === key) {
+              servicesSummaryState_.sort.dir = servicesSummaryState_.sort.dir === 'asc' ? 'desc' : 'asc';
+            } else {
+              servicesSummaryState_.sort.key = key;
+              servicesSummaryState_.sort.dir =
+                key === 'name' || key === 'assignedOwner' ? 'asc' : 'desc';
+            }
+            logActivity_('services_summary_sort', 'services-summary', key + ':' + servicesSummaryState_.sort.dir);
+            paintServicesSummary_();
+          });
+        }
+      })();
 
       /* =====================================================================
          Monthly Revenue Review - Phase A-B. Agreement cache
@@ -30667,16 +31394,45 @@
           }
         }
 
-        var rows = range.isAllTime
-          ? ((perf && perf.resourcesLifetime) || [])
-          : buildDeliveryPerfResourcesFromMonths_(monthsInRange);
+        var allocBlock = (payload && payload.resourceAllocations) || {};
+        var hasResourcePlan = allocBlock.hasAllocations === true;
+        var noPlanEl = els.deliveryPnlPerfNoPlan;
+        var tableWrap = els.deliveryPnlPerfTableWrap;
+        var legendEl = els.deliveryPnlPerfOrangeLegend;
         var tbody = els.deliveryPnlPerfBody;
         var cards = els.deliveryPnlPerfCards;
         var empty = els.deliveryPnlPerfEmpty;
+
+        if (!hasResourcePlan) {
+          deliveryState.lastPerfRows = [];
+          if (tbody) tbody.innerHTML = '';
+          if (cards) {
+            cards.innerHTML = '';
+            cards.classList.add('d-none');
+          }
+          if (empty) empty.classList.add('d-none');
+          if (tableWrap) tableWrap.classList.add('d-none');
+          if (legendEl) legendEl.classList.add('d-none');
+          if (noPlanEl) noPlanEl.classList.remove('d-none');
+          return;
+        }
+
+        if (noPlanEl) noPlanEl.classList.add('d-none');
+        if (legendEl) legendEl.classList.remove('d-none');
+        if (tableWrap) tableWrap.classList.remove('d-none');
+
+        var rows = range.isAllTime
+          ? ((perf && perf.resourcesLifetime) || [])
+          : buildDeliveryPerfResourcesFromMonths_(monthsInRange);
         if (!rows.length) {
           deliveryState.lastPerfRows = [];
           if (tbody) tbody.innerHTML = '';
-          if (cards) cards.innerHTML = '';
+          if (cards) {
+            cards.innerHTML = '';
+            cards.classList.add('d-none');
+          }
+          if (tableWrap) tableWrap.classList.add('d-none');
+          if (legendEl) legendEl.classList.add('d-none');
           if (empty) empty.classList.remove('d-none');
           return;
         }
@@ -31937,6 +32693,11 @@
             return;
           }
           if (item.id === 'agreement-dashboard') {
+            if (!navItemById_('agreement-dashboard')) {
+              setActiveNav('home');
+              showHome();
+              return;
+            }
             setActiveNav('agreement-dashboard');
             showAgreementDashboard();
             return;
@@ -31974,6 +32735,11 @@
           if (item.id === 'resource-assignments') {
             setActiveNav('resource-assignments');
             showResourceAssignments();
+            return;
+          }
+          if (item.id === 'services-summary') {
+            setActiveNav('services-summary');
+            showServicesSummary();
             return;
           }
           if (item.id === 'revenue-review') {

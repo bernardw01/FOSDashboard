@@ -1,11 +1,11 @@
 /**
- * PRD version 3.7.6 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.8.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.7.6';
+var FOS_PRD_VERSION = '3.8.2';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.7.6';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.7.6 PM Overview Project Performance: allocated cost, hours/cost variance, KPI formula tooltips, Copy CSV.';
+  'v3.8.2 Project Performance shows No Resource Plan Found when a project has no allocations.';
 
 /**
  * @return {string}
@@ -195,6 +195,7 @@ function buildNavigationModel_(auth) {
       active: false,
       children: [
         { id: 'pm-overview', label: 'PM Overview', active: false },
+        { id: 'services-summary', label: 'Services Summary', active: false },
         { id: 'revenue-review', label: 'Revenue review', active: false },
         { id: 'engagement-review', label: 'Engagement review', active: false },
       ],
@@ -217,6 +218,7 @@ function buildNavigationModel_(auth) {
   var pipelineAccess = canAccessPipelineDashboard_(auth);
   var resourceAssignmentsAccess = canAccessResourceAssignmentsDashboard_(auth);
   var engagementReviewAccess = canAccessEngagementReview_(auth);
+  var agreementDashboardAccess = canAccessAgreementDashboard_(auth);
   var navItems = allItems.slice();
   if (!expensesAccess) {
     navItems = navItems.filter(function (item) {
@@ -240,6 +242,22 @@ function buildNavigationModel_(auth) {
         active: item.active,
         children: item.children.filter(function (ch) {
           return ch.id !== 'resource-assignments';
+        }),
+      };
+    });
+  }
+  if (!agreementDashboardAccess) {
+    navItems = navItems.map(function (item) {
+      if (item.id !== 'operations-group' || !item.children) {
+        return item;
+      }
+      return {
+        type: item.type,
+        id: item.id,
+        label: item.label,
+        active: item.active,
+        children: item.children.filter(function (ch) {
+          return ch.id !== 'agreement-dashboard';
         }),
       };
     });
@@ -270,6 +288,7 @@ function buildNavigationModel_(auth) {
     pipelineAccess: pipelineAccess,
     resourceAssignmentsAccess: resourceAssignmentsAccess,
     engagementReviewAccess: engagementReviewAccess,
+    agreementDashboardAccess: agreementDashboardAccess,
     isAdmin: isAdminUser_(auth),
     items: navItems,
   };

@@ -350,7 +350,7 @@
       "featureId": "037",
       "intakeTaskId": 40478571,
       "publishedAt": "2026-07-23",
-      "lastSyncedAt": "2026-08-04",
+      "lastSyncedAt": "2026-08-20",
       "gitMirror": "docs/features/037-engagement-review.md"
     },
     "feature_037_implementation_plan": {
@@ -360,7 +360,7 @@
       "featureId": "037",
       "intakeTaskId": 40478571,
       "publishedAt": "2026-07-23",
-      "lastSyncedAt": "2026-08-04",
+      "lastSyncedAt": "2026-08-20",
       "gitMirror": "docs/features/037-engagement-review-implementation-plan.md"
     },
     "feature_041": {
@@ -398,6 +398,60 @@
       "publishedAt": "2026-08-14",
       "lastSyncedAt": "2026-08-14",
       "shippedVersion": "3.7.0"
+    },
+    "feature_044": {
+      "id": 313366,
+      "title": "Feature 044 - Live visualization serve performance",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/313366",
+      "featureId": "044",
+      "publishedAt": "2026-08-19",
+      "lastSyncedAt": "2026-08-19",
+      "gitMirror": "docs/features/044-live-visualization-serve-performance.md"
+    },
+    "feature_044_implementation_plan": {
+      "id": 313367,
+      "title": "Feature 044 - Implementation plan (Live viz serve)",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/313367",
+      "featureId": "044",
+      "publishedAt": "2026-08-19",
+      "lastSyncedAt": "2026-08-19",
+      "gitMirror": "docs/features/044-live-visualization-serve-performance-implementation-plan.md"
+    },
+    "feature_040": {
+      "id": 313386,
+      "title": "Feature 040 - Project Performance layer",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/313386",
+      "featureId": "040",
+      "publishedAt": "2026-08-20",
+      "lastSyncedAt": "2026-08-20",
+      "gitMirror": "docs/features/040-project-performance-layer.md"
+    },
+    "feature_040_implementation_plan": {
+      "id": 313387,
+      "title": "Feature 040 - Implementation plan (Project Performance)",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/313387",
+      "featureId": "040",
+      "publishedAt": "2026-08-20",
+      "lastSyncedAt": "2026-08-20",
+      "gitMirror": "docs/features/040-project-performance-layer-implementation-plan.md"
+    },
+    "feature_043": {
+      "id": 313388,
+      "title": "Feature 043 - Services Summary",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/313388",
+      "featureId": "043",
+      "publishedAt": "2026-08-20",
+      "lastSyncedAt": "2026-08-20",
+      "gitMirror": "docs/features/043-services-summary.md"
+    },
+    "feature_043_implementation_plan": {
+      "id": 313389,
+      "title": "Feature 043 - Implementation plan (Services Summary)",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/313389",
+      "featureId": "043",
+      "publishedAt": "2026-08-20",
+      "lastSyncedAt": "2026-08-20",
+      "gitMirror": "docs/features/043-services-summary-implementation-plan.md"
     }
   },
   "tasks": {
@@ -1122,24 +1176,6 @@
       "workflowStage": "Backlog",
       "createdAt": "2026-07-23"
     },
-    "Feature 037 - Engagement Review": {
-      "id": 40579193,
-      "tasklist": "Delivery",
-      "featureId": "037",
-      "releaseType": "Enhancement",
-      "releaseTitle": "Engagement Review",
-      "provisionalTaskName": true,
-      "shippedVersion": null,
-      "notebookKey": "feature_037",
-      "implementationPlanNotebookKey": "feature_037_implementation_plan",
-      "intakeTaskId": 40478571,
-      "url": "https://win.godeap.io/app/tasks/40579193",
-      "renameAtShip": "v{FOS_PRD_VERSION} - Engagement Review",
-      "workflowStage": "Spec Draft",
-      "createdAt": "2026-07-23",
-      "specExtendedAt": "2026-08-04",
-      "notes": "Extended Spec Draft 2026-08-04: Engagement Updates as DEAP status packs, multi notes, AI synopsis, HTML/Print export."
-    },
     "v3.1.0 - Utilization heatmap full view and legend filters": {
       "id": 40578934,
       "url": "https://win.godeap.io/app/tasks/40578934",
@@ -1229,6 +1265,108 @@
         "Total (rounded to nearest 0.5h): 11.5h"
       ],
       "estDevHoursGitBase": "ac9a8102c6b5322c6cb78bb089a58d9c185316a1"
+    },
+    "Feature 044 - Live visualization serve performance": {
+      "id": 40839335,
+      "tasklist": "Data platform",
+      "featureId": "044",
+      "releaseType": "Enhancement",
+      "releaseTitle": "Live visualization serve performance",
+      "provisionalTaskName": true,
+      "shippedVersion": null,
+      "notebookKey": "feature_044",
+      "implementationPlanNotebookKey": "feature_044_implementation_plan",
+      "url": "https://win.godeap.io/app/tasks/40839335",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Live visualization serve performance",
+      "workflowStage": "Spec Draft",
+      "createdAt": "2026-08-19"
+    },
+    "v3.5.2 - Engagement Review": {
+      "id": 40579193,
+      "tasklist": "Delivery",
+      "featureId": "037",
+      "releaseType": "Enhancement",
+      "releaseTitle": "Engagement Review",
+      "provisionalTaskName": false,
+      "shippedVersion": "v3.5.2",
+      "notebookKey": "feature_037",
+      "implementationPlanNotebookKey": "feature_037_implementation_plan",
+      "intakeTaskId": 40478571,
+      "url": "https://win.godeap.io/app/tasks/40579193",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Engagement Review",
+      "workflowStage": "Shipped",
+      "createdAt": "2026-07-23",
+      "specExtendedAt": "2026-08-04",
+      "notes": "Extended Spec Draft 2026-08-04: Engagement Updates as DEAP status packs, multi notes, AI synopsis, HTML/Print export.",
+      "shippedAt": "2026-08-20",
+      "estDevHours": 24,
+      "estDevHoursRationale": [
+        "Explicit --est-dev-hours: 24.0h"
+      ],
+      "estDevHoursGitBase": "(manual)"
+    },
+    "v3.6.0 - Project Performance layer": {
+      "id": 40848294,
+      "tasklist": "Delivery",
+      "featureId": "040",
+      "releaseType": "Enhancement",
+      "releaseTitle": "Project Performance layer",
+      "provisionalTaskName": false,
+      "shippedVersion": "v3.6.0",
+      "notebookKey": "feature_040",
+      "implementationPlanNotebookKey": "feature_040_implementation_plan",
+      "url": "https://win.godeap.io/app/tasks/40848294",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Project Performance layer",
+      "workflowStage": "Shipped",
+      "createdAt": "2026-08-20",
+      "shippedAt": "2026-08-20",
+      "estDevHours": 16,
+      "estDevHoursRationale": [
+        "Explicit --est-dev-hours: 16.0h"
+      ],
+      "estDevHoursGitBase": "(manual)"
+    },
+    "v3.8.0 - Services Summary": {
+      "id": 40848296,
+      "tasklist": "Delivery",
+      "featureId": "043",
+      "releaseType": "Enhancement",
+      "releaseTitle": "Services Summary",
+      "provisionalTaskName": false,
+      "shippedVersion": "v3.8.0",
+      "notebookKey": "feature_043",
+      "implementationPlanNotebookKey": "feature_043_implementation_plan",
+      "url": "https://win.godeap.io/app/tasks/40848296",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Services Summary",
+      "workflowStage": "Shipped",
+      "createdAt": "2026-08-20",
+      "shippedAt": "2026-08-20",
+      "estDevHours": 8,
+      "estDevHoursRationale": [
+        "Explicit --est-dev-hours: 8.0h"
+      ],
+      "estDevHoursGitBase": "(manual)"
+    },
+    "v3.8.1 - Agreements route ADMIN-only": {
+      "id": 40848298,
+      "tasklist": "Agreement",
+      "featureId": "003",
+      "releaseType": "Bug Fix",
+      "releaseTitle": "Agreements route ADMIN-only",
+      "provisionalTaskName": false,
+      "shippedVersion": "v3.8.1",
+      "notebookKey": null,
+      "implementationPlanNotebookKey": null,
+      "url": "https://win.godeap.io/app/tasks/40848298",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Agreements route ADMIN-only",
+      "workflowStage": "Shipped",
+      "createdAt": "2026-08-20",
+      "shippedAt": "2026-08-20",
+      "estDevHours": 2,
+      "estDevHoursRationale": [
+        "Explicit --est-dev-hours: 2.0h"
+      ],
+      "estDevHoursGitBase": "(manual)"
     }
   },
   "lastBootstrappedAt": "2026-06-10"
