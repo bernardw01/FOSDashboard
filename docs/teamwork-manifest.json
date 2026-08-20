@@ -1367,6 +1367,26 @@
         "Explicit --est-dev-hours: 2.0h"
       ],
       "estDevHoursGitBase": "(manual)"
+    },
+    "v3.8.2 - No Resource Plan Found empty state": {
+      "id": 40848483,
+      "tasklist": "Delivery",
+      "featureId": "040",
+      "releaseType": "Bug Fix",
+      "releaseTitle": "No Resource Plan Found empty state",
+      "provisionalTaskName": false,
+      "shippedVersion": "v3.8.2",
+      "notebookKey": "feature_040",
+      "url": "https://win.godeap.io/app/tasks/40848483",
+      "renameAtShip": "v{FOS_PRD_VERSION} - No Resource Plan Found empty state",
+      "workflowStage": "Shipped",
+      "createdAt": "2026-08-20",
+      "shippedAt": "2026-08-20",
+      "estDevHours": 2,
+      "estDevHoursRationale": [
+        "Explicit --est-dev-hours: 2.0h"
+      ],
+      "estDevHoursGitBase": "(manual)"
     }
   },
   "lastBootstrappedAt": "2026-06-10"
