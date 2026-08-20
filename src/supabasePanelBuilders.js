@@ -1,5 +1,5 @@
 /**
- * PRD version 3.7.6 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.8.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: panel hydrate builders that read Supabase typed
  * tables (Agreement Management mirror from `supabaseAmMirror.js`, labor

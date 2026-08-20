@@ -1,5 +1,5 @@
 /**
- * PRD version 3.7.6 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.8.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `pm-overview`, panel
  * `#panel-pm-overview`). Public endpoints, all authorized via

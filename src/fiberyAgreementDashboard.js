@@ -1,5 +1,5 @@
 /**
- * PRD version 3.7.6 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.8.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement Dashboard orchestrator (route id `agreement-dashboard`, panel
  * `#panel-agreement-dashboard`). Live loads use same-day Drive warm cache
@@ -83,6 +83,24 @@ function getAgreementCacheTtlMinutes() {
  * }}
  */
 function getAgreementDashboardData(forceRefresh) {
+  var auth = requireAuthForApi_();
+  if (!canAccessAgreementDashboard_(auth)) {
+    return {
+      ok: false,
+      message: 'The Agreements dashboard is available to Admins only.',
+    };
+  }
+  return getAgreementDashboardDataInternal_(forceRefresh === true);
+}
+
+/**
+ * Live Agreement payload for Revenue review (any authorized user).
+ * Distinct from `getAgreementDashboardData`, which is ADMIN-only.
+ *
+ * @param {boolean=} forceRefresh
+ * @return {!Object}
+ */
+function getRevenueReviewDashboardData(forceRefresh) {
   requireAuthForApi_();
   return getAgreementDashboardDataInternal_(forceRefresh === true);
 }

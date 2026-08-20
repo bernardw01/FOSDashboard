@@ -1,5 +1,5 @@
 /**
- * PRD version 3.7.6 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.8.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 037: Engagement Review standardized questions (code-owned).
  * Responses persist in fos_engagement_updates.answers + executive_summary.

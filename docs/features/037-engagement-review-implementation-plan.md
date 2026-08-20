@@ -1,14 +1,14 @@
 # Implementation plan: Feature 037 - Engagement Review
 
 > **Feature spec:** [037-engagement-review.md](037-engagement-review.md)  
-> **Status:** Implemented in `src/` (**v3.5.0**); Teamwork Spec Draft pending approval / ship  
+> **Status:** Shipped (**v3.5.2**; foundation **v3.2.0**)  
 > **Feature ID:** **037**  
 > **Task list:** Delivery  
 > **Ship type:** Enhancement (MINOR at deploy)  
 > **Depends on:** Auth (**002**); Agreement alerts (**003**); Delivery P&L (**006**); Mobile (**029**); Supabase layer (**036**); Anthropic / FinOps Ask path for synopsis  
 > **Teamwork notebook:** [Feature 037 - Implementation plan (Engagement Review)](https://win.godeap.io/app/projects/1615262/notebooks/312851)  
 > **Feature notebook:** [Feature 037 - Engagement Review](https://win.godeap.io/app/projects/1615262/notebooks/312850)  
-> **Release task:** [Feature 037 - Engagement Review](https://win.godeap.io/app/tasks/40579193)  
+> **Release task:** [v3.5.2 - Engagement Review](https://win.godeap.io/app/tasks/40579193)  
 > **Template:** DEAP Monthly Project Status Report HTML (customer reference)
 
 ## Summary
