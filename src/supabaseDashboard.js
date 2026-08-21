@@ -1,5 +1,5 @@
 /**
- * PRD version 3.8.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.9.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036: read/write dashboard panel payloads and status rows in Supabase.
  */

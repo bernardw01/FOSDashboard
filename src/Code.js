@@ -1,11 +1,11 @@
 /**
- * PRD version 3.8.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.9.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.8.2';
+var FOS_PRD_VERSION = '3.9.0';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.8.2';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.8.2 Project Performance shows No Resource Plan Found when a project has no allocations.';
+  'v3.9.0 PM Overview: click a resource for daily time; hide plan margins without a resource plan.';
 
 /**
  * @return {string}

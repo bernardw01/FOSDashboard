@@ -1,7 +1,7 @@
 # Feature: Project Performance layer (Delivery)
 
 > **Status:** Shipped (**v3.6.0**; patched through **v3.8.2**)  
-> **PRD version:** **3.8.2** (`FR-137`, `AC-99`)  
+> **PRD version:** **3.9.0** (`FR-137`, `AC-99`; empty-plan KPIs tightened by **046**)  
 > **Feature ID:** **040**  
 > **Release type:** Enhancement  
 > **Task list:** Delivery  
@@ -147,7 +147,7 @@ Extend the **Delivery** selected-project experience with a **Project Performance
 
 - [ ] **Given** a selected project whose Delivery P&L payload has **`resourceAllocations.hasAllocations !== true`** (no Fibery/Datastore allocation records), **when** the user opens **Project Performance**, **then** the resource table (desktop) and mobile resource cards are hidden, and an inline dialog / empty-state panel shows the title **No Resource Plan Found**.
 - [ ] **Given** the same project has allocation records (`hasAllocations === true`), **when** Project Performance renders, **then** the resource table and orange legend behave as before (including labor-only orange rows when present).
-- [ ] **Given** no resource plan, **when** Project Performance renders, **then** Performance KPIs and the date-range control remain visible (only the resource table is replaced).
+- [ ] **Given** no resource plan, **when** Project Performance renders, **then** the date-range control and **Actual margin to date** remain visible (resource table is replaced). As of **v3.9.0** / feature **046**, Planned margin, Projected margin, EAC hours, and EAC $ show **N/A** with **No plan available** instead of Target Margin / forecast figures.
 - [ ] **Given** viewport width **&lt; 768px**, **when** there is no resource plan, **then** the **No Resource Plan Found** panel is readable and not desktop-only (no reliance on a wide table).
 
 ### Date range
@@ -377,3 +377,4 @@ Ship **R1-R4 together** as a single MINOR (**v3.6.0**). **R5** / **R6** are foll
 | 2026-08-18 | **v3.7.5:** Remove $ / Hours toggle; orange legend/tooltip; custom date range (default all time) to the right of Actual margin to date. |
 | 2026-08-19 | **v3.7.6 / R5:** Allocated cost + hours/cost variance columns; KPI formula tooltips on PM Overview; Performance Copy CSV. Delivery P&L schema **16**. |
 | 2026-08-20 | **v3.8.2 / R6:** When `resourceAllocations.hasAllocations` is false, hide the Performance resource table and show **No Resource Plan Found**. |
+| 2026-08-21 | **v3.9.0 / feature 046:** Empty-plan Planned/Projected/EAC chips are N/A with **No plan available**; Actual margin stays. |

@@ -1,5 +1,5 @@
 /**
- * PRD version 3.8.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.9.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.

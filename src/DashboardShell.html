@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.8.2 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.9.0 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -1695,17 +1695,34 @@
       font-weight: 700;
       color: var(--ag-text);
     }
+    .fos-delivery-perf-desktop-table tbody tr {
+      cursor: pointer;
+    }
+    .fos-delivery-perf-desktop-table tbody tr:hover,
+    .fos-delivery-perf-desktop-table tbody tr:focus {
+      outline: none;
+      background: rgba(82, 201, 229, 0.08);
+    }
     .fos-delivery-perf-resource-card {
       border: 1px solid var(--ag-border);
       border-radius: 6px;
       padding: 12px;
       margin-bottom: 8px;
       background: var(--surface, #fff);
+      cursor: pointer;
+      min-height: 44px;
     }
     .fos-delivery-perf-resource-card.is-orange {
       border-color: #ed8936;
       background: rgba(237, 137, 54, 0.08);
-      cursor: help;
+    }
+    .fos-delivery-perf-time-banner {
+      border: 1px solid #ed8936;
+      background: rgba(237, 137, 54, 0.12);
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      font-size: 0.9rem;
     }
     @media (max-width: 767.98px) {
       .fos-delivery-perf-desktop-table {
@@ -6330,7 +6347,8 @@
                   <div class="d-none fos-delivery-perf-no-plan" id="delivery-pnl-perf-no-plan" role="status" aria-live="polite">
                     <div class="fos-delivery-perf-no-plan-dialog">
                       <p class="fos-delivery-perf-no-plan-title">No Resource Plan Found</p>
-                      <p class="small mb-0" style="color: var(--ag-text-muted)">This project has no resource allocation records.</p>
+                      <p class="small mb-2" style="color: var(--ag-text-muted)">This project has no resource allocation records.</p>
+                      <p class="small mb-0" style="color: var(--ag-text-muted)">Planned and projected margins are hidden because no resource plan is available to use.</p>
                     </div>
                   </div>
                   <p class="small mb-2 fos-delivery-perf-orange-legend" id="delivery-pnl-perf-orange-legend" style="color: var(--ag-text-muted)" title="Orange highlight: logged time without a Fibery allocation, or allocation not marked Allocated &amp; Billable (not on the SOW).">
@@ -8034,6 +8052,47 @@
     </div>
   </div>
 
+  <!-- Feature 045: Project Performance person time-entry drill-down. -->
+  <div
+    class="modal fade fos-modal"
+    id="deliveryPnlPerfTimeModal"
+    tabindex="-1"
+    aria-labelledby="deliveryPnlPerfTimeModalTitle"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+      <div class="modal-content rounded-4">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title fw-semibold" id="deliveryPnlPerfTimeModalTitle">Time on this project</h5>
+            <div class="small text-secondary" id="deliveryPnlPerfTimeModalSubtitle"> - </div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="min-height:44px;min-width:44px"></button>
+        </div>
+        <div class="modal-body">
+          <div class="d-none fos-delivery-perf-time-banner" id="deliveryPnlPerfTimeOrange" role="status"></div>
+          <p class="small mb-2 d-none" id="deliveryPnlPerfTimeStatus" style="color: var(--ag-text-muted)"></p>
+          <div class="fos-financial-scroll">
+            <table class="fos-financial-table" aria-describedby="deliveryPnlPerfTimeModalTitle">
+              <thead>
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col" class="num">Hours</th>
+                  <th scope="col" class="num">Cost $</th>
+                </tr>
+              </thead>
+              <tbody id="deliveryPnlPerfTimeBody"></tbody>
+              <tfoot id="deliveryPnlPerfTimeFoot"></tfoot>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-fos-primary px-4" data-bs-dismiss="modal" style="min-height:44px">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- v2.15.10 - Resource assignments detail on Delivery P&L chart (feature 024). -->
   <div
     class="modal fade fos-modal"
@@ -8756,6 +8815,13 @@
         deliveryPnlPerfNoPlan: document.getElementById('delivery-pnl-perf-no-plan'),
         deliveryPnlPerfTableWrap: document.getElementById('delivery-pnl-perf-table-wrap'),
         deliveryPnlPerfOrangeLegend: document.getElementById('delivery-pnl-perf-orange-legend'),
+        deliveryPnlPerfTimeModal: document.getElementById('deliveryPnlPerfTimeModal'),
+        deliveryPnlPerfTimeModalTitle: document.getElementById('deliveryPnlPerfTimeModalTitle'),
+        deliveryPnlPerfTimeModalSubtitle: document.getElementById('deliveryPnlPerfTimeModalSubtitle'),
+        deliveryPnlPerfTimeOrange: document.getElementById('deliveryPnlPerfTimeOrange'),
+        deliveryPnlPerfTimeStatus: document.getElementById('deliveryPnlPerfTimeStatus'),
+        deliveryPnlPerfTimeBody: document.getElementById('deliveryPnlPerfTimeBody'),
+        deliveryPnlPerfTimeFoot: document.getElementById('deliveryPnlPerfTimeFoot'),
         deliveryPnlAssignmentsModal: document.getElementById('deliveryPnlAssignmentsModal'),
         deliveryPnlAssignmentsModalSubtitle: document.getElementById('deliveryPnlAssignmentsModalSubtitle'),
         deliveryPnlAssignmentsModalBody: document.getElementById('deliveryPnlAssignmentsModalBody'),
@@ -31310,6 +31376,10 @@
           actualSub = 'Through ' + formatPerfMonthLabel_(range.endMonth);
         }
 
+        var allocBlock = (payload && payload.resourceAllocations) || {};
+        var hasResourcePlan = allocBlock.hasAllocations === true;
+        var noPlanTip = 'No resource plan is available to use. Planned margin, projected margin, and EAC are hidden until allocations exist.';
+
         if (els.deliveryPnlPerfKpis) {
           if (!perf) {
             els.deliveryPnlPerfKpis.innerHTML =
@@ -31318,38 +31388,44 @@
           } else {
             var eacH = perf.eacHours || {};
             var eacD = perf.eacDollars || {};
+            var hidePlanKpis = !hasResourcePlan;
             els.deliveryPnlPerfKpis.innerHTML =
               deliveryKpiChipHtml_({
                 tipId: 'delivery-perf-kpi-planned',
-                title: DELIVERY_KPI_TIPS_.planned,
+                title: hidePlanKpis ? noPlanTip : DELIVERY_KPI_TIPS_.planned,
                 label: 'Planned margin',
-                valueHtml: escapeHtml(formatPerfPct_(perf.plannedMarginPct)),
-                subHtml: 'Target margin',
+                valueHtml: escapeHtml(hidePlanKpis ? 'N/A' : formatPerfPct_(perf.plannedMarginPct)),
+                subHtml: hidePlanKpis ? 'No plan available' : 'Target margin',
               }) +
               deliveryKpiChipHtml_({
                 tipId: 'delivery-perf-kpi-projected',
-                title: DELIVERY_KPI_TIPS_.projected,
+                title: hidePlanKpis ? noPlanTip : DELIVERY_KPI_TIPS_.projected,
                 label: 'Projected margin',
-                valueHtml: escapeHtml(formatPerfPct_(perf.projectedMarginPct)),
-                subHtml: 'Project-level (smoothed)',
+                valueHtml: escapeHtml(hidePlanKpis ? 'N/A' : formatPerfPct_(perf.projectedMarginPct)),
+                subHtml: hidePlanKpis ? 'No plan available' : 'Project-level (smoothed)',
               }) +
               deliveryKpiChipHtml_({
                 tipId: 'delivery-perf-kpi-eac-h',
-                title: DELIVERY_KPI_TIPS_.eacHours,
+                title: hidePlanKpis ? noPlanTip : DELIVERY_KPI_TIPS_.eacHours,
                 label: 'EAC hours',
-                valueHtml: escapeHtml(formatHours(eacH.value || 0)),
-                subHtml: escapeHtml(
-                  eacH.budgeted == null ? 'No budget' : 'Budget ' + formatHours(eacH.budgeted)
-                ),
+                valueHtml: escapeHtml(hidePlanKpis ? 'N/A' : formatHours(eacH.value || 0)),
+                subHtml: hidePlanKpis
+                  ? 'No plan available'
+                  : escapeHtml(
+                    eacH.budgeted == null ? 'No budget' : 'Budget ' + formatHours(eacH.budgeted)
+                  ),
               }) +
               deliveryKpiChipHtml_({
                 tipId: 'delivery-perf-kpi-eac-d',
-                title: DELIVERY_KPI_TIPS_.eacDollars,
+                title: hidePlanKpis ? noPlanTip : DELIVERY_KPI_TIPS_.eacDollars,
                 label: 'EAC $',
-                valueHtml: formatExpense_(eacD.value || 0),
-                subHtml:
-                  'Labor + expenses/ODC' +
-                  (eacD.budgeted == null ? '' : ' · budg ' + formatMoneyCompact(eacD.budgeted)),
+                valueHtml: hidePlanKpis ? 'N/A' : formatExpense_(eacD.value || 0),
+                subHtml: hidePlanKpis
+                  ? 'No plan available'
+                  : (
+                    'Labor + expenses/ODC' +
+                    (eacD.budgeted == null ? '' : ' · budg ' + formatMoneyCompact(eacD.budgeted))
+                  ),
               }) +
               deliveryKpiChipHtml_({
                 tipId: 'delivery-perf-kpi-actual',
@@ -31394,8 +31470,6 @@
           }
         }
 
-        var allocBlock = (payload && payload.resourceAllocations) || {};
-        var hasResourcePlan = allocBlock.hasAllocations === true;
         var noPlanEl = els.deliveryPnlPerfNoPlan;
         var tableWrap = els.deliveryPnlPerfTableWrap;
         var legendEl = els.deliveryPnlPerfOrangeLegend;
@@ -31447,7 +31521,8 @@
           var hVar = perfHoursVariance_(r);
           var cVar = perfCostVariance_(r);
           html +=
-            '<tr class="' + orange.trim() + '"' + orangeTitle + '>' +
+            '<tr class="' + orange.trim() + ' fos-delivery-perf-row"' + orangeTitle +
+              ' data-perf-row="' + i + '" role="button" tabindex="0">' +
               '<td>' + escapeHtml(r.name || ' - ') + '</td>' +
               '<td>' + escapeHtml(r.role || ' - ') + '</td>' +
               '<td class="num">' + escapeHtml(formatHours(r.allocatedHoursLife || 0)) + '</td>' +
@@ -31459,7 +31534,7 @@
             '</tr>';
           cardsHtml +=
             '<div class="fos-delivery-perf-resource-card' + (r.highlightOrange ? ' is-orange' : '') + '"' +
-              orangeTitle + '>' +
+              orangeTitle + ' data-perf-row="' + i + '" role="button" tabindex="0">' +
               '<div class="fw-semibold">' + escapeHtml(r.name || ' - ') + '</div>' +
               '<div class="small" style="color:var(--ag-text-muted)">' + escapeHtml(r.role || '') + '</div>' +
               '<div class="small mt-2">Allocated: ' + escapeHtml(formatHours(r.allocatedHoursLife || 0)) +
@@ -31475,6 +31550,187 @@
           cards.innerHTML = cardsHtml;
           cards.classList.remove('d-none');
         }
+        bindDeliveryPerfTimeDrill_(tbody, cards);
+      }
+
+      function bindDeliveryPerfTimeDrill_(tbody, cards) {
+        function bindEl_(el) {
+          if (!el || el.getAttribute('data-perf-bound') === '1') return;
+          el.setAttribute('data-perf-bound', '1');
+          el.addEventListener('click', function () {
+            var idx = Number(el.getAttribute('data-perf-row'));
+            var row = (deliveryState.lastPerfRows || [])[idx];
+            if (row) openDeliveryPerfTimeModal_(row);
+          });
+          el.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Enter' || ev.key === ' ') {
+              ev.preventDefault();
+              var idx = Number(el.getAttribute('data-perf-row'));
+              var row = (deliveryState.lastPerfRows || [])[idx];
+              if (row) openDeliveryPerfTimeModal_(row);
+            }
+          });
+        }
+        var nodes = [];
+        if (tbody) nodes = nodes.concat(Array.prototype.slice.call(tbody.querySelectorAll('[data-perf-row]')));
+        if (cards) nodes = nodes.concat(Array.prototype.slice.call(cards.querySelectorAll('[data-perf-row]')));
+        for (var i = 0; i < nodes.length; i++) bindEl_(nodes[i]);
+      }
+
+      function formatPerfDayLabel_(ymd) {
+        var p = String(ymd || '').split('-');
+        if (p.length < 3) return String(ymd || '');
+        var dt = new Date(Date.UTC(Number(p[0]), Number(p[1]) - 1, Number(p[2])));
+        if (!isFinite(dt.getTime())) return String(ymd || '');
+        return dt.toLocaleDateString(undefined, {
+          weekday: 'short',
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          timeZone: 'UTC',
+        });
+      }
+
+      function renderDeliveryPerfTimeDays_(payload) {
+        var body = els.deliveryPnlPerfTimeBody;
+        var foot = els.deliveryPnlPerfTimeFoot;
+        var status = els.deliveryPnlPerfTimeStatus;
+        if (!body) return;
+        var days = (payload && payload.days) || [];
+        if (!days.length) {
+          body.innerHTML =
+            '<tr><td colspan="3" class="text-secondary">No time logged in this date range.</td></tr>';
+          if (foot) foot.innerHTML = '';
+        } else {
+          var html = '';
+          for (var i = 0; i < days.length; i++) {
+            var d = days[i];
+            var costCell = (d.cost == null || d.cost === '')
+              ? ' - '
+              : formatExpense_(d.cost);
+            html +=
+              '<tr>' +
+                '<td>' + escapeHtml(formatPerfDayLabel_(d.date)) + '</td>' +
+                '<td class="num">' + escapeHtml(formatHours(d.hours || 0)) + '</td>' +
+                '<td class="num">' + costCell + '</td>' +
+              '</tr>';
+          }
+          body.innerHTML = html;
+          if (foot) {
+            foot.innerHTML =
+              '<tr>' +
+                '<th scope="row">Total</th>' +
+                '<td class="num">' + escapeHtml(formatHours(payload.totalHours || 0)) + '</td>' +
+                '<td class="num">' + formatExpense_(payload.totalCost || 0) + '</td>' +
+              '</tr>';
+          }
+        }
+        if (status) {
+          var notes = [];
+          if (payload && payload.truncated) notes.push(payload.message || 'Some days may be missing.');
+          if (typeof isLiveDataSource_ === 'function' && !isLiveDataSource_()) {
+            notes.push('Days come from current Datastore labor, not the selected snapshot date.');
+          }
+          if (notes.length) {
+            status.textContent = notes.join(' ');
+            status.classList.remove('d-none');
+          } else {
+            status.classList.add('d-none');
+            status.textContent = '';
+          }
+        }
+      }
+
+      function openDeliveryPerfTimeModal_(row) {
+        var modalEl = els.deliveryPnlPerfTimeModal;
+        if (!modalEl || !row) return;
+        var name = row.name || 'Person';
+        if (els.deliveryPnlPerfTimeModalTitle) {
+          els.deliveryPnlPerfTimeModalTitle.textContent = name + ' - time on this project';
+        }
+        var range = getDeliveryPerfDateRange_();
+        if (els.deliveryPnlPerfTimeModalSubtitle) {
+          var rangeLabel = range.isAllTime
+            ? 'All time'
+            : ((range.startMonth || '') + ' to ' + (range.endMonth || ''));
+          els.deliveryPnlPerfTimeModalSubtitle.textContent =
+            (row.role || '') + (row.role ? ' · ' : '') + rangeLabel;
+        }
+        var orangeEl = els.deliveryPnlPerfTimeOrange;
+        if (orangeEl) {
+          if (row.highlightOrange) {
+            orangeEl.textContent = PERF_ORANGE_TITLE_;
+            orangeEl.classList.remove('d-none');
+          } else {
+            orangeEl.classList.add('d-none');
+            orangeEl.textContent = '';
+          }
+        }
+        if (els.deliveryPnlPerfTimeBody) {
+          els.deliveryPnlPerfTimeBody.innerHTML =
+            '<tr><td colspan="3" class="text-secondary">Loading time entries…</td></tr>';
+        }
+        if (els.deliveryPnlPerfTimeFoot) els.deliveryPnlPerfTimeFoot.innerHTML = '';
+        if (els.deliveryPnlPerfTimeStatus) {
+          els.deliveryPnlPerfTimeStatus.classList.add('d-none');
+          els.deliveryPnlPerfTimeStatus.textContent = '';
+        }
+        logActivity_(
+          'delivery_pnl_perf_time_drill',
+          'pm-overview',
+          (row.name || '') + '|' + (deliveryState.selectedId || '')
+        );
+        try {
+          if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+          } else {
+            modalEl.classList.add('show');
+            modalEl.style.display = 'block';
+          }
+        } catch (e) {
+          modalEl.classList.add('show');
+          modalEl.style.display = 'block';
+        }
+        var token = (deliveryState.perfTimeDrillToken || 0) + 1;
+        deliveryState.perfTimeDrillToken = token;
+        if (typeof google === 'undefined' || !google.script || !google.script.run) {
+          renderDeliveryPerfTimeDays_({ days: [], message: 'Server is unavailable.' });
+          if (els.deliveryPnlPerfTimeStatus) {
+            els.deliveryPnlPerfTimeStatus.textContent = 'Server is unavailable.';
+            els.deliveryPnlPerfTimeStatus.classList.remove('d-none');
+          }
+          return;
+        }
+        google.script.run
+          .withSuccessHandler(function (res) {
+            if (deliveryState.perfTimeDrillToken !== token) return;
+            if (!res || res.ok === false) {
+              renderDeliveryPerfTimeDays_({ days: [] });
+              if (els.deliveryPnlPerfTimeStatus) {
+                els.deliveryPnlPerfTimeStatus.textContent =
+                  (res && res.message) || 'Could not load time entries.';
+                els.deliveryPnlPerfTimeStatus.classList.remove('d-none');
+              }
+              return;
+            }
+            renderDeliveryPerfTimeDays_(res);
+          })
+          .withFailureHandler(function (err) {
+            if (deliveryState.perfTimeDrillToken !== token) return;
+            renderDeliveryPerfTimeDays_({ days: [] });
+            if (els.deliveryPnlPerfTimeStatus) {
+              els.deliveryPnlPerfTimeStatus.textContent =
+                (err && err.message) || 'Could not load time entries.';
+              els.deliveryPnlPerfTimeStatus.classList.remove('d-none');
+            }
+          })
+          .getDeliveryProjectPersonTimeEntries({
+            agreementId: deliveryState.selectedId || '',
+            personName: row.name || '',
+            personRole: row.role || '',
+            startMonth: range.startMonth || '',
+            endMonth: range.endMonth || '',
+          });
       }
 
       function applyDeliveryPnLView_() {

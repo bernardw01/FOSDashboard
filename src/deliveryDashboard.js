@@ -1,5 +1,5 @@
 /**
- * PRD version 3.8.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.9.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `pm-overview`, panel
  * `#panel-pm-overview`). Public endpoints, all authorized via
@@ -18,6 +18,10 @@
  *     `buildDeliveryDashboardPayloadFromAgreement_` with no Fibery.
  *     Returns `{ ok: false, fallback: true }` when unsafe / too large
  *     so the client can fall back to `getDeliveryDashboardData`.
+ *
+ *   getDeliveryProjectPersonTimeEntries({ agreementId, personName, personRole, startMonth, endMonth })
+ *     Feature 045: on-demand daily hours/cost for one person on one agreement
+ *     from `fos_labor_costs` (does not enlarge the P&L payload).
  *
  *   getDeliveryProjectMonthlyPnL(agreementId)
  *     Returns a per-project monthly P&L time-series. Issues THREE small
@@ -364,6 +368,135 @@ function buildDeliveryDashboardPayloadFromAgreement_(agreementPayload, fetchedAt
  *   warnings?: !Array<string>
  * }}
  */
+function getDeliveryProjectPersonTimeEntries(opts) {
+  requireAuthForApi_();
+  opts = opts || {};
+  var agreementId = String(opts.agreementId || '').trim();
+  var personName = String(opts.personName || '').trim();
+  var personRole = String(opts.personRole || '').trim();
+  var startMonth = String(opts.startMonth || '').slice(0, 7);
+  var endMonth = String(opts.endMonth || '').slice(0, 7);
+  if (startMonth && !/^\d{4}-\d{2}$/.test(startMonth)) startMonth = '';
+  if (endMonth && !/^\d{4}-\d{2}$/.test(endMonth)) endMonth = '';
+  var empty = {
+    ok: true,
+    agreementId: agreementId,
+    personName: personName,
+    personRole: personRole,
+    days: [],
+    totalHours: 0,
+    totalCost: 0,
+    truncated: false,
+    message: '',
+  };
+  if (!agreementId) {
+    empty.ok = false;
+    empty.message = 'Missing agreementId.';
+    return empty;
+  }
+  if (!personName) {
+    empty.ok = false;
+    empty.message = 'Missing personName.';
+    return empty;
+  }
+  if (typeof fetchAgreementContextForPnlFromSupabase_ !== 'function' ||
+      typeof fetchLaborCostsForAgreementFromSupabase_ !== 'function') {
+    empty.ok = false;
+    empty.message = 'Datastore labor lookup is unavailable.';
+    return empty;
+  }
+  var ctx = fetchAgreementContextForPnlFromSupabase_(agreementId);
+  if (!ctx.ok) {
+    empty.ok = false;
+    empty.message = ctx.message || 'Could not load agreement.';
+    return empty;
+  }
+  if (!ctx.agreement.clockifyProjectId) {
+    empty.message = 'No Clockify project is linked to this agreement.';
+    return empty;
+  }
+  var maxLaborRows = typeof resolveMaxLaborRows_ === 'function' ? resolveMaxLaborRows_() : 10000;
+  var laborFetch = fetchLaborCostsForAgreementFromSupabase_(
+    agreementId,
+    ctx.agreement.clockifyProjectId,
+    maxLaborRows
+  );
+  if (!laborFetch.ok) {
+    empty.ok = false;
+    empty.message = laborFetch.message || 'Could not load time entries.';
+    empty.truncated = true;
+    return empty;
+  }
+  var nameMatch = typeof ppPersonNamesMatch_ === 'function'
+    ? ppPersonNamesMatch_
+    : function (a, b) {
+      return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+    };
+  var roleWanted = personRole.toLowerCase();
+  function roleMatches_(rowRole) {
+    if (!roleWanted || roleWanted === '(no role)') {
+      return true;
+    }
+    var got = String(rowRole || '').trim().toLowerCase();
+    if (!got || got === '(no role)') return roleWanted === '(no role)';
+    return got === roleWanted;
+  }
+  function dayInRange_(day) {
+    var mk = String(day || '').slice(0, 7);
+    if (startMonth && mk < startMonth) return false;
+    if (endMonth && mk > endMonth) return false;
+    return true;
+  }
+  function collect_(requireRole) {
+    var byDay = {};
+    var rows = laborFetch.rows || [];
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      var rowName = String(row.userName || '').trim() || '(Unknown user)';
+      if (!nameMatch(personName, rowName)) continue;
+      if (requireRole && !roleMatches_(row.userRole || row.clockifyUserRole)) continue;
+      var hours = Number(row.hours);
+      if (!isFinite(hours) || hours <= 0) continue;
+      var iso = String(row.startDateTime || '');
+      var day = iso.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(iso) ? iso.slice(0, 10) : '';
+      if (!day) continue;
+      if (!dayInRange_(day)) continue;
+      var cost = Number(row.cost);
+      if (!isFinite(cost)) cost = 0;
+      if (!byDay[day]) byDay[day] = { date: day, hours: 0, cost: 0 };
+      byDay[day].hours += hours;
+      byDay[day].cost += cost;
+    }
+    return byDay;
+  }
+  var byDay = collect_(true);
+  if (!Object.keys(byDay).length && roleWanted && roleWanted !== '(no role)') {
+    byDay = collect_(false);
+  }
+  var days = Object.keys(byDay).sort().reverse().map(function (k) {
+    var d = byDay[k];
+    return {
+      date: d.date,
+      hours: Math.round(d.hours * 100) / 100,
+      cost: Math.round(d.cost * 100) / 100,
+    };
+  });
+  var totalHours = 0;
+  var totalCost = 0;
+  for (var t = 0; t < days.length; t++) {
+    totalHours += days[t].hours;
+    totalCost += days[t].cost;
+  }
+  empty.days = days;
+  empty.totalHours = Math.round(totalHours * 100) / 100;
+  empty.totalCost = Math.round(totalCost * 100) / 100;
+  empty.truncated = !!laborFetch.partial;
+  if (laborFetch.partial) {
+    empty.message = 'Labor fetch was truncated; some days may be missing.';
+  }
+  return empty;
+}
+
 function getDeliveryProjectMonthlyPnL(agreementId) {
   requireAuthForApi_();
   if (typeof serveLiveDeliveryPnLOrRebuildFull_ === 'function') {

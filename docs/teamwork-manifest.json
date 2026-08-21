@@ -452,6 +452,24 @@
       "publishedAt": "2026-08-20",
       "lastSyncedAt": "2026-08-20",
       "gitMirror": "docs/features/043-services-summary-implementation-plan.md"
+    },
+    "feature_045": {
+      "id": 313416,
+      "title": "Feature 045 - PM Overview resource time-entry drill-down",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/313416",
+      "featureId": "045",
+      "publishedAt": "2026-08-21",
+      "lastSyncedAt": "2026-08-21",
+      "gitMirror": "docs/features/045-pm-overview-resource-time-entries.md"
+    },
+    "feature_046": {
+      "id": 313417,
+      "title": "Feature 046 - Hide planned margins without a resource plan",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/313417",
+      "featureId": "046",
+      "publishedAt": "2026-08-21",
+      "lastSyncedAt": "2026-08-21",
+      "gitMirror": "docs/features/046-planned-margins-require-resource-plan.md"
     }
   },
   "tasks": {
@@ -1387,6 +1405,40 @@
         "Explicit --est-dev-hours: 2.0h"
       ],
       "estDevHoursGitBase": "(manual)"
+    },
+    "Feature 045 - PM Overview resource time-entry drill-down": {
+      "id": 40857619,
+      "url": "https://win.godeap.io/app/tasks/40857619",
+      "featureId": "045",
+      "releaseType": "Enhancement",
+      "releaseTitle": "PM Overview resource time-entry drill-down",
+      "provisionalTaskName": true,
+      "shippedVersion": null,
+      "tasklist": "Delivery",
+      "tasklistId": 4174283,
+      "notebookKey": "feature_045",
+      "intakeTaskId": 40850291,
+      "inboxTaskUrl": "https://win.godeap.io/app/tasks/40850291",
+      "workflowStage": "In-progress",
+      "createdAt": "2026-08-21",
+      "renameAtShip": "v{FOS_PRD_VERSION} - PM Overview resource time-entry drill-down"
+    },
+    "Feature 046 - Hide planned margins without a resource plan": {
+      "id": 40857620,
+      "url": "https://win.godeap.io/app/tasks/40857620",
+      "featureId": "046",
+      "releaseType": "Enhancement",
+      "releaseTitle": "Hide planned margins without a resource plan",
+      "provisionalTaskName": true,
+      "shippedVersion": null,
+      "tasklist": "Delivery",
+      "tasklistId": 4174283,
+      "notebookKey": "feature_046",
+      "intakeTaskId": 40850310,
+      "inboxTaskUrl": "https://win.godeap.io/app/tasks/40850310",
+      "workflowStage": "In-progress",
+      "createdAt": "2026-08-21",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Hide planned margins without a resource plan"
     }
   },
   "lastBootstrappedAt": "2026-06-10"
