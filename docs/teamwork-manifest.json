@@ -1447,26 +1447,47 @@
       "createdAt": "2026-08-21",
       "renameAtShip": "v{FOS_PRD_VERSION} - Hide planned margins without a resource plan"
     },
-    "Feature 047 - Dashboard performance and responsiveness": {
+    "v3.9.2 - Dashboard performance and responsiveness": {
       "id": 40839335,
       "tasklist": "Data platform",
       "featureId": "047",
       "releaseType": "Enhancement",
       "releaseTitle": "Dashboard performance and responsiveness",
-      "provisionalTaskName": true,
-      "shippedVersion": null,
+      "provisionalTaskName": false,
+      "shippedVersion": "v3.9.2",
       "notebookKey": "feature_047",
       "implementationPlanNotebookKey": "feature_047_implementation_plan",
       "url": "https://win.godeap.io/app/tasks/40839335",
       "renameAtShip": "v{FOS_PRD_VERSION} - Dashboard performance and responsiveness",
-      "workflowStage": "Spec Approved",
+      "workflowStage": "Shipped",
       "createdAt": "2026-08-19",
       "rescopedFrom": {
         "featureId": "044",
         "taskName": "Feature 044 - Live visualization serve performance",
         "rescopedAt": "2026-08-24",
         "reason": "Feature 047 supersedes 044; 044 phases A-D become Workstream B."
-      }
+      },
+      "shippedAt": "2026-08-24",
+      "estDevHours": 16,
+      "estDevHoursRationale": [
+        "Git range: 80bb6a01..HEAD (78 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +1 lines): +1.5h",
+        "Apps Script module `src/adminSettingsRegistry.js`: +1.0h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +1 lines): +2.0h",
+        "Apps Script module `src/perfFlags.js`: +1.3h",
+        "Apps Script module `src/perfParityDiagnostics.js`: +2.2h",
+        "Apps Script module `src/supabaseClient.js`: +0.9h",
+        "Apps Script module `src/supabaseDashboard.js`: +1.3h",
+        "Apps Script module `src/supabasePanelBuilders.js`: +0.9h",
+        "Apps Script module `src/supabaseSyncJob.js`: +0.9h",
+        "Feature spec / docs (+610 lines): +2.0h",
+        "Teamwork / automation scripts (+430 lines): +1.4h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 16.5h"
+      ],
+      "estDevHoursGitBase": "80bb6a0157b961d1b738cb3dcd5f34da42bb10ee"
     }
   },
   "lastBootstrappedAt": "2026-06-10"
