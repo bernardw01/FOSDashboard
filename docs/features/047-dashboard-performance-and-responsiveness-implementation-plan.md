@@ -58,7 +58,18 @@ function _diag_measurePanelLoad(panelKey, startIso, endIso) { /* ... */ }
 | `single-week` | 2026-08-17 to 2026-08-24 | Partial-week edges |
 | `empty` | 2020-01-01 to 2020-01-08 | Zero-row rendering |
 
-Record a **baseline run of `_diag_measurePanelLoad` for all panels** and commit the JSON to `docs/features/047-baseline-measurements.json`. Every later claim is measured against that file.
+**Where results live (changed in 3.9.3).** Batch entry points write their JSON to **`fos_perf_runs`** (migration `048`) as well as the log, so a later workstream can be compared against the workstream A baseline with a query rather than a file kept in sync by hand.
+
+The harness runs inside Apps Script and `clasp run` is **not** available on this project. It needs a linked standard GCP project plus a private Desktop OAuth client, and its `--use-project-scopes` flow expects explicit `oauthScopes` in `appsscript.json`. This manifest has none, and adding them would re-trigger the consent screen for every Web App user. Persisting to Postgres sidesteps all of that.
+
+**To verify a workstream:** run **`_diag_verifyWorkstreamA()`** from the Apps Script editor, then read the results:
+
+```sql
+select run_id, kind, label, passed, prd_version, captured_at
+from fos_perf_runs order by captured_at desc limit 10;
+```
+
+Batch entry points stop at **4.5 minutes** and return `complete: false` with the panels they skipped. A full baseline is 17 panel loads and does not fit in one 6-minute execution, so scope it: `_diag_capturePerfBaseline(['utilization'])`.
 
 ---
 
