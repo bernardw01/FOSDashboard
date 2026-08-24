@@ -1,5 +1,5 @@
 /**
- * PRD version 3.9.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.9.3 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Phase C - Utilization rule evaluator. Returns an ordered list of
  * attention items for the Operations panel, mirroring the

@@ -1,10 +1,10 @@
 # FinOps Performance Hub (Google Workspace Web App)
 
-**PRD version 3.9.2** - `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
+**PRD version 3.9.3** - `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
 
 Product Requirements Document
 
-Version 3.9.2 - 2026-08-24
+Version 3.9.3 - 2026-08-24
 
 ## 1) Overview
 
@@ -625,6 +625,7 @@ The **Clockify to Fibery Sync** product (see `docs/PRD.md`) remains the **system
 
 | Date | Version | Change Summary | Author |
 | --- | --- | --- | --- |
+| 2026-08-24 | 3.9.3 | **Performance harness results persisted (feature 047).** `_diag_capturePerfBaseline` and `_diag_comparePerfParityAllFixtures` write their JSON to new table **`fos_perf_runs`** (migration `048`) so workstream B, C, and D can be compared against the workstream A baseline with SQL instead of scraping the execution log. Adds **`_diag_verifyWorkstreamA()`** as a single-call check, and a 4.5-minute budget so a batch run reports partial results instead of being killed at the 6-minute limit. Extends **FR-144**. PATCH -> **3.9.3**. | Cursor |
 | 2026-08-24 | 3.9.2 | **Dashboard performance workstream A (feature 047).** Labor reads stop selecting `fibery_payload_json`, which held only keys already duplicated by typed columns; the 90-day Utilization read drops from about **10 MB to 3.6 MB** of JSON (**66 percent**) and sheds 9,508 per-row `JSON.parse` calls. `SUPABASE_HTTP_TIMEOUT_MS_` is now applied to `UrlFetchApp` instead of being defined and ignored. Panel schema drift is surfaced in ADMIN Settings, the hydrate records the `scriptVersion` that produced each run, and `scripts/check_deployed_matches_git.py` fails a ship when the deployed project does not match `src/` (four earlier releases were found committed but never pushed). Migration `047` drops six unused indexes. Seven `PERF_*` kill switches registered. **FR-144**, **AC-105**. PATCH -> **3.9.2**. | Cursor |
 | 2026-08-24 | 3.9.1 | **Utilization Customer and Role filters from Datastore.** Live `fos_labor_costs` mapping joins `fos_agreements` / `fos_companies` for customer and `fos_clockify_users` / `fos_team_member_roles` for role (same as Resource Assignments). View `fos_labor_costs_util_dims` (migration 046). Utilization cache schema **5 → 6**. **FR-75**, **FR-77**, **AC-32**. PATCH -> **3.9.1**. | Cursor |
 | 2026-08-21 | 3.9.0 | **PM Overview Project Performance (features 045 + 046).** Click/tap a resource row for daily logged hours on that project (`getDeliveryProjectPersonTimeEntries`, activity `delivery_pnl_perf_time_drill`). When there is no resource plan, Planned/Projected margin and EAC show N/A with No plan available; Actual margin stays. **FR-142**, **FR-143**, **AC-103**, **AC-104**. MINOR -> **3.9.0**. | Cursor |
