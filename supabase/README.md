@@ -25,5 +25,6 @@ Product README section: **[Supabase database](../README.md#supabase-database)**.
 | [`migrations/036_fos_dashboard_schema.sql`](migrations/036_fos_dashboard_schema.sql) | `fos_*` serving + sync + dimension tables |
 | [`migrations/037_labor_costs_date_range_indexes.sql`](migrations/037_labor_costs_date_range_indexes.sql) | Date-range indexes on `labor_costs` |
 | [`migrations/038_fos_labor_costs_time_entries.sql`](migrations/038_fos_labor_costs_time_entries.sql) | Hub `fos_labor_costs` mirror of `labor_costs` + trigger |
+| [`migrations/046_fos_labor_costs_util_dims.sql`](migrations/046_fos_labor_costs_util_dims.sql) | View `fos_labor_costs_util_dims` (customer + role joins) |
 
 Do not edit applied migration history casually. Add a new numbered `0NN_*.sql` for forward changes, then re-run the build script.

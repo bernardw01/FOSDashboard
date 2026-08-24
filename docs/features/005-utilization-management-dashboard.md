@@ -1,6 +1,6 @@
 # Feature: Utilization Management Dashboard (Fibery Labor Costs)
 
-> **PRD version 2.22.2** - see `docs/FOS-Dashboard-PRD.md`. **v2.22.2** in-memory cache fallback when `sessionStorage` quota fails. **v2.17.0** detail table filters + CSV (feature **026**). **v2.16.1** utilization browser cache schema **5**.
+> **PRD version 3.9.1** - see `docs/FOS-Dashboard-PRD.md`. **v3.9.1** Live Datastore Customer/Role joins. **v2.22.2** in-memory cache fallback when `sessionStorage` quota fails. **v2.17.0** detail table filters + CSV (feature **026**). **v2.16.1** utilization browser cache schema **5**.
 
 ## Status
 
@@ -380,5 +380,6 @@ filters = {
 
 | Version | Date | Notes |
 | --- | --- | --- |
+| 3.9.1 | 2026-08-24 | Live Datastore Customer/Role from agreement + team-member-role joins; cache schema **6**; view `fos_labor_costs_util_dims`. **FR-75**, **FR-77**, **AC-32**. |
 | 2.22.2 | 2026-07-08 | Prefer **`utilState.payload`** on panel reopen when `sessionStorage` write fails (quota); `writeUtilizationCache` always updates memory. **FR-73**, **AC-32**. |
 | 2.16.1 | 2026-06-09 | Browser cache schema **5**; session key **`fos_utilization_dashboard_v2`**; purge legacy **`_v1`** on init; stamp schema on write. **AC-32**. |

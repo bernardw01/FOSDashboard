@@ -1,6 +1,6 @@
 # Dashboard historical snapshots
 
-> **PRD version 3.7.6** - see `docs/FOS-Dashboard-PRD.md` (**FR-42**, **FR-40**, **FR-104**, **FR-126**, **FR-130**, **FR-137**, **AC-60**, **AC-88**, **AC-92**, **AC-99**). Feature **034** reuses the snapshot root for Live daily caches without changing historical snapshot artifacts. Agreement `cacheSchemaVersion` **4**; Delivery projects **2**; Delivery P&L **16** (feature **040** R5 `laborByPerson.allocatedCost`; was **15** for resource alias merge; was **14** for `performance` block; was **13** for laborByPerson logged vs allocated + Allocated & Billable; was **12** for person hours only).
+> **PRD version 3.9.1** - see `docs/FOS-Dashboard-PRD.md` (**FR-42**, **FR-40**, **FR-104**, **FR-126**, **FR-130**, **FR-137**, **AC-60**, **AC-88**, **AC-92**, **AC-99**). Feature **034** reuses the snapshot root for Live daily caches without changing historical snapshot artifacts. Agreement `cacheSchemaVersion` **4**; Delivery projects **2**; Delivery P&L **16** (feature **040** R5 `laborByPerson.allocatedCost`; was **15** for resource alias merge; was **14** for `performance` block; was **13** for laborByPerson logged vs allocated + Allocated & Billable; was **12** for person hours only).
 
 ## Goal
 
@@ -46,7 +46,7 @@ The `agreement-cache/` and `portfolio-pnl-cache/` folders are **Live-mode daily 
 | Artifact | Source | Notes |
 |----------|--------|--------|
 | `agreement.json` | `buildAgreementDashboardPayload_(snapshotDate)` | Future revenue filtered as of snapshot date; `cacheSchemaVersion: 4` (v3.4.4: `assignedOwner`; was **3**) |
-| `utilization.json` | `buildUtilizationDashboardPayload_(start, end)` | Default 90-day window ending snapshot date; `cacheSchemaVersion: 5` (v2.16.1: browser cache key migration; was **4** through v2.13.6) |
+| `utilization.json` | `buildUtilizationDashboardPayload_(start, end)` | Default 90-day window ending snapshot date; `cacheSchemaVersion: 6` (v3.9.1: Datastore customer/role joins; was **5** through v3.9.0) |
 | `delivery-projects.json` | `buildDeliveryDashboardPayloadFromAgreement_` | No extra Fibery fetch; `cacheSchemaVersion: 2` (v3.4.4: `assignedOwner`; was **1**) |
 | `expenses.json` | `buildExpensesDashboardPayload_()` | Spreadsheet tab at job run time; `cacheSchemaVersion: 3` (v2.17.2: category column resolution; was **2** through v2.11.2); skip when **`SNAPSHOT_INCLUDE_EXPENSES`** is false |
 | `pipeline.json` | `buildPipelineDashboardPayload_()` | Merged Opportunity Tracker + Fibery `HubSpot/Deal`; `cacheSchemaVersion: 3` (v2.21.0; was **2** in v2.11.1); skip when **`SNAPSHOT_INCLUDE_PIPELINE`** is false |

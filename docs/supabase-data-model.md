@@ -41,6 +41,7 @@ Migrations are **idempotent** (`create table if not exists`, `create index if no
 | `043_am_mirror_grants.sql` | Grants for AM mirror tables |
 | `044_fos_labor_costs_grants.sql` | Grants + RLS policies on `fos_labor_costs` / `labor_costs` |
 | `045_engagement_updates_status_pack.sql` | Engagement Update status packs: notes table, snapshot/RAG/sort columns, AI synopsis columns, uniqueness |
+| `046_fos_labor_costs_util_dims.sql` | View `fos_labor_costs_util_dims`: 1:1 customer and role joins for Utilization / RA |
 | `043_am_mirror_grants.sql` | Grants AM mirror tables to `anon` / `authenticated` (same pattern as 040); fixes nightly `permission denied for table fos_am_enums` |
 | `044_fos_labor_costs_grants.sql` | Grants + RLS policies on `fos_labor_costs` / `labor_costs`; fixes Live Utilization / Labor Hours and Pull `permission denied for table fos_labor_costs` |
 
@@ -55,7 +56,7 @@ As of **v3.4.0**, panel hydrate (`supabaseSyncJob.js`) builds every Live panel p
 | Panel | Live serve (unchanged) | Hydrate build source (v3.4.0) |
 | --- | --- | --- |
 | Agreement | `fos_panel_payloads` (`panel_key='agreement'`) | `fos_agreements`, `fos_companies`, `fos_company_segments`, `fos_revenue_items` |
-| Utilization | `fos_panel_payloads` (Live already preferred `fos_labor_costs` pre-cutover) | `fos_labor_costs` (Clockify) |
+| Utilization | `fos_panel_payloads` (Live already preferred `fos_labor_costs` pre-cutover); customer/role from `fos_agreements` + `fos_companies` and `fos_clockify_users` + `fos_team_member_roles` (v3.9.1); view `fos_labor_costs_util_dims` | `fos_labor_costs` (Clockify) plus agreement/user/role dimensions |
 | Pipeline | `fos_panel_payloads` (`panel_key='pipeline'`) | `fos_hubspot_deals` (full-replace mirrored from Fibery `HubSpot/Deal` immediately before build; sheet side unchanged) |
 | Resource assignments | Live API rebuilds from typed tables for requested From/To (**v3.7.4**); hydrate blob is default-range fallback | `fos_resource_allocations`, `fos_agreements`, `fos_clockify_users`, `fos_team_member_roles`, `fos_labor_costs` |
 | AI Usage | `fos_panel_payloads` (`panel_key='ai-usage'`) | `fos_ai_usage_rows` (full-replace mirrored from Fibery `Claude API Costs` immediately before build) |

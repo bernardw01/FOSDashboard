@@ -1,5 +1,5 @@
 /**
- * PRD version 3.9.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.9.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard orchestrator (route id `operations`, panel
  * `#panel-operations`). Reads `Agreement Management/Labor Costs` from Fibery
@@ -123,18 +123,19 @@ function buildUtilizationPayloadFromFosLaborCosts_(range, thresholds, now) {
     fetched.rows = [];
   }
 
-  var usersByKey = {};
-  try {
-    if (typeof loadFosClockifyUsersByClockifyIdMap_ === 'function') {
-      usersByKey = loadFosClockifyUsersByClockifyIdMap_() || {};
-    }
-  } catch (eUsers) {
-    usersByKey = {};
-  }
+  var dimMaps = loadUtilizationLaborDimMaps_();
 
   var raw = [];
   for (var i = 0; i < fetched.rows.length; i++) {
-    raw.push(mapFosLaborCostRowToUtilRaw_(fetched.rows[i], usersByKey));
+    raw.push(
+      mapFosLaborCostRowToUtilRaw_(
+        fetched.rows[i],
+        dimMaps.usersByClockifyId,
+        dimMaps.agreementsByProjectId,
+        dimMaps.companiesMap,
+        dimMaps.rolesMap
+      )
+    );
   }
   var rows = normalizeLaborRows_(raw, thresholds);
   var kpis = computeUtilizationKpis_(rows);
@@ -245,12 +246,6 @@ function fetchFosLaborCostsByRange_(startIso, endIso) {
 }
 
 /**
- * Maps a fos_labor_costs row into the raw shape normalizeLaborRows_ expects.
- * @param {!Object} row
- * @return {!Object}
- * @private
- */
-/**
  * Normalizes PostgREST / Postgres timestamptz strings to ISO-8601 so
  * `Date.parse` / Apps Script `new Date` behave consistently.
  * e.g. `2026-07-20 03:30:00+00` -> `2026-07-20T03:30:00+00:00`
@@ -281,14 +276,124 @@ function normalizePostgresTimestamptzToIso_(v) {
 }
 
 /**
+ * Dimension maps for joining `fos_labor_costs` to agreement customer and
+ * Clockify user role (same sources as Resource Assignments).
+ * @return {{
+ *   usersByClockifyId: !Object,
+ *   agreementsByProjectId: !Object,
+ *   companiesMap: !Object,
+ *   rolesMap: !Object
+ * }}
+ * @private
+ */
+function loadUtilizationLaborDimMaps_() {
+  var maps = {
+    usersByClockifyId: {},
+    agreementsByProjectId: {},
+    companiesMap: {},
+    rolesMap: {},
+  };
+  try {
+    if (typeof loadFosClockifyUsersByClockifyIdMap_ === 'function') {
+      maps.usersByClockifyId = loadFosClockifyUsersByClockifyIdMap_() || {};
+    }
+  } catch (eUsers) {
+    maps.usersByClockifyId = {};
+  }
+  try {
+    if (typeof loadFosAgreementsByClockifyProjectIdMap_ === 'function') {
+      maps.agreementsByProjectId = loadFosAgreementsByClockifyProjectIdMap_() || {};
+    }
+  } catch (eAgr) {
+    maps.agreementsByProjectId = {};
+  }
+  try {
+    if (typeof loadFosCompaniesMap_ === 'function') {
+      maps.companiesMap = loadFosCompaniesMap_() || {};
+    }
+  } catch (eCo) {
+    maps.companiesMap = {};
+  }
+  try {
+    if (typeof loadFosTeamMemberRolesMap_ === 'function') {
+      maps.rolesMap = loadFosTeamMemberRolesMap_() || {};
+    }
+  } catch (eRole) {
+    maps.rolesMap = {};
+  }
+  return maps;
+}
+
+/**
+ * String name from a Fibery relation / enum blob or a plain string.
+ * @param {?*} v
+ * @return {?string}
+ * @private
+ */
+function fiberyRelName_(v) {
+  if (v == null || v === '') {
+    return null;
+  }
+  if (typeof v === 'string') {
+    var s = v.trim();
+    return s || null;
+  }
+  if (typeof v === 'object') {
+    if (v['Agreement Management/Name'] != null) {
+      return fiberyRelName_(v['Agreement Management/Name']);
+    }
+    if (v['enum/name'] != null) {
+      return fiberyRelName_(v['enum/name']);
+    }
+    if (v.name != null) {
+      return fiberyRelName_(v.name);
+    }
+  }
+  return null;
+}
+
+/**
+ * Customer name from a mirrored Fibery labor payload, when present.
+ * @param {!Object} p
+ * @return {?string}
+ * @private
+ */
+function customerNameFromFiberyLaborPayload_(p) {
+  var agr = p['Agreement Management/Agreement'];
+  if (agr && typeof agr === 'object') {
+    var fromAgr = fiberyRelName_(agr['Agreement Management/Customer']);
+    if (fromAgr) {
+      return fromAgr;
+    }
+  }
+  return fiberyRelName_(p['Agreement Management/Customer']);
+}
+
+/**
  * Maps a fos_labor_costs row into the raw shape normalizeLaborRows_ expects.
+ * Joins Datastore `fos_agreements` / `fos_companies` for customer and
+ * `fos_clockify_users` / `fos_team_member_roles` for role (FR-75 / FR-77).
+ *
  * @param {!Object} row
- * @param {?Object=} usersByClockifyId optional email/Clockify-id -> fos_clockify_users
+ * @param {?Object=} usersByClockifyId email/Clockify-id -> fos_clockify_users
+ * @param {?Object=} agreementsByProjectId clockify_project_id -> fos_agreements
+ * @param {?Object=} companiesMap fibery_id -> fos_companies
+ * @param {?Object=} rolesMap fibery_id -> fos_team_member_roles
  * @return {!Object}
  * @private
  */
-function mapFosLaborCostRowToUtilRaw_(row, usersByClockifyId) {
+function mapFosLaborCostRowToUtilRaw_(
+  row,
+  usersByClockifyId,
+  agreementsByProjectId,
+  companiesMap,
+  rolesMap
+) {
   row = row || {};
+  usersByClockifyId = usersByClockifyId || {};
+  agreementsByProjectId = agreementsByProjectId || {};
+  companiesMap = companiesMap || {};
+  rolesMap = rolesMap || {};
   var p = row.fibery_payload_json;
   if (typeof p === 'string') {
     try {
@@ -338,7 +443,7 @@ function mapFosLaborCostRowToUtilRaw_(row, usersByClockifyId) {
     '(Unknown user)';
   var userId = row.user_id || p['Agreement Management/User ID'] || null;
   var user = null;
-  if (usersByClockifyId && userId) {
+  if (userId) {
     var uid = String(userId);
     user =
       usersByClockifyId[uid] ||
@@ -356,37 +461,87 @@ function mapFosLaborCostRowToUtilRaw_(row, usersByClockifyId) {
       userName = user.name;
     }
   }
+
+  var projectId = row.project_id || p['Agreement Management/Project ID'] || null;
+  var agreement = null;
+  if (projectId) {
+    agreement = agreementsByProjectId[String(projectId)] || null;
+  }
+  var customer = customerNameFromFiberyLaborPayload_(p);
+  var agreementId = null;
+  var agreementName = null;
+  if (agreement) {
+    agreementId = agreement.fibery_id || null;
+    agreementName = agreement.name || null;
+    var companyRow =
+      agreement.customer_id && companiesMap
+        ? companiesMap[agreement.customer_id]
+        : null;
+    if (companyRow && companyRow.name) {
+      customer = companyRow.name;
+    }
+  }
+  if (!customer) {
+    customer = '(Unassigned)';
+  }
+
+  var roleFromUser =
+    user && user.team_member_role_id && rolesMap
+      ? rolesMap[user.team_member_role_id]
+      : null;
+  var userRole =
+    fiberyRelName_(p['Agreement Management/User Role']) ||
+    (roleFromUser && roleFromUser.name ? String(roleFromUser.name) : null);
+  var clockifyUserRole =
+    fiberyRelName_(p['Agreement Management/Clockify User Role']) ||
+    userRole;
+  var billRate = numberOrNull_(p['Agreement Management/User Role Bill Rate']);
+  var costRate = numberOrNull_(p['Agreement Management/User Role Cost Rate']);
+  if (billRate === null && roleFromUser) {
+    billRate = numberOrNull_(roleFromUser.bill_rate);
+  }
+  if (costRate === null && roleFromUser) {
+    costRate = numberOrNull_(roleFromUser.cost_rate);
+  }
+  if (costRate === null && user) {
+    costRate = numberOrNull_(user.team_member_role_cost_rate);
+  }
+  var cost = 0;
+  if (costRate !== null && isFinite(hours)) {
+    cost = hours * costRate;
+  }
+
   return {
     id: row.clockify_time_log_id || '',
     publicId: null,
     name: '',
     hours: hours,
     seconds: numberOr_(row.seconds, 0),
-    cost: 0,
+    cost: cost,
     billable:
       row.billable || p['Agreement Management/Billable'] || 'No',
     startDateTime: startIso,
     endDateTime: endIso,
     dateOfCreation: null,
-    agreementId: null,
-    agreementName: null,
+    agreementId: agreementId,
+    agreementName: agreementName,
     agreementType: null,
     agreementState: null,
-    customer: '(Unassigned)',
+    customer: customer,
     projectName:
       row.time_entry_project_name ||
       p['Agreement Management/Time Entry Project Name'] ||
       '(No Project)',
-    projectId: row.project_id || p['Agreement Management/Project ID'] || null,
+    projectId: projectId,
     task: row.task || p['Agreement Management/Task'] || null,
     userName: userName,
     userId: userId,
     clockifyUserCompany: company ? String(company) : null,
-    clockifyUserRole: null,
+    clockifyUserRole: clockifyUserRole,
     clockifyUserWorkStatus: workStatus ? String(workStatus) : null,
-    userRole: null,
-    userRoleBillRate: null,
-    userRoleCostRate: null,
+    userRole: userRole,
+    userRoleBillRate: billRate,
+    userRoleCostRate: costRate,
   };
 }
 

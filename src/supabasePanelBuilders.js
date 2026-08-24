@@ -1,5 +1,5 @@
 /**
- * PRD version 3.9.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.9.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: panel hydrate builders that read Supabase typed
  * tables (Agreement Management mirror from `supabaseAmMirror.js`, labor
@@ -95,7 +95,7 @@ function loadFosAgreementsByClockifyProjectIdMap_() {
       if (!Object.prototype.hasOwnProperty.call(byId, k)) continue;
       var a = byId[k];
       if (a.clockify_project_id) {
-        map[a.clockify_project_id] = a;
+        map[String(a.clockify_project_id)] = a;
       }
     }
     return map;
@@ -867,10 +867,8 @@ function aggregateResourceAssignmentLaborByProjectFromSupabase_(startYmd, endYmd
 }
 
 /**
- * Maps a `fos_labor_costs` row into the raw shape `normalizeLaborRows_`
- * expects, enriched with agreement (Clockify project id join) and Clockify
- * user (raw Clockify id join) details that `mapFosLaborCostRowToUtilRaw_`
- * leaves null.
+ * Maps a `fos_labor_costs` row for Resource Assignments. Same Datastore
+ * customer / role joins as Utilization (`mapFosLaborCostRowToUtilRaw_`).
  *
  * @param {!Object} row
  * @param {!Object} agreementsByProjectId clockify_project_id -> fos_agreements row
@@ -883,31 +881,13 @@ function aggregateResourceAssignmentLaborByProjectFromSupabase_(startYmd, endYmd
 function mapFosLaborCostRowToResourceAssignmentRaw_(
   row, agreementsByProjectId, companiesMap, usersByClockifyId, rolesMap
 ) {
-  var base = mapFosLaborCostRowToUtilRaw_(row);
-  var agreement = row && row.project_id ? agreementsByProjectId[row.project_id] : null;
-  if (agreement) {
-    base.agreementId = agreement.fibery_id;
-    base.agreementName = agreement.name;
-    var company = agreement.customer_id ? companiesMap[agreement.customer_id] : null;
-    if (company && company.name) {
-      base.customer = company.name;
-    }
-  }
-  var user = null;
-  if (row && row.user_id) {
-    var uidRa = String(row.user_id);
-    user = usersByClockifyId[uidRa] || usersByClockifyId[uidRa.toLowerCase()] || null;
-  }
-  if (user) {
-    if (user.company_enum_name) {
-      base.clockifyUserCompany = user.company_enum_name;
-    }
-    var role = user.team_member_role_id ? rolesMap[user.team_member_role_id] : null;
-    if (role && role.name) {
-      base.userRole = role.name;
-    }
-  }
-  return base;
+  return mapFosLaborCostRowToUtilRaw_(
+    row,
+    usersByClockifyId,
+    agreementsByProjectId,
+    companiesMap,
+    rolesMap
+  );
 }
 
 // ---------------------------------------------------------------------------

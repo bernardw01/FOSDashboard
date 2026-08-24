@@ -1,11 +1,11 @@
 /**
- * PRD version 3.9.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.9.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.9.0';
+var FOS_PRD_VERSION = '3.9.1';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.9.0';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.9.0 PM Overview: click a resource for daily time; hide plan margins without a resource plan.';
+  'v3.9.1 Utilization Customer and Role filters from Datastore agreement and team-member role joins.';
 
 /**
  * @return {string}
