@@ -406,7 +406,9 @@
       "featureId": "044",
       "publishedAt": "2026-08-19",
       "lastSyncedAt": "2026-08-19",
-      "gitMirror": "docs/features/044-live-visualization-serve-performance.md"
+      "gitMirror": "docs/features/044-live-visualization-serve-performance.md",
+      "supersededBy": "feature_047",
+      "supersededAt": "2026-08-24"
     },
     "feature_044_implementation_plan": {
       "id": 313367,
@@ -415,7 +417,9 @@
       "featureId": "044",
       "publishedAt": "2026-08-19",
       "lastSyncedAt": "2026-08-19",
-      "gitMirror": "docs/features/044-live-visualization-serve-performance-implementation-plan.md"
+      "gitMirror": "docs/features/044-live-visualization-serve-performance-implementation-plan.md",
+      "supersededBy": "feature_047",
+      "supersededAt": "2026-08-24"
     },
     "feature_040": {
       "id": 313386,
@@ -470,6 +474,24 @@
       "publishedAt": "2026-08-21",
       "lastSyncedAt": "2026-08-21",
       "gitMirror": "docs/features/046-planned-margins-require-resource-plan.md"
+    },
+    "feature_047": {
+      "id": 313457,
+      "title": "Feature 047 - Dashboard performance and responsiveness",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/313457",
+      "featureId": "047",
+      "publishedAt": "2026-08-24",
+      "lastSyncedAt": "2026-08-24",
+      "gitMirror": "docs/features/047-dashboard-performance-and-responsiveness.md"
+    },
+    "feature_047_implementation_plan": {
+      "id": 313458,
+      "title": "Feature 047 - Implementation plan (Performance)",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/313458",
+      "featureId": "047",
+      "publishedAt": "2026-08-24",
+      "lastSyncedAt": "2026-08-24",
+      "gitMirror": "docs/features/047-dashboard-performance-and-responsiveness-implementation-plan.md"
     }
   },
   "tasks": {
@@ -1284,21 +1306,6 @@
       ],
       "estDevHoursGitBase": "ac9a8102c6b5322c6cb78bb089a58d9c185316a1"
     },
-    "Feature 044 - Live visualization serve performance": {
-      "id": 40839335,
-      "tasklist": "Data platform",
-      "featureId": "044",
-      "releaseType": "Enhancement",
-      "releaseTitle": "Live visualization serve performance",
-      "provisionalTaskName": true,
-      "shippedVersion": null,
-      "notebookKey": "feature_044",
-      "implementationPlanNotebookKey": "feature_044_implementation_plan",
-      "url": "https://win.godeap.io/app/tasks/40839335",
-      "renameAtShip": "v{FOS_PRD_VERSION} - Live visualization serve performance",
-      "workflowStage": "Spec Draft",
-      "createdAt": "2026-08-19"
-    },
     "v3.5.2 - Engagement Review": {
       "id": 40579193,
       "tasklist": "Delivery",
@@ -1439,6 +1446,27 @@
       "workflowStage": "In-progress",
       "createdAt": "2026-08-21",
       "renameAtShip": "v{FOS_PRD_VERSION} - Hide planned margins without a resource plan"
+    },
+    "Feature 047 - Dashboard performance and responsiveness": {
+      "id": 40839335,
+      "tasklist": "Data platform",
+      "featureId": "047",
+      "releaseType": "Enhancement",
+      "releaseTitle": "Dashboard performance and responsiveness",
+      "provisionalTaskName": true,
+      "shippedVersion": null,
+      "notebookKey": "feature_047",
+      "implementationPlanNotebookKey": "feature_047_implementation_plan",
+      "url": "https://win.godeap.io/app/tasks/40839335",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Dashboard performance and responsiveness",
+      "workflowStage": "Spec Approved",
+      "createdAt": "2026-08-19",
+      "rescopedFrom": {
+        "featureId": "044",
+        "taskName": "Feature 044 - Live visualization serve performance",
+        "rescopedAt": "2026-08-24",
+        "reason": "Feature 047 supersedes 044; 044 phases A-D become Workstream B."
+      }
     }
   },
   "lastBootstrappedAt": "2026-06-10"

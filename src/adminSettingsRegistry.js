@@ -1,5 +1,5 @@
 /**
- * PRD version 3.9.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.9.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -24,6 +24,7 @@ var ADMIN_SETTINGS_GROUPS_ = [
   { id: 'ai-usage-dashboard', title: 'AI usage dashboard' },
   { id: 'finops-ask', title: 'FinOps Ask AI' },
   { id: 'supabase-data', title: 'Data platform - Supabase' },
+  { id: 'performance', title: 'Performance kill switches (feature 047)' },
 ];
 
 /**
@@ -1047,6 +1048,62 @@ function getAdminSettingsCatalog_() {
       'Optional Google Calendar id for review invites. When empty, uses the script default calendar.',
       'string',
       ''
+    ),
+    adminSettingEntry_(
+      'PERF_USE_NORMALIZED_LABOR_COLS',
+      'performance',
+      'Labor reads skip the raw mirror blob',
+      'Feature 047 workstream A. When on, labor queries omit fibery_payload_json and read typed columns only, which took the 90-day Utilization read from about 10 MB to 3.6 MB of JSON. Turn off only to revert a suspected data regression.',
+      'boolean',
+      true
+    ),
+    adminSettingEntry_(
+      'PERF_USE_UTIL_RPC',
+      'performance',
+      'Utilization aggregates in Postgres',
+      'Feature 047 workstream B. When on, Utilization calls a Postgres aggregate function instead of paging labor rows into Apps Script.',
+      'boolean',
+      false
+    ),
+    adminSettingEntry_(
+      'PERF_USE_RA_RPC',
+      'performance',
+      'Resource assignment grid in Postgres',
+      'Feature 047 workstream B. When on, allocation overlap is filtered in SQL instead of downloading the full allocation table.',
+      'boolean',
+      false
+    ),
+    adminSettingEntry_(
+      'PERF_USE_SLIM_CHARTS',
+      'performance',
+      'Slim chart payloads',
+      'Feature 047 workstream B. When on, chart canvases render from a small payload before the full table payload arrives.',
+      'boolean',
+      false
+    ),
+    adminSettingEntry_(
+      'PERF_USE_RANGE_CACHE',
+      'performance',
+      'Range-keyed visualization cache',
+      'Feature 047 workstream B. When on, a custom From/To window is cached after its first build for that hydrate epoch.',
+      'boolean',
+      false
+    ),
+    adminSettingEntry_(
+      'PERF_INCREMENTAL_AM_MIRROR',
+      'performance',
+      'Incremental Fibery mirror',
+      'Feature 047 workstream C. When on, the nightly mirror fetches only entities modified since the stored watermark instead of re-scanning everything.',
+      'boolean',
+      false
+    ),
+    adminSettingEntry_(
+      'PERF_LAZY_PANEL_MARKUP',
+      'performance',
+      'Lazy panel markup',
+      'Feature 047 workstream D. When on, panel markup is injected on demand instead of shipping every panel in the initial HTML.',
+      'boolean',
+      false
     ),
   ];
 }

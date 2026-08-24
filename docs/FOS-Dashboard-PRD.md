@@ -1,10 +1,10 @@
 # FinOps Performance Hub (Google Workspace Web App)
 
-**PRD version 3.9.1** - `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
+**PRD version 3.9.2** - `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
 
 Product Requirements Document
 
-Version 3.9.1 - 2026-08-24
+Version 3.9.2 - 2026-08-24
 
 ## 1) Overview
 
@@ -132,6 +132,12 @@ As of **version 1.27.3**, spreadsheet authorization (FR-05 - FR-08a + the **per-
 - FR-141 **[Released]**: As of **v3.8.1**, the Operations **Agreements** route (`agreement-dashboard`, `#panel-agreement-dashboard`) MUST be visible only to Users-sheet **Role** **`ADMIN`**. Non-ADMIN users MUST NOT see the nav item, mobile bottom-nav entry, Home quick-access card, or Home attention glance into Agreements; `getAgreementDashboardData()` MUST refuse non-ADMIN callers. **Revenue review**, **PM Overview**, and **Services Summary** MUST continue to load agreement-family data through their own APIs. Alert email deep-links to Agreements MUST respect the same gate. Mobile: omitted from bottom nav when unauthorized (existing **FR-123** omit-if-no-access behavior).
 - FR-142 **[Released]**: As of **v3.9.0** (feature **045**), on **PM Overview → Project Performance**, clicking or tapping a resource row (including orange unallocated people) MUST open a modal listing that person's logged days and hours on the selected project within the active date range, with a total. Accounting P&L month modal is unchanged. Activity **`delivery_pnl_perf_time_drill`**. Mobile (&lt; 768px) card tap required in the same release.
 - FR-143 **[Released]**: As of **v3.9.0** (feature **046**), when `resourceAllocations.hasAllocations` is false, Project Performance MUST NOT display numeric Planned margin, Projected margin, EAC hours, or EAC $; those chips MUST show **N/A** and **No plan available**, and the empty-plan copy MUST state that planned margins are hidden because no resource plan is available. Actual margin to date remains. Extends **FR-137**.
+- FR-144 **[Released]**: As of **v3.9.2** (feature **047**, workstream A), dashboard reads MUST NOT transfer data they do not use, and the delivery pipeline MUST make version skew visible.
+  - Labor queries against `fos_labor_costs` MUST NOT select **`fibery_payload_json`**. The column holds only keys already duplicated by typed columns, so omitting it takes the 90-day Utilization read from about **10 MB to 3.6 MB** of JSON (**66 percent**) with no change to hours, cost, billable mix, or role and customer attribution. Setting **`PERF_USE_NORMALIZED_LABOR_COLS`** to `false` MUST restore the previous blob-parsing behavior.
+  - **`SUPABASE_HTTP_TIMEOUT_MS_`** MUST be applied to every `UrlFetchApp` call to Supabase so a hung request fails fast instead of consuming the execution budget.
+  - `getSupabaseSyncStatus()` MUST report, per panel, the stored `cache_schema_version` against the running code constant, and ADMIN Settings MUST surface any mismatch. Each hydrate run MUST record the **`FOS_PRD_VERSION`** that produced it.
+  - Because a running script cannot observe git, the ship process MUST verify the deployed project matches `src/` outside Apps Script via **`scripts/check_deployed_matches_git.py`**.
+  - Performance behavior changes MUST be individually revertible through registered **`PERF_*`** Script Properties.
 
 ### 3.6 Branding and Documentation
 
@@ -598,6 +604,7 @@ The **Clockify to Fibery Sync** product (see `docs/PRD.md`) remains the **system
 - AC-102 **[Released]**: **Agreements ADMIN-only (v3.8.1; FR-141).** Given Role is not **ADMIN**, when the shell loads, then **Agreements** is absent from Operations nav, mobile bottom nav, and Home quick access; Live `getAgreementDashboardData` returns a deny message; Revenue review still loads via `getRevenueReviewDashboardData`. Given Role is **ADMIN**, when they open Agreements, then the panel behaves as before.
 - AC-103 **[Released]**: **Project Performance time-entry drill-down (v3.9.0; FR-142; feature 045).** Given a resource row on Project Performance, when the user clicks or taps the row, then a modal lists that person's days with hours (and cost when present) on the selected project in the active date range, with a total. Orange rows still open daily hours. Empty logged time shows an empty-state message. Mobile card tap usable &lt; 768px. Accounting P&L month modal unchanged.
 - AC-104 **[Released]**: **Hide planned margins without a resource plan (v3.9.0; FR-143; feature 046).** Given `hasAllocations` is false, when Project Performance renders, then Planned margin, Projected margin, EAC hours, and EAC $ show **N/A** with **No plan available**, empty-plan copy explains why, and Actual margin to date still shows. Given allocations exist, planned/projected/EAC behave as **040**.
+- AC-105 **[Released]**: **Stop over-fetching and make version skew visible (v3.9.2; FR-144; feature 047 workstream A).** Given Live Utilization or a Delivery P&L build with any date range, when the server reads `fos_labor_costs`, then the select omits `fibery_payload_json` and hours, cost, billable mix, and role and customer attribution match the previous builder exactly. Given `PERF_USE_NORMALIZED_LABOR_COLS` is `false`, when either path runs, then blob parsing resumes and results are unchanged. Given a stored blob's `cache_schema_version` differs from the running code constant, when an ADMIN opens Settings, then a warning names the panel and both versions, and that warning clears after the next hydrate. Given the deployed Apps Script project differs from `src/` in any file, when `scripts/check_deployed_matches_git.py` runs, then it exits non-zero and names every missing, extra, and differing file.
 
 
 - AC-73 **[Released]**: **P&L allocated line color (v2.12.9; FR-115).** Chart view **`Allocated cost (plan)`** line uses bright orange **`#FF8800`** when allocations are present. No payload or cache version change.
@@ -618,6 +625,7 @@ The **Clockify to Fibery Sync** product (see `docs/PRD.md`) remains the **system
 
 | Date | Version | Change Summary | Author |
 | --- | --- | --- | --- |
+| 2026-08-24 | 3.9.2 | **Dashboard performance workstream A (feature 047).** Labor reads stop selecting `fibery_payload_json`, which held only keys already duplicated by typed columns; the 90-day Utilization read drops from about **10 MB to 3.6 MB** of JSON (**66 percent**) and sheds 9,508 per-row `JSON.parse` calls. `SUPABASE_HTTP_TIMEOUT_MS_` is now applied to `UrlFetchApp` instead of being defined and ignored. Panel schema drift is surfaced in ADMIN Settings, the hydrate records the `scriptVersion` that produced each run, and `scripts/check_deployed_matches_git.py` fails a ship when the deployed project does not match `src/` (four earlier releases were found committed but never pushed). Migration `047` drops six unused indexes. Seven `PERF_*` kill switches registered. **FR-144**, **AC-105**. PATCH -> **3.9.2**. | Cursor |
 | 2026-08-24 | 3.9.1 | **Utilization Customer and Role filters from Datastore.** Live `fos_labor_costs` mapping joins `fos_agreements` / `fos_companies` for customer and `fos_clockify_users` / `fos_team_member_roles` for role (same as Resource Assignments). View `fos_labor_costs_util_dims` (migration 046). Utilization cache schema **5 → 6**. **FR-75**, **FR-77**, **AC-32**. PATCH -> **3.9.1**. | Cursor |
 | 2026-08-21 | 3.9.0 | **PM Overview Project Performance (features 045 + 046).** Click/tap a resource row for daily logged hours on that project (`getDeliveryProjectPersonTimeEntries`, activity `delivery_pnl_perf_time_drill`). When there is no resource plan, Planned/Projected margin and EAC show N/A with No plan available; Actual margin stays. **FR-142**, **FR-143**, **AC-103**, **AC-104**. MINOR -> **3.9.0**. | Cursor |
 | 2026-08-19 | 3.8.1 | **Agreements route ADMIN-only.** Operations **Agreements** (`agreement-dashboard`) is hidden from non-ADMIN roles (nav, mobile bottom nav, Home quick access, glance, Ask, alert deep-links). `getAgreementDashboardData` refuses non-ADMIN; Revenue review uses `getRevenueReviewDashboardData`. Delivery / Services Summary unchanged. **FR-141**, **AC-102**. PATCH -> **3.8.1**. | Cursor |

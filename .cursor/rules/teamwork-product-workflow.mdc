@@ -32,7 +32,7 @@ Teamwork project: **FOS Dashboard Development** (`win.godeap.io`, project id `16
 
 ## Ship checklist (required with every merge-worthy release)
 
-1. Code + tests/smoke as usual; `clasp push` when deploying Apps Script.
+1. Code + tests/smoke as usual; `clasp push` when deploying Apps Script, then **verify the push landed** with `python3 scripts/check_deployed_matches_git.py` (must exit 0). A commit is not shipped until the deployed project matches `src/`; on 2026-08-24 four "Ship PRD" releases were found committed but never pushed.
 2. Bump PRD per `google-apps-script-core.mdc` (`FOS_PRD_VERSION`, changelog, `src/*` headers). Version is chosen **here**, not at task intake.
 3. **Rename** Teamwork release task to `vX.Y.Z - {title}` where `X.Y.Z` matches `FOS_PRD_VERSION` exactly (full task name = **release name**).
 4. Run `python3 scripts/teamwork_ship_task.py --version-from-codejs --manifest-task ... --update-manifest` to set **Release Version** (`57879`), **Feature ID** (`57880`), **Release Type** (`57881`), and **Estimated Dev Hours** (`57883`; auto-estimated from git diff unless `--est-dev-hours` is passed), and move the task to workflow stage **Shipped**. Ensure manifest task has `featureId` and `releaseType` from intake.

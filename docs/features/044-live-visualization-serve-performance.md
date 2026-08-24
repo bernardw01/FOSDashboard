@@ -5,7 +5,7 @@
 > **Implementation plan notebook:** [Feature 044 - Implementation plan (Live viz serve)](https://win.godeap.io/app/projects/1615262/notebooks/313367)  
 > **Release task:** [Feature 044 - Live visualization serve performance](https://win.godeap.io/app/tasks/40839335)
 >
-> **Status:** Spec Draft  
+> **Status:** **SUPERSEDED** by [047 - Dashboard performance and responsiveness](047-dashboard-performance-and-responsiveness.md) on 2026-08-24. Never implemented. Phases A-D are absorbed as Workstream B of 047, which adds the causes measurement surfaced later: the `fibery_payload_json` over-fetch, panel schema-version drift, hydrate duration and reliability, and client shell weight. Release task 40839335 was re-scoped to 047. Kept for history; do not implement from this document.  
 > **PRD version:** 3.8.0 (FR/AC numbers assigned at ship; proposed **FR-141**, **AC-102**)  
 > **Feature id:** 044 | **Task list:** Data platform  
 > **Release type:** Enhancement  

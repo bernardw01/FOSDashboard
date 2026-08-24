@@ -1,5 +1,5 @@
 /**
- * PRD version 3.9.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.9.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Supabase (PostgREST) client for Feature 036.
  * Secrets stay in Script Properties; never returned to the client.
@@ -16,6 +16,31 @@ var SUPABASE_HTTP_TIMEOUT_MS_ = 55000;
 
 /** @const {number} */
 var SUPABASE_DEFAULT_PAGE_SIZE_ = 1000;
+
+/**
+ * Feature 047 measurement counter. Null unless a `_diag_` harness is running,
+ * so normal serve paths pay nothing beyond one null check per request.
+ * @type {?{calls: number, bytes: number, ms: number, byPath: !Object<string, number>}}
+ */
+var SUPABASE_PERF_COUNTER_ = null;
+
+/**
+ * Begins counting PostgREST calls, response bytes, and elapsed HTTP time.
+ * Feature 047 Step 0. Not for use on serve paths.
+ */
+function supabasePerfCounterStart_() {
+  SUPABASE_PERF_COUNTER_ = { calls: 0, bytes: 0, ms: 0, byPath: {} };
+}
+
+/**
+ * Stops counting and returns the totals collected since the last start.
+ * @return {!{calls: number, bytes: number, ms: number, byPath: !Object<string, number>}}
+ */
+function supabasePerfCounterStop_() {
+  var counter = SUPABASE_PERF_COUNTER_ || { calls: 0, bytes: 0, ms: 0, byPath: {} };
+  SUPABASE_PERF_COUNTER_ = null;
+  return counter;
+}
 
 /**
  * @return {!{
@@ -130,12 +155,18 @@ function supabaseRest_(method, path, query, body, extraHeaders) {
     headers: headers,
     muteHttpExceptions: true,
     followRedirects: true,
+    // Feature 047 A3: SUPABASE_HTTP_TIMEOUT_MS_ existed but was never applied,
+    // so a hung request could consume the whole 6-minute execution budget.
+    // UrlFetchApp defaults to 360s; a dashboard read that slow is already a
+    // failed load.
+    timeoutSeconds: Math.round(SUPABASE_HTTP_TIMEOUT_MS_ / 1000),
   };
   if (body !== undefined && body !== null && opts.method !== 'get' && opts.method !== 'head') {
     opts.contentType = 'application/json';
     opts.payload = typeof body === 'string' ? body : JSON.stringify(body);
   }
   var resp;
+  var startedAt = SUPABASE_PERF_COUNTER_ ? Date.now() : 0;
   try {
     resp = UrlFetchApp.fetch(url, opts);
   } catch (e) {
@@ -148,6 +179,13 @@ function supabaseRest_(method, path, query, body, extraHeaders) {
   }
   var code = resp.getResponseCode();
   var text = resp.getContentText() || '';
+  if (SUPABASE_PERF_COUNTER_) {
+    SUPABASE_PERF_COUNTER_.calls += 1;
+    SUPABASE_PERF_COUNTER_.bytes += text.length;
+    SUPABASE_PERF_COUNTER_.ms += Date.now() - startedAt;
+    SUPABASE_PERF_COUNTER_.byPath[path] =
+      (SUPABASE_PERF_COUNTER_.byPath[path] || 0) + 1;
+  }
   var json = null;
   if (text) {
     try {

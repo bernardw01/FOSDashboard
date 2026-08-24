@@ -1,5 +1,5 @@
 /**
- * PRD version 3.9.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.9.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036: read/write dashboard panel payloads and status rows in Supabase.
  */
@@ -15,6 +15,119 @@ var FOS_STATUS_UPDATES_TABLE_ = 'fos_status_updates';
 
 /** @const {string} */
 var FOS_DATASET_AS_OF_TABLE_ = 'fos_dataset_as_of';
+
+/**
+ * Panel key to the code constant its stored blob must match.
+ *
+ * Feature 047 A2: when a stored `cache_schema_version` falls behind its code
+ * constant, the blob silently fails the schema gate and that panel falls back
+ * to a full typed rebuild on every single load. Resource assignments sat in
+ * that state for nine days and nine successful hydrates before anyone noticed,
+ * because nothing compared the two numbers. This map is the comparison.
+ *
+ * @return {!Object<string, number>}
+ */
+function expectedPanelSchemaVersions_() {
+  return {
+    agreement: AGREEMENT_DASHBOARD_CACHE_SCHEMA_VERSION_,
+    delivery: DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_,
+    utilization: UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_,
+    pipeline: PIPELINE_CACHE_SCHEMA_VERSION_,
+    'resource-assignments': RESOURCE_ASSIGNMENTS_CACHE_SCHEMA_VERSION_,
+    'ai-usage': AI_USAGE_DASHBOARD_CACHE_SCHEMA_VERSION_,
+    'portfolio-pnl': PORTFOLIO_PNL_BUNDLE_CACHE_SCHEMA_VERSION_,
+  };
+}
+
+/**
+ * Compares every stored panel blob's `cache_schema_version` against the code
+ * constant and reports the panels that are stale, missing, or ahead.
+ *
+ * A panel reported here is not broken, but it is slow: it cannot use its
+ * hydrated blob and rebuilds from typed tables on every load.
+ *
+ * @return {!{
+ *   ok: boolean,
+ *   drift: !Array<!{panel: string, stored: ?number, expected: number, state: string}>,
+ *   checked: number,
+ *   message?: string
+ * }}
+ */
+function checkPanelSchemaDrift_() {
+  var expected = expectedPanelSchemaVersions_();
+  var res = supabaseSelect_(
+    FOS_PANEL_PAYLOADS_TABLE_,
+    null,
+    'panel_key,cache_schema_version,synced_at',
+    100
+  );
+  if (!res.ok) {
+    return {
+      ok: false,
+      drift: [],
+      checked: 0,
+      message: res.message || 'Could not read panel payload versions.',
+    };
+  }
+  var stored = {};
+  var rows = res.json || [];
+  for (var i = 0; i < rows.length; i++) {
+    stored[String(rows[i].panel_key)] = rows[i].cache_schema_version;
+  }
+  var drift = [];
+  var checked = 0;
+  for (var panel in expected) {
+    if (!Object.prototype.hasOwnProperty.call(expected, panel)) continue;
+    checked++;
+    var have = Object.prototype.hasOwnProperty.call(stored, panel)
+      ? Number(stored[panel])
+      : null;
+    if (have === null) {
+      drift.push({ panel: panel, stored: null, expected: expected[panel], state: 'missing' });
+    } else if (have < expected[panel]) {
+      drift.push({ panel: panel, stored: have, expected: expected[panel], state: 'stale' });
+    } else if (have > expected[panel]) {
+      drift.push({ panel: panel, stored: have, expected: expected[panel], state: 'ahead' });
+    }
+  }
+  return { ok: true, drift: drift, checked: checked };
+}
+
+/**
+ * Logs a warning when a builder stamps a blob with a version this registry does
+ * not expect, for example a hardcoded literal left behind after a bump.
+ *
+ * Deliberately narrow: this canNOT detect a lagging `clasp push`. Both the
+ * written version and `expectedPanelSchemaVersions_()` are read from the same
+ * running script, so when that script is old they agree with each other and
+ * disagree only with git. Nothing inside Apps Script can see git. Use
+ * `scripts/check_deployed_matches_git.py` for that; the hydrate records its
+ * `scriptVersion` in `fos_sync_runs.summary` so the two can be compared.
+ *
+ * @param {string} panelKey
+ * @param {number} writtenVersion
+ * @return {boolean} True when the written version matches expectations.
+ */
+function assertPanelSchemaVersionFresh_(panelKey, writtenVersion) {
+  var expected = expectedPanelSchemaVersions_()[panelKey];
+  if (expected === undefined) {
+    return true;
+  }
+  if (Number(writtenVersion) === Number(expected)) {
+    return true;
+  }
+  console.warn(
+    'Panel schema drift: hydrate wrote ' +
+      panelKey +
+      ' at cache_schema_version ' +
+      writtenVersion +
+      ' but the serve path expects ' +
+      expected +
+      '. This panel will rebuild from typed tables on every load until the ' +
+      'running script version matches git.'
+  );
+  return false;
+}
 
 /**
  * @param {string} panelKey
@@ -99,6 +212,7 @@ function saveSupabasePanelPayload_(panelKey, payload, cacheSchemaVersion) {
           : null,
     payload: payload,
   };
+  assertPanelSchemaVersionFresh_(row.panel_key, row.cache_schema_version);
   return supabaseUpsert_(FOS_PANEL_PAYLOADS_TABLE_, [row], 'panel_key');
 }
 

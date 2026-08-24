@@ -1,6 +1,6 @@
 # Implementation plan: Feature 044 - Live visualization serve performance
 
-> **Status:** Spec Draft  
+> **Status:** **SUPERSEDED** by [047 implementation plan](047-dashboard-performance-and-responsiveness-implementation-plan.md) on 2026-08-24. Never implemented. Kept for history; do not implement from this document.  
 > **PRD version:** 3.8.0  
 > **Feature spec:** [044-live-visualization-serve-performance.md](044-live-visualization-serve-performance.md)  
 > **Parent patterns:** [036 Supabase data layer](036-supabase-dashboard-data-layer.md), [034 warm cache](034-live-dashboard-warm-cache-and-portfolio-batching.md), [005 Utilization](005-utilization-management-dashboard.md), [027 Resource assignments](027-resource-assignment-dashboard.md)  

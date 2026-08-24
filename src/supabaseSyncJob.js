@@ -1,5 +1,5 @@
 /**
- * PRD version 3.9.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.9.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: Fibery -> Supabase hydrate (nightly + ADMIN Pull).
  * Dataset am-mirror (supabaseAmMirror.js) hydrates Agreement Management typed
@@ -115,6 +115,22 @@ function getSupabaseSyncStatus() {
   var state = readSupabaseSyncState_();
   var ping = supabasePing_();
   var nightly = getSupabaseNightlyTriggerStatus_();
+  // Feature 047 A2: surface stale panel blobs. A drifted panel still renders,
+  // so this is the only place an operator can see that it has quietly been
+  // rebuilding from typed tables on every load.
+  var schemaDrift = { ok: false, drift: [], checked: 0 };
+  if (isSupabaseConfigured_()) {
+    try {
+      schemaDrift = checkPanelSchemaDrift_();
+    } catch (e) {
+      schemaDrift = {
+        ok: false,
+        drift: [],
+        checked: 0,
+        message: 'Schema drift check failed.',
+      };
+    }
+  }
   return {
     ok: true,
     syncEnabled: supabaseSyncIsEnabled_(),
@@ -123,6 +139,8 @@ function getSupabaseSyncStatus() {
     ping: ping,
     state: state,
     nightlyTrigger: nightly,
+    schemaDrift: schemaDrift,
+    perfFlags: perfFlagsSnapshot_(),
   };
 }
 
@@ -190,6 +208,12 @@ function startSupabaseSync_(triggerKind) {
       runId: runId,
       trigger: triggerKind || 'manual',
       status: 'running',
+      // Feature 047 A2: the schema versions a hydrate writes come from the
+      // constants in the *running* script, which nothing else records. When
+      // git is ahead of the last `clasp push`, the run looks healthy and the
+      // stale blob version is the only symptom. Stamping the version here makes
+      // "which code produced this blob" answerable after the fact.
+      scriptVersion: typeof FOS_PRD_VERSION !== 'undefined' ? FOS_PRD_VERSION : null,
       startedAt: new Date().toISOString(),
       finishedAt: null,
       datasetIndex: 0,

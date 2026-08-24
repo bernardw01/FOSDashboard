@@ -1,11 +1,11 @@
 /**
- * PRD version 3.9.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.9.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.9.1';
+var FOS_PRD_VERSION = '3.9.2';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.9.1';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.9.1 Utilization Customer and Role filters from Datastore agreement and team-member role joins.';
+  'v3.9.2 Faster dashboard loads: labor reads drop the unused raw payload blob (90-day Utilization read goes from about 10 MB to 3.6 MB), Supabase requests honor the HTTP timeout, and panel schema drift is surfaced in Settings.';
 
 /**
  * @return {string}

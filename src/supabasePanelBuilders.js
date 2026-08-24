@@ -1,5 +1,5 @@
 /**
- * PRD version 3.9.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.9.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: panel hydrate builders that read Supabase typed
  * tables (Agreement Management mirror from `supabaseAmMirror.js`, labor
@@ -1255,9 +1255,17 @@ function fetchStatusUpdatesForAgreementFromSupabase_(agreementId, limit) {
 /**
  * Maps a `fos_labor_costs` row into the shape `buildMonthlyPnL_` expects
  * (`{ id, cost, startDateTime, userRole, clockifyUserRole, clockifyUserCompany }`).
- * Prefers `fibery_payload_json` fields (mirrored from the original Fibery
- * Labor Costs entity for historical rows); falls back to
- * `hours * team_member_role_cost_rate`, then 0.
+ * Reads typed columns and the `fos_clockify_users` / `fos_team_member_roles`
+ * dimension maps. Cost falls back to `hours * team_member_role_cost_rate`,
+ * then 0.
+ *
+ * The `fibery_payload_json` lookups below are retained only for the
+ * `PERF_USE_NORMALIZED_LABOR_COLS=false` revert path (feature 047 A1); on the
+ * default path `p` is an empty object. Dropping the blob is safe because,
+ * measured over all 22,343 mirrored rows on 2026-08-24, none carries
+ * `Agreement Management/Cost`, `Cost`, or any role key, and the one key it does
+ * carry, `Agreement Management/Time Entry User Name`, is byte-identical to
+ * `time_entry_user_name` on every row.
  *
  * @param {!Object} row
  * @param {!Object} usersByClockifyId clockify_user_id -> fos_clockify_users row
@@ -1315,6 +1323,7 @@ function mapFosLaborCostRowToDeliveryPnlRaw_(row, usersByClockifyId, rolesMap) {
   }
   if (hours === null || !isFinite(hours) || hours < 0) hours = 0;
   var userName =
+    stringOrNull_(row.time_entry_user_name) ||
     stringOrNull_(p['Agreement Management/Time Entry User Name']) ||
     (user && user.name ? String(user.name).trim() : null) ||
     null;
@@ -1341,10 +1350,19 @@ function fetchLaborCostsForAgreementFromSupabase_(agreementId, clockifyProjectId
   if (!clockifyProjectId) {
     return { ok: true, rows: [], partial: false };
   }
+  // Feature 047 A1: swap the `fibery_payload_json` blob for the one typed
+  // column the mapper actually needed from it. `Time Entry User Name` was the
+  // only key in the blob this path read that is populated, and it matches
+  // `time_entry_user_name` on every mirrored row.
+  var laborSelect =
+    'clockify_time_log_id,start_date_time,clockify_hours,seconds,user_id,time_entry_user_name';
+  if (!perfFlag_('PERF_USE_NORMALIZED_LABOR_COLS')) {
+    laborSelect += ',fibery_payload_json';
+  }
   var fetched = supabaseSelectAll_(
     'fos_labor_costs',
     { project_id: 'eq.' + clockifyProjectId },
-    'clockify_time_log_id,start_date_time,clockify_hours,seconds,user_id,fibery_payload_json',
+    laborSelect,
     'start_date_time.asc'
   );
   if (!fetched.ok) {

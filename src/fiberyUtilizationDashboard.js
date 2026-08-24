@@ -1,5 +1,5 @@
 /**
- * PRD version 3.9.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.9.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard orchestrator (route id `operations`, panel
  * `#panel-operations`). Reads `Agreement Management/Labor Costs` from Fibery
@@ -198,10 +198,18 @@ function fetchFosLaborCostsByRange_(startIso, endIso) {
   var pageSize = SUPABASE_DEFAULT_PAGE_SIZE_ || 1000;
   var maxPages = 60;
   var all = [];
+  // Feature 047 A1: `fibery_payload_json` carries only 13 keys, all of which
+  // duplicate typed columns already selected here. The role, rate, company, and
+  // customer keys the mapper prefers are absent from every mirrored row, so
+  // those lookups always fall through to the dimension maps. Omitting the
+  // column took a default 90-day window from ~10 MB to ~3.6 MB of JSON and
+  // removed ~9,500 per-row JSON.parse calls, with identical output.
   var selectCols =
     'clockify_time_log_id,start_date_time,end_date_time,seconds,clockify_hours,' +
-    'task,project_id,billable,user_id,time_entry_user_name,time_entry_project_name,' +
-    'fibery_payload_json';
+    'task,project_id,billable,user_id,time_entry_user_name,time_entry_project_name';
+  if (!perfFlag_('PERF_USE_NORMALIZED_LABOR_COLS')) {
+    selectCols += ',fibery_payload_json';
+  }
   var andFilter =
     '(start_date_time.gte."' +
     String(startIso) +
