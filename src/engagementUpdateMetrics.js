@@ -1,5 +1,5 @@
 /**
- * PRD version 3.11.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.12.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 037: Engagement Update quantitative snapshot builders. Supabase
  * only - no Fibery HTTP calls at read/render time (locked decision #7, #31).

@@ -1,5 +1,5 @@
 /**
- * PRD version 3.11.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.12.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement Dashboard orchestrator (route id `agreement-dashboard`, panel
  * `#panel-agreement-dashboard`). Live loads use same-day Drive warm cache
@@ -91,6 +91,81 @@ function getAgreementDashboardData(forceRefresh) {
     };
   }
   return getAgreementDashboardDataInternal_(forceRefresh === true);
+}
+
+/**
+ * Schema version for the slim Agreements chart envelope (feature 047 B3).
+ *
+ * Deliberately separate from `AGREEMENT_DASHBOARD_CACHE_SCHEMA_VERSION_`: this
+ * envelope is a projection, never stored, so changing its shape must not
+ * invalidate the panel blob or force a re-hydrate.
+ * @const {number}
+ */
+var AGREEMENT_CHART_CACHE_SCHEMA_VERSION_ = 1;
+
+/**
+ * Keys carried by the slim Agreements chart envelope.
+ *
+ * Measured against the live 2026-08-25 panel blob: the full payload is 766,518
+ * JSON chars, of which `revenueItemsByAgreement` (347,935), `futureRevenueItems`
+ * (235,725), and `historicalRevenueItems` (110,866) are table and drill-down
+ * data no chart reads. The keys below total **23,469** chars, so Chart.js can
+ * paint from about 3 percent of the bytes.
+ * @const {!Array<string>}
+ */
+var AGREEMENT_CHART_KEYS_ = [
+  'kpis',
+  'charts',
+  'sankey',
+  'forwardPipeline',
+  'customerCards',
+  'alerts',
+];
+
+/**
+ * Slim Agreements payload for a first Chart.js paint (feature 047 B3).
+ *
+ * Every one of these slices is already precomputed server-side and read
+ * verbatim by the client, so this is a projection with no recomputation and no
+ * parity surface: the same numbers the full payload would have carried, minus
+ * the table and revenue-item arrays.
+ *
+ * Returns `ok: false` with `reason: 'DISABLED'` when `PERF_USE_SLIM_CHARTS` is
+ * off, so a client that calls it anyway falls through to the full fetch.
+ *
+ * @return {!Object}
+ */
+function getAgreementChartData() {
+  var auth = requireAuthForApi_();
+  if (!canAccessAgreementDashboard_(auth)) {
+    return {
+      ok: false,
+      message: 'The Agreements dashboard is available to Admins only.',
+    };
+  }
+  if (!perfFlag_('PERF_USE_SLIM_CHARTS')) {
+    return { ok: false, reason: 'DISABLED' };
+  }
+  var full = getAgreementDashboardDataInternal_(false);
+  if (!full || full.ok === false) {
+    return full;
+  }
+  var out = {
+    ok: true,
+    slim: true,
+    chartCacheSchemaVersion: AGREEMENT_CHART_CACHE_SCHEMA_VERSION_,
+    cacheSchemaVersion: full.cacheSchemaVersion || null,
+    fetchedAt: full.fetchedAt || null,
+    source: full.source || null,
+    ttlMinutes: full.ttlMinutes != null ? full.ttlMinutes : null,
+  };
+  for (var i = 0; i < AGREEMENT_CHART_KEYS_.length; i++) {
+    var key = AGREEMENT_CHART_KEYS_[i];
+    if (full[key] !== undefined) {
+      out[key] = full[key];
+    }
+  }
+  return out;
 }
 
 /**

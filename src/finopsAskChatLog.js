@@ -1,5 +1,5 @@
 /**
- * PRD version 3.11.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.12.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 032 - Drive daily Ask AI chat archives:
  *   finops-ask-chats/YYYY/MM/YYYY-MM-DD.jsonl

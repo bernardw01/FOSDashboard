@@ -1,5 +1,5 @@
 /**
- * PRD version 3.11.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.12.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 047 Step 0: parity and measurement harness.
  *
@@ -476,6 +476,107 @@ function _diag_verifyUtilRowCodec() {
   console.log('===== UTIL ROW CODEC =====');
   console.log(JSON.stringify(result, null, 2));
   perfPersistRun_('codec', 'utilization rows', result.pass, result);
+  return result;
+}
+
+/**
+ * Proves the utilization visualization codec (feature 047 workstream B3) is
+ * lossless on live data.
+ *
+ * Same reasoning as `_diag_verifyUtilRowCodec`: the parity harness compares two
+ * arms that both encode, so a dropped field cancels out and reports a pass.
+ * This builds `byPersonWeek` once, encodes it, decodes it, and compares every
+ * field of every entry against the pre-encoding reference, including the
+ * `roles` and `customers` string arrays element by element.
+ *
+ * A good result is `pass: true` with `diffCount: 0` over roughly 600 entries,
+ * and `reductionPct` near 82. Flip `PERF_SLIM_VIZ_AGGREGATES` on in ADMIN
+ * Settings only after that.
+ *
+ * @return {!Object}
+ */
+function _diag_verifyUtilVizCodec() {
+  var thresholds = getUtilizationThresholds_();
+  var now = new Date();
+  var range = resolveRange_(null, null, now, thresholds);
+
+  var fetched = fetchFosLaborCostsByRange_(range.start, range.end);
+  if (!fetched.ok) {
+    return { ok: false, message: fetched.message || 'Fetch failed.' };
+  }
+  var dimMaps = loadUtilizationLaborDimMaps_();
+  var raw = [];
+  for (var i = 0; i < (fetched.rows || []).length; i++) {
+    raw.push(
+      mapFosLaborCostRowToUtilRaw_(
+        fetched.rows[i],
+        dimMaps.usersByClockifyId,
+        dimMaps.agreementsByProjectId,
+        dimMaps.companiesMap,
+        dimMaps.rolesMap
+      )
+    );
+  }
+  var rows = normalizeLaborRows_(raw, thresholds);
+  var reference = buildByPersonWeek_(rows, range, thresholds);
+  var referenceBytes = JSON.stringify(reference).length;
+
+  // Deep-copy the reference before encoding: the encoder is fed the live array
+  // and a future in-place variant would otherwise mutate what we compare with.
+  reference = JSON.parse(JSON.stringify(reference));
+
+  var wire = encodeUtilizationPersonWeekForWire_(reference);
+  var codec = utilizationPersonWeekCodec_();
+  var encodedBytes = JSON.stringify(wire).length + JSON.stringify(codec).length;
+  var decoded = decodeUtilizationPersonWeekFromWire_(wire, codec);
+
+  var diffs = [];
+  if (reference.length !== decoded.length) {
+    diffs.push({
+      path: '$.byPersonWeek.length',
+      expected: reference.length,
+      actual: decoded.length,
+    });
+  }
+  var limit = Math.min(reference.length, decoded.length);
+  for (var e = 0; e < limit && diffs.length < 25; e++) {
+    var exp = reference[e] || {};
+    var act = decoded[e] || {};
+    for (var f = 0; f < UTIL_PW_WIRE_FIELDS_.length && diffs.length < 25; f++) {
+      var key = UTIL_PW_WIRE_FIELDS_[f];
+      var ev = exp[key] === undefined ? null : exp[key];
+      var av = act[key] === undefined ? null : act[key];
+      var path = '$.byPersonWeek[' + e + '].' + key;
+      if (Object.prototype.toString.call(ev) === '[object Array]') {
+        var evj = JSON.stringify(ev);
+        var avj = JSON.stringify(av);
+        if (evj !== avj) {
+          diffs.push({ path: path, expected: evj, actual: avj });
+        }
+        continue;
+      }
+      if (ev !== av) {
+        diffs.push({ path: path, expected: ev, actual: av });
+      }
+    }
+  }
+
+  var result = {
+    ok: true,
+    pass: diffs.length === 0,
+    entryCount: decoded.length,
+    diffCount: diffs.length,
+    diffs: diffs,
+    encodedBytes: encodedBytes,
+    unencodedBytes: referenceBytes,
+    reductionPct:
+      referenceBytes > 0
+        ? Math.round((1 - encodedBytes / referenceBytes) * 1000) / 10
+        : null,
+  };
+  console.log('===== UTIL VIZ CODEC =====');
+  console.log(JSON.stringify(result, null, 2));
+  perfPersistRun_('codec', 'utilization byPersonWeek', result.pass, result);
   return result;
 }
 

@@ -5,8 +5,8 @@
 > **Feature notebook:** [Feature 047 - Dashboard performance and responsiveness](https://win.godeap.io/app/projects/1615262/notebooks/313457)  
 > **Release task:** [Feature 047 - Dashboard performance and responsiveness](https://win.godeap.io/app/tasks/40839335)
 >
-> **PRD version:** 3.11.0. Each workstream ships its own version bump.
-> **Status:** Approved 2026-08-24. **Workstream A shipped in 3.9.2. B1 shipped in 3.10.0 / 3.10.1. B2 shipped in 3.11.0 with its kill switch off pending a parity run.** B3 to B5, C, D pending.
+> **PRD version:** 3.12.0. Each workstream ships its own version bump.
+> **Status:** Approved 2026-08-24. **Workstream A shipped in 3.9.2. B1 shipped in 3.10.0 / 3.10.1. B2 shipped in 3.11.0 with its kill switch off pending a parity run. B3 shipped in 3.12.0 with both kill switches off pending `_diag_verifyUtilVizCodec()`.** B4, B5, C, D pending.
 
 ## How to read this plan
 
@@ -247,11 +247,68 @@ That drops every allocation with no duration. `allocationOverlapsRangeYmd_` retu
 
 **`PERF_USE_RA_RPC` ships `false`.** Flip it to `true` in ADMIN Settings only after that diagnostic passes.
 
-### B3. Slim chart payloads
+### B3. Slim chart payloads (shipped 3.12.0)
 
-Add `getUtilizationChartData(start, end)`, `getAgreementChartData()`, and `getPipelineChartData()` returning **under 100 KB** each. The client fires the slim call first, paints Chart.js, then fires the full table call. This is the single biggest win for *perceived* speed and it directly serves mobile **Show charts**.
+The original text proposed `getUtilizationChartData(start, end)`, `getAgreementChartData()`, and `getPipelineChartData()`, each under **100 KB**, with the client firing the slim call first and the full table call second.
 
-Give slim envelopes their **own** `cacheSchemaVersion` field so a chart-shape change does not invalidate full panel blobs.
+**Two of those three were wrong, and the measurement said the bytes are somewhere else.** What shipped is below.
+
+#### Where the bytes actually are (measured 2026-08-25, live project `jpcbugdpdvyutlusicxa`)
+
+| Panel | Stored blob | Largest keys |
+| --- | --- | --- |
+| `resource-assignments` | 2,789,504 | (workstream B2 / D scope) |
+| `utilization` | 1,336,959 | `rows` 1,019,541 · **`aggregates` 283,333** |
+| `agreement` | 766,518 | `revenueItemsByAgreement` 347,935 · `futureRevenueItems` 235,725 · `historicalRevenueItems` 110,866 |
+| `pipeline` | **79,702** | `deals` 76,718 |
+
+#### Correction 1: a slim Utilization chart endpoint cannot paint the Utilization charts
+
+`renderUtilDashboard()` builds `globalRows = applyFilters(p.rows)` and then calls `renderUtilCustomerBar`, `renderUtilProjectBar`, `renderUtilWeeklyLine`, `renderUtilBillableStack`, `renderUtilRoleDonut`, and `renderUtilPersonBar` **on that array**. KPIs come from `computeKpisClient(globalRows)`. Every chart is a function of the filtered rows and must re-render on every filter change.
+
+A grep for `aggregates.` across `DashboardShell.html` returns exactly one read: `aggregates.byPersonWeek`, used by the heatmap. The six precomputed slices the server ships (`byCustomer`, `byProject`, `byPerson`, `byRole`, `byWeek`, `billableVsNonBillable`, together 10,864 chars) are read by **no** client code and no server code. They were built in v1.x for a "first paint doesn't depend on client aggregation" design that the panel no longer uses.
+
+So `getUtilizationChartData` would have to re-implement six aggregations server-side, ship them, paint from them, and then have every one of those canvases replaced the moment the rows land or a filter moves. That is duplicated math with a real parity surface, in exchange for a first paint that is immediately thrown away. Not built.
+
+The six dead slices were also **not deleted**, despite being provably unread by the dashboard. `buildAskPanelDataset_` clones the whole payload into Ask AI context, so `aggregates` is a compact per-customer / per-project / per-role summary an LLM uses instead of re-deriving from 6,000 rows. Deleting 10,864 chars there would degrade Ask answers to save 0.8 percent of the panel.
+
+#### Correction 2: Pipeline is already inside the budget
+
+The entire stored pipeline blob is **79,702** chars. `getPipelineChartData()` would return a few kB out of a payload that already fits in the 100 KB target with 20 KB to spare. Not built.
+
+#### What shipped: the Utilization heatmap slice codec
+
+`aggregates.byPersonWeek` is **272,469** of the 283,333 chars in `aggregates`, and it is the only slice anything reads. Measured shape: 617 entries over **76** persons and **10** weeks, so every string field repeats about eight times, and each entry repeats all 15 key names. `personId` equals `personKey` on **617 of 617** rows, and `personKey` maps 1:1 to `personName` across all 76 persons.
+
+Encoding mirrors B1: positional tuples, plus per-field string tables for the six scalar string fields, plus index arrays for the `roles` and `customers` string arrays, plus 0/1 for the two booleans.
+
+| Variant | Chars | Reduction | Shipped |
+| --- | --- | --- | --- |
+| Today (plain objects) | 272,469 | - | - |
+| **Lossless: all 15 fields** | **48,654** | **82.1%** | **yes** |
+| Lossy: drop the 8 fields nothing reads | 25,406 | 90.7% | no |
+
+The lossy variant was measured and rejected. The extra 8.6 points costs the ability to say the transform is lossless, and it deletes dimensions Ask AI reads. 82.1 percent takes `aggregates` from 283,333 to **59,518** chars, inside the 100 KB target, and the whole utilization blob from 1,336,959 to about **1,113,000**.
+
+**No `cacheSchemaVersion` moves.** The encoded envelope carries `aggregates.byPersonWeekCodec` with its own `version`, so it is self-describing: a blob or snapshot written before the codec decodes as a pass-through, and one written after decodes regardless of the panel version. Bumping `UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_` would force a ~71 minute re-hydrate and would make version 8 mean two different shapes depending on the flag. This is a deliberate deviation from the literal reading of `dashboard-snapshot-cache-sync.mdc`; the discriminator is the codec descriptor, not the panel version.
+
+Kill switch **`PERF_SLIM_VIZ_AGGREGATES`**, ships **false**. Only the **encoder** is gated; the decoder always runs, so a client can always read an encoded blob it finds. Encoding happens after `buildUtilizationAlerts_` on all three builders, because the alert rules read the object form.
+
+Verification: **`_diag_verifyUtilVizCodec()`**. It builds `byPersonWeek` from live rows, encodes, decodes, and compares every field of every entry against the pre-encoding reference, with `roles` and `customers` compared element by element. A good result is `pass: true`, `diffCount: 0`, roughly 600 entries, `reductionPct` near 82.
+
+#### What shipped: the Agreements slim chart endpoint
+
+This is the one panel where the original model is right. `charts`, `sankey`, `forwardPipeline`, `customerCards`, `kpis`, and `alerts` are all precomputed server-side and read verbatim by the client (`renderAllCharts(data.charts)` and friends). Together they measure **23,469** chars against a **766,518**-char blob, so Chart.js can paint from about 3 percent of the bytes with **no** recomputation and therefore no parity surface.
+
+`getAgreementChartData()` returns exactly those keys plus `chartCacheSchemaVersion` (**1**), which is separate from `AGREEMENT_DASHBOARD_CACHE_SCHEMA_VERSION_` so a chart-shape change never invalidates the stored panel blob.
+
+Client wiring is deliberately narrow: cold Agreements load only, best-effort, and a slim response that arrives after `agreementRenderState.lastRenderedFetchedAt` is set is discarded. Kill switch **`PERF_USE_SLIM_CHARTS`**, ships **false**, surfaced on the navigation model so an off flag costs no round trip.
+
+#### Defect found while tracing consumers
+
+`fetchUtilizationFromServer` calls `writeUtilizationCache(data)` (which decodes into `utilState.payload`) and then `applyUtilPayload(data)`, which assigns the **raw encoded envelope** straight over it. Since the B1 codec shipped in 3.10.0, `applyFilters` has been reading `.length` off `{d, r}`, getting `undefined`, and returning an empty array, so every Operations KPI, chart, and detail row rendered empty after a Live fetch with no error surfaced. Present in `198b9c1` and every commit since. `applyUtilPayload` now decodes defensively; `decodeUtilPayload_` is idempotent so the cached and snapshot call sites are unaffected.
+
+This is the same failure mode B1 caught on the server path, one call site later.
 
 ### B4. Range-keyed cache
 

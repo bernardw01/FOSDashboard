@@ -1,5 +1,5 @@
 /**
- * PRD version 3.11.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.12.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 047 performance kill switches.
  *
@@ -30,6 +30,9 @@ var PERF_FLAG_DEFAULTS_ = {
   PERF_USE_UTIL_RPC: false,
   PERF_USE_RA_RPC: false,
   PERF_USE_SLIM_CHARTS: false,
+  // Workstream B3: encode aggregates.byPersonWeek as positional tuples plus
+  // string tables instead of 617 fully-keyed objects.
+  PERF_SLIM_VIZ_AGGREGATES: false,
   PERF_USE_RANGE_CACHE: false,
   // Workstream C: incremental AM mirror driven by fos_sync_watermarks.
   PERF_INCREMENTAL_AM_MIRROR: false,

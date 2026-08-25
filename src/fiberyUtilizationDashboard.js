@@ -1,5 +1,5 @@
 /**
- * PRD version 3.11.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.12.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard orchestrator (route id `operations`, panel
  * `#panel-operations`). Reads `Agreement Management/Labor Costs` from Fibery
@@ -149,6 +149,8 @@ function buildUtilizationPayloadFromFosLaborCosts_(range, thresholds, now) {
     range,
     now
   );
+  // Encode only after alerts, which read the object form.
+  encodeUtilizationAggregatesForWire_(aggregates);
 
   var warnings = [];
   if (fetched.truncated) {
@@ -627,6 +629,7 @@ function applyUtilizationRequestedRange_(payload, rangeStart, rangeEnd) {
     range,
     now
   );
+  encodeUtilizationAggregatesForWire_(aggregates);
 
   var out = {
     ok: true,
@@ -736,6 +739,7 @@ function buildUtilizationDashboardPayload_(rangeStart, rangeEnd) {
   // heatmap surface and the under/over-utilized alert rules.
   aggregates.byPersonWeek = buildByPersonWeek_(rows, range, thresholds);
   var alerts = buildUtilizationAlerts_(rows, aggregates.byPersonWeek, thresholds, range, now);
+  encodeUtilizationAggregatesForWire_(aggregates);
 
   var warnings = [];
   if (fetched.truncated) {
@@ -1213,6 +1217,255 @@ function encodeUtilizationRowsForWire_(rows) {
     encoded.push(tuple);
   }
   return { d: tables, r: encoded };
+}
+
+/* ------------------------------------------------------------------------- */
+/* Visualization payload codec (feature 047 workstream B3)                    */
+/* ------------------------------------------------------------------------- */
+
+/**
+ * Wire field order for encoded `aggregates.byPersonWeek` entries. Append-only,
+ * for the same reason as `UTIL_ROW_WIRE_FIELDS_`: the client maps positionally,
+ * so inserting or reordering silently corrupts every cell in the heatmap.
+ * @const {!Array<string>}
+ */
+var UTIL_PW_WIRE_FIELDS_ = [
+  'personKey',
+  'personName',
+  'personId',
+  'week',
+  'weekStartIso',
+  'weekEndIso',
+  'hours',
+  'billableHours',
+  'capacityHours',
+  'utilizationPct',
+  'partial',
+  'partialFraction',
+  'isInternal',
+  'roles',
+  'customers',
+];
+
+/**
+ * Scalar fields encoded as an index into a per-field string table. Measured on
+ * the 2026-08-25 blob: 617 entries over 76 persons and 10 weeks, so every one
+ * of these repeats about eight times.
+ * @const {!Array<string>}
+ */
+var UTIL_PW_DICT_FIELDS_ = [
+  'personKey',
+  'personName',
+  'personId',
+  'week',
+  'weekStartIso',
+  'weekEndIso',
+];
+
+/**
+ * Fields holding a string array, encoded as an array of indexes into a shared
+ * per-field table.
+ * @const {!Array<string>}
+ */
+var UTIL_PW_LIST_DICT_FIELDS_ = ['roles', 'customers'];
+
+/**
+ * Booleans encoded as 0 / 1 so the wire form carries `1` rather than `false`.
+ * @const {!Array<string>}
+ */
+var UTIL_PW_BOOL_FIELDS_ = ['partial', 'isInternal'];
+
+/**
+ * Codec descriptor shipped alongside the encoded entries.
+ *
+ * Carries its **own** `version`, separate from the panel `cacheSchemaVersion`,
+ * so a future change to the visualization slice can be detected without
+ * invalidating a stored blob whose rows and tables are still current.
+ *
+ * @return {!Object}
+ * @private
+ */
+function utilizationPersonWeekCodec_() {
+  return {
+    version: 1,
+    fields: UTIL_PW_WIRE_FIELDS_.slice(),
+    dictFields: UTIL_PW_DICT_FIELDS_.slice(),
+    listDictFields: UTIL_PW_LIST_DICT_FIELDS_.slice(),
+    boolFields: UTIL_PW_BOOL_FIELDS_.slice(),
+  };
+}
+
+/**
+ * Encodes `aggregates.byPersonWeek` for transport.
+ *
+ * Measured on the live 2026-08-25 utilization blob: this slice was 272,469 of
+ * the 283,333 JSON chars in `aggregates`, because 617 entries each repeated 15
+ * key names plus a 30-character email in three separate fields. Encoding is
+ * **lossless** - every field survives the round trip - and yields 48,654 chars,
+ * 82.1 percent smaller. A field-dropping variant reached 90.7 percent but is
+ * not used: `aggregates` is also handed to Ask AI as panel context, so silently
+ * deleting dimensions there changes answers rather than just size.
+ *
+ * @param {!Array<!Object>} entries Output of `buildByPersonWeek_`.
+ * @return {!{d: !Object<string, !Array<*>>, r: !Array<!Array<*>>}}
+ * @private
+ */
+function encodeUtilizationPersonWeekForWire_(entries) {
+  entries = entries || [];
+  var isDict = {};
+  var isListDict = {};
+  var isBool = {};
+  var tables = {};
+  var lookups = {};
+  var f;
+  for (f = 0; f < UTIL_PW_DICT_FIELDS_.length; f++) {
+    isDict[UTIL_PW_DICT_FIELDS_[f]] = true;
+    tables[UTIL_PW_DICT_FIELDS_[f]] = [];
+    lookups[UTIL_PW_DICT_FIELDS_[f]] = {};
+  }
+  for (f = 0; f < UTIL_PW_LIST_DICT_FIELDS_.length; f++) {
+    isListDict[UTIL_PW_LIST_DICT_FIELDS_[f]] = true;
+    tables[UTIL_PW_LIST_DICT_FIELDS_[f]] = [];
+    lookups[UTIL_PW_LIST_DICT_FIELDS_[f]] = {};
+  }
+  for (f = 0; f < UTIL_PW_BOOL_FIELDS_.length; f++) {
+    isBool[UTIL_PW_BOOL_FIELDS_[f]] = true;
+  }
+
+  // Prefix the lookup key so a value of "constructor" or "__proto__" cannot
+  // collide with Object.prototype members.
+  function intern(field, value) {
+    var key = 'v:' + String(value);
+    var idx = lookups[field][key];
+    if (idx === undefined) {
+      idx = tables[field].length;
+      tables[field].push(value);
+      lookups[field][key] = idx;
+    }
+    return idx;
+  }
+
+  var encoded = [];
+  for (var i = 0; i < entries.length; i++) {
+    var entry = entries[i] || {};
+    var tuple = [];
+    for (var w = 0; w < UTIL_PW_WIRE_FIELDS_.length; w++) {
+      var field = UTIL_PW_WIRE_FIELDS_[w];
+      var value = entry[field];
+      if (isBool[field]) {
+        tuple.push(value ? 1 : 0);
+      } else if (isListDict[field]) {
+        var list = value || [];
+        var idxs = [];
+        for (var l = 0; l < list.length; l++) {
+          idxs.push(intern(field, list[l]));
+        }
+        tuple.push(idxs);
+      } else if (isDict[field] && value !== null && value !== undefined) {
+        tuple.push(intern(field, value));
+      } else {
+        tuple.push(value === undefined ? null : value);
+      }
+    }
+    encoded.push(tuple);
+  }
+  return { d: tables, r: encoded };
+}
+
+/**
+ * Inverse of `encodeUtilizationPersonWeekForWire_`.
+ *
+ * No server path reads a stored `byPersonWeek` today - every builder recomputes
+ * it from rows - but this exists so a future server-side reader cannot repeat
+ * the workstream B1 failure, where an encoded envelope was iterated as an array,
+ * yielded no length, and produced an empty panel with no error.
+ *
+ * Idempotent: an entry list that is already an array passes through.
+ *
+ * @param {?Object} encoded
+ * @param {?Object} codec
+ * @return {!Array<!Object>}
+ * @private
+ */
+function decodeUtilizationPersonWeekFromWire_(encoded, codec) {
+  if (!encoded) {
+    return [];
+  }
+  if (Object.prototype.toString.call(encoded) === '[object Array]') {
+    return encoded;
+  }
+  if (Object.prototype.toString.call(encoded.r) !== '[object Array]') {
+    return [];
+  }
+  codec = codec || utilizationPersonWeekCodec_();
+  var fields = codec.fields || [];
+  var tables = encoded.d || {};
+  var isDict = {};
+  var isListDict = {};
+  var isBool = {};
+  var i;
+  for (i = 0; i < (codec.dictFields || []).length; i++) {
+    isDict[codec.dictFields[i]] = true;
+  }
+  for (i = 0; i < (codec.listDictFields || []).length; i++) {
+    isListDict[codec.listDictFields[i]] = true;
+  }
+  for (i = 0; i < (codec.boolFields || []).length; i++) {
+    isBool[codec.boolFields[i]] = true;
+  }
+
+  function lookup(field, idx) {
+    var table = tables[field];
+    return table && table.length > idx ? table[idx] : null;
+  }
+
+  var out = [];
+  for (var e = 0; e < encoded.r.length; e++) {
+    var tuple = encoded.r[e] || [];
+    var entry = {};
+    for (var f = 0; f < fields.length; f++) {
+      var field = fields[f];
+      var v = tuple[f];
+      if (isBool[field]) {
+        entry[field] = !!v;
+      } else if (isListDict[field]) {
+        var list = [];
+        var idxs = v || [];
+        for (var l = 0; l < idxs.length; l++) {
+          list.push(lookup(field, idxs[l]));
+        }
+        entry[field] = list;
+      } else if (isDict[field] && typeof v === 'number') {
+        entry[field] = lookup(field, v);
+      } else {
+        entry[field] = v === undefined ? null : v;
+      }
+    }
+    out.push(entry);
+  }
+  return out;
+}
+
+/**
+ * Replaces `aggregates.byPersonWeek` with its encoded form in place, and adds
+ * the codec descriptor the client needs to reverse it.
+ *
+ * A no-op when `PERF_SLIM_VIZ_AGGREGATES` is off, which leaves the plain array
+ * on the wire exactly as it shipped through 3.11.0.
+ *
+ * @param {!Object} aggregates
+ * @return {!Object} The same object, for call-site brevity.
+ * @private
+ */
+function encodeUtilizationAggregatesForWire_(aggregates) {
+  if (!aggregates || !perfFlag_('PERF_SLIM_VIZ_AGGREGATES')) {
+    return aggregates;
+  }
+  aggregates.byPersonWeek = encodeUtilizationPersonWeekForWire_(
+    aggregates.byPersonWeek
+  );
+  aggregates.byPersonWeekCodec = utilizationPersonWeekCodec_();
+  return aggregates;
 }
 
 /* ------------------------------------------------------------------------- */

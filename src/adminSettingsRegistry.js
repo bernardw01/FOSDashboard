@@ -1,5 +1,5 @@
 /**
- * PRD version 3.11.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.12.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -1078,6 +1078,14 @@ function getAdminSettingsCatalog_() {
       'performance',
       'Slim chart payloads',
       'Feature 047 workstream B. When on, chart canvases render from a small payload before the full table payload arrives.',
+      'boolean',
+      false
+    ),
+    adminSettingEntry_(
+      'PERF_SLIM_VIZ_AGGREGATES',
+      'performance',
+      'Slim Utilization visualization payload',
+      'Feature 047 workstream B3. When on, the Utilization heatmap slice (aggregates.byPersonWeek) travels as positional tuples plus string tables instead of 617 fully-keyed objects, measured 272,469 to 48,654 JSON chars (82.1 percent). The transform is lossless and reversed in the browser before the heatmap sees an entry. Turn on only after _diag_verifyUtilVizCodec() reports pass with 0 diffs.',
       'boolean',
       false
     ),

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.11.0 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.12.0 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -9066,6 +9066,10 @@
       var DASHBOARD_READ_SOURCE_HINT_ = String('<?!= dashboardReadSource ?>' || '')
         .trim()
         .toLowerCase();
+      // Feature 047 B3: mirrors the server PERF_USE_SLIM_CHARTS kill switch,
+      // delivered with the navigation model so no extra round trip is spent
+      // discovering that the flag is off.
+      var perfSlimChartsEnabled_ = false;
       var dataSourceState = {
         mode: 'live',
         snapshotDate: null,
@@ -14589,8 +14593,42 @@
             sankey: { nodes: [], links: [], total: 0, linkOpacity: 0.35 },
             warnings: [],
           });
+          requestAgreementChartFirstPaint_();
           fetchAgreementFromServer();
         }
+      }
+
+      /**
+       * Feature 047 B3: paint the Agreements chart surfaces from a ~23 KB slice
+       * while the ~766 KB full payload is still in flight.
+       *
+       * Cold path only, and only when the server reports PERF_USE_SLIM_CHARTS
+       * on. The full payload re-renders every one of these surfaces from the
+       * same precomputed slices, so a late slim response would repaint stale
+       * chrome; `agreementRenderState.lastRenderedFetchedAt` is set once the
+       * full payload lands, and a non-null value here means we lost the race
+       * and should do nothing.
+       */
+      function requestAgreementChartFirstPaint_() {
+        if (!perfSlimChartsEnabled_ || !isLiveDataSource_()) return;
+        google.script.run
+          .withSuccessHandler(function (data) {
+            if (!data || data.ok === false) return;
+            if (agreementRenderState.lastRenderedFetchedAt) return;
+            try {
+              renderAttention(data.alerts || []);
+              renderAllCharts(data.charts);
+              renderCustomerCards(data.customerCards || []);
+              renderForwardPipeline(data.forwardPipeline || { rows: [], maxMonthlyRate: 0 });
+              renderSankey(data.sankey || { nodes: [], links: [], total: 0, linkOpacity: 0.35 });
+            } catch (e) {
+              /* first paint is best-effort; the full payload re-renders anyway */
+            }
+          })
+          .withFailureHandler(function () {
+            /* best-effort; the full fetch still runs */
+          })
+          .getAgreementChartData();
       }
 
       /* =====================================================================
@@ -14612,10 +14650,18 @@
        * builder keep working.
        */
       function decodeUtilPayload_(payload) {
-        if (!payload || !payload.rowsCodec) return payload;
+        if (!payload) return payload;
+        // Aggregates carry their own codec descriptor and are decoded whether or
+        // not the rows are encoded, so the two slices can version independently.
+        var aggregates = decodeUtilAggregates_(payload.aggregates);
+        if (!payload.rowsCodec) {
+          if (aggregates === payload.aggregates) return payload;
+          return Object.assign({}, payload, { aggregates: aggregates });
+        }
         var enc = payload.rows;
         if (!enc || !enc.r || Object.prototype.toString.call(enc.r) !== '[object Array]') {
-          return payload;
+          if (aggregates === payload.aggregates) return payload;
+          return Object.assign({}, payload, { aggregates: aggregates });
         }
         var fields = payload.rowsCodec.fields || [];
         var dictFields = payload.rowsCodec.dictFields || [];
@@ -14640,6 +14686,64 @@
         }
         var decoded = Object.assign({}, payload);
         decoded.rows = out;
+        decoded.aggregates = aggregates;
+        return decoded;
+      }
+
+      /**
+       * Feature 047 B3: reverses `encodeUtilizationPersonWeekForWire_`.
+       *
+       * Gated on the `byPersonWeekCodec` descriptor rather than on the panel
+       * cacheSchemaVersion, so a blob written before the codec (and a snapshot
+       * from any earlier date) passes through untouched. Idempotent: an entry
+       * list that is already an array is returned as-is.
+       */
+      function decodeUtilAggregates_(aggregates) {
+        if (!aggregates || !aggregates.byPersonWeekCodec) return aggregates;
+        var enc = aggregates.byPersonWeek;
+        if (!enc || Object.prototype.toString.call(enc.r) !== '[object Array]') {
+          return aggregates;
+        }
+        var codec = aggregates.byPersonWeekCodec;
+        var fields = codec.fields || [];
+        var tables = enc.d || {};
+        var isDict = {};
+        var isListDict = {};
+        var isBool = {};
+        var i;
+        for (i = 0; i < (codec.dictFields || []).length; i++) isDict[codec.dictFields[i]] = true;
+        for (i = 0; i < (codec.listDictFields || []).length; i++) isListDict[codec.listDictFields[i]] = true;
+        for (i = 0; i < (codec.boolFields || []).length; i++) isBool[codec.boolFields[i]] = true;
+
+        function lookup(field, idx) {
+          var table = tables[field];
+          return table && table.length > idx ? table[idx] : null;
+        }
+
+        var out = [];
+        for (var e = 0; e < enc.r.length; e++) {
+          var tuple = enc.r[e] || [];
+          var entry = {};
+          for (var f = 0; f < fields.length; f++) {
+            var field = fields[f];
+            var v = tuple[f];
+            if (isBool[field]) {
+              entry[field] = !!v;
+            } else if (isListDict[field]) {
+              var list = [];
+              var idxs = v || [];
+              for (var l = 0; l < idxs.length; l++) list.push(lookup(field, idxs[l]));
+              entry[field] = list;
+            } else if (isDict[field] && typeof v === 'number') {
+              entry[field] = lookup(field, v);
+            } else {
+              entry[field] = v === undefined ? null : v;
+            }
+          }
+          out.push(entry);
+        }
+        var decoded = Object.assign({}, aggregates);
+        decoded.byPersonWeek = out;
         return decoded;
       }
 
@@ -17028,6 +17132,13 @@
       }
 
       function applyUtilPayload(data) {
+        // Decode defensively. fetchUtilizationFromServer hands us the raw server
+        // envelope, whose rows are positional tuples since 3.10.0; assigning it
+        // straight to utilState.payload made applyFilters read `.length` off an
+        // object, get undefined, and render every KPI, chart, and table row
+        // empty with no error. decodeUtilPayload_ is idempotent, so the cached
+        // and snapshot call sites that already decoded are unaffected.
+        data = decodeUtilPayload_(data);
         utilState.payload = data;
         // v1.16.0 - fresh payload clears expand toggles so grouped alerts
         // render with v1.21.1 defaults (all groups collapsed until expanded).
@@ -33218,6 +33329,7 @@
           .getAppVersionStatus();
         google.script.run
           .withSuccessHandler(function (model) {
+            perfSlimChartsEnabled_ = !!(model && model.perfSlimCharts);
             renderNav(model);
             ensureProfileLoaded_();
             refreshNotificationBadgeLazy_();

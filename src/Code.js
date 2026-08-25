@@ -1,11 +1,11 @@
 /**
- * PRD version 3.11.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.12.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.11.0';
+var FOS_PRD_VERSION = '3.12.0';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.11.0';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.11.0 Resource assignment allocations are now selected and joined in Postgres behind PERF_USE_RA_RPC, replacing a full-table read.';
+  'v3.12.0 The Utilization heatmap slice ships as a lossless 82 percent smaller codec, Agreements can paint charts from a 23 kB slice, and the Operations Live fetch renders again.';
 
 /**
  * @return {string}
@@ -290,6 +290,11 @@ function buildNavigationModel_(auth) {
     engagementReviewAccess: engagementReviewAccess,
     agreementDashboardAccess: agreementDashboardAccess,
     isAdmin: isAdminUser_(auth),
+    // Feature 047 B3: the client fires getAgreementChartData() for a first
+    // paint only when this is on, so the kill switch stays server-side and an
+    // off state costs no extra round trip.
+    perfSlimCharts:
+      typeof perfFlag_ === 'function' ? perfFlag_('PERF_USE_SLIM_CHARTS') : false,
     items: navItems,
   };
 
