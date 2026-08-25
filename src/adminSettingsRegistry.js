@@ -1,5 +1,5 @@
 /**
- * PRD version 3.14.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.14.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -1060,8 +1060,8 @@ function getAdminSettingsCatalog_() {
     adminSettingEntry_(
       'PERF_USE_UTIL_RPC',
       'performance',
-      'Utilization aggregates in Postgres',
-      'Feature 047 workstream B. When on, Utilization calls a Postgres aggregate function instead of paging labor rows into Apps Script.',
+      'Utilization aggregates in Postgres (reserved)',
+      'Feature 047. Reserved for a future fos_rpc_util_aggregates migration. The RPC was never built, so this flag currently gates nothing. Leave it off; turning it on has no effect on Utilization.',
       'boolean',
       false
     ),
@@ -1108,16 +1108,16 @@ function getAdminSettingsCatalog_() {
     adminSettingEntry_(
       'PERF_INCREMENTAL_AM_MIRROR',
       'performance',
-      'Incremental Fibery mirror',
-      'Feature 047 workstream C. When on, the nightly mirror fetches only entities modified since the stored watermark instead of re-scanning everything.',
+      'Incremental Fibery mirror (reserved)',
+      'Feature 047 workstream C. Reserved until that workstream ships. This flag currently gates nothing, so the nightly mirror still re-scans every entity. Leave it off; turning it on has no effect on hydrate duration.',
       'boolean',
       false
     ),
     adminSettingEntry_(
       'PERF_LAZY_PANEL_MARKUP',
       'performance',
-      'Lazy panel markup',
-      'Feature 047 workstream D. When on, panel markup is injected on demand instead of shipping every panel in the initial HTML.',
+      'Lazy panel markup (reserved)',
+      'Feature 047 workstream D. Reserved until that workstream ships. This flag currently gates nothing, so every panel still ships in the initial HTML. Leave it off; turning it on has no effect on first paint.',
       'boolean',
       false
     ),

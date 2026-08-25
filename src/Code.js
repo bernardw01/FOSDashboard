@@ -1,11 +1,11 @@
 /**
- * PRD version 3.14.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.14.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.14.0';
+var FOS_PRD_VERSION = '3.14.1';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.14.0';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.14.0 Reload on Agreements, Revenue review, Delivery, and Services summary now re-reads the stored Datastore payload instead of rebuilding it from the typed tables inside your request, which measured about 4.6 seconds, and it still rebuilds when a threshold changes or the stored copy is from an earlier day.';
+  'v3.14.1 Workstream B close-out: measured end-to-end wins, inert performance flags labeled as reserved, and the largest remaining payload identified.';
 
 /**
  * @return {string}

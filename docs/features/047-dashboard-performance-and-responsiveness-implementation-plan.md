@@ -5,8 +5,8 @@
 > **Feature notebook:** [Feature 047 - Dashboard performance and responsiveness](https://win.godeap.io/app/projects/1615262/notebooks/313457)  
 > **Release task:** [Feature 047 - Dashboard performance and responsiveness](https://win.godeap.io/app/tasks/40839335)
 >
-> **PRD version:** 3.14.0. Each workstream ships its own version bump.
-> **Status:** Approved 2026-08-24. **Workstream A shipped in 3.9.2. B1 shipped in 3.10.0 / 3.10.1. B2 shipped in 3.11.0 with its kill switch off pending a parity run. B3 shipped in 3.12.0 with both kill switches off pending `_diag_verifyCodec_HeatmapWeeks()`. B4 shipped in 3.13.0 with its kill switch off pending `_diag_verifyWorkstreamB4()`. B5 shipped in 3.14.0 with its kill switch off pending `_diag_verifyWorkstreamB5()`.** B1 RPC, C, D pending.
+> **PRD version:** 3.14.1. Each workstream ships its own version bump.
+> **Status:** Approved 2026-08-24. **Workstream B closed out in 3.14.1; see B6.** A shipped in 3.9.2 and is live. B1 rows codec shipped in 3.10.0 / 3.10.1 and is live unconditionally. B2 shipped in 3.11.0, verified, and is **live**. B3's codec shipped in 3.12.0, verified, and is **live**; B3's Agreements first paint is shipped but **still off and unverified**. B4 shipped in 3.13.0, verified, and is **live**, though its hydrate warm and GC step has never executed. B5 shipped in 3.14.0, **verified** on the second `_diag_verifyWorkstreamB5()` run (both panels, 0 diffs, `armsProven`); the flag may still be off pending operator enable. The B1 aggregates RPC was **never built**, and its flag `PERF_USE_UTIL_RPC` is inert. C and D are not started, and their flags are inert too.
 
 ## How to read this plan
 
@@ -501,9 +501,130 @@ One caveat for whoever runs it first. `fos_sync_runs.summary` records that the 2
 
 **`PERF_RELOAD_REREADS_BLOB` ships `false`.**
 
-### B6. Verify
+### B6. Close-out (shipped 3.14.1)
 
-Parity on all fixtures for every RPC. Confirm via `pg_stat_statements` that the RPCs appear and that `supabaseSelectAll_` paging of labor no longer does. Re-run `_diag_measurePanelLoad`.
+Workstream B ends here. This section is the measurement record, not a proposal. Everything below was re-measured on **2026-08-25** against the live project `jpcbugdpdvyutlusicxa` with the flags that were actually set, not with the flags the plan assumed.
+
+#### What the flags were actually set to
+
+Script Properties cannot be read from outside Apps Script, so the authority here is `fos_perf_runs.flags`, which `perfFlagsSnapshot_()` stamps on every harness run. The most recent snapshot is run `perf:range-cache:2026-08-25T15:06:52.419Z:556171f2`, captured against deployed script **3.13.0**.
+
+| Flag | Value | Gates real code | Note |
+| --- | --- | --- | --- |
+| `PERF_USE_NORMALIZED_LABOR_COLS` | on | yes | Workstream A. Default true, live since 3.9.2. |
+| `PERF_USE_RA_RPC` | on | yes | Workstream B2. Operator enabled it after verification. |
+| `PERF_SLIM_VIZ_AGGREGATES` | on | yes | Workstream B3 codec. Operator enabled it after verification. |
+| `PERF_USE_RANGE_CACHE` | on | yes | Workstream B4. Operator enabled it after verification. |
+| `PERF_USE_SLIM_CHARTS` | **off** | yes | Workstream B3 Agreements first paint. Still off, so still delivering nothing. |
+| `PERF_RELOAD_REREADS_BLOB` | default off; verified | yes | Workstream B5. `_diag_verifyWorkstreamB5()` second run on 2026-08-25 passed both panels with 0 diffs and `armsProven: true`. First run failed only on `storedVsRebuild` because today's blobs were built by deployed 3.10.0. |
+| `PERF_USE_UTIL_RPC` | on | **no** | B1 aggregates RPC was never built. The flag has no consumer. |
+| `PERF_INCREMENTAL_AM_MIRROR` | on | **no** | Workstream C. Not built. |
+| `PERF_LAZY_PANEL_MARKUP` | on | **no** | Workstream D. Not built. |
+
+**Three flags were switched on that gate nothing.** `PERF_USE_UTIL_RPC`, `PERF_INCREMENTAL_AM_MIRROR`, and `PERF_LAZY_PANEL_MARKUP` appear only in `perfFlags.js` defaults and in `adminSettingsRegistry.js`; a grep of `src/` finds no `perfFlag_()` call site for any of them. Their registry tooltips described them in the present tense ("When on, the nightly mirror fetches only entities modified since the stored watermark"), so an operator reading ADMIN Settings had every reason to believe the incremental mirror was running. It was not, and the 60 to 70 minute hydrate duration is unchanged. Fixed in 3.14.1 by rewriting all three tooltips to say plainly that the flag is reserved and has no effect until its workstream ships. No flag semantics changed, because there is nothing to change.
+
+#### Measured end to end, default Utilization window
+
+The one path every workstream in B touched. All three numbers are from the same harness run on the same window on the same day, so they are comparable.
+
+| Stage | Wire bytes | Round trips | Labor load wall clock |
+| --- | --- | --- | --- |
+| Before workstream A (measured 2026-08-24, blob in the select) | 6,966 kB | 10 | seconds to tens of seconds |
+| Workstream A live (`PERF_USE_NORMALIZED_LABOR_COLS` on) | **2,274 kB** | 10 | **6,267 ms** |
+| A plus B4 warm (`PERF_USE_RANGE_CACHE` on, second visit) | **945 kB** | **1** | **1,598 ms** |
+
+End to end that is **86.4 percent** fewer bytes and **10 round trips down to 1** on the hottest query in the product, with a **3.9x** reduction in the labor load step. The A figure re-verifies the original 66 percent claim independently: 2,274 kB for 5,756 rows against the 2,353 kB recorded for 6,173 rows.
+
+#### Stored panel payloads, re-measured
+
+| Panel | Schema | JSON chars | Now | Baseline 2026-08-24 | Change |
+| --- | --- | --- | --- | --- | --- |
+| `resource-assignments` | 3 | 2,789,504 | **2,724 kB** | 464 kB | see below |
+| `utilization` | 7 | 1,336,959 | **1,306 kB** | 5,331 kB | **75.5 percent off** |
+| `agreement` | 4 | 766,518 | 749 kB | 748 kB | flat |
+| `portfolio-pnl` | 1 | 648,906 | 634 kB | 633 kB | flat |
+| `ai-usage` | 4 | 494,780 | 483 kB | 579 kB | 16.6 percent off |
+| `pipeline` | 3 | 79,702 | 78 kB | not recorded | inside the 100 kB budget |
+| `delivery` | 2 | 24,112 | 24 kB | not recorded | inside the 100 kB budget |
+
+The B1 headline holds: the utilization blob went from **6,060,530** to **1,336,959** JSON chars, **77.9 percent** off, against the 78.5 percent claimed at ship. The small drift is data growth, not regression.
+
+#### The baseline table was wrong about resource assignments, and it mis-set B3's priorities
+
+`resource-assignments` did not grow sixfold. The 464 kB in the problem statement was a `cache_schema_version` **2** blob, written by a deployed script that was nine days behind git. Version 3 had been in `src/` since commit `ddc61c6` on 2026-08-15. Once the deploy caught up on 2026-08-24 and the hydrate wrote a version 3 blob, its real size was **2,724 kB**.
+
+That makes `resource-assignments` the **largest panel payload in the product**, more than twice `utilization` after B1 slimmed it, and it was never a workstream B target because the number everyone was reading was a stale artifact. Where its bytes are:
+
+| Slice | JSON chars | Share of panel |
+| --- | --- | --- |
+| `personVariances` | 2,316,942 | **83.1 percent** |
+| `projects` | 295,243 | 10.6 percent |
+| `persons` | 143,176 | 5.1 percent |
+| everything else | 34,143 | 1.2 percent |
+
+`personVariances` is 75 persons, each with `assigned`, `actual`, and `variance` groups, 503 project rows in total, holding **3,764** `byWeek` cells that account for **2,130,470** chars. Of that, **240,624** chars are repeated key names (`actualHours`, `assignedHours`, `byDay`, `partial`, `varianceHours`) and **41,404** are repeated week labels, before counting the nested `byDay` object inside each cell.
+
+This is the same defect class B1 and B3 already built and verified codecs for, on a slice **8.7x larger** than the utilization heatmap slice B3 spent a release on. It is the single largest remaining payload win in the feature. Recommended as the first item of any B7 or of workstream D, reusing `encodeUtilizationRowsForWire_`'s positional-tuple plus string-table pattern rather than inventing a third codec.
+
+#### The RPCs are genuinely being called from Apps Script
+
+`pg_stat_statements` distinguishes the two callers cleanly. A call made from the SQL editor appears as the literal SQL text; a call made by Apps Script through PostgREST is wrapped in `WITH pgrst_source AS (SELECT pgrst_call.pgrst_scalar FROM (SELECT $1 AS json_data) pgrst_payload, LATERAL (SELECT ... FROM json_to_record(...)))`. Only the second shape proves the flag is doing something.
+
+| Function | PostgREST-shaped calls | Mean exec | Verdict |
+| --- | --- | --- | --- |
+| `fos_rpc_ra_week_grid` | **9** | 26.3 ms | Live. B2 is genuinely serving traffic. |
+| `fos_rpc_viz_range_get` | **8** | 69.3 ms | Live. B4 is genuinely serving traffic. |
+| `fos_rpc_viz_range_gc` | **0** | n/a | Never called by Apps Script. Explained below. |
+
+The garbage collector is wired correctly. `vizRangeCacheGc_` is called from `warmUtilizationRangeCache_` (`fiberyUtilizationDashboard.js`), which the hydrate calls through `hydrateSupabaseVizRangeCache_`, which returns early while `PERF_USE_RANGE_CACHE` is off. B4 shipped in 3.13.0 and the last hydrate ran at 08:57 on deployed script **3.10.0**, so the warm step has never executed in production. It should run on the next nightly hydrate now that the flag is on and 3.14.0 is deployed. **Confirm it did:** the run summary must contain a `viz-warm` note reporting warmed presets and a `gc deleted` count. Until that is observed, cache warming and garbage collection are shipped and switched on but never once exercised, which means the range cache currently only ever fills on user demand and prunes nothing.
+
+The four entries in `fos_viz_range_payloads` were all written at 15:06 by the verification harness, not by a hydrate, which is consistent with the above.
+
+#### Index re-check after five releases
+
+Migration `047_drop_unused_indexes.sql` dropped six zero-scan indexes. Re-checked `pg_stat_user_tables` and `pg_stat_user_indexes` with statistics accumulated since **2026-07-15**, a 41 day window that covers all of feature 047.
+
+**No migration 052 is warranted, and none was applied.** Specifically:
+
+- **Every index on every table this feature touches is being used.** `fos_labor_costs` has eight indexes and all eight have non-zero scans, led by `fos_labor_costs_start_date_time_idx` at 2,196 scans, which is the index the range-cache build depends on. `fos_resource_allocations` has three, all used. Nothing regressed.
+- **The new access patterns need no new index.** `fos_viz_range_payloads` holds 4 rows in 1,048 kB; both its indexes are used (`_pkey` 17 scans, `_gc_idx` 2) and at this cardinality a sequential scan would be correct anyway. `fos_resource_allocations` holds **143 rows in 368 kB**, so `fos_rpc_ra_week_grid`'s sequential scan is the right plan, and B2 deliberately relies on heap order, which an index scan would break. Adding an index there would risk parity for no gain.
+- **The remaining zero-scan indexes are not worth a migration.** They fall into three groups: 16 kB indexes on tables of 3 to 45 rows, where the planner would seq scan regardless and the write overhead is negligible; indexes on five tables that hold **zero rows**; and three indexes totalling 3,376 kB on the legacy unprefixed `labor_costs` table. That last table is a 37 MB duplicate of `fos_labor_costs` and is a real cleanup candidate, but it still shows 765,642 index scans on its primary key, so something is reading it. Identifying that reader is out of scope for a performance close-out and dropping anything there without knowing it would be reckless.
+
+The problem statement's conclusion stands unchanged: index coverage is not a bottleneck on any hot path in this product.
+
+#### What is proven, and what is still not
+
+| Part | Shipped | Flag | Proven | Live |
+| --- | --- | --- | --- | --- |
+| A: no blob select, HTTP timeouts, dead indexes | yes | `PERF_USE_NORMALIZED_LABOR_COLS` | **yes**, 4 fixtures, re-verified 2026-08-25 | **yes** |
+| B1: tuple plus dictionary utilization rows | yes | none, unconditional | **yes**, 5,761 rows, 0 diffs, 80.3 percent | **yes** |
+| B1: utilization aggregates RPC | **no** | `PERF_USE_UTIL_RPC` (inert) | n/a | no |
+| B2: `fos_rpc_ra_week_grid` | yes | `PERF_USE_RA_RPC` | **yes**, 4 fixtures, 0 diffs, 0 fallbacks | **yes**, 9 PostgREST calls |
+| B3: heatmap codec | yes | `PERF_SLIM_VIZ_AGGREGATES` | **yes**, 602 entries, 0 diffs, 84.6 percent | **yes** |
+| B3: Agreements first paint | yes | `PERF_USE_SLIM_CHARTS` | **no**, visual only | **no** |
+| B4: range-keyed row-bundle cache | yes | `PERF_USE_RANGE_CACHE` | **yes**, 4 fixtures, cold and warm, 0 diffs, `armsProven` | **yes**, 8 PostgREST calls |
+| B4: hydrate warm plus GC | yes | `PERF_USE_RANGE_CACHE` | **no**, never executed in production | on, unexercised |
+| B5: Reload re-reads stored blob | yes | `PERF_RELOAD_REREADS_BLOB` | **yes**, second run both panels 0 diffs, `armsProven`; agreement 3.74x / delivery 4.55x | operator may still have flag off |
+| Labor rows sort by primary key tiebreaker | yes | none, unconditional | yes, via B4 parity | **yes** |
+
+**Two things remain unproven or unexercised:**
+
+1. **`PERF_USE_SLIM_CHARTS`** for the Agreements first paint. There is no diagnostic and no automated check is possible, because the claim is about paint order rather than about numbers. Verify by hand per the spec's verification step 5, at desktop width and at ~390px.
+2. **The hydrate warm and GC step.** Not a diagnostic. After the next nightly hydrate, run `select summary->'notes' from public.fos_sync_runs order by started_at desc limit 1;` and confirm a `viz-warm` note reporting warmed presets and a `gc deleted` count, then `select panel_key, range_start, range_end, row_count, payload_chars from public.fos_viz_range_payloads;` and confirm the 30, 60, and 90 day presets are present without having opened the panel.
+
+#### Deploy lag, third instance
+
+`fos_sync_runs.summary.scriptVersion` records **3.10.0** for both of today's hydrates, 01:17 and 08:57, while 3.11.0 had been committed the previous evening and 3.13.0 by the time the harness ran. Today's stored blobs were therefore built by code four releases behind git. This is the third instance in this feature, and the resource-assignments finding above is the first time it can be shown to have cost something concrete rather than merely being untidy: it hid the largest payload in the product from the workstream whose entire job was finding large payloads.
+
+`check_deployed_matches_git.py` (A2) detects the condition correctly and exits 0 today. It only runs when someone remembers to run it, which is the actual defect. **Recommendation, not built here:** install it as a git `pre-push` hook, roughly
+
+```bash
+# .git/hooks/pre-push
+python scripts/check_deployed_matches_git.py || {
+  echo "Deployed Apps Script does not match src/. Run clasp push."; exit 1; }
+```
+
+That is about four lines, needs no new code, and fails at the one moment the author is already at the keyboard and has the context to fix it. It is deliberately a `pre-push` hook rather than `pre-commit`, because committing without pushing is legitimate mid-work; what is not legitimate is publishing a commit to the remote while the deployed script is behind. Hooks are not versioned by git, so it needs a one-line note in the repo README or a `scripts/install-hooks.ps1`, and it must stay bypassable with `--no-verify` for the case where Apps Script is intentionally pinned. A second, complementary option worth considering only if the hook proves insufficient: have the hydrate compare its own `FOS_PRD_VERSION` against a version string committed to a Datastore row by the push script, and raise the existing schema-drift warning in ADMIN Settings when they differ. That is real code and should not be built until the free option has been given a chance to fail.
 
 ---
 
@@ -600,17 +721,22 @@ C and D are independent of each other and of B once A is in, so they can run in 
 
 Recorded in `docs/features/047-baseline-measurements.json` before, and re-measured after each workstream.
 
-| Metric | Baseline (measured 2026-08-24) | Target | Workstream |
-| --- | --- | --- | --- |
-| Utilization 90-day wire bytes | ~10 MB | 3,598 kB in A; under 1 MB in B | A, B |
-| Utilization panel blob size | 5,331 kB | under 1,000 kB | B |
-| Utilization Live load, warm | seconds to tens of seconds | under 2 s | A + B |
-| Labor round trips per load | 10 sequential pages | 1 | B |
-| Panels with drifted schema version | 2 of 7 | 0 | A |
-| Nightly hydrate duration | 60 to 70 min | under 10 min | C |
-| Nightly hydrate failure rate | 2 of 10 runs | under 1 in 30, alerted | C |
-| Served HTML size | 1,446,967 bytes | under 870,000 bytes | D |
-| Longest render task | unmeasured, suspected over 500 ms | under 200 ms | D |
+Re-measured **2026-08-25** at the close of workstream B. "Actual" is what the live system does today with the flags that are actually set.
+
+| Metric | Baseline (measured 2026-08-24) | Target | Actual 2026-08-25 | Workstream |
+| --- | --- | --- | --- | --- |
+| Utilization default-window wire bytes | 6,966 kB | 2,353 kB in A; under 1 MB in B | **945 kB** warm, 2,274 kB cold | A, B4 |
+| Utilization panel blob size | 5,331 kB | under 1,000 kB | **1,306 kB** | B1 |
+| Utilization Live load, warm | seconds to tens of seconds | under 2 s | **1,598 ms** labor load step | A + B4 |
+| Labor round trips per load | 10 sequential pages | 1 | **1** warm, 8 to 12 cold | B4 |
+| Panels with drifted schema version | 2 of 7 | 0 | **0 of 7** | A |
+| Largest panel payload | believed 5,331 kB (`utilization`) | not targeted | **2,724 kB** (`resource-assignments`) | not started |
+| Nightly hydrate duration | 60 to 70 min | under 10 min | **67.3 min**, unchanged | C |
+| Nightly hydrate failure rate | 2 of 10 runs | under 1 in 30, alerted | 0 of last 5, still unalerted | C |
+| Served HTML size | 1,446,967 bytes | under 870,000 bytes | unchanged | D |
+| Longest render task | unmeasured, suspected over 500 ms | under 200 ms | still unmeasured | D |
+
+Two targets are met: the wire-byte target for the default window (945 kB against "under 1 MB") and the schema-drift target. The utilization blob target of "under 1,000 kB" is **not** met at 1,306 kB, and closing that gap needs the aggregates RPC that was never built, because the payload still carries `rows[]` for client-side filtering.
 
 ## Risks and mitigations
 

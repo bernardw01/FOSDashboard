@@ -1681,6 +1681,74 @@
       "createdAt": "2026-08-25",
       "backfilledAt": "2026-08-25",
       "backfillNote": "Shipped in commit ac5ac7a (feature 047 workstream B3) with no Teamwork release task; task created retroactively via scripts/teamwork_ensure_release_task.py. PERF_SLIM_VIZ_AGGREGATES and PERF_USE_SLIM_CHARTS both ship off, and _diag_verifyUtilVizCodec() has not been run, so codec parity is not claimed."
+    },
+    "v3.13.0 - Range-keyed Utilization cache": {
+      "id": 40887740,
+      "featureId": "047",
+      "releaseType": "Enhancement",
+      "shippedVersion": "v3.13.0",
+      "provisionalTaskName": false,
+      "releaseTitle": "Range-keyed Utilization cache",
+      "url": "https://win.godeap.io/app/tasks/40887740",
+      "shippedAt": "2026-08-25",
+      "estDevHours": 14,
+      "estDevHoursRationale": [
+        "Git range: ac5ac7a..806c46b (83 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +1 lines): +1.5h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +1 lines): +2.0h",
+        "Apps Script module `src/fiberyUtilizationDashboard.js`: +2.2h",
+        "Apps Script module `src/perfParityDiagnostics.js`: +1.7h",
+        "Apps Script module `src/supabaseSyncJob.js`: +0.9h",
+        "Apps Script module `src/vizRangeCache.js`: +2.2h",
+        "Feature spec / docs (+121 lines): +1.3h",
+        "Teamwork / automation scripts (+361 lines): +1.2h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 14.0h"
+      ],
+      "estDevHoursGitBase": "ac5ac7a",
+      "workflowStage": "Shipped"
+    },
+    "v3.14.0 - Reload re-reads the stored panel blob": {
+      "id": 40887742,
+      "featureId": "047",
+      "releaseType": "Enhancement",
+      "shippedVersion": "v3.14.0",
+      "provisionalTaskName": false,
+      "releaseTitle": "Reload re-reads the stored panel blob",
+      "url": "https://win.godeap.io/app/tasks/40887742",
+      "shippedAt": "2026-08-25",
+      "estDevHours": 8,
+      "estDevHoursRationale": [
+        "Git range: 806c46b..1da8b67 (73 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +1 lines): +1.5h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +1 lines): +2.0h",
+        "Apps Script module `src/perfParityDiagnostics.js`: +2.1h",
+        "Apps Script module `src/supabaseDashboard.js`: +1.4h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 8.0h"
+      ],
+      "estDevHoursGitBase": "806c46b",
+      "workflowStage": "Shipped"
+    },
+    "v3.14.1 - Workstream B close-out": {
+      "id": 40887743,
+      "featureId": "047",
+      "releaseType": "Enhancement",
+      "shippedVersion": "v3.14.1",
+      "provisionalTaskName": false,
+      "releaseTitle": "Workstream B close-out",
+      "url": "https://win.godeap.io/app/tasks/40887743",
+      "shippedAt": "2026-08-25",
+      "estDevHours": 1,
+      "estDevHoursRationale": [
+        "No git diff stat; default minimum: 1.0h"
+      ],
+      "estDevHoursGitBase": "1da8b67",
+      "workflowStage": "Shipped"
     }
   },
   "supersededDuplicates": {
