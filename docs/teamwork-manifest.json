@@ -1749,6 +1749,30 @@
       ],
       "estDevHoursGitBase": "1da8b67",
       "workflowStage": "Shipped"
+    },
+    "v3.15.0 - Slim Resource Assignments personVariances": {
+      "id": 40889276,
+      "featureId": "047",
+      "releaseType": "Enhancement",
+      "shippedVersion": "v3.15.0",
+      "provisionalTaskName": false,
+      "releaseTitle": "Slim Resource Assignments personVariances",
+      "url": "https://win.godeap.io/app/tasks/40889276",
+      "shippedAt": "2026-08-25",
+      "estDevHours": 10,
+      "estDevHoursRationale": [
+        "Git range: 6c3e9f4f..HEAD (75 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +134 lines): +2.2h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +1 lines): +2.0h",
+        "Apps Script module `src/perfParityDiagnostics.js`: +1.9h",
+        "Apps Script module `src/resourceAssignmentDashboard.js`: +2.2h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 9.5h"
+      ],
+      "estDevHoursGitBase": "6c3e9f4fdc72f7cdbb2ac7c65d8d29b43dfab0c8",
+      "workflowStage": "Shipped"
     }
   },
   "supersededDuplicates": {
