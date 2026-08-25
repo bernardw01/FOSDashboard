@@ -38,7 +38,7 @@ All figures measured **2026-08-24** against the live `FinOps Performance Hub` Da
 | CPU benchmark (1M `sqrt` iterations) | **181 ms** (healthy, not throttled) |
 | Dashboard queries in top 25 of `pg_stat_statements` by total time | **none** |
 
-**Yet the work Postgres could do instantly is being done in Apps Script.** The 90-day default Utilization window:
+**Yet the work Postgres could do instantly is being done in Apps Script.** Measured over a 90-day Utilization window:
 
 | Path | Rows | Bytes over the wire | Round trips | Time |
 | --- | --- | --- | --- | --- |
@@ -51,15 +51,16 @@ The 17.8 ms figure is a real `EXPLAIN (ANALYZE, BUFFERS)` run of the per-person-
 
 1. **Row shipping instead of aggregation.** `fetchFosLaborCostsByRange_` (`src/fiberyUtilizationDashboard.js` lines 197-246) pulls up to 60 pages of 1,000 rows and reduces them in JavaScript. `supabaseRpc_` exists (`src/supabaseClient.js` lines 176-178) but **has no callers**. `fos_labor_costs_util_dims` (migration 046) exists but is **never queried**; GAS rebuilds the same joins in memory.
 
-2. **Column over-fetch of a large JSON blob.** That same select requests `fibery_payload_json`. Measured as **JSON wire bytes** for the 90-day window (9,508 rows), which is what actually crosses the network:
+2. **Column over-fetch of a large JSON blob.** That same select requests `fibery_payload_json`. Measured as **JSON wire bytes**, which is what actually crosses the network:
 
-   | Select list | Wire bytes |
-   | --- | --- |
-   | With `fibery_payload_json` | **10 MB** |
-   | Without it | **3,598 kB** |
-   | Removed | **66%** |
+   | Window | With the blob | Without it | Removed |
+   | --- | --- | --- | --- |
+   | **Default (60 days, 6,173 rows)** | **6,966 kB** | **2,353 kB** | **66%** |
+   | 90 days (9,508 rows) | 10 MB | 3,598 kB | 66% |
 
-   An earlier draft of this spec put the saving at 91%. That number came from `pg_column_size`, which reports TOAST-compressed on-disk size and badly understates how timestamps and ids expand as JSON text. The 66% figure is the honest one.
+   The default Utilization window is **60 days**, not 90: `UTILIZATION_DEFAULTS_.DEFAULT_RANGE_DAYS` is 60, overridable per environment by the `UTILIZATION_DEFAULT_RANGE_DAYS` Script Property. Earlier drafts of this spec called the 90-day row the default. The proportion is the same either way, so the 66% conclusion is unaffected, but the default-window absolute is the smaller pair.
+
+   An earlier draft also put the saving at 91%. That number came from `pg_column_size`, which reports TOAST-compressed on-disk size and badly understates how timestamps and ids expand as JSON text. The 66% figure is the honest one.
 
    **Two thirds of the transfer is a raw mirror blob**, and it is `JSON.parse`d once per row in GAS. The same blob is pulled again per project by the Delivery P&L builder (`src/supabasePanelBuilders.js` line 1347).
 
@@ -144,15 +145,15 @@ Feature **044 - Live visualization serve performance** is a Spec Draft from 2026
 
 ### A. Stop over-fetching and stop drifting (Workstream A, quick wins)
 
-- [ ] **Given** Live Utilization with any date range, **when** the server queries `fos_labor_costs`, **then** the select does **not** include `fibery_payload_json`; cost rate, user role, and user company come from typed columns and the role-rate dimension maps.
-- [x] **Given** the 90-day default window, **when** the labor fetch runs, **then** wire bytes drop by at least **60%** versus the ~10 MB baseline. *(Measured 3,598 kB, 66%. Getting under 1 MB needs Postgres-side aggregation and is Workstream B's target, not A's.)*
-- [ ] **Given** the deployed Apps Script project differs from `src/` in any file, **when** `scripts/check_deployed_matches_git.py` runs, **then** it exits non-zero and names every missing, extra, and differing file.
-- [ ] **Given** a nightly hydrate completes, **when** the run row is written, **then** `fos_sync_runs.summary.scriptVersion` records the `FOS_PRD_VERSION` of the script that produced the blobs.
-- [ ] **Given** a stored blob's `cache_schema_version` does not match the code constant, **when** an ADMIN opens Settings, **then** a warning names the panel and both versions.
-- [ ] **Given** a `clasp push` that bumped a panel's schema version, **when** the next hydrate completes, **then** the drift warning for that panel clears without manual intervention.
-- [ ] **Given** the utilization and resource-assignments blobs are re-hydrated at the current schema, **when** a user opens either panel, **then** the blob path is used and no full typed rebuild runs.
-- [ ] **Given** parity fixtures for a known range, **when** `fibery_payload_json` is dropped from the selects, **then** hours, cost, billable mix, and role and customer attribution match the previous builder **exactly**, not merely within rounding.
-- [ ] **Given** `PERF_USE_NORMALIZED_LABOR_COLS` is set to `false`, **when** either labor path runs, **then** blob parsing resumes and results are unchanged.
+- [x] **Given** Live Utilization with any date range, **when** the server queries `fos_labor_costs`, **then** the select does **not** include `fibery_payload_json`; cost rate, user role, and user company come from typed columns and the role-rate dimension maps.
+- [x] **Given** the default window, **when** the labor fetch runs, **then** wire bytes drop by at least **60%**. *(Measured 6,966 kB to 2,353 kB, 66%, on the 60-day default; the same 66% holds over 90 days. Getting under 1 MB needs Postgres-side aggregation and is Workstream B's target, not A's.)*
+- [x] **Given** the deployed Apps Script project differs from `src/` in any file, **when** `scripts/check_deployed_matches_git.py` runs, **then** it exits non-zero and names every missing, extra, and differing file. *(Exits 0 against the 3.9.4 push.)*
+- [x] **Given** a nightly hydrate completes, **when** the run row is written, **then** `fos_sync_runs.summary.scriptVersion` records the `FOS_PRD_VERSION` of the script that produced the blobs. *(Run `supabase:2026-08-24T22:49:38.477Z:1da17fb0` records `scriptVersion: "3.9.4"` at both start and finish.)*
+- [x] **Given** a stored blob's `cache_schema_version` does not match the code constant, **when** an ADMIN opens Settings, **then** a warning names the panel and both versions. *(Flagged utilization 5 against 6 and resource-assignments 2 against 3 during the post-push window.)*
+- [x] **Given** a `clasp push` that bumped a panel's schema version, **when** the next hydrate completes, **then** the drift warning for that panel clears without manual intervention. *(After the 2026-08-24 hydrate all seven match: agreement 4, ai-usage 4, delivery 2, pipeline 3, portfolio-pnl 1, resource-assignments 3, utilization 6.)*
+- [x] **Given** the utilization and resource-assignments blobs are re-hydrated at the current schema, **when** a user opens either panel, **then** the blob path is used and no full typed rebuild runs.
+- [x] **Given** parity fixtures for a known range, **when** `fibery_payload_json` is dropped from the selects, **then** hours, cost, billable mix, and role and customer attribution match the previous builder **exactly**, not merely within rounding. *(Run `perf:parity:2026-08-24T22:38:07.097Z:6d1a79ba`: zero diffs on `q2-2026`, `single-week`, and `empty`. The `default-window` fixture reported four diffs, all of them the window bounds themselves, because that range is derived from `new Date()` and the two arms ran 7 seconds apart. The harness now tolerates sub-5-minute ISO drift on derived-window fixtures only and reports it under `tolerated`; explicit ranges still require exact equality.)*
+- [x] **Given** `PERF_USE_NORMALIZED_LABOR_COLS` is set to `false`, **when** either labor path runs, **then** blob parsing resumes and results are unchanged. *(This is the baseline arm of every parity run above.)*
 
 ### B. Aggregate in Postgres (Workstream B, absorbs 044 phases A-D)
 
@@ -239,7 +240,7 @@ Existing date indexes (`fos_labor_costs_start_date_time_idx`, `fos_labor_costs_s
 Each workstream must pass parity before it ships.
 
 1. **Parity harness (all workstreams):** run `_diag_comparePerfParity('<panel>', '<start>', '<end>')` against fixture ranges; confirm zero material diffs versus the pre-change builder, with rounding tolerances documented in the plan.
-2. **Workstream A:** confirm the labor select omits `fibery_payload_json`; measure wire bytes for the 90-day window and confirm at least a 60% drop from ~10 MB; run `scripts/check_deployed_matches_git.py` after `clasp push` and confirm exit 0; re-hydrate and confirm stored `cache_schema_version` equals code constants for all seven panels.
+2. **Workstream A [done 2026-08-24]:** run `_diag_verifyWorkstreamA()` and confirm parity green on all four fixtures; measure wire bytes for the default window and confirm at least a 60% drop; run `scripts/check_deployed_matches_git.py` after `clasp push` and confirm exit 0; re-hydrate and confirm stored `cache_schema_version` equals code constants for all seven panels.
 3. **Workstream B, Utilization:** open with the default range and a custom range; confirm server logs show an RPC or range-cache hit and no `supabaseSelectAll_` paging of labor; reopen the same custom range and confirm the cache hit.
 4. **Workstream B, Resource assignments:** change From/To; confirm the week grid matches the prior builder and that allocation filtering happened in SQL.
 5. **Workstream B, charts:** confirm Agreements, Utilization, and Pipeline charts paint before the full table payload arrives; confirm CSV export is still complete.

@@ -13,13 +13,21 @@ cannot see git. This comparison has to happen outside Apps Script, which is
 what this does: pull the deployed files into a temp directory and diff them
 against `src/`.
 
+The working tree is not the same thing as a commit. Comparing only against
+`src/` on disk passes while the deployed code exists in no commit, which is the
+mirror of the original defect: commit-without-push becomes push-without-commit,
+and the deployed artifact is again unreproducible from history. Found in exactly
+that state on 2026-08-24 right after shipping 3.9.4. So this also reports when
+tracked files under `src/` are dirty relative to HEAD.
+
 Usage:
     python3 scripts/check_deployed_matches_git.py
     python3 scripts/check_deployed_matches_git.py --quiet
+    python3 scripts/check_deployed_matches_git.py --allow-dirty
 
 Exit codes:
-    0  deployed matches src/
-    1  deployed differs from src/ (push needed)
+    0  deployed matches src/, and src/ is committed
+    1  deployed differs from src/ (push needed), or src/ is dirty (commit needed)
     2  could not run the check (clasp missing, not logged in, etc.)
 """
 
@@ -97,10 +105,37 @@ def compare(deployed_dir):
     return sorted(local - deployed), sorted(deployed - local), differing
 
 
+def dirty_src_files():
+    """Tracked files under src/ that differ from HEAD, plus untracked ones."""
+    try:
+        result = subprocess.run(
+            ['git', 'status', '--porcelain', '--', 'src'],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        # Not fatal: the deployed-vs-src check is still worth running without git.
+        return None
+    if result.returncode != 0:
+        return None
+    names = []
+    for line in result.stdout.splitlines():
+        if len(line) > 3:
+            names.append(line[3:].strip().strip('"'))
+    return sorted(names)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         '--quiet', action='store_true', help='Print nothing when deployed matches src/.'
+    )
+    parser.add_argument(
+        '--allow-dirty',
+        action='store_true',
+        help='Skip the check that src/ is committed. For mid-work pushes only.',
     )
     args = parser.parse_args()
 
@@ -116,8 +151,20 @@ def main():
         shutil.rmtree(temp_dir, ignore_errors=True)
 
     if not (only_local or only_deployed or differing):
+        dirty = None if args.allow_dirty else dirty_src_files()
+        if dirty:
+            print(
+                'Deployed Apps Script matches src/, but src/ is NOT committed.\n'
+                'The deployed code exists in no commit, so it cannot be reproduced\n'
+                'from history. Commit before calling this shipped.\n'
+            )
+            print('  uncommitted under src/ (%d):' % len(dirty))
+            for name in dirty:
+                print('    - ' + name)
+            return 1
         if not args.quiet:
-            print('OK: deployed Apps Script matches src/.')
+            suffix = '' if dirty is not None else ' (git state not checked)'
+            print('OK: deployed Apps Script matches src/, and src/ is committed' + suffix + '.')
         return 0
 
     print('Deployed Apps Script does NOT match src/. Run `clasp push`.\n')

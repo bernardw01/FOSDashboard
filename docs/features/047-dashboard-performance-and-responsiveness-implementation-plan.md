@@ -53,7 +53,7 @@ function _diag_measurePanelLoad(panelKey, startIso, endIso) { /* ... */ }
 
 | Fixture | Range | Why |
 | --- | --- | --- |
-| `default-90d` | rolling 90 days | The default Utilization window, ~9,500 rows |
+| `default-window` | rolling default (60 days) | The default Utilization window, ~6,200 rows. Derived from the clock, so the two arms see bounds a few seconds apart; the walk tolerates ISO drift under `PERF_PARITY_CLOCK_TOLERANCE_MS_` for this fixture only and reports it under `tolerated`. |
 | `q2-2026` | 2026-04-01 to 2026-06-30 | Quarter boundary and month rollups |
 | `single-week` | 2026-08-17 to 2026-08-24 | Partial-week edges |
 | `empty` | 2020-01-01 to 2020-01-08 | Zero-row rendering |
@@ -114,7 +114,18 @@ The fix is therefore a select-list change, not a schema change. No migration, no
 
 Both mappers keep their blob lookups so that flipping the switch to `false` restores byte-identical behavior. With the switch on, `p` is simply an empty object.
 
-**Measured after shipping:** the 90-day labor read drops from **10 MB to 3,598 kB** of JSON (**66%**) and sheds **9,508** per-row `JSON.parse` calls. Getting under 1 MB requires Postgres-side aggregation and is Workstream B's job.
+**Measured after shipping:** the default 60-day labor read drops from **6,966 kB to 2,353 kB** of JSON (**66%**) and sheds **6,173** per-row `JSON.parse` calls; over 90 days it is 10 MB to 3,598 kB, the same 66%. Getting under 1 MB requires Postgres-side aggregation and is Workstream B's job.
+
+**Wall clock, from two parity runs** (each measures flag off then on in one execution):
+
+| Fixture | Flag off, run 1 / run 2 | Flag on, run 1 / run 2 | Speedup |
+| --- | --- | --- | --- |
+| `default-window` | 7,516 / 4,773 ms | **2,789 / 2,777 ms** | **2.7x / 1.7x** |
+| `q2-2026` | 4,292 / 3,972 ms | 3,351 / 3,679 ms | 1.3x / 1.1x |
+| `single-week` | 1,192 / 1,302 ms | 1,134 / 1,329 ms | none |
+| `empty` | 1,031 / 1,311 ms | 1,056 / 1,272 ms | none |
+
+Two things worth reading off this. The saving tracks row count, as a per-row parse should: real on the default window, marginal on a quarter, absent on a single week and an empty range. And the flag-on path is **stable across runs** (2,789 then 2,777 ms) while the flag-off path swings by 2.7 seconds, which is what shipping 6,966 kB over a shared network looks like. The honest claim is that the default window goes from **variable 5 to 7.5 seconds down to a consistent 2.8 seconds**, not a single fixed multiple.
 
 ### A2. Fix the schema-version drift and make it impossible to miss
 
@@ -143,7 +154,11 @@ The check: pull the deployed project into a temp directory and diff it against `
 
 ### A4. Verify
 
-Run the parity harness on all four fixtures, then `_diag_measurePanelLoad` and compare to baseline. **Exit criteria:** parity green, 90-day labor wire bytes down at least 60% from ~10 MB, all seven stored schema versions matching after a re-hydrate, root cause of the drift documented.
+Run `_diag_verifyWorkstreamA()` from the Apps Script editor; it does all four parity fixtures plus a Utilization baseline in one execution and writes both to `fos_perf_runs`. **Exit criteria:** parity green, default-window labor wire bytes down at least 60%, all seven stored schema versions matching after a re-hydrate, root cause of the drift documented.
+
+**Result (2026-08-24).** On 3.9.3 the three explicit fixtures were green with zero diffs, and `default-window` reported four diffs that were all `range.start/end` and `dataWindow.start/end` differing by the 7 seconds between the two arms, because that window is derived from `new Date()` inside the builder. A harness artifact, not a data regression; the fix was to tolerate bounded ISO drift on derived-window fixtures rather than to loosen the comparison generally.
+
+On 3.9.4 all four fixtures pass with **zero diffs**, and the tolerance is confirmed to be narrowly scoped: **4 tolerated leaves on `default-window` and 0 on every explicit fixture**, so it is not quietly absorbing anything elsewhere. Bytes and wall clock are above.
 
 ---
 

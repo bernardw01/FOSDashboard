@@ -1,6 +1,6 @@
 # Feature: Portfolio Project P&L (Finance)
 
-> **PRD version 2.22.1** - sync with `docs/FOS-Dashboard-PRD.md`  
+> **PRD version 3.9.5** - sync with `docs/FOS-Dashboard-PRD.md`  
 > **Feature id:** 022 | **Task list:** Finance  
 > **Teamwork notebook:** [Feature 022 - Portfolio Project P&L](https://win.godeap.io/app/projects/1615262/notebooks/311833)  
 > **Release task:** [Feature 022 - Portfolio Project P&L](https://win.godeap.io/app/tasks/40161428)  
@@ -286,6 +286,7 @@ No new Drive artifact required for v1: aggregate existing `delivery-pnl/<agreeme
 
 | Date | Change |
 | --- | --- |
+| 2026-08-24 | **v3.9.5:** Child labels indent past the expand/collapse arrow. Live labor can uniquely match Clockify project name when `clockify_project_id` is empty. |
 | 2026-06-12 | Draft requirements from Inbox 40160887 + `Sample Structure.xlsx`. |
 | 2026-06-12 | Customer review: Agreement Type revenue split; Finance/EXEC/ADMIN access; calendar year; projected-month toggle (default off); collapsed customer-level default. |
 | 2026-06-12 | Implemented v2.13.0: Finance Portfolio P&L panel, progress loader, schema 8 labor splits. |

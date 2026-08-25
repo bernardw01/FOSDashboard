@@ -1,5 +1,5 @@
 /**
- * PRD version 3.9.3 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.9.5 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 047 Step 0: parity and measurement harness.
  *
@@ -59,6 +59,38 @@ var PERF_PARITY_TOLERANCE_DEFAULT_ = 0.01;
 var PERF_PARITY_TOLERANCE_PERCENT_ = 0.1;
 
 /**
+ * Allowed drift between two ISO-8601 timestamp leaves, in ms.
+ *
+ * Only applied to fixtures with no explicit range. Those windows are derived
+ * from `new Date()` inside the builder, so the baseline and candidate runs,
+ * seconds apart, legitimately report different bounds. Tolerated leaves are
+ * reported in `tolerated` rather than dropped, so clock drift can never hide a
+ * date bug. Fixtures that pass an explicit range still require exact equality.
+ * @const {number}
+ */
+var PERF_PARITY_CLOCK_TOLERANCE_MS_ = 5 * 60 * 1000;
+
+/**
+ * Parses a leaf as an ISO-8601 instant, or returns NaN when it is not one.
+ *
+ * Deliberately strict: `Date.parse` accepts plenty of non-ISO input, and a
+ * loose match here would let real string mismatches through as "clock drift".
+ *
+ * @param {*} value
+ * @return {number} Epoch ms, or NaN.
+ * @private
+ */
+function perfParityIsoMs_(value) {
+  if (typeof value !== 'string') {
+    return NaN;
+  }
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:?\d{2})$/.test(value)) {
+    return NaN;
+  }
+  return Date.parse(value);
+}
+
+/**
  * Leaf key patterns that are expected to differ between two runs of the same
  * builder (timestamps, run ids, and the flag-dependent source label).
  * @const {!Array<!RegExp>}
@@ -82,10 +114,13 @@ var PERF_PARITY_IGNORE_KEYS_ = [
  */
 var PERF_PARITY_FIXTURES_ = [
   {
-    id: 'default-90d',
+    id: 'default-window',
     start: '',
     end: '',
-    note: 'Rolling default window, the most common load.',
+    note:
+      'Rolling default window (UTILIZATION_DEFAULT_RANGE_DAYS, currently 60 ' +
+      'days), the most common load. Derived from the clock, so the two runs ' +
+      'see slightly different bounds; see PERF_PARITY_CLOCK_TOLERANCE_MS_.',
   },
   {
     id: 'q2-2026',
@@ -400,9 +435,10 @@ function perfParityToleranceFor_(key) {
  * @param {*} actual
  * @param {string} path
  * @param {!Array<!Object>} diffs Accumulator.
+ * @param {!{clockToleranceMs: number, tolerated: !Array<!Object>}} opts
  * @private
  */
-function perfParityWalk_(expected, actual, path, diffs) {
+function perfParityWalk_(expected, actual, path, diffs, opts) {
   if (diffs.length >= 100) {
     return;
   }
@@ -435,9 +471,25 @@ function perfParityWalk_(expected, actual, path, diffs) {
   }
 
   if (typeof expected === 'string' || typeof expected === 'boolean' || expected === null) {
-    if (expected !== actual) {
-      diffs.push({ path: path, kind: 'value', expected: expected, actual: actual });
+    if (expected === actual) {
+      return;
     }
+    if (opts.clockToleranceMs > 0) {
+      var expMs = perfParityIsoMs_(expected);
+      var actMs = perfParityIsoMs_(actual);
+      var drift = Math.abs(expMs - actMs);
+      if (drift <= opts.clockToleranceMs) {
+        opts.tolerated.push({
+          path: path,
+          kind: 'clock-drift',
+          expected: expected,
+          actual: actual,
+          driftMs: drift,
+        });
+        return;
+      }
+    }
+    diffs.push({ path: path, kind: 'value', expected: expected, actual: actual });
     return;
   }
 
@@ -452,7 +504,7 @@ function perfParityWalk_(expected, actual, path, diffs) {
       return;
     }
     for (var i = 0; i < expected.length; i++) {
-      perfParityWalk_(expected[i], actual[i], path + '[' + i + ']', diffs);
+      perfParityWalk_(expected[i], actual[i], path + '[' + i + ']', diffs, opts);
     }
     return;
   }
@@ -468,7 +520,7 @@ function perfParityWalk_(expected, actual, path, diffs) {
       }
       continue;
     }
-    perfParityWalk_(expected[k], actual[k], path + '.' + k, diffs);
+    perfParityWalk_(expected[k], actual[k], path + '.' + k, diffs, opts);
   }
   for (k in actual) {
     if (!Object.prototype.hasOwnProperty.call(actual, k)) continue;
@@ -529,7 +581,12 @@ function _diag_comparePerfParity(panelKey, startIso, endIso) {
   }
 
   var diffs = [];
-  perfParityWalk_(baseline, candidate, '$', diffs);
+  var opts = {
+    // An explicit range must reproduce exactly; only a derived window may drift.
+    clockToleranceMs: startIso || endIso ? 0 : PERF_PARITY_CLOCK_TOLERANCE_MS_,
+    tolerated: [],
+  };
+  perfParityWalk_(baseline, candidate, '$', diffs, opts);
 
   var result = {
     panel: panelKey,
@@ -539,6 +596,8 @@ function _diag_comparePerfParity(panelKey, startIso, endIso) {
     pass: diffs.length === 0,
     diffCount: diffs.length,
     diffs: diffs.slice(0, 25),
+    toleratedCount: opts.tolerated.length,
+    tolerated: opts.tolerated.slice(0, 25),
     baselineMs: baselineMs,
     candidateMs: candidateMs,
     speedup:
@@ -556,7 +615,10 @@ function _diag_comparePerfParity(panelKey, startIso, endIso) {
         baselineMs +
         'ms -> candidate ' +
         candidateMs +
-        'ms'
+        'ms' +
+        (opts.tolerated.length
+          ? ' (' + opts.tolerated.length + ' leaf/leaves tolerated as clock drift)'
+          : '')
     );
   } else {
     console.error('PARITY FAIL ' + panelKey + ': ' + diffs.length + ' diff(s)');

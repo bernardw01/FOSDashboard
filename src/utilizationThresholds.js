@@ -1,5 +1,5 @@
 /**
- * PRD version 3.9.3 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.9.5 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard constants per
  * docs/features/005-utilization-management-dashboard.md:
@@ -12,7 +12,7 @@
  * Defaults live in code. Optional Script Properties (overlaid by
  * getUtilizationThresholds_) allow ops tuning without a code change:
  *   UTILIZATION_CACHE_TTL_MINUTES         (default 10)
- *   UTILIZATION_DEFAULT_RANGE_DAYS        (default 90)
+ *   UTILIZATION_DEFAULT_RANGE_DAYS        (default 60)
  *   UTILIZATION_MAX_RANGE_DAYS            (default 365)
  *   UTILIZATION_WEEKLY_CAPACITY_HOURS     (default 40)
  *   UTILIZATION_TARGET_PERCENT            (default 85)

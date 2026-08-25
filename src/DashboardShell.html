@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.9.3 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.9.5 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -566,6 +566,7 @@
       white-space: normal;
       word-break: break-word;
     }
+    #panel-portfolio-pnl .fos-portfolio-grid td.fos-portfolio-projected-cell {
       background-color: #3d2a14;
       color: #ffb366;
     }
@@ -28515,7 +28516,11 @@
         if (els.ppnlGridHead) els.ppnlGridHead.innerHTML = headHtml.join('');
 
         function rowHtml_(label, rowKind, depth, metricsByCol, rowClass, toggleAttr, isExpanded, labelMode) {
-          var pad = 8 + depth * 14;
+          // Depth step must clear the expand/collapse arrow (~18px) plus a
+          // nest gap so children read as children, not as siblings of the
+          // toggle. Rows without a toggle get the gutter so their text sits
+          // under the parent label, not under the arrow.
+          var pad = 10 + depth * 28 + (toggleAttr ? 0 : 18);
           var toggleBtn = toggleAttr
             ? '<button type="button" class="fos-portfolio-toggle" ' +
               toggleAttr +

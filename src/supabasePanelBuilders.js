@@ -1,5 +1,5 @@
 /**
- * PRD version 3.9.3 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.9.5 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: panel hydrate builders that read Supabase typed
  * tables (Agreement Management mirror from `supabaseAmMirror.js`, labor
@@ -1340,14 +1340,114 @@ function mapFosLaborCostRowToDeliveryPnlRaw_(row, usersByClockifyId, rolesMap) {
 }
 
 /**
+ * Name variants used to match `fos_labor_costs.time_entry_project_name`
+ * when `fos_agreements.clockify_project_id` is empty (recently imported
+ * Clockify projects often land on an agreement before the ID is filled in).
+ * Strips Order Form / SOW prefixes and parentheticals, and abbreviates
+ * Development → Dev so "Customer IP Development Support" matches
+ * Clockify "Customer IP Dev Support".
+ *
+ * @param {?string} agreementName
+ * @return {!Array<string>}
+ * @private
+ */
+function clockifyProjectNameCandidates_(agreementName) {
+  var raw = String(agreementName || '').replace(/\s+/g, ' ').trim();
+  if (!raw) return [];
+  var stripped = raw
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/^Order Form\s*#?\s*\d+\s*[-:]\s*/i, '')
+    .replace(/^SOW\s+\d+[A-Za-z0-9]*\s*[-:]\s*/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  var out = [];
+  function add_(s) {
+    s = String(s || '').replace(/\s+/g, ' ').trim();
+    if (s.length < 6) return;
+    var key = s.toLowerCase();
+    for (var i = 0; i < out.length; i++) {
+      if (out[i].toLowerCase() === key) return;
+    }
+    out.push(s);
+  }
+  add_(raw);
+  add_(stripped);
+  add_(stripped.replace(/\bDevelopment\b/gi, 'Dev'));
+  return out;
+}
+
+/**
+ * Resolves a Clockify project id from labor row names when the agreement
+ * has no `clockify_project_id`. Requires a unique, unused match.
+ *
+ * @param {string} agreementId
+ * @param {?string} agreementName
+ * @return {?string}
+ * @private
+ */
+function resolveClockifyProjectIdFromLaborName_(agreementId, agreementName) {
+  var cacheKey = 'clockifyPidFallback:' + String(agreementId || '') + ':' + String(agreementName || '');
+  return supabaseDimCacheGet_(cacheKey, function () {
+    var candidates = clockifyProjectNameCandidates_(agreementName);
+    var resolved = null;
+    for (var i = 0; i < candidates.length && !resolved; i++) {
+      var fetched = supabaseSelect_(
+        'fos_labor_costs',
+        { time_entry_project_name: 'ilike.' + candidates[i] },
+        'project_id',
+        200
+      );
+      if (!fetched.ok) continue;
+      var uniqueIds = {};
+      var uniqueCount = 0;
+      var rows = fetched.json || [];
+      for (var r = 0; r < rows.length; r++) {
+        var pid = rows[r] && rows[r].project_id ? String(rows[r].project_id) : '';
+        if (!pid || uniqueIds[pid]) continue;
+        uniqueIds[pid] = true;
+        uniqueCount++;
+      }
+      if (uniqueCount !== 1) continue;
+      for (var id in uniqueIds) {
+        if (Object.prototype.hasOwnProperty.call(uniqueIds, id)) {
+          resolved = id;
+          break;
+        }
+      }
+    }
+    if (!resolved) return null;
+    var taken = supabaseSelect_(
+      'fos_agreements',
+      { clockify_project_id: 'eq.' + resolved },
+      'fibery_id',
+      5
+    );
+    if (!taken.ok) return null;
+    var others = taken.json || [];
+    for (var t = 0; t < others.length; t++) {
+      if (others[t].fibery_id && String(others[t].fibery_id) !== String(agreementId || '')) {
+        return null;
+      }
+    }
+    return resolved;
+  });
+}
+
+/**
  * @param {string} agreementId
  * @param {?string} clockifyProjectId
  * @param {number} maxRows Hard cap; `0` = unlimited.
+ * @param {?string=} agreementName Used to resolve Clockify project id when
+ *   `clockifyProjectId` is empty.
  * @return {!{ ok: true, rows: !Array<!Object>, partial: boolean }|!{ ok: false, reason: string, message: string }}
  * @private
  */
-function fetchLaborCostsForAgreementFromSupabase_(agreementId, clockifyProjectId, maxRows) {
-  if (!clockifyProjectId) {
+function fetchLaborCostsForAgreementFromSupabase_(agreementId, clockifyProjectId, maxRows, agreementName) {
+  var projectId = String(clockifyProjectId || '').trim();
+  if (!projectId) {
+    projectId = resolveClockifyProjectIdFromLaborName_(agreementId, agreementName) || '';
+  }
+  if (!projectId) {
     return { ok: true, rows: [], partial: false };
   }
   // Feature 047 A1: swap the `fibery_payload_json` blob for the one typed
@@ -1361,7 +1461,7 @@ function fetchLaborCostsForAgreementFromSupabase_(agreementId, clockifyProjectId
   }
   var fetched = supabaseSelectAll_(
     'fos_labor_costs',
-    { project_id: 'eq.' + clockifyProjectId },
+    { project_id: 'eq.' + projectId },
     laborSelect,
     'start_date_time.asc'
   );
@@ -1433,7 +1533,7 @@ function buildDeliveryProjectMonthlyPnLFromSupabase_(agreementId, options) {
 
   var maxLaborRows = resolveMaxLaborRows_();
   var laborFetch = fetchLaborCostsForAgreementFromSupabase_(
-    agreementId, ctx.agreement.clockifyProjectId, maxLaborRows
+    agreementId, ctx.agreement.clockifyProjectId, maxLaborRows, ctx.agreement.name
   );
   if (!laborFetch.ok) {
     emptyShell.agreementName = ctx.agreement.name;

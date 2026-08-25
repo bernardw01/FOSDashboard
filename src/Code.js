@@ -1,11 +1,11 @@
 /**
- * PRD version 3.9.3 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.9.5 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.9.3';
+var FOS_PRD_VERSION = '3.9.5';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.9.3';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.9.3 Performance harness results are stored in the Datastore so before-and-after numbers can be compared across releases.';
+  'v3.9.5 Portfolio P&L child rows indent past the expand arrow; P&L labor joins Clockify time when the agreement Clockify Project ID is empty.';
 
 /**
  * @return {string}

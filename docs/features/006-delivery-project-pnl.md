@@ -1,6 +1,6 @@
 # Feature: Delivery Dashboard - Active Projects + Per-Project P&L
 
-> **PRD version 3.4.12** - Full Delivery P&L keeps Allocated cost (plan) line; portfolio hydrate no longer overwrites with slim blobs. Live rebuild of Delivery panel JSON when schema lags (Assigned Owner). Delivery status/owner filters keep matching projects in view (in-memory re-render). Assigned Owner filter on Active Projects; portfolio margin Sankey removed. Feature **034** adds browser/Drive Agreement reuse for the Active Projects list; per-project P&L behavior is unchanged. **v3.4.11:** chart month modal shows hours by individual (`laborByPerson`); chart/tooltips stay on `laborByRole`. **v3.4.12:** month modal adds logged vs allocated hours, Fibery % Allocated, sort/filter, orange for non-billable logged; P&L cache schema **13**.
+> **PRD version 3.9.5** - Full Delivery P&L keeps Allocated cost (plan) line; portfolio hydrate no longer overwrites with slim blobs. Live rebuild of Delivery panel JSON when schema lags (Assigned Owner). Delivery status/owner filters keep matching projects in view (in-memory re-render). Assigned Owner filter on Active Projects; portfolio margin Sankey removed. Feature **034** adds browser/Drive Agreement reuse for the Active Projects list; per-project P&L behavior is unchanged. **v3.4.11:** chart month modal shows hours by individual (`laborByPerson`); chart/tooltips stay on `laborByRole`. **v3.4.12:** month modal adds logged vs allocated hours, Fibery % Allocated, sort/filter, orange for non-billable logged; P&L cache schema **13**. **v3.9.5:** Live labor from `fos_labor_costs` can uniquely match Clockify project name when `clockify_project_id` is empty.
 > `src/Code.js` `FOS_PRD_VERSION` and every `src/*` file header MUST match the
 > version line in `docs/FOS-Dashboard-PRD.md`.
 
@@ -694,6 +694,7 @@ coding. Numbered M.1 - M.7 to distinguish them from the original 1 - 7.
 
 | Date | Version | Notes |
 | --- | --- | --- |
+| 2026-08-24 | 3.9.5 | Live P&L labor prefers `clockify_project_id`; when empty, uniquely match `fos_labor_costs.time_entry_project_name` so recently imported Clockify projects show cost. |
 | 2026-08-04 | 3.4.12 | Month modal: logged vs allocated hours, Fibery % Allocated, sort/filter, orange without Allocated & Billable. P&L cache schema **13**. |
 | 2026-07-31 | 3.4.11 | Chart month modal shows **Name / Role / Hours / Cost** from per-month **`laborByPerson[]`**. Stacked chart and tooltips unchanged (`laborByRole`). P&L cache schema **12**. |
 | 2026-07-28 | 3.4.9 | Portfolio hydrate no longer writes slim `portfolioMode` rows into `fos_delivery_pnl`. Live Delivery P&L rebuilds full typed payloads (with `resourceAllocations`) when stored rows are slim/schema-stale. P&L cache schema **11**. Restores orange **Allocated cost (plan)** chart line. |

@@ -1,5 +1,5 @@
 /**
- * PRD version 3.9.3 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.9.5 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `pm-overview`, panel
  * `#panel-pm-overview`). Public endpoints, all authorized via
@@ -419,7 +419,8 @@ function getDeliveryProjectPersonTimeEntries(opts) {
   var laborFetch = fetchLaborCostsForAgreementFromSupabase_(
     agreementId,
     ctx.agreement.clockifyProjectId,
-    maxLaborRows
+    maxLaborRows,
+    ctx.agreement.name
   );
   if (!laborFetch.ok) {
     empty.ok = false;
