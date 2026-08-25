@@ -1,5 +1,5 @@
 /**
- * PRD version 3.14.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.15.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 047 Step 0: parity and measurement harness.
  *
@@ -36,6 +36,12 @@
  *     Workstream B3 heatmap codec: every field of every aggregates.byPersonWeek
  *     entry. Renamed from _diag_verifyUtilVizCodec, which sat one line away from
  *     the row codec in the editor's function dropdown and was picked by mistake.
+ *
+ *   _diag_verifyCodec_RaPersonVariances()
+ *     Workstream B6 Resource Assignments personVariances codec: every field of
+ *     every person/project/week cell including nested byDay. byDay.varianceHours
+ *     is compared after normalizing the reference to actualHours - assignedHours,
+ *     matching the decode contract (that field is dropped on the wire).
  *
  *   _diag_measurePanelLoad('utilization', '2026-05-26', '2026-08-24')
  *     One panel: elapsed ms, PostgREST calls, bytes received, payload size.
@@ -593,6 +599,228 @@ function _diag_verifyCodec_HeatmapWeeks() {
   console.log('===== UTIL VIZ CODEC =====');
   console.log(JSON.stringify(result, null, 2));
   perfPersistRun_('codec', 'utilization byPersonWeek', result.pass, result);
+  return result;
+}
+
+/**
+ * Proves the Resource Assignments personVariances codec (feature 047 workstream
+ * B6) is round-trip correct on live data.
+ *
+ * Builds the default-range payload with the slim flag forced off so the
+ * reference is a plain array, encodes it, decodes it, and compares every field
+ * including nested byDay. byDay.varianceHours on the reference is normalized to
+ * actualHours - assignedHours before compare, matching the decode contract
+ * (that field is dropped on the wire because the builder rounded raw
+ * actual-assigned separately from the hour columns on ~0.07 percent of cells).
+ *
+ * A good result is `pass: true` with `diffCount: 0` over roughly 75 persons,
+ * and `reductionPct` near 94. Flip `PERF_SLIM_RA_PERSON_VARIANCES` on in ADMIN
+ * Settings only after that. No cacheSchemaVersion bump and no re-hydrate.
+ *
+ * @return {!Object}
+ */
+function _diag_verifyCodec_RaPersonVariances() {
+  perfFlagOverridePush_({ PERF_SLIM_RA_PERSON_VARIANCES: false });
+  var payload;
+  try {
+    if (
+      typeof isSupabaseConfigured_ === 'function' &&
+      isSupabaseConfigured_() &&
+      typeof buildResourceAssignmentDashboardPayloadFromSupabase_ === 'function'
+    ) {
+      payload = buildResourceAssignmentDashboardPayloadFromSupabase_(null, null);
+    } else {
+      payload = buildResourceAssignmentDashboardPayload_(null, null);
+    }
+  } finally {
+    perfFlagOverridePop_();
+  }
+  if (!payload || !payload.ok) {
+    return {
+      ok: false,
+      message: (payload && payload.message) || 'Resource assignments build failed.',
+    };
+  }
+
+  var reference = payload.personVariances || [];
+  if (Object.prototype.toString.call(reference) !== '[object Array]') {
+    return {
+      ok: false,
+      message: 'personVariances was already encoded despite the flag override.',
+    };
+  }
+  // Deep-copy before encoding so a future in-place encoder cannot mutate the
+  // reference we compare against.
+  reference = JSON.parse(JSON.stringify(reference));
+  var referenceBytes = JSON.stringify(reference).length;
+
+  var wire = encodeRaPersonVariancesForWire_(reference);
+  var codec = raPersonVariancesCodec_();
+  var encodedBytes = JSON.stringify(wire).length + JSON.stringify(codec).length;
+  var decoded = decodeRaPersonVariancesFromWire_(wire, codec);
+
+  function normalizeByDayVariance_(rows) {
+    for (var i = 0; i < rows.length; i++) {
+      var groups = (rows[i] && rows[i].groups) || {};
+      for (var g = 0; g < RA_PV_GROUP_ORDER_.length; g++) {
+        var list = groups[RA_PV_GROUP_ORDER_[g]] || [];
+        for (var p = 0; p < list.length; p++) {
+          var byWeek = list[p].byWeek || {};
+          var weekKeys = Object.keys(byWeek);
+          for (var w = 0; w < weekKeys.length; w++) {
+            var byDay = byWeek[weekKeys[w]].byDay;
+            if (!byDay) continue;
+            var dayKeys = Object.keys(byDay);
+            for (var d = 0; d < dayKeys.length; d++) {
+              var b = byDay[dayKeys[d]] || {};
+              var ah = b.assignedHours == null ? 0 : b.assignedHours;
+              var act = b.actualHours == null ? 0 : b.actualHours;
+              b.varianceHours = Math.round((act - ah) * 10) / 10;
+            }
+          }
+        }
+      }
+    }
+    return rows;
+  }
+
+  normalizeByDayVariance_(reference);
+
+  var diffs = [];
+  if (reference.length !== decoded.length) {
+    diffs.push({
+      path: '$.personVariances.length',
+      expected: reference.length,
+      actual: decoded.length,
+    });
+  }
+
+  function pushDiff(path, expected, actual) {
+    if (diffs.length >= 25) return;
+    diffs.push({ path: path, expected: expected, actual: actual });
+  }
+
+  function compareByDay(expDay, actDay, path) {
+    var expKeys = Object.keys(expDay || {}).sort();
+    var actKeys = Object.keys(actDay || {}).sort();
+    if (JSON.stringify(expKeys) !== JSON.stringify(actKeys)) {
+      pushDiff(path + '.keys', expKeys, actKeys);
+      return;
+    }
+    for (var i = 0; i < expKeys.length && diffs.length < 25; i++) {
+      var ymd = expKeys[i];
+      var e = expDay[ymd] || {};
+      var a = (actDay && actDay[ymd]) || {};
+      if (e.assignedHours !== a.assignedHours) {
+        pushDiff(path + '.' + ymd + '.assignedHours', e.assignedHours, a.assignedHours);
+      }
+      if (e.actualHours !== a.actualHours) {
+        pushDiff(path + '.' + ymd + '.actualHours', e.actualHours, a.actualHours);
+      }
+      if (e.varianceHours !== a.varianceHours) {
+        pushDiff(path + '.' + ymd + '.varianceHours', e.varianceHours, a.varianceHours);
+      }
+    }
+  }
+
+  function compareProject(exp, act, path) {
+    if ((exp.key || '') !== (act.key || '')) {
+      pushDiff(path + '.key', exp.key, act.key);
+    }
+    if ((exp.agreementId || '') !== (act.agreementId || '')) {
+      pushDiff(path + '.agreementId', exp.agreementId, act.agreementId);
+    }
+    if ((exp.projectName || '') !== (act.projectName || '')) {
+      pushDiff(path + '.projectName', exp.projectName, act.projectName);
+    }
+    if ((exp.customerName || '') !== (act.customerName || '')) {
+      pushDiff(path + '.customerName', exp.customerName, act.customerName);
+    }
+    if (!!exp.highlightOrange !== !!act.highlightOrange) {
+      pushDiff(path + '.highlightOrange', !!exp.highlightOrange, !!act.highlightOrange);
+    }
+    var expWeeks = Object.keys(exp.byWeek || {}).sort();
+    var actWeeks = Object.keys(act.byWeek || {}).sort();
+    if (JSON.stringify(expWeeks) !== JSON.stringify(actWeeks)) {
+      pushDiff(path + '.byWeek.keys', expWeeks, actWeeks);
+      return;
+    }
+    for (var wi = 0; wi < expWeeks.length && diffs.length < 25; wi++) {
+      var wk = expWeeks[wi];
+      var eb = (exp.byWeek && exp.byWeek[wk]) || {};
+      var ab = (act.byWeek && act.byWeek[wk]) || {};
+      var cellPath = path + '.byWeek.' + wk;
+      if (eb.assignedHours !== ab.assignedHours) {
+        pushDiff(cellPath + '.assignedHours', eb.assignedHours, ab.assignedHours);
+      }
+      if (eb.actualHours !== ab.actualHours) {
+        pushDiff(cellPath + '.actualHours', eb.actualHours, ab.actualHours);
+      }
+      if (eb.varianceHours !== ab.varianceHours) {
+        pushDiff(cellPath + '.varianceHours', eb.varianceHours, ab.varianceHours);
+      }
+      if (!!eb.partial !== !!ab.partial) {
+        pushDiff(cellPath + '.partial', !!eb.partial, !!ab.partial);
+      }
+      if (!!eb.byDay !== !!ab.byDay) {
+        pushDiff(cellPath + '.byDay.present', !!eb.byDay, !!ab.byDay);
+      } else if (eb.byDay) {
+        compareByDay(eb.byDay, ab.byDay, cellPath + '.byDay');
+      }
+    }
+  }
+
+  var limit = Math.min(reference.length, decoded.length);
+  for (var i = 0; i < limit && diffs.length < 25; i++) {
+    var exp = reference[i] || {};
+    var act = decoded[i] || {};
+    var base = '$.personVariances[' + i + ']';
+    if ((exp.personKey || '') !== (act.personKey || '')) {
+      pushDiff(base + '.personKey', exp.personKey, act.personKey);
+    }
+    if ((exp.name || '') !== (act.name || '')) {
+      pushDiff(base + '.name', exp.name, act.name);
+    }
+    if ((exp.roleName || '') !== (act.roleName || '')) {
+      pushDiff(base + '.roleName', exp.roleName, act.roleName);
+    }
+    if ((exp.company || '') !== (act.company || '')) {
+      pushDiff(base + '.company', exp.company, act.company);
+    }
+    if (!!exp.highlightOrange !== !!act.highlightOrange) {
+      pushDiff(base + '.highlightOrange', !!exp.highlightOrange, !!act.highlightOrange);
+    }
+    for (var g = 0; g < RA_PV_GROUP_ORDER_.length && diffs.length < 25; g++) {
+      var gid = RA_PV_GROUP_ORDER_[g];
+      var expList = (exp.groups && exp.groups[gid]) || [];
+      var actList = (act.groups && act.groups[gid]) || [];
+      if (expList.length !== actList.length) {
+        pushDiff(base + '.groups.' + gid + '.length', expList.length, actList.length);
+      }
+      var pl = Math.min(expList.length, actList.length);
+      for (var p = 0; p < pl && diffs.length < 25; p++) {
+        compareProject(expList[p], actList[p], base + '.groups.' + gid + '[' + p + ']');
+      }
+    }
+  }
+
+  var result = {
+    ok: true,
+    pass: diffs.length === 0,
+    personCount: decoded.length,
+    uniqueByDayTables: (wire.b && wire.b.length) || 0,
+    diffCount: diffs.length,
+    diffs: diffs,
+    encodedBytes: encodedBytes,
+    unencodedBytes: referenceBytes,
+    reductionPct:
+      referenceBytes > 0
+        ? Math.round((1 - encodedBytes / referenceBytes) * 1000) / 10
+        : null,
+  };
+  console.log('===== RA PERSON VARIANCES CODEC =====');
+  console.log(JSON.stringify(result, null, 2));
+  perfPersistRun_('codec', 'ra personVariances', result.pass, result);
   return result;
 }
 

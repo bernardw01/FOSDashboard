@@ -1,11 +1,11 @@
 /**
- * PRD version 3.14.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.15.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.14.1';
+var FOS_PRD_VERSION = '3.15.0';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.14.1';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.14.1 Workstream B close-out: measured end-to-end wins, inert performance flags labeled as reserved, and the largest remaining payload identified.';
+  'v3.15.0 Resource Assignments personVariances codec: measured 94.1 percent smaller slice behind PERF_SLIM_RA_PERSON_VARIANCES (off pending diagnostic).';
 
 /**
  * @return {string}

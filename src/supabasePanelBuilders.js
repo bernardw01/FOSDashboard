@@ -1,5 +1,5 @@
 /**
- * PRD version 3.14.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.15.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: panel hydrate builders that read Supabase typed
  * tables (Agreement Management mirror from `supabaseAmMirror.js`, labor
@@ -752,7 +752,7 @@ function buildResourceAssignmentDashboardPayloadFromSupabase_(rangeStartYmd, ran
     endingSoonCount: alerts.endingSoonCount,
   };
 
-  return {
+  return maybeEncodeRaPersonVariancesOnPayload_({
     ok: true,
     source: 'supabase',
     fetchedAt: fetchedAt,
@@ -774,7 +774,7 @@ function buildResourceAssignmentDashboardPayloadFromSupabase_(rangeStartYmd, ran
       truncated: !!laborAgg.truncated,
       ok: laborAgg.ok !== false,
     },
-  };
+  });
 }
 
 /**

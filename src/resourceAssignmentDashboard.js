@@ -1,5 +1,5 @@
 /**
- * PRD version 3.14.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.15.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Resource assignment dashboard (feature 027): portfolio-wide Fibery
  * Resource Allocations by ISO week with alerts.
@@ -204,7 +204,7 @@ function buildResourceAssignmentDashboardPayload_(rangeStartYmd, rangeEndYmd) {
     endingSoonCount: alerts.endingSoonCount,
   };
 
-  return {
+  return maybeEncodeRaPersonVariancesOnPayload_({
     ok: true,
     source: 'fibery',
     fetchedAt: fetchedAt,
@@ -226,7 +226,7 @@ function buildResourceAssignmentDashboardPayload_(rangeStartYmd, rangeEndYmd) {
       truncated: !!laborAgg.truncated,
       ok: laborAgg.ok !== false,
     },
-  };
+  });
 }
 
 /**
@@ -1196,6 +1196,370 @@ function buildResourceAssignmentPersonVariances_(
     });
   }
   return out;
+}
+
+/* ------------------------------------------------------------------------- */
+/* personVariances codec (feature 047 workstream B6)                          */
+/* ------------------------------------------------------------------------- */
+
+/**
+ * Per-field string tables for the Resource Assignments personVariances codec.
+ * Append-only: the client maps indexes positionally against these names.
+ * @const {!Array<string>}
+ */
+var RA_PV_DICT_FIELDS_ = [
+  'personKey',
+  'name',
+  'roleName',
+  'company',
+  'key',
+  'agreementId',
+  'projectName',
+  'customerName',
+  'week',
+  'day',
+];
+
+/**
+ * Group order on the wire. Append-only.
+ * @const {!Array<string>}
+ */
+var RA_PV_GROUP_ORDER_ = ['assigned', 'actual', 'variance'];
+
+/**
+ * Day-tuple field names (varianceHours omitted; recomputed on decode).
+ * @const {!Array<string>}
+ */
+var RA_PV_DAY_FIELDS_ = ['day', 'assignedHours', 'actualHours'];
+
+/**
+ * Week-cell field names on the wire (byDay is a shared-table index).
+ * @const {!Array<string>}
+ */
+var RA_PV_WEEK_CELL_FIELDS_ = [
+  'week',
+  'assignedHours',
+  'actualHours',
+  'varianceHours',
+  'partial',
+  'byDay',
+];
+
+/**
+ * Codec descriptor shipped alongside the encoded personVariances so the client
+ * can decode without hardcoding field order. Carries its own `version`,
+ * separate from `RESOURCE_ASSIGNMENTS_CACHE_SCHEMA_VERSION_`, so adopting or
+ * reverting the slim does not force a ~71 minute re-hydrate.
+ *
+ * @return {!Object}
+ * @private
+ */
+function raPersonVariancesCodec_() {
+  return {
+    version: 1,
+    dictFields: RA_PV_DICT_FIELDS_.slice(),
+    groupOrder: RA_PV_GROUP_ORDER_.slice(),
+    dayFields: RA_PV_DAY_FIELDS_.slice(),
+    weekCellFields: RA_PV_WEEK_CELL_FIELDS_.slice(),
+  };
+}
+
+/**
+ * Encodes personVariances for transport.
+ *
+ * Measured on the live 2026-08-25 blob (compact JSON.stringify): 2,113,091
+ * chars to 124,060 with codec descriptor (94.1 percent). The Postgres panel
+ * text form of the same slice is 2,316,942 chars (83 percent of the 2,789,504
+ * panel). Three costs are removed: repeated key names via positional tuples,
+ * repeated string values via per-field tables, and duplicated byDay objects
+ * across assigned/actual/variance for the same person/project/week via a
+ * shared table (3,730 refs collapse to 572 unique tables). byDay.varianceHours
+ * is dropped and recomputed as actualHours - assignedHours on decode.
+ *
+ * @param {!Array<!Object>} rows Output of buildResourceAssignmentPersonVariances_.
+ * @return {!{d: !Object<string, !Array<*>>, b: !Array<!Array<!Array<*>>>, r: !Array<!Array<*>>}}
+ * @private
+ */
+function encodeRaPersonVariancesForWire_(rows) {
+  rows = rows || [];
+  var tables = {};
+  var lookups = {};
+  var t;
+  for (t = 0; t < RA_PV_DICT_FIELDS_.length; t++) {
+    tables[RA_PV_DICT_FIELDS_[t]] = [];
+    lookups[RA_PV_DICT_FIELDS_[t]] = {};
+  }
+
+  // Prefix the lookup key so a value of "constructor" or "__proto__" cannot
+  // collide with Object.prototype members.
+  function intern(field, value) {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    var key = 'v:' + String(value);
+    var idx = lookups[field][key];
+    if (idx === undefined) {
+      idx = tables[field].length;
+      tables[field].push(value);
+      lookups[field][key] = idx;
+    }
+    return idx;
+  }
+
+  var byDayTable = [];
+  var byDayLookup = {};
+
+  function internByDay(byDay) {
+    if (!byDay || typeof byDay !== 'object') {
+      return null;
+    }
+    var dayKeys = Object.keys(byDay).sort();
+    if (!dayKeys.length) {
+      return null;
+    }
+    var entries = [];
+    for (var i = 0; i < dayKeys.length; i++) {
+      var ymd = dayKeys[i];
+      var b = byDay[ymd] || {};
+      entries.push([
+        intern('day', ymd),
+        b.assignedHours == null ? 0 : b.assignedHours,
+        b.actualHours == null ? 0 : b.actualHours,
+      ]);
+    }
+    var canon = JSON.stringify(entries);
+    var idx = byDayLookup[canon];
+    if (idx === undefined) {
+      idx = byDayTable.length;
+      byDayTable.push(entries);
+      byDayLookup[canon] = idx;
+    }
+    return idx;
+  }
+
+  function encodeProject(proj) {
+    var weeks = [];
+    var byWeek = proj.byWeek || {};
+    var weekKeys = Object.keys(byWeek).sort();
+    for (var wi = 0; wi < weekKeys.length; wi++) {
+      var wk = weekKeys[wi];
+      var cell = byWeek[wk] || {};
+      weeks.push([
+        intern('week', wk),
+        cell.assignedHours == null ? 0 : cell.assignedHours,
+        cell.actualHours == null ? 0 : cell.actualHours,
+        cell.varianceHours == null ? 0 : cell.varianceHours,
+        cell.partial ? 1 : 0,
+        internByDay(cell.byDay),
+      ]);
+    }
+    return [
+      intern('key', proj.key || ''),
+      intern('agreementId', proj.agreementId || ''),
+      intern('projectName', proj.projectName || ''),
+      intern('customerName', proj.customerName || ''),
+      proj.highlightOrange ? 1 : 0,
+      weeks,
+    ];
+  }
+
+  var encoded = [];
+  for (var ri = 0; ri < rows.length; ri++) {
+    var row = rows[ri] || {};
+    var groups = row.groups || {};
+    var groupTuples = [];
+    for (var g = 0; g < RA_PV_GROUP_ORDER_.length; g++) {
+      var list = groups[RA_PV_GROUP_ORDER_[g]] || [];
+      var projs = [];
+      for (var p = 0; p < list.length; p++) {
+        projs.push(encodeProject(list[p]));
+      }
+      groupTuples.push(projs);
+    }
+    encoded.push([
+      intern('personKey', row.personKey || ''),
+      intern('name', row.name || ''),
+      intern('roleName', row.roleName || ''),
+      intern('company', row.company || ''),
+      row.highlightOrange ? 1 : 0,
+      groupTuples,
+    ]);
+  }
+  return { d: tables, b: byDayTable, r: encoded };
+}
+
+/**
+ * Inverse of encodeRaPersonVariancesForWire_.
+ *
+ * Idempotent: a plain array passes through. Gated on shape (encoded.r) rather
+ * than the panel cacheSchemaVersion so blobs written before the codec remain
+ * valid without a re-hydrate.
+ *
+ * @param {?Object|?Array} encoded
+ * @param {?Object} codec
+ * @return {!Array<!Object>}
+ * @private
+ */
+function decodeRaPersonVariancesFromWire_(encoded, codec) {
+  if (!encoded) {
+    return [];
+  }
+  if (Object.prototype.toString.call(encoded) === '[object Array]') {
+    return encoded;
+  }
+  if (Object.prototype.toString.call(encoded.r) !== '[object Array]') {
+    return [];
+  }
+  codec = codec || raPersonVariancesCodec_();
+  var tables = encoded.d || {};
+  var groupOrder = codec.groupOrder || RA_PV_GROUP_ORDER_;
+
+  function lookup(field, idx) {
+    if (idx === null || idx === undefined) {
+      return null;
+    }
+    var table = tables[field];
+    return table && table.length > idx ? table[idx] : null;
+  }
+
+  var byDayTable = encoded.b || [];
+
+  function decodeByDay(ref) {
+    if (ref === null || ref === undefined) {
+      return undefined;
+    }
+    var entries = byDayTable[ref];
+    if (!entries) {
+      return undefined;
+    }
+    var byDay = {};
+    for (var i = 0; i < entries.length; i++) {
+      var tuple = entries[i] || [];
+      var ymd = lookup('day', tuple[0]);
+      if (!ymd) {
+        continue;
+      }
+      var ah = tuple[1] == null ? 0 : tuple[1];
+      var act = tuple[2] == null ? 0 : tuple[2];
+      byDay[ymd] = {
+        assignedHours: ah,
+        actualHours: act,
+        varianceHours: Math.round((act - ah) * 10) / 10,
+      };
+    }
+    return byDay;
+  }
+
+  function decodeProject(tuple) {
+    tuple = tuple || [];
+    var byWeek = {};
+    var weeks = tuple[5] || [];
+    for (var wi = 0; wi < weeks.length; wi++) {
+      var w = weeks[wi] || [];
+      var wk = lookup('week', w[0]);
+      if (!wk) {
+        continue;
+      }
+      var cell = {
+        assignedHours: w[1] == null ? 0 : w[1],
+        actualHours: w[2] == null ? 0 : w[2],
+        varianceHours: w[3] == null ? 0 : w[3],
+        partial: !!w[4],
+      };
+      var bd = decodeByDay(w[5]);
+      if (bd) {
+        cell.byDay = bd;
+      }
+      byWeek[wk] = cell;
+    }
+    return {
+      key: lookup('key', tuple[0]) || '',
+      agreementId: lookup('agreementId', tuple[1]) || '',
+      projectName: lookup('projectName', tuple[2]) || '',
+      customerName: lookup('customerName', tuple[3]) || '',
+      highlightOrange: !!tuple[4],
+      byWeek: byWeek,
+    };
+  }
+
+  var out = [];
+  for (var e = 0; e < encoded.r.length; e++) {
+    var t = encoded.r[e] || [];
+    var groupTuples = t[5] || [];
+    var groups = {};
+    for (var g = 0; g < groupOrder.length; g++) {
+      var list = groupTuples[g] || [];
+      var projs = [];
+      for (var p = 0; p < list.length; p++) {
+        projs.push(decodeProject(list[p]));
+      }
+      groups[groupOrder[g]] = projs;
+    }
+    out.push({
+      personKey: lookup('personKey', t[0]) || '',
+      name: lookup('name', t[1]) || '',
+      roleName: lookup('roleName', t[2]) || '',
+      company: lookup('company', t[3]) || '',
+      highlightOrange: !!t[4],
+      groups: groups,
+    });
+  }
+  return out;
+}
+
+/**
+ * When PERF_SLIM_RA_PERSON_VARIANCES is on, replaces personVariances with its
+ * encoded form and attaches personVariancesCodec. No-op otherwise.
+ *
+ * Called from both the Fibery and Supabase builders so the two paths cannot
+ * diverge on the wire shape.
+ *
+ * @param {!Object} payload
+ * @return {!Object} The same payload object.
+ * @private
+ */
+function maybeEncodeRaPersonVariancesOnPayload_(payload) {
+  if (!payload || !payload.ok) {
+    return payload;
+  }
+  if (!perfFlag_('PERF_SLIM_RA_PERSON_VARIANCES')) {
+    return payload;
+  }
+  if (
+    !payload.personVariances ||
+    Object.prototype.toString.call(payload.personVariances) !== '[object Array]'
+  ) {
+    return payload;
+  }
+  payload.personVariances = encodeRaPersonVariancesForWire_(payload.personVariances);
+  payload.personVariancesCodec = raPersonVariancesCodec_();
+  return payload;
+}
+
+/**
+ * Idempotent decode of personVariances on a Resource Assignments payload.
+ * Used by server diagnostics and any future server-side reader of a stored
+ * blob so an encoded envelope is never iterated as an array.
+ *
+ * @param {?Object} payload
+ * @return {?Object}
+ * @private
+ */
+function decodeRaPersonVariancesOnPayload_(payload) {
+  if (!payload || !payload.personVariancesCodec) {
+    return payload;
+  }
+  var decoded = {};
+  for (var k in payload) {
+    if (Object.prototype.hasOwnProperty.call(payload, k)) {
+      decoded[k] = payload[k];
+    }
+  }
+  decoded.personVariances = decodeRaPersonVariancesFromWire_(
+    payload.personVariances,
+    payload.personVariancesCodec
+  );
+  return decoded;
 }
 
 /**

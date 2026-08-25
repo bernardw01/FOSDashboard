@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.14.1 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.15.0 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -9276,8 +9276,10 @@
           writePipelineCache(bundle.pipeline);
         }
         if (bundle.resourceAssignments) {
+          // writeResourceAssignmentCache already stores the decoded payload in
+          // raState; re-assigning the raw bundle here would put encoded
+          // personVariances back in front of every consumer.
           writeResourceAssignmentCache(bundle.resourceAssignments);
-          raState.payload = bundle.resourceAssignments;
         }
       }
 
@@ -9421,7 +9423,9 @@
             dataSourceState.deliveryProjects = bundle.deliveryProjects;
             dataSourceState.expenses = bundle.expenses || null;
             dataSourceState.pipeline = bundle.pipeline || null;
-            dataSourceState.resourceAssignments = bundle.resourceAssignments || null;
+            dataSourceState.resourceAssignments = decodeRaPayload_(
+              bundle.resourceAssignments || null
+            );
             dataSourceState.pnlByAgreementId = {};
             applySnapshotBundleToCaches_(bundle);
             invalidatePanelRenderStateForSnapshot_();
@@ -18819,16 +18823,127 @@
           if (!raw) return null;
           var o = JSON.parse(raw);
           if (!o || o.cacheSchemaVersion !== RA_CACHE_SCHEMA_VERSION) return null;
-          return o;
+          return decodeRaPayload_(o);
         } catch (e) {
           return null;
         }
       }
 
       function writeResourceAssignmentCache(data) {
+        if (!data) return;
+        var envelope = Object.assign({}, data, {
+          cacheSchemaVersion: RA_CACHE_SCHEMA_VERSION,
+        });
+        // Memory holds the decoded personVariances; sessionStorage keeps the
+        // encoded form (same pattern as Utilization) so the slim survives a
+        // quota-tight tab. decodeRaPayload_ is idempotent.
+        raState.payload = decodeRaPayload_(envelope);
         try {
-          sessionStorage.setItem(RA_CACHE_KEY, JSON.stringify(data));
-        } catch (e) { /* quota */ }
+          sessionStorage.setItem(RA_CACHE_KEY, JSON.stringify(envelope));
+        } catch (e) {
+          /* quota / private mode - memory cache still valid for this tab */
+        }
+      }
+
+      /**
+       * Feature 047 B6: reverses encodeRaPersonVariancesForWire_.
+       *
+       * Gated on personVariancesCodec rather than cacheSchemaVersion so blobs
+       * written before the codec pass through. Idempotent: a plain array is
+       * returned as-is. Must run before getRaPersonVariances_, which checks
+       * .length and would otherwise fall through to rebuilding from projects.
+       */
+      function decodeRaPersonVariances_(encoded, codec) {
+        if (!encoded) return [];
+        if (Object.prototype.toString.call(encoded) === '[object Array]') return encoded;
+        if (!codec || Object.prototype.toString.call(encoded.r) !== '[object Array]') {
+          return [];
+        }
+        var tables = encoded.d || {};
+        var groupOrder = codec.groupOrder || ['assigned', 'actual', 'variance'];
+        function lookup(field, idx) {
+          if (idx === null || idx === undefined) return null;
+          var table = tables[field];
+          return table && table.length > idx ? table[idx] : null;
+        }
+        var byDayTable = encoded.b || [];
+        function decodeByDay(ref) {
+          if (ref === null || ref === undefined) return undefined;
+          var entries = byDayTable[ref];
+          if (!entries) return undefined;
+          var byDay = {};
+          for (var i = 0; i < entries.length; i++) {
+            var tuple = entries[i] || [];
+            var ymd = lookup('day', tuple[0]);
+            if (!ymd) continue;
+            var ah = tuple[1] == null ? 0 : tuple[1];
+            var act = tuple[2] == null ? 0 : tuple[2];
+            byDay[ymd] = {
+              assignedHours: ah,
+              actualHours: act,
+              varianceHours: Math.round((act - ah) * 10) / 10,
+            };
+          }
+          return byDay;
+        }
+        function decodeProject(tuple) {
+          tuple = tuple || [];
+          var byWeek = {};
+          var weeks = tuple[5] || [];
+          for (var wi = 0; wi < weeks.length; wi++) {
+            var w = weeks[wi] || [];
+            var wk = lookup('week', w[0]);
+            if (!wk) continue;
+            var cell = {
+              assignedHours: w[1] == null ? 0 : w[1],
+              actualHours: w[2] == null ? 0 : w[2],
+              varianceHours: w[3] == null ? 0 : w[3],
+              partial: !!w[4],
+            };
+            var bd = decodeByDay(w[5]);
+            if (bd) cell.byDay = bd;
+            byWeek[wk] = cell;
+          }
+          return {
+            key: lookup('key', tuple[0]) || '',
+            agreementId: lookup('agreementId', tuple[1]) || '',
+            projectName: lookup('projectName', tuple[2]) || '',
+            customerName: lookup('customerName', tuple[3]) || '',
+            highlightOrange: !!tuple[4],
+            byWeek: byWeek,
+          };
+        }
+        var out = [];
+        for (var e = 0; e < encoded.r.length; e++) {
+          var t = encoded.r[e] || [];
+          var groupTuples = t[5] || [];
+          var groups = {};
+          for (var g = 0; g < groupOrder.length; g++) {
+            var list = groupTuples[g] || [];
+            var projs = [];
+            for (var p = 0; p < list.length; p++) projs.push(decodeProject(list[p]));
+            groups[groupOrder[g]] = projs;
+          }
+          out.push({
+            personKey: lookup('personKey', t[0]) || '',
+            name: lookup('name', t[1]) || '',
+            roleName: lookup('roleName', t[2]) || '',
+            company: lookup('company', t[3]) || '',
+            highlightOrange: !!t[4],
+            groups: groups,
+          });
+        }
+        return out;
+      }
+
+      function decodeRaPayload_(payload) {
+        if (!payload || !payload.personVariancesCodec) return payload;
+        var decoded = Object.assign({}, payload);
+        decoded.personVariances = decodeRaPersonVariances_(
+          payload.personVariances,
+          payload.personVariancesCodec
+        );
+        return decoded;
       }
 
       function readRaTtlMinutes() {
@@ -19091,6 +19206,14 @@
 
       function getRaPersonVariances_(payload) {
         if (!payload) return [];
+        // Encoded envelopes have no .length; decode must already have run via
+        // applyResourceAssignmentPayload / readResourceAssignmentCache. If a
+        // caller somehow still holds the raw envelope, decode here rather than
+        // falling through to a projects rebuild that drops byDay.
+        if (payload.personVariancesCodec && payload.personVariances &&
+            Object.prototype.toString.call(payload.personVariances) !== '[object Array]') {
+          return decodeRaPersonVariances_(payload.personVariances, payload.personVariancesCodec);
+        }
         if (payload.personVariances && payload.personVariances.length) {
           return payload.personVariances;
         }
@@ -20291,6 +20414,11 @@
 
       function applyResourceAssignmentPayload(payload) {
         if (!payload) return;
+        // Decode defensively. fetchResourceAssignmentsFromServer hands us the
+        // raw server envelope; assigning it straight to raState.payload after
+        // writeResourceAssignmentCache already decoded would put the encoded
+        // object back in front of getRaPersonVariances_ (.length undefined).
+        payload = decodeRaPayload_(payload);
         var prevFetched = raState.payload && raState.payload.fetchedAt;
         if (payload.fetchedAt && payload.fetchedAt !== prevFetched) {
           raState.alertsExpanded = { types: {}, persons: {} };

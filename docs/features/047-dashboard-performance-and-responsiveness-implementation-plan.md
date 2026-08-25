@@ -6,7 +6,7 @@
 > **Release task:** [Feature 047 - Dashboard performance and responsiveness](https://win.godeap.io/app/tasks/40839335)
 >
 > **PRD version:** 3.14.1. Each workstream ships its own version bump.
-> **Status:** Approved 2026-08-24. **Workstream B closed out in 3.14.1; see B6.** A shipped in 3.9.2 and is live. B1 rows codec shipped in 3.10.0 / 3.10.1 and is live unconditionally. B2 shipped in 3.11.0, verified, and is **live**. B3's codec shipped in 3.12.0, verified, and is **live**; B3's Agreements first paint is shipped but **still off and unverified**. B4 shipped in 3.13.0, verified, and is **live**, though its hydrate warm and GC step has never executed. B5 shipped in 3.14.0, **verified** on the second `_diag_verifyWorkstreamB5()` run (both panels, 0 diffs, `armsProven`); the flag may still be off pending operator enable. The B1 aggregates RPC was **never built**, and its flag `PERF_USE_UTIL_RPC` is inert. C and D are not started, and their flags are inert too.
+> **Status:** Approved 2026-08-24. **Workstream B closed out in 3.14.1; see B6.** **B6 follow-on personVariances codec shipped in 3.15.0** (`PERF_SLIM_RA_PERSON_VARIANCES` off pending `_diag_verifyCodec_RaPersonVariances()`). A shipped in 3.9.2 and is live. B1 rows codec shipped in 3.10.0 / 3.10.1 and is live unconditionally. B2 shipped in 3.11.0, verified, and is **live**. B3's codec shipped in 3.12.0, verified, and is **live**; B3's Agreements first paint is shipped but **still off and unverified**. B4 shipped in 3.13.0, verified, and is **live**, though its hydrate warm and GC step has never executed. B5 shipped in 3.14.0, **verified** on the second `_diag_verifyWorkstreamB5()` run (both panels, 0 diffs, `armsProven`); the flag may still be off pending operator enable. The B1 aggregates RPC was **never built**, and its flag `PERF_USE_UTIL_RPC` is inert. C and D are not started, and their flags are inert too.
 
 ## How to read this plan
 
@@ -565,6 +565,30 @@ That makes `resource-assignments` the **largest panel payload in the product**, 
 `personVariances` is 75 persons, each with `assigned`, `actual`, and `variance` groups, 503 project rows in total, holding **3,764** `byWeek` cells that account for **2,130,470** chars. Of that, **240,624** chars are repeated key names (`actualHours`, `assignedHours`, `byDay`, `partial`, `varianceHours`) and **41,404** are repeated week labels, before counting the nested `byDay` object inside each cell.
 
 This is the same defect class B1 and B3 already built and verified codecs for, on a slice **8.7x larger** than the utilization heatmap slice B3 spent a release on. It is the single largest remaining payload win in the feature. Recommended as the first item of any B7 or of workstream D, reusing `encodeUtilizationRowsForWire_`'s positional-tuple plus string-table pattern rather than inventing a third codec.
+
+#### B6 follow-on: personVariances codec (shipped 3.15.0)
+
+Implemented the recommendation above in **3.15.0** rather than deferring to B7.
+
+**Measured (compact `JSON.stringify` of the live `personVariances` array, 2026-08-25):**
+
+| Metric | Value |
+| --- | --- |
+| Unencoded | **2,113,091** chars (Postgres pretty-printed panel text of the same slice: 2,316,942) |
+| Encoded + codec descriptor | **124,060** chars |
+| Reduction | **94.1 percent** |
+| Unique byDay tables / refs | **572 / 3,730** (shared-table dedup across the three groups) |
+| Round-trip | field-by-field pass after normalizing byDay.varianceHours to actual - assigned |
+
+Design choices that survived measurement:
+
+- **Self-describing `personVariancesCodec`**, `cacheSchemaVersion` stays **3**. Avoids a ~71 minute re-hydrate. Old blobs without the codec pass through.
+- **`PERF_SLIM_RA_PERSON_VARIANCES`** defaults **false**. Flip on only after `_diag_verifyCodec_RaPersonVariances()`.
+- Encode in **`maybeEncodeRaPersonVariancesOnPayload_`** from both Fibery and Supabase builders.
+- Client decode is **idempotent** on apply, cache, and snapshot (same two-call-site trap class as 3.10.0 / FR-148).
+- byDay **`varianceHours`** dropped on the wire; ~0.07 percent of live cells stored a variance that disagreed with the rounded hours (builder rounded raw actual-assigned), so the modal shows the consistent difference of the two hour columns.
+
+**`PERF_SLIM_RA_PERSON_VARIANCES` ships `false`.**
 
 #### The RPCs are genuinely being called from Apps Script
 

@@ -1,5 +1,5 @@
 /**
- * PRD version 3.14.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.15.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -1086,6 +1086,14 @@ function getAdminSettingsCatalog_() {
       'performance',
       'Slim Utilization visualization payload',
       'Feature 047 workstream B3. When on, the Utilization heatmap slice (aggregates.byPersonWeek) travels as positional tuples plus string tables instead of 617 fully-keyed objects, measured 272,469 to 48,654 JSON chars (82.1 percent). The transform is lossless and reversed in the browser before the heatmap sees an entry. Turn on only after _diag_verifyCodec_HeatmapWeeks() reports pass with 0 diffs.',
+      'boolean',
+      false
+    ),
+    adminSettingEntry_(
+      'PERF_SLIM_RA_PERSON_VARIANCES',
+      'performance',
+      'Slim Resource Assignments personVariances',
+      'Feature 047 workstream B6. When on, resource-assignments.personVariances travels as positional tuples plus string tables with shared byDay dedup across assigned/actual/variance groups, measured 2,113,091 to 124,060 compact JSON chars (94.1 percent). The transform is reversed in the browser before the grid or day-detail modal sees a row. cacheSchemaVersion stays 3 (self-describing codec; no re-hydrate). Turn on only after _diag_verifyCodec_RaPersonVariances() reports pass with 0 diffs.',
       'boolean',
       false
     ),
