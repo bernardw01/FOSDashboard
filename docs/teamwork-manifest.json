@@ -1773,6 +1773,30 @@
       ],
       "estDevHoursGitBase": "6c3e9f4fdc72f7cdbb2ac7c65d8d29b43dfab0c8",
       "workflowStage": "Shipped"
+    },
+    "v3.15.1 - Labor Hours Active roster and harpin orange exemption": {
+      "id": 40890978,
+      "featureId": "007",
+      "releaseType": "Bug Fix",
+      "shippedVersion": "v3.15.1",
+      "provisionalTaskName": false,
+      "releaseTitle": "Labor Hours Active roster and harpin orange exemption",
+      "url": "https://win.godeap.io/app/tasks/40890978",
+      "shippedAt": "2026-08-25",
+      "estDevHours": 7,
+      "estDevHoursRationale": [
+        "Git range: 821f9951..HEAD (76 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +81 lines): +1.9h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +13 lines): +2.1h",
+        "Apps Script module `src/supabasePanelBuilders.js`: +0.8h",
+        "Apps Script module `src/utilizationThresholds.js`: +1.3h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 7.0h"
+      ],
+      "estDevHoursGitBase": "821f995146f2e5622a76bcc2de654e1c458f585f",
+      "workflowStage": "Shipped"
     }
   },
   "supersededDuplicates": {
