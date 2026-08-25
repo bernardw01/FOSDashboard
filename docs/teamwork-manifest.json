@@ -1647,6 +1647,40 @@
       ],
       "estDevHoursGitBase": "24f9e39",
       "workflowStage": "Shipped"
+    },
+    "v3.12.0 - Slim visualization payloads and Operations Live repair": {
+      "id": 40883167,
+      "featureId": "047",
+      "releaseType": "Enhancement",
+      "shippedVersion": "v3.12.0",
+      "provisionalTaskName": false,
+      "releaseTitle": "Slim visualization payloads and Operations Live repair",
+      "url": "https://win.godeap.io/app/tasks/40883167",
+      "shippedAt": "2026-08-25",
+      "estDevHours": 11,
+      "estDevHoursRationale": [
+        "Git range: 581c668..ac5ac7a (78 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +115 lines): +2.1h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +1 lines): +2.0h",
+        "Apps Script module `src/fiberyAgreementDashboard.js`: +1.1h",
+        "Apps Script module `src/fiberyUtilizationDashboard.js`: +2.0h",
+        "Apps Script module `src/perfParityDiagnostics.js`: +1.3h",
+        "Teamwork / automation scripts (+571 lines): +1.6h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 11.0h"
+      ],
+      "estDevHoursGitBase": "581c668",
+      "workflowStage": "Shipped",
+      "tasklist": "Data platform",
+      "tasklistId": 4174287,
+      "notebookKey": "feature_047",
+      "implementationPlanNotebookKey": "feature_047_implementation_plan",
+      "parentReleaseTaskId": 40839335,
+      "createdAt": "2026-08-25",
+      "backfilledAt": "2026-08-25",
+      "backfillNote": "Shipped in commit ac5ac7a (feature 047 workstream B3) with no Teamwork release task; task created retroactively via scripts/teamwork_ensure_release_task.py. PERF_SLIM_VIZ_AGGREGATES and PERF_USE_SLIM_CHARTS both ship off, and _diag_verifyUtilVizCodec() has not been run, so codec parity is not claimed."
     }
   },
   "supersededDuplicates": {

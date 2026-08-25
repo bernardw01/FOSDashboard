@@ -30,6 +30,25 @@ Teamwork project: **FOS Dashboard Development** (`win.godeap.io`, project id `16
 - Engineering-only detail (file paths, cache schema versions, FR/AC numbers) may be added in git **Technical appendix** or `*-implementation-plan.md` without replacing customer-facing notebook sections.
 - One Teamwork task = one release. Do not combine unrelated scope in a single version bump.
 
+## One task per release, not one task per feature
+
+Intake creates **one** release task per **feature**. A feature that ships in several releases (047 workstreams B1, B2, B3, ...) therefore has **no** task for its second and later releases, and that is where four consecutive releases (3.9.5, 3.10.0, 3.10.1, 3.11.0, 3.12.0) went out untracked and had to be backfilled.
+
+The ship step is where this is caught. `teamwork_ship_command.py` detects a release with no open task and prints the create-and-ship command; run it as printed:
+
+```bash
+python scripts/teamwork_ensure_release_task.py \
+  --version-from-codejs \
+  --title "Release title" \
+  --feature-id NNN \
+  --release-type Enhancement \
+  --tasklist "Data platform" \
+  --description-file <release notes file> \
+  --ship
+```
+
+That helper creates the task under the intake contract (Spec Draft, Feature ID, Release Type), then hands it to `teamwork_ship_task.py`, so the release goes through the identical ritual. It is idempotent and works the same whether the release is shipping now or is being backfilled after the fact. **Do not write a one-off backfill script**; that has happened three times already and each one had to be deleted.
+
 ## Ship checklist (required with every merge-worthy release)
 
 1. Code + tests/smoke as usual; `clasp push` when deploying Apps Script, then **verify the push landed** with `python3 scripts/check_deployed_matches_git.py` (must exit 0). A commit is not shipped until the deployed project matches `src/`; on 2026-08-24 four "Ship PRD" releases were found committed but never pushed.
@@ -51,6 +70,8 @@ python3 scripts/teamwork_ship_command.py --feature-id NNN
 ```
 
 Use `--manifest-task "..."` when feature id is unknown. Run the helper from repo root after `FOS_PRD_VERSION` is bumped; paste its output verbatim for the user (include the comment lines). Do not paraphrase flags or guess the manifest task key.
+
+If the feature has no open release task, the helper prints a `teamwork_ensure_release_task.py` command instead of a ship command. Fill in the title and the release notes file and run that; it creates the task and ships it in one step. Exit code 0 with that block is the normal path for a release whose task does not exist yet, not an error.
 
 ## New feature requests (pipeline)
 
@@ -77,10 +98,13 @@ Use `--manifest-task "..."` when feature id is unknown. Run the helper from repo
 | Task version name wrong after scope change | Use `Feature NNN - title` until ship; rename once at deploy to match `FOS_PRD_VERSION` |
 | Version guessed at intake | Do not put `vX.Y.Z` in task title until ship; optional `workingVersionEstimate` in manifest only |
 | Manual sync forgotten | Ship checklist blocks completion until git reflects Teamwork |
+| Release ships with no task | `teamwork_ship_command.py` prints the create-and-ship command; never hand-create the task or write a backfill script |
 | Dual maintenance burden | Customer prose in Teamwork; technical appendix in git; link both in manifest |
 
 ## Do not
 
 - Create new `docs/features/0NN-*.md` specs as the first step when the user asked for Teamwork-first workflow (notebook leads unless explicitly syncing from existing git).
 - Mark Teamwork task Shipped without PRD version bump and git doc sync in the same delivery.
+- Write a per-release backfill script. Use `scripts/teamwork_ensure_release_task.py`.
+- Re-use a feature's previously shipped task for a new release. Each release gets its own task.
 - Expose `TEAMWORK_BEARER_TOKEN` or copy secrets into docs or manifest.

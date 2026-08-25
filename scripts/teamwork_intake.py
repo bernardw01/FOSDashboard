@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +31,47 @@ def load_manifest() -> dict[str, Any]:
     if not MANIFEST_PATH.exists():
         return {}
     return json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+
+
+def existing_task_names() -> dict[str, int]:
+    """Every task name in the project mapped to its id (both API versions)."""
+    names: dict[str, int] = {}
+    page = 1
+    while True:
+        res = api(
+            "GET",
+            f"/projects/api/v3/projects/{PROJECT_ID}/tasks.json"
+            f"?pageSize=250&page={page}&includeCompletedTasks=true",
+        )
+        for t in res.get("tasks") or []:
+            names[str(t.get("name") or "")] = int(t["id"])
+        if not ((res.get("meta") or {}).get("page") or {}).get("hasMore"):
+            break
+        page += 1
+    page = 1
+    while True:
+        res = api(
+            "GET",
+            f"/projects/{PROJECT_ID}/tasks.json"
+            f"?pageSize=250&page={page}&includeCompletedTasks=1",
+        )
+        items = res.get("todo-items") or []
+        for t in items:
+            names[str(t.get("content") or "")] = int(t["id"])
+        if len(items) < 250:
+            break
+        page += 1
+    return names
+
+
+def manifest_version_index(manifest: dict[str, Any]) -> dict[str, str]:
+    """Shipped version (X.Y.Z, no leading v) -> manifest tasks{} key."""
+    out: dict[str, str] = {}
+    for key, entry in (manifest.get("tasks") or {}).items():
+        shipped = str(entry.get("shippedVersion") or "").lstrip("v")
+        if re.fullmatch(r"\d+\.\d+\.\d+", shipped):
+            out[shipped] = key
+    return out
 
 
 def task_custom_field_ids(manifest: dict[str, Any] | None = None) -> dict[str, int]:

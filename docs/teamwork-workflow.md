@@ -118,6 +118,8 @@ python3 scripts/teamwork_ship_command.py --feature-id 019
 
 Prints the exact `teamwork_ship_task.py` invocation for that release (manifest task key, `--release-type` when set at intake, `--update-manifest`). Use `--manifest-task "..."` if you do not have a feature id.
 
+**When the release has no task yet:** intake creates one task per **feature**, but principle 3 above requires one task per **release**, so a feature that ships more than once has no task for its later releases. In that case `teamwork_ship_command.py` prints a `scripts/teamwork_ensure_release_task.py` command instead. Fill in the title and a release notes file and run it with `--ship`: it creates the task under the intake contract and then runs the same ship automation. Use the same helper to backfill a release that already shipped without a task; do not write a per-release backfill script.
+
 **Run ship automation:**
 
 ```bash
