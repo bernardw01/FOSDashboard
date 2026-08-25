@@ -1797,6 +1797,33 @@
       ],
       "estDevHoursGitBase": "821f995146f2e5622a76bcc2de654e1c458f585f",
       "workflowStage": "Shipped"
+    },
+    "v3.16.0 - Dashboard performance Workstream C hydrate": {
+      "id": 40891401,
+      "featureId": "047",
+      "releaseType": "Enhancement",
+      "shippedVersion": "v3.16.0",
+      "provisionalTaskName": false,
+      "releaseTitle": "Dashboard performance Workstream C hydrate",
+      "url": "https://win.godeap.io/app/tasks/40891401",
+      "shippedAt": "2026-08-25",
+      "estDevHours": 12,
+      "estDevHoursRationale": [
+        "Git range: 7d2d16b5..HEAD (75 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +38 lines): +1.7h",
+        "Apps Script module `src/authUsersSheet.js`: +1.0h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +1 lines): +2.0h",
+        "Apps Script module `src/perfParityDiagnostics.js`: +1.0h",
+        "Apps Script module `src/supabaseAmMirror.js`: +1.9h",
+        "Apps Script module `src/supabaseClient.js`: +1.1h",
+        "Apps Script module `src/supabaseSyncJob.js`: +1.8h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 11.5h"
+      ],
+      "estDevHoursGitBase": "7d2d16b5a900a8ab8068d395134ab4f6dfba6f02",
+      "workflowStage": "Shipped"
     }
   },
   "supersededDuplicates": {
