@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.15.0 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.15.1 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -17737,6 +17737,8 @@
               lh.onTargetEpsilonHours != null ? lh.onTargetEpsilonHours : 0.01,
             companyTargetHoursMap: lh.companyTargetHoursMap || {},
             excludedPersonSubstrings: lh.excludedPersonSubstrings || [],
+            activeClockifyUserIds: lh.activeClockifyUserIds || null,
+            activeClockifyUserNames: lh.activeClockifyUserNames || null,
           };
         }
         return {
@@ -17746,6 +17748,8 @@
           onTargetEpsilonHours: 0.01,
           companyTargetHoursMap: {},
           excludedPersonSubstrings: [],
+          activeClockifyUserIds: null,
+          activeClockifyUserNames: null,
         };
       }
 
@@ -17872,7 +17876,36 @@
       }
 
       function laborClockifyUserIsActive_(workStatus) {
-        return String(workStatus || '').trim().toLowerCase() === 'active';
+        var token = String(workStatus || '')
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '');
+        return token === 'active';
+      }
+
+      /**
+       * Prefer authoritative Active roster from fos_clockify_users (attached to
+       * laborHours config). Falls back to row/dimension work status when the
+       * roster is absent (older cached payloads).
+       */
+      function laborPersonIsActiveForZeroHours_(cfg, personKey, displayName, workStatus) {
+        var ids = cfg && cfg.activeClockifyUserIds;
+        var names = cfg && cfg.activeClockifyUserNames;
+        if (Array.isArray(ids) || Array.isArray(names)) {
+          var pk = String(personKey || '').trim();
+          var pkLower = pk.toLowerCase();
+          var idList = ids || [];
+          for (var i = 0; i < idList.length; i++) {
+            if (String(idList[i] || '').toLowerCase() === pkLower) return true;
+          }
+          var nameList = names || [];
+          for (var n = 0; n < nameList.length; n++) {
+            var nm = nameList[n];
+            if (laborPersonKeysMatch_(pk, displayName, nm, nm)) return true;
+          }
+          return false;
+        }
+        return laborClockifyUserIsActive_(workStatus);
       }
 
       function laborTargetHoursForCompany_(cfg, company) {
@@ -18053,7 +18086,7 @@
           var workStatus =
             (dp && dp.clockifyUserWorkStatus) ||
             laborLookupWorkStatusForPersonKey_(fullRows || [], pk, name);
-          if (!laborClockifyUserIsActive_(workStatus)) continue;
+          if (!laborPersonIsActiveForZeroHours_(cfg, pk, name, workStatus)) continue;
           var agg = laborFindAggForPerson_(personMap, pk, name);
           var th = agg ? agg.totalHours : 0;
           if (th >= eps) continue;
@@ -20075,7 +20108,9 @@
               (function (pers) {
                 var expandKey = raProjPersonExpandKey_(projKey, pers.personKey);
                 var persOpen = !!raState.expandedProjectPersons[expandKey];
-                var orange = !!pers.highlightOrange;
+                var orange =
+                  !!pers.highlightOrange &&
+                  !isNoAllocationOrangeExemptCustomer_(project.customerName);
                 var urow = document.createElement('tr');
                 urow.className = 'ra-proj-person-row' + (orange ? ' ra-highlight-orange' : '');
                 urow.setAttribute('data-ra-proj-person', expandKey);
@@ -31411,6 +31446,26 @@
       var PERF_ORANGE_TITLE_ =
         'Logged time without a Fibery allocation, or allocation not marked Allocated & Billable (not on the SOW).';
 
+      function isNoAllocationOrangeExemptCustomer_(customerName) {
+        var n = String(customerName || '').trim().toLowerCase();
+        return !!n && n.indexOf('harpin') >= 0;
+      }
+
+      function deliverySelectedCustomerName_() {
+        var project = deliveryState.selectedId && deliveryState.projectsByIndex
+          ? deliveryState.projectsByIndex[deliveryState.selectedId]
+          : null;
+        return project ? (project.customer || '') : '';
+      }
+
+      function deliverySkipNoAllocationOrange_() {
+        return isNoAllocationOrangeExemptCustomer_(deliverySelectedCustomerName_());
+      }
+
+      function applyDeliveryOrangeFlag_(flag) {
+        return !!flag && !deliverySkipNoAllocationOrange_();
+      }
+
       function ymdToMonthKey_(ymd) {
         var s = String(ymd || '').slice(0, 10);
         if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return '';
@@ -31543,6 +31598,7 @@
 
       function buildDeliveryPerfResourcesFromMonths_(months) {
         var byKey = {};
+        var skipOrange = deliverySkipNoAllocationOrange_();
         for (var i = 0; i < (months || []).length; i++) {
           var people = (months[i] && months[i].laborByPerson) || [];
           var monthMap = {};
@@ -31560,7 +31616,7 @@
             var monthAllocCost = Number(p.allocatedCost || 0);
             if (monthAllocCost > mRow.allocatedCostLife) mRow.allocatedCostLife = monthAllocCost;
             if (p.allocatedAndBillable === false || p.highlightOrange === true) {
-              mRow.highlightOrange = true;
+              if (!skipOrange) mRow.highlightOrange = true;
             }
           }
           var mKeys = Object.keys(monthMap);
@@ -31571,7 +31627,7 @@
             life.loggedCostLife += src.loggedCostLife;
             life.allocatedHoursLife += src.allocatedHoursLife;
             life.allocatedCostLife += src.allocatedCostLife || 0;
-            if (src.highlightOrange) life.highlightOrange = true;
+            if (!skipOrange && src.highlightOrange) life.highlightOrange = true;
           }
         }
         var out = [];
@@ -31581,7 +31637,7 @@
           if (r.loggedHoursLife <= 0 && r.allocatedHoursLife <= 0 && r.loggedCostLife <= 0 && !(r.allocatedCostLife > 0)) {
             continue;
           }
-          if (r.loggedHoursLife > 0 && r.allocatedHoursLife <= 0) r.highlightOrange = true;
+          if (!skipOrange && r.loggedHoursLife > 0 && r.allocatedHoursLife <= 0) r.highlightOrange = true;
           out.push(r);
         }
         out.sort(function (a, b) {
@@ -31804,6 +31860,17 @@
         var rows = range.isAllTime
           ? ((perf && perf.resourcesLifetime) || [])
           : buildDeliveryPerfResourcesFromMonths_(monthsInRange);
+        if (deliverySkipNoAllocationOrange_() && rows && rows.length) {
+          rows = rows.map(function (row) {
+            if (!row || !row.highlightOrange) return row;
+            var copy = {};
+            for (var rk in row) {
+              if (Object.prototype.hasOwnProperty.call(row, rk)) copy[rk] = row[rk];
+            }
+            copy.highlightOrange = false;
+            return copy;
+          });
+        }
         if (!rows.length) {
           deliveryState.lastPerfRows = [];
           if (tbody) tbody.innerHTML = '';
@@ -31964,7 +32031,7 @@
         }
         var orangeEl = els.deliveryPnlPerfTimeOrange;
         if (orangeEl) {
-          if (row.highlightOrange) {
+          if (applyDeliveryOrangeFlag_(row.highlightOrange)) {
             orangeEl.textContent = PERF_ORANGE_TITLE_;
             orangeEl.classList.remove('d-none');
           } else {
@@ -32197,7 +32264,7 @@
         var role = String(mm.role || '');
         var orangeOnly = !!mm.orangeOnly;
         return (people || []).filter(function (p) {
-          if (orangeOnly && !p.highlightOrange) return false;
+          if (orangeOnly && !applyDeliveryOrangeFlag_(p.highlightOrange)) return false;
           if (role && String(p.role || '') !== role) return false;
           if (term) {
             var hay = String(p.name || '').toLowerCase();
@@ -32343,7 +32410,9 @@
           for (var ri = 0; ri < people.length; ri++) {
             var person = people[ri];
             var tr = document.createElement('tr');
-            if (person.highlightOrange) tr.className = 'fos-delivery-pnl-person-orange';
+            if (applyDeliveryOrangeFlag_(person.highlightOrange)) {
+              tr.className = 'fos-delivery-pnl-person-orange';
+            }
             tr.innerHTML =
               '<td>' + escapeHtml(person.name || '(Unknown user)') + '</td>' +
               '<td>' + escapeHtml(person.role || '(No role)') + '</td>' +
@@ -32383,7 +32452,7 @@
               var mp = people[mi];
               var card = document.createElement('div');
               card.className = 'fos-delivery-pnl-person-card' +
-                (mp.highlightOrange ? ' is-orange' : '');
+                (applyDeliveryOrangeFlag_(mp.highlightOrange) ? ' is-orange' : '');
               card.innerHTML =
                 '<div class="fos-delivery-pnl-person-name">' +
                   escapeHtml(mp.name || '(Unknown user)') +
@@ -32437,7 +32506,7 @@
         var people = Array.isArray(m.laborByPerson) ? m.laborByPerson.slice() : [];
         var orangeCount = 0;
         for (var oi = 0; oi < people.length; oi++) {
-          if (people[oi].highlightOrange) orangeCount++;
+          if (applyDeliveryOrangeFlag_(people[oi].highlightOrange)) orangeCount++;
         }
         logActivity_('delivery_pnl_chart_month_click', 'pm-overview',
           'monthKey=' + monthKey +

@@ -1,6 +1,6 @@
 # Feature: Resource assignments plan vs actual (Operations)
 
-> **PRD version 2.19.1** - sync with `docs/FOS-Dashboard-PRD.md` (**FR-122**, **AC-81**).  
+> **PRD version 3.15.1** - sync with `docs/FOS-Dashboard-PRD.md` (**FR-122**, **AC-81**).  
 > **Feature id:** 028 | **Task list:** Operations  
 > **Extends:** [Feature 027](027-resource-assignment-dashboard.md) (weekly grid, ISO weeks, filters, snapshots), [Feature 005](005-utilization-management-dashboard.md) (`Agreement Management/Labor Costs`), [Feature 007](007-labor-hours-dashboard.md) (person + project hour rollups).  
 > **Status:** **Released v2.19.0**
@@ -85,6 +85,7 @@ Add a **tabbed** weekly grid:
 
 | Date | Version | Notes |
 | --- | --- | --- |
+| 2026-08-25 | 3.15.1 | Skip orange styling for missing / non-billable allocations when customer name contains **harpin**. |
 | 2026-06-18 | 2.19.1 | Patch: alias-match labor time-entry login to assignment Clockify User; single row per person per project |
 | 2026-06-18 | 2.19.0 | Shipped: By project tab, plan vs actual sub-rows, labor merge, orange styling, cache schema 2 |
 | 2026-06-18 | Draft | Initial spec |

@@ -1,11 +1,11 @@
 /**
- * PRD version 3.15.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.15.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.15.0';
+var FOS_PRD_VERSION = '3.15.1';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.15.0';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.15.0 Resource Assignments personVariances codec: measured 94.1 percent smaller slice behind PERF_SLIM_RA_PERSON_VARIANCES (off pending diagnostic).';
+  'v3.15.1 Labor Hours zero-hours excludes In-Active Clockify users; harpin customer projects skip no-allocation orange.';
 
 /**
  * @return {string}

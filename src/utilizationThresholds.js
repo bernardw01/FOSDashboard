@@ -1,5 +1,5 @@
 /**
- * PRD version 3.15.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.15.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard constants per
  * docs/features/005-utilization-management-dashboard.md:
@@ -343,4 +343,106 @@ function getLaborHoursConfig_() {
     companyTargetHoursMap: companyMap,
     excludedPersonSubstrings: excluded,
   };
+}
+
+/**
+ * True when customer name should skip orange "missing resource allocation"
+ * highlighting (internal harpin work). Matches names containing "harpin" or
+ * any configured UTILIZATION_INTERNAL_COMPANY_NAMES entry (case-insensitive).
+ *
+ * @param {string=} customerName
+ * @return {boolean}
+ */
+function isNoAllocationOrangeExemptCustomer_(customerName) {
+  var n = String(customerName || '').trim().toLowerCase();
+  if (!n) {
+    return false;
+  }
+  if (n.indexOf('harpin') >= 0) {
+    return true;
+  }
+  var names;
+  try {
+    names = getUtilizationThresholds_().internalCompanyNames || [];
+  } catch (e) {
+    names = UTILIZATION_DEFAULTS_.INTERNAL_COMPANY_NAMES;
+  }
+  for (var i = 0; i < names.length; i++) {
+    var token = String(names[i] || '').trim().toLowerCase();
+    if (token && n === token) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Attaches authoritative Active Clockify user ids/emails/names from
+ * `fos_clockify_users` so Labor Hours zero-hours can ignore In-Active users
+ * even when stale labor-row work status still says Active.
+ *
+ * @param {!Object=} laborHoursCfg
+ * @return {!Object}
+ */
+function enrichLaborHoursConfigWithActiveUsers_(laborHoursCfg) {
+  var base = laborHoursCfg && typeof laborHoursCfg === 'object' ? laborHoursCfg : getLaborHoursConfig_();
+  var out = {};
+  for (var k in base) {
+    if (Object.prototype.hasOwnProperty.call(base, k)) {
+      out[k] = base[k];
+    }
+  }
+  if (typeof loadFosClockifyUsersMap_ !== 'function') {
+    return out;
+  }
+  try {
+    var byFibery = loadFosClockifyUsersMap_();
+    var ids = [];
+    var names = [];
+    var seenId = {};
+    var seenName = {};
+    for (var fk in byFibery) {
+      if (!Object.prototype.hasOwnProperty.call(byFibery, fk)) continue;
+      var u = byFibery[fk];
+      if (!u) continue;
+      var wsNorm = String(u.work_status_name || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '');
+      if (wsNorm !== 'active') continue;
+      if (u.clockify_user_id) {
+        var cid = String(u.clockify_user_id);
+        if (!seenId[cid]) {
+          seenId[cid] = true;
+          ids.push(cid);
+        }
+      }
+      if (u.clockify_user_email) {
+        var em = String(u.clockify_user_email).toLowerCase();
+        if (!seenId[em]) {
+          seenId[em] = true;
+          ids.push(em);
+        }
+      }
+      var nm = String(u.name || '').trim();
+      if (nm) {
+        var nk = nm.toLowerCase();
+        if (!seenName[nk]) {
+          seenName[nk] = true;
+          names.push(nm);
+        }
+      }
+    }
+    out.activeClockifyUserIds = ids;
+    out.activeClockifyUserNames = names;
+  } catch (e) {
+    try {
+      console.warn(
+        'enrichLaborHoursConfigWithActiveUsers_: ' + (e && e.message ? e.message : String(e))
+      );
+    } catch (_) {
+      /* ignore */
+    }
+  }
+  return out;
 }

@@ -1,5 +1,5 @@
 /**
- * PRD version 3.15.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.15.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard orchestrator (route id `operations`, panel
  * `#panel-operations`). Reads `Agreement Management/Labor Costs` from Fibery
@@ -247,7 +247,7 @@ function assembleUtilizationPayload_(rows, range, thresholds, now, opts) {
     dimensions: dimensions,
     aggregates: aggregates,
     alerts: alerts,
-    laborHours: getLaborHoursConfig_(),
+    laborHours: enrichLaborHoursConfigWithActiveUsers_(getLaborHoursConfig_()),
     heatmapTopNPersons: thresholds.heatmapTopNPersons,
   };
   if (warnings.length) {
@@ -1030,7 +1030,7 @@ function applyUtilizationRequestedRange_(payload, rangeStart, rangeEnd) {
     dimensions: dimensions,
     aggregates: aggregates,
     alerts: alerts,
-    laborHours: payload.laborHours || getLaborHoursConfig_(),
+    laborHours: payload.laborHours || enrichLaborHoursConfigWithActiveUsers_(getLaborHoursConfig_()),
     heatmapTopNPersons:
       payload.heatmapTopNPersons != null
         ? payload.heatmapTopNPersons
@@ -1087,7 +1087,7 @@ function buildUtilizationDashboardPayload_(rangeStart, rangeEnd) {
   var fetchedAtIso = now.toISOString();
   var thresholds = getUtilizationThresholds_();
   var ttlMinutes = thresholds.cacheTtlMinutes;
-  var laborHoursCfg = getLaborHoursConfig_();
+  var laborHoursCfg = enrichLaborHoursConfigWithActiveUsers_(getLaborHoursConfig_());
   var range = resolveRange_(rangeStart, rangeEnd, now, thresholds);
 
   var fetched = fetchAllLaborCosts_(range.start, range.end);

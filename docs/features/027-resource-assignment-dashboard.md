@@ -1,6 +1,6 @@
 # Feature: Resource assignment dashboard (Operations)
 
-> **PRD version 3.11.0** - sync with `docs/FOS-Dashboard-PRD.md` (**FR-122**, **AC-81**; allocation read path extended by **FR-146** / **AC-107** in feature 047 workstream B2).  
+> **PRD version 3.15.1** - sync with `docs/FOS-Dashboard-PRD.md` (**FR-122**, **AC-81**; allocation read path extended by **FR-146** / **AC-107** in feature 047 workstream B2).  
 > **Intake:** Inbox task [40228925 - Resource Assignment Dashboard](https://win.godeap.io/app/tasks/40228925).  
 > **Feature id:** 027 | **Task list:** Operations  
 > **Extends / reuses:** [Feature 019](019-resource-allocation-pnl-chart.md) (Fibery Resource Allocations, calendar-day proration), [Feature 024](024-delivery-pnl-resource-assignments-modal.md) (assignment row fields), [Feature 007](007-labor-hours-dashboard.md) (expand/collapse project breakdown UX), [Feature 005](005-utilization-management-dashboard.md) (Operations date range + filter patterns).  
@@ -244,6 +244,7 @@ _(Customer edits during Spec Draft / review go here; merge into main sections at
 
 | Date | Version | Notes |
 | --- | --- | --- |
+| 2026-08-25 | 3.15.1 | Skip no-allocation orange on projects whose customer name contains **harpin** (including `harpin.ai`). |
 | 2026-06-09 | 2.18.3 | Current ISO week banner; allocation % heatmap (replaces project stacked bars) |
 | 2026-06-09 | 2.18.2 | Project color legend; alerts grouped by type then person (collapsible) |
 | 2026-06-09 | 2.18.1 | Access gate: CLIENT-ENGAGEMENT team, EXEC, or ADMIN |

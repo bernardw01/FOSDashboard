@@ -1,6 +1,6 @@
 # Feature: Labor Hours Dashboard (under Operations)
 
-> **PRD version 3.4.5** - see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js`).
+> **PRD version 3.15.1** - see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js`).
 
 > **PRD baseline (imported):** `docs/implementation-notes/labor-hours-dashboard-PRD (1).html` (v2.4, static Python report spec). 
 > **Reference UI (imported example):** `docs/implementation-notes/labor-hours-week-of-2026-05-04.html` (week-of report with KPIs, tables, zero-hours chips, expandable project breakdown). 
@@ -160,6 +160,7 @@ This plan assumes **nested nav** unless product prefers inner tabs (document in 
 
 | Date | Version | Notes |
 | --- | --- | --- |
+| 2026-08-25 | **3.15.1** | Zero-hours roster prefers authoritative **Active** ids/names from `fos_clockify_users` (attached on Utilization `laborHours` config); normalizes work status so Fibery **In-Active** cannot match Active. |
 | 2026-07-27 | **3.4.5** | Live weeks prefer `fos_labor_costs` (`loadSource` gate); Refresh forces live fetch; Postgres timestamp normalize; zero-hours person-key aliases (email vs display name). |
 | 2026-07-27 | **3.4.3** | Default ISO week number no longer loses a week after US DST spring-forward (`getTime()` span bug). Cache slice also requires Utilization `dataWindow` coverage. |
 | 2026-06-15 | **2.13.6** | **Zero hours** roster lists only Clockify Users with **Work Status = Active** (`clockifyUserWorkStatus` on labor rows / `dimensions.persons`). Utilization cache schema **4**. |

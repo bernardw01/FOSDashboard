@@ -1,5 +1,5 @@
 /**
- * PRD version 3.15.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.15.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Resource assignment dashboard (feature 027): portfolio-wide Fibery
  * Resource Allocations by ISO week with alerts.
@@ -1723,7 +1723,9 @@ function buildResourceAssignmentProjects_(
     });
     for (var yi = 0; yi < personKeys.length; yi++) {
       var pers = projOut.personsMap[personKeys[yi]];
-      pers.highlightOrange = !pers.hasAssignment || pers.allocatedAndBillable === false;
+      pers.highlightOrange =
+        !isNoAllocationOrangeExemptCustomer_(projOut.customerName) &&
+        (!pers.hasAssignment || pers.allocatedAndBillable === false);
       personsArr.push({
         personKey: pers.personKey,
         name: pers.name,

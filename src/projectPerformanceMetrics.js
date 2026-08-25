@@ -1,5 +1,5 @@
 /**
- * PRD version 3.15.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.15.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 040: shared project performance metrics (planned / projected margin,
  * EAC hours and dollars, timing-review flag, lifetime resources). Consumed by
@@ -333,18 +333,22 @@ function buildProjectPerformanceBlock_(args) {
     eacHours: eacHours,
     eacDollars: eacDollars,
     timingReview: timingReview,
-    resourcesLifetime: ppBuildResourcesLifetime_(months, assignments),
+    resourcesLifetime: ppBuildResourcesLifetime_(months, assignments, args.customerName),
   };
 }
 
 /**
  * @param {!Array<!Object>} months
  * @param {!Array<!Object>} assignments
+ * @param {string=} customerName
  * @return {!Array<!Object>}
  * @private
  */
-function ppBuildResourcesLifetime_(months, assignments) {
+function ppBuildResourcesLifetime_(months, assignments, customerName) {
   var byKey = {};
+  var skipOrange = typeof isNoAllocationOrangeExemptCustomer_ === 'function'
+    ? isNoAllocationOrangeExemptCustomer_(customerName)
+    : String(customerName || '').toLowerCase().indexOf('harpin') >= 0;
 
   for (var i = 0; i < (months || []).length; i++) {
     var people = (months[i] && months[i].laborByPerson) || [];
@@ -361,13 +365,13 @@ function ppBuildResourcesLifetime_(months, assignments) {
       if (monthAlloc > mRow.allocatedHoursLife) {
         mRow.allocatedHoursLife = monthAlloc;
       }
-      if (p.allocatedAndBillable === false) {
+      if (!skipOrange && p.allocatedAndBillable === false) {
         mRow.allocatedAndBillable = false;
         mRow.highlightOrange = true;
       } else if (p.allocatedAndBillable === true && mRow.allocatedAndBillable !== false) {
         mRow.allocatedAndBillable = true;
       }
-      if (p.highlightOrange === true) mRow.highlightOrange = true;
+      if (!skipOrange && p.highlightOrange === true) mRow.highlightOrange = true;
     }
 
     var mKeys = Object.keys(monthMap);
@@ -377,13 +381,13 @@ function ppBuildResourcesLifetime_(months, assignments) {
       life.loggedHoursLife += src.loggedHoursLife;
       life.loggedCostLife += src.loggedCostLife;
       life.allocatedHoursLife += src.allocatedHoursLife;
-      if (src.allocatedAndBillable === false) {
+      if (!skipOrange && src.allocatedAndBillable === false) {
         life.allocatedAndBillable = false;
         life.highlightOrange = true;
       } else if (src.allocatedAndBillable === true && life.allocatedAndBillable !== false) {
         life.allocatedAndBillable = true;
       }
-      if (src.highlightOrange) life.highlightOrange = true;
+      if (!skipOrange && src.highlightOrange) life.highlightOrange = true;
       life.name = ppPreferDisplayName_(life.name, src.name);
     }
   }
@@ -402,7 +406,7 @@ function ppBuildResourcesLifetime_(months, assignments) {
     if (asgCost > aRow.allocatedCostLife) {
       aRow.allocatedCostLife = asgCost;
     }
-    if (asg.allocatedAndBillable === false) {
+    if (!skipOrange && asg.allocatedAndBillable === false) {
       aRow.allocatedAndBillable = false;
       aRow.highlightOrange = true;
     }
@@ -415,7 +419,7 @@ function ppBuildResourcesLifetime_(months, assignments) {
     if (r.loggedHoursLife <= 0 && r.allocatedHoursLife <= 0 && r.loggedCostLife <= 0) {
       continue;
     }
-    if (r.loggedHoursLife > 0 && r.allocatedHoursLife <= 0) {
+    if (!skipOrange && r.loggedHoursLife > 0 && r.allocatedHoursLife <= 0) {
       r.highlightOrange = true;
     }
     out.push({

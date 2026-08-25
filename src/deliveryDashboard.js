@@ -1,5 +1,5 @@
 /**
- * PRD version 3.15.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.15.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `pm-overview`, panel
  * `#panel-pm-overview`). Public endpoints, all authorized via
@@ -624,7 +624,11 @@ function buildDeliveryProjectMonthlyPnLInternal_(agreementId, options) {
       allocWarnings.push(allocFetch.reason || 'RESOURCE_ALLOCATIONS_FETCH_FAILED');
       console.warn('Resource allocations fetch failed for ' + agreementId + ': ' + allocFetch.message);
     }
-    enrichMonthsLaborByPersonWithAllocations_(built.months, allocRowsForEnrich);
+    enrichMonthsLaborByPersonWithAllocations_(
+      built.months,
+      allocRowsForEnrich,
+      ctx.agreement && ctx.agreement.customer
+    );
   }
 
   var allWarnings = statusWarnings.concat(allocWarnings);
@@ -659,6 +663,7 @@ function buildDeliveryProjectMonthlyPnLInternal_(agreementId, options) {
         resourceAllocations: resourceAllocations,
         targetMarginPct: ctx.agreement.targetMargin,
         assignments: resourceAllocations.assignments || [],
+        customerName: ctx.agreement.customer || '',
       });
     }
   }
@@ -1207,6 +1212,7 @@ function fetchAgreementContextForPnl_(agreementId) {
         targetMargin: 'Agreement Management/Target Margin',
         duration: 'Agreement Management/Duration',
         executionDate: 'Agreement Management/Execution Date',
+        customer: ['Agreement Management/Customer', 'Agreement Management/Name'],
       },
       'q/where': ['=', ['fibery/id'], '$agreementId'],
       'q/limit': 1,
@@ -1234,6 +1240,7 @@ function fetchAgreementContextForPnl_(agreementId) {
       durStart: dur ? stringOrNull_(dur.start) : null,
       durEnd: dur ? stringOrNull_(dur.end) : null,
       executionDate: stringOrNull_(row.executionDate),
+      customer: stringOrNull_(row.customer),
     },
   };
 }
@@ -1681,11 +1688,13 @@ function prorateAllocationHoursForMonth_(row, monthKey) {
  *
  * @param {!Array<!Object>} months
  * @param {!Array<!Object>} allocRows
+ * @param {string=} customerNameOpt
  * @private
  */
-function enrichMonthsLaborByPersonWithAllocations_(months, allocRows) {
+function enrichMonthsLaborByPersonWithAllocations_(months, allocRows, customerNameOpt) {
   months = months || [];
   allocRows = allocRows || [];
+  var skipOrange = isNoAllocationOrangeExemptCustomer_(customerNameOpt);
   for (var mi = 0; mi < months.length; mi++) {
     var month = months[mi];
     if (!month || !month.key) continue;
@@ -1798,7 +1807,7 @@ function enrichMonthsLaborByPersonWithAllocations_(months, allocRows) {
           ? (allocPers.anyBillable ? true : false)
           : null;
       }
-      var orange = logged > 0 && billable !== true;
+      var orange = !skipOrange && logged > 0 && billable !== true;
       enriched.push({
         name: lName,
         role: lRole,

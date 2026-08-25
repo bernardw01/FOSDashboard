@@ -1,5 +1,5 @@
 /**
- * PRD version 3.15.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.15.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: panel hydrate builders that read Supabase typed
  * tables (Agreement Management mirror from `supabaseAmMirror.js`, labor
@@ -471,7 +471,7 @@ function buildUtilizationDashboardPayloadFromSupabase_(rangeStart, rangeEnd) {
     dimensions: emptyUtilizationDimensions_(),
     aggregates: emptyUtilizationAggregates_(),
     alerts: [],
-    laborHours: getLaborHoursConfig_(),
+    laborHours: enrichLaborHoursConfigWithActiveUsers_(getLaborHoursConfig_()),
     message: (built && built.message) || 'Could not load utilization data from Supabase.',
     warnings: ['Supabase error: ' + ((built && built.reason) || 'UNKNOWN')],
   };
@@ -1162,7 +1162,7 @@ function fetchAgreementContextForPnlFromSupabase_(agreementId) {
   var res = supabaseSelectAll_(
     'fos_agreements',
     { fibery_id: 'eq.' + agreementId },
-    'fibery_id,name,total_planned_revenue,rev_recognized,total_labor_costs,total_materials_odc,' +
+    'fibery_id,name,customer_id,total_planned_revenue,rev_recognized,total_labor_costs,total_materials_odc,' +
       'current_margin,target_margin,duration_start,duration_end,execution_date,clockify_project_id'
   );
   if (!res.ok) {
@@ -1171,6 +1171,16 @@ function fetchAgreementContextForPnlFromSupabase_(agreementId) {
   var row = (res.rows || [])[0];
   if (!row) {
     return { ok: false, reason: 'AGREEMENT_NOT_FOUND', message: 'Agreement not found in Supabase.' };
+  }
+  var customerName = null;
+  if (row.customer_id && typeof loadFosCompaniesMap_ === 'function') {
+    try {
+      var companies = loadFosCompaniesMap_();
+      var co = companies[row.customer_id];
+      if (co && co.name) customerName = String(co.name);
+    } catch (e) {
+      customerName = null;
+    }
   }
   return {
     ok: true,
@@ -1187,6 +1197,7 @@ function fetchAgreementContextForPnlFromSupabase_(agreementId) {
       durEnd: stringOrNull_(row.duration_end),
       executionDate: stringOrNull_(row.execution_date),
       clockifyProjectId: stringOrNull_(row.clockify_project_id),
+      customer: customerName,
     },
   };
 }
@@ -1691,7 +1702,11 @@ function buildDeliveryProjectMonthlyPnLFromSupabase_(agreementId, options) {
     } else {
       allocWarnings.push(allocFetch.reason || 'RESOURCE_ALLOCATIONS_FETCH_FAILED');
     }
-    enrichMonthsLaborByPersonWithAllocations_(built.months, allocRowsForEnrich);
+    enrichMonthsLaborByPersonWithAllocations_(
+      built.months,
+      allocRowsForEnrich,
+      ctx.agreement && ctx.agreement.customer
+    );
   }
 
   var allWarnings = statusWarnings.concat(allocWarnings);
@@ -1726,6 +1741,7 @@ function buildDeliveryProjectMonthlyPnLFromSupabase_(agreementId, options) {
         resourceAllocations: resourceAllocations,
         targetMarginPct: ctx.agreement.targetMargin,
         assignments: resourceAllocations.assignments || [],
+        customerName: ctx.agreement.customer || '',
       });
     }
   }
