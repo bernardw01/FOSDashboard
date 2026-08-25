@@ -1,5 +1,5 @@
 /**
- * PRD version 3.10.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.11.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * AI usage sync orchestration (Anthropic Phase B, feature 017).
  *

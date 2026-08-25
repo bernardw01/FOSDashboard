@@ -5,8 +5,8 @@
 > **Feature notebook:** [Feature 047 - Dashboard performance and responsiveness](https://win.godeap.io/app/projects/1615262/notebooks/313457)  
 > **Release task:** [Feature 047 - Dashboard performance and responsiveness](https://win.godeap.io/app/tasks/40839335)
 >
-> **PRD version:** 3.9.2. Each workstream ships its own version bump.
-> **Status:** Approved 2026-08-24. **Workstream A shipped in 3.9.2.** B, C, D pending.
+> **PRD version:** 3.11.0. Each workstream ships its own version bump.
+> **Status:** Approved 2026-08-24. **Workstream A shipped in 3.9.2. B1 shipped in 3.10.0 / 3.10.1. B2 shipped in 3.11.0 with its kill switch off pending a parity run.** B3 to B5, C, D pending.
 
 ## How to read this plan
 
@@ -180,12 +180,21 @@ On 3.9.4 all four fixtures pass with **zero diffs**, and the tolerance is confir
 > doing, but it is now an aggregate-side optimization rather than the thing that
 > makes the payload fit in `sessionStorage`, which the codec already achieved.
 >
-> **Migration numbers shifted.** `049` was consumed by the `fos_perf_runs.kind`
-> constraint fix. The RPC migrations below move to **`050`** and **`051`**.
+> **Migration numbers shifted, then settled.** `049` was consumed by the
+> `fos_perf_runs.kind` constraint fix. An earlier revision of this plan then
+> moved the RPC migrations to `050` and `051` while still listing `051` for the
+> range-cache table as well, so `051` was claimed twice. Resolved at B2's ship
+> by numbering in the order the migrations are actually applied:
+>
+> | Migration | Scope | State |
+> | --- | --- | --- |
+> | **`050_fos_rpc_ra_week_grid.sql`** | B2 resource assignments week grid | **Applied 2026-08-24** |
+> | `051_fos_rpc_util_aggregates.sql` | B1 utilization aggregates RPC | Pending |
+> | `052_fos_viz_range_payloads.sql` | B4 range-keyed cache table | Pending |
 
 ### B1. Utilization aggregates RPC
 
-**Migration `050_fos_rpc_util_aggregates.sql`.** One `plpgsql` function returning a single `jsonb` document containing KPIs, `byWeek`, `byCustomer`, `byProject`, `byPerson`, `byRole`, `billableMix`, and `byPersonWeek`. It must reuse `fos_labor_costs_util_dims` (migration 046, currently unqueried) for the agreement, customer, and role joins rather than re-implementing them.
+**Migration `051_fos_rpc_util_aggregates.sql`.** One `plpgsql` function returning a single `jsonb` document containing KPIs, `byWeek`, `byCustomer`, `byProject`, `byPerson`, `byRole`, `billableMix`, and `byPersonWeek`. It must reuse `fos_labor_costs_util_dims` (migration 046, currently unqueried) for the agreement, customer, and role joins rather than re-implementing them.
 
 ```sql
 create or replace function public.fos_rpc_util_aggregates(
@@ -205,15 +214,38 @@ Set an explicit `statement_timeout` so a bad range fails fast rather than burnin
 
 **`rows[]` stays for now.** The original plan dropped it from the response, but the client filters and re-aggregates those rows in the browser, so removing them changes behavior rather than just size. The v3.10.0 codec already brought the payload under the `sessionStorage` quota, which was the real objective. Serving the detail table its own page remains a sound idea, but it is a client-architecture change and should be scoped on its own rather than smuggled into an RPC release.
 
-### B2. Resource assignments week grid RPC
+### B2. Resource assignments week grid RPC (shipped 3.11.0)
 
-**Migration `051_fos_rpc_ra_week_grid.sql`.** Filter allocation overlap in SQL:
+**Migration `050_fos_rpc_ra_week_grid.sql`, applied 2026-08-24.**
+
+`buildResourceAssignmentDashboardPayloadFromSupabase_` read the **entire** `fos_resource_allocations` table and filtered in JS with `allocationOverlapsRangeYmd_`. `fos_rpc_ra_week_grid(p_start date, p_end date)` now returns the overlapping allocations with their person, project, customer, and role display fields already resolved, in exactly the shape `mapFosResourceAllocationRowToRaw_` produced, so every downstream helper in `resourceAssignmentDashboard.js` is untouched and the payload shape does not change.
+
+**The predicate this section originally proposed is wrong and was not used.**
 
 ```sql
+-- proposed, and incorrect
 where a.duration_start < p_end and a.duration_end >= p_start
 ```
 
-Today `buildResourceAssignmentDashboardPayloadFromSupabase_` reads the **entire** `fos_resource_allocations` table and filters in JS with `allocationOverlapsRangeYmd_`. At 148 rows this is not itself expensive, but it is the same anti-pattern and it removes a full-table read per load.
+That drops every allocation with no duration. `allocationOverlapsRangeYmd_` returns `true` for those, meaning they appear in **every** range. One of the 149 mirrored allocations has both bounds null, so shipping the proposed SQL would have silently changed `assignmentCount` and the week grid. It is also exclusive on the upper bound where the JS is inclusive. The migration mirrors the JS instead: null-both is always in range, a single null bound falls back to the other, `least`/`greatest` handle a reversed pair, and both ends are inclusive.
+
+**Row order is load-bearing.** `buildResourceAssignmentAlerts_` sorts by severity then title, and `Array.prototype.sort` is stable, so ties between two `Assignment ending soon` alerts keep input order. The dimension lookups are therefore scalar subqueries rather than joins, which keeps the sequential scan's heap order, the same order an unordered PostgREST select returns. Verified: 116 of 116 matched rows in the same position. Do not add an `ORDER BY` without re-running parity.
+
+**Measured (2026-08-24, live project `jpcbugdpdvyutlusicxa`):**
+
+| Metric | Value |
+| --- | --- |
+| Allocations in table | 149 |
+| Matched in default -30/+90 window | 116 |
+| RPC execution time, warm | **7.5 ms** (budget 200 ms) |
+| Response JSON | 66,023 chars |
+| Position-for-position order match vs heap scan | 116 of 116 |
+
+**Scope honesty.** The win is **one PostgREST round trip per panel load**, not five. Skipping `loadFosAgreementsMetaMap_`, `loadFosCompaniesMap_`, `loadFosClockifyUsersMap_`, and `loadFosTeamMemberRolesMap_` on this path saves nothing, because `aggregateResourceAssignmentLaborByProjectFromSupabase_` loads the same four dimension caches later in the same build. Removing those requires pushing the labor plan-vs-actual aggregation into SQL too, which is a separate change with real parity risk because `normalizeLaborRows_` applies threshold-driven exclusions.
+
+**Verification:** `_diag_verifyWorkstreamB2()`. It runs all four fixtures through `_diag_comparePerfParityAllFixtures('resource-assignments')`, which flips `PERF_USE_RA_RPC` between arms, **and** tallies which path each build actually took. This matters: the builder falls back to the row scan if the RPC errors, and without the tally a failed RPC would make the harness compare the old path against itself and report a pass. A good run is `pass: true`, `armsProven: true`, and a tally of 4 RPC builds, 4 row-scan builds, 0 fallbacks.
+
+**`PERF_USE_RA_RPC` ships `false`.** Flip it to `true` in ADMIN Settings only after that diagnostic passes.
 
 ### B3. Slim chart payloads
 
@@ -223,7 +255,7 @@ Give slim envelopes their **own** `cacheSchemaVersion` field so a chart-shape ch
 
 ### B4. Range-keyed cache
 
-**Migration `051_fos_viz_range_payloads.sql`:**
+**Migration `052_fos_viz_range_payloads.sql`:**
 
 ```sql
 create table if not exists public.fos_viz_range_payloads (

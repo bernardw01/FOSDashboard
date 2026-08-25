@@ -1,5 +1,5 @@
 /**
- * PRD version 3.10.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.11.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: panel hydrate builders that read Supabase typed
  * tables (Agreement Management mirror from `supabaseAmMirror.js`, labor
@@ -613,6 +613,12 @@ function buildPipelineDashboardPayloadFromSupabase_() {
  * exactly, reusing every shared aggregation helper from
  * `resourceAssignmentDashboard.js`.
  *
+ * Feature 047 B2: when `PERF_USE_RA_RPC` is on, the allocation rows come from
+ * `fos_rpc_ra_week_grid` (migration 050) already filtered to the range and
+ * already joined to their display fields, instead of a full-table read plus a
+ * JavaScript overlap filter. The payload shape is identical either way, which
+ * is why no `cacheSchemaVersion` bump is needed.
+ *
  * @param {?string} rangeStartYmd
  * @param {?string} rangeEndYmd
  * @return {!Object}
@@ -624,42 +630,75 @@ function buildResourceAssignmentDashboardPayloadFromSupabase_(rangeStartYmd, ran
   var weeks = buildResourceAssignmentWeeks_(range.startYmd, range.endYmd, warnings);
   var weeklyCapacity = resolveResourceAssignmentWeeklyCapacity_();
 
-  var allocationsRes = supabaseSelectAll_(
-    'fos_resource_allocations',
-    null,
-    'fibery_id,allocation_name,agreement_id,clockify_user_id,clockify_user_role_id,' +
-      'allocated_billable,allocated_hours,percent_allocated,duration_start,duration_end'
-  );
-  if (!allocationsRes.ok) {
-    return {
-      ok: false,
-      message: allocationsRes.message || 'Could not read fos_resource_allocations.',
-      fetchedAt: fetchedAt,
-      cacheSchemaVersion: RESOURCE_ASSIGNMENTS_CACHE_SCHEMA_VERSION_,
-    };
+  var rawAllocations = null;
+  var allocationsTruncated = false;
+  var overlapFilteredInSql = false;
+
+  if (perfFlag_('PERF_USE_RA_RPC')) {
+    var rpcRes = fetchResourceAllocationsViaRpc_(range.startYmd, range.endYmd);
+    if (rpcRes.ok) {
+      rawAllocations = rpcRes.allocations;
+      overlapFilteredInSql = true;
+      RA_ALLOC_SOURCE_TALLY_.rpc++;
+    } else {
+      // Fall back rather than fail the panel, but make the fallback countable:
+      // a silent fallback would let a parity run compare the row scan against
+      // itself and report a pass that proves nothing.
+      RA_ALLOC_SOURCE_TALLY_.rpcFallbacks++;
+      supabaseWarn_('fos_rpc_ra_week_grid failed, falling back to row scan', {
+        message: rpcRes.message,
+      });
+    }
   }
-  if (allocationsRes.truncated) {
+
+  if (rawAllocations === null) {
+    var allocationsRes = supabaseSelectAll_(
+      'fos_resource_allocations',
+      null,
+      'fibery_id,allocation_name,agreement_id,clockify_user_id,clockify_user_role_id,' +
+        'allocated_billable,allocated_hours,percent_allocated,duration_start,duration_end'
+    );
+    if (!allocationsRes.ok) {
+      return {
+        ok: false,
+        message: allocationsRes.message || 'Could not read fos_resource_allocations.',
+        fetchedAt: fetchedAt,
+        cacheSchemaVersion: RESOURCE_ASSIGNMENTS_CACHE_SCHEMA_VERSION_,
+      };
+    }
+    allocationsTruncated = !!allocationsRes.truncated;
+
+    var agreementsMap = loadFosAgreementsMetaMap_();
+    var companiesMap = loadFosCompaniesMap_();
+    var usersMap = loadFosClockifyUsersMap_();
+    var rolesMap = loadFosTeamMemberRolesMap_();
+
+    rawAllocations = [];
+    var allocRows = allocationsRes.rows || [];
+    for (var i = 0; i < allocRows.length; i++) {
+      var row = allocRows[i];
+      if (!row || !row.fibery_id) continue;
+      rawAllocations.push(
+        mapFosResourceAllocationRowToRaw_(row, agreementsMap, companiesMap, usersMap, rolesMap)
+      );
+    }
+    RA_ALLOC_SOURCE_TALLY_.rows++;
+  }
+
+  if (allocationsTruncated) {
     warnings.push('Resource allocation fetch truncated at page cap.');
-  }
-
-  var agreementsMap = loadFosAgreementsMetaMap_();
-  var companiesMap = loadFosCompaniesMap_();
-  var usersMap = loadFosClockifyUsersMap_();
-  var rolesMap = loadFosTeamMemberRolesMap_();
-
-  var rawAllocations = [];
-  var allocRows = allocationsRes.rows || [];
-  for (var i = 0; i < allocRows.length; i++) {
-    var row = allocRows[i];
-    if (!row || !row.fibery_id) continue;
-    rawAllocations.push(mapFosResourceAllocationRowToRaw_(row, agreementsMap, companiesMap, usersMap, rolesMap));
   }
 
   var rawRows = [];
   for (var j = 0; j < rawAllocations.length; j++) {
     var norm = normalizeResourceAllocationRow_(rawAllocations[j]);
     if (!norm) continue;
-    if (!allocationOverlapsRangeYmd_(norm, range.startYmd, range.endYmd)) continue;
+    // The RPC already applied the identical overlap predicate in SQL. Re-running
+    // it here would be harmless but pointless; keeping the JS filter on the
+    // fallback path is what makes the kill switch a true revert.
+    if (!overlapFilteredInSql && !allocationOverlapsRangeYmd_(norm, range.startYmd, range.endYmd)) {
+      continue;
+    }
     rawRows.push(norm);
   }
 
@@ -729,12 +768,64 @@ function buildResourceAssignmentDashboardPayloadFromSupabase_(rangeStartYmd, ran
     kpis: kpis,
     alerts: alerts.items,
     warnings: warnings,
-    partial: !!allocationsRes.truncated || !!laborAgg.truncated,
+    partial: allocationsTruncated || !!laborAgg.truncated,
     laborMeta: {
       rowCount: laborAgg.rowCount,
       truncated: !!laborAgg.truncated,
       ok: laborAgg.ok !== false,
     },
+  };
+}
+
+/**
+ * Which allocation source the last Resource Assignments build used.
+ *
+ * The parity harness flips `PERF_USE_RA_RPC` and compares two payloads. Both
+ * arms produce the same payload by design, so a silent fallback from the RPC
+ * to the row scan would make parity pass while proving nothing. This tally
+ * lets `_diag_verifyWorkstreamB2` assert that one arm really did call the RPC
+ * and the other really did not.
+ *
+ * @type {!{ rpc: number, rows: number, rpcFallbacks: number }}
+ */
+var RA_ALLOC_SOURCE_TALLY_ = { rpc: 0, rows: 0, rpcFallbacks: 0 };
+
+/** Resets the allocation-source tally. Diagnostics only. */
+function raAllocSourceTallyReset_() {
+  RA_ALLOC_SOURCE_TALLY_ = { rpc: 0, rows: 0, rpcFallbacks: 0 };
+}
+
+/**
+ * Reads allocations overlapping the range through `fos_rpc_ra_week_grid`
+ * (migration 050) instead of downloading the whole table and four dimension
+ * tables and filtering in JavaScript.
+ *
+ * The RPC returns rows in the shape `mapFosResourceAllocationRowToRaw_`
+ * produces, in the same heap order an unordered PostgREST select returns, so
+ * `normalizeResourceAllocationRow_` and everything downstream is unchanged.
+ *
+ * @param {string} startYmd
+ * @param {string} endYmd
+ * @return {!{ ok: true, allocations: !Array<!Object>, totalCount: number, matchedCount: number }|!{ ok: false, message: string }}
+ * @private
+ */
+function fetchResourceAllocationsViaRpc_(startYmd, endYmd) {
+  var res = supabaseRpc_('fos_rpc_ra_week_grid', {
+    p_start: startYmd,
+    p_end: endYmd,
+  });
+  if (!res || res.ok === false) {
+    return { ok: false, message: (res && res.message) || 'fos_rpc_ra_week_grid failed.' };
+  }
+  var doc = res.json;
+  if (!doc || Object.prototype.toString.call(doc.allocations) !== '[object Array]') {
+    return { ok: false, message: 'fos_rpc_ra_week_grid returned an unexpected document.' };
+  }
+  return {
+    ok: true,
+    allocations: doc.allocations,
+    totalCount: Number(doc.totalCount) || 0,
+    matchedCount: Number(doc.matchedCount) || 0,
   };
 }
 

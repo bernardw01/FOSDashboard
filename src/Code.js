@@ -1,11 +1,11 @@
 /**
- * PRD version 3.10.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.11.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.10.1';
+var FOS_PRD_VERSION = '3.11.0';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.10.1';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.10.1 Performance harness results record again; the codec check is verified lossless at 80.6 percent smaller rows.';
+  'v3.11.0 Resource assignment allocations are now selected and joined in Postgres behind PERF_USE_RA_RPC, replacing a full-table read.';
 
 /**
  * @return {string}

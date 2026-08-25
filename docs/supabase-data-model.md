@@ -44,6 +44,10 @@ Migrations are **idempotent** (`create table if not exists`, `create index if no
 | `046_fos_labor_costs_util_dims.sql` | View `fos_labor_costs_util_dims`: 1:1 customer and role joins for Utilization / RA |
 | `043_am_mirror_grants.sql` | Grants AM mirror tables to `anon` / `authenticated` (same pattern as 040); fixes nightly `permission denied for table fos_am_enums` |
 | `044_fos_labor_costs_grants.sql` | Grants + RLS policies on `fos_labor_costs` / `labor_costs`; fixes Live Utilization / Labor Hours and Pull `permission denied for table fos_labor_costs` |
+| `047_drop_unused_indexes.sql` | Feature 047 workstream A: drops six indexes with zero scans over 40 days |
+| `048_perf_diagnostic_runs.sql` | Table `fos_perf_runs`: parity and baseline harness results |
+| `049_perf_runs_kind_constraint.sql` | Replaces the `fos_perf_runs.kind` allow-list with a lowercase-slug shape check |
+| `050_fos_rpc_ra_week_grid.sql` | Function `fos_rpc_ra_week_grid(date, date)`: resource allocations overlapping a range with person / project / customer / role joins resolved in SQL. Called behind `PERF_USE_RA_RPC` |
 
 After schema apply: set Script Properties (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`), run ADMIN **Pull from Fibery** (also installs the nightly hydrate trigger as of v3.0.12), then smoke Live panels. See [cutover notes](sql/036/README.md).
 

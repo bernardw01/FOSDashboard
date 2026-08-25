@@ -1,6 +1,6 @@
 # Feature: Resource assignment dashboard (Operations)
 
-> **PRD version 3.7.4** - sync with `docs/FOS-Dashboard-PRD.md` (**FR-122**, **AC-81**).  
+> **PRD version 3.11.0** - sync with `docs/FOS-Dashboard-PRD.md` (**FR-122**, **AC-81**; allocation read path extended by **FR-146** / **AC-107** in feature 047 workstream B2).  
 > **Intake:** Inbox task [40228925 - Resource Assignment Dashboard](https://win.godeap.io/app/tasks/40228925).  
 > **Feature id:** 027 | **Task list:** Operations  
 > **Extends / reuses:** [Feature 019](019-resource-allocation-pnl-chart.md) (Fibery Resource Allocations, calendar-day proration), [Feature 024](024-delivery-pnl-resource-assignments-modal.md) (assignment row fields), [Feature 007](007-labor-hours-dashboard.md) (expand/collapse project breakdown UX), [Feature 005](005-utilization-management-dashboard.md) (Operations date range + filter patterns).  
@@ -126,7 +126,7 @@ Phase B and C are **out of scope** for initial implementation unless explicitly 
 ### Components (new / edited)
 
 - **`src/resourceAssignmentDashboard.js`**: weekly proration builder, alerts, `getResourceAssignmentDashboardData` (Live: rebuild from Supabase typed tables for requested range; hydrate blob fallback).
-- **`src/supabasePanelBuilders.js`**: `buildResourceAssignmentDashboardPayloadFromSupabase_(rangeStart, rangeEnd)`.
+- **`src/supabasePanelBuilders.js`**: `buildResourceAssignmentDashboardPayloadFromSupabase_(rangeStart, rangeEnd)`. As of **3.11.0**, when **`PERF_USE_RA_RPC`** is on this calls `fos_rpc_ra_week_grid(p_start, p_end)` (migration **050**), which applies the `allocationOverlapsRangeYmd_` overlap rule and the person, project, customer, and role joins in SQL. The payload is identical either way, so `RESOURCE_ASSIGNMENTS_CACHE_SCHEMA_VERSION_` stays at **3**. Setting the flag to `false` restores the full-table read.
 - **`src/Code.js`**: register route in **`buildNavigationModel_`**, expose server handler.
 - **`src/DashboardShell.html`**: panel markup, weekly grid renderer (stacked bars + expandable project rows), date range controls, alerts strip, client cache key **`fos_resource_assignments_v1`** (Phase A: invalidate on range change only).
 - **`src/userActivityLog.js`**: new event types above.
@@ -188,7 +188,7 @@ Unlike Delivery P&L, **Allocated Cost** is **not required** for rows to appear i
 }
 ```
 
-### Snapshot note (Phase C — shipped v2.18.0)
+### Snapshot note (Phase C - shipped v2.18.0)
 
 Daily snapshot job writes **`resource-assignments.json`** via **`buildResourceAssignmentDashboardPayload_()`**; registered in feature **009** manifest; client gate in feature **010**. Flag **`SNAPSHOT_INCLUDE_RESOURCE_ASSIGNMENTS`** (default true). Omitted from snapshot bundle when user fails access gate (**v2.18.1**).
 

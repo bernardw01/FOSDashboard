@@ -1,5 +1,5 @@
 /**
- * PRD version 3.10.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.11.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -1069,7 +1069,7 @@ function getAdminSettingsCatalog_() {
       'PERF_USE_RA_RPC',
       'performance',
       'Resource assignment grid in Postgres',
-      'Feature 047 workstream B. When on, allocation overlap is filtered in SQL instead of downloading the full allocation table.',
+      'Feature 047 workstream B2. When on, Resource assignments calls fos_rpc_ra_week_grid (migration 050), which filters allocation overlap and resolves the person, project, customer, and role joins in SQL, instead of downloading the whole fos_resource_allocations table and filtering in Apps Script. The panel payload is identical either way. Turn on only after _diag_verifyWorkstreamB2() reports pass with 0 fallbacks.',
       'boolean',
       false
     ),

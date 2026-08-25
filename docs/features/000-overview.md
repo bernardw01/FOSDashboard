@@ -1,6 +1,6 @@
 # Overview
 
-> **PRD version 3.9.5** - see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js`).
+> **PRD version 3.11.0** - see `docs/FOS-Dashboard-PRD.md` (must match `src/` file headers and `FOS_PRD_VERSION` in `Code.js`).
 
 ## Goal
 

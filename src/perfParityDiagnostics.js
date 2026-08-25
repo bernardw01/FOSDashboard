@@ -1,5 +1,5 @@
 /**
- * PRD version 3.10.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.11.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 047 Step 0: parity and measurement harness.
  *
@@ -15,6 +15,11 @@
  *   _diag_verifyWorkstreamA()
  *     The one to run for workstream A. Parity across all fixtures plus a
  *     Utilization baseline, in a single execution.
+ *
+ *   _diag_verifyWorkstreamB2()
+ *     The one to run for workstream B2. Parity across all fixtures for
+ *     Resource assignments, plus proof that one arm really used the Postgres
+ *     RPC and the other really used the row scan.
  *
  *   _diag_measurePanelLoad('utilization', '2026-05-26', '2026-08-24')
  *     One panel: elapsed ms, PostgREST calls, bytes received, payload size.
@@ -472,6 +477,75 @@ function _diag_verifyUtilRowCodec() {
   console.log(JSON.stringify(result, null, 2));
   perfPersistRun_('codec', 'utilization rows', result.pass, result);
   return result;
+}
+
+/**
+ * One-call verification for workstream B2 (Resource assignments week grid RPC).
+ *
+ * Parity alone is not enough here. Both arms of `_diag_comparePerfParity` build
+ * the same payload shape, so if the RPC failed and the builder quietly fell
+ * back to the row scan, the harness would compare the row scan against itself
+ * and report a pass. This wraps the parity run with a source tally and fails
+ * unless each arm used the path it was supposed to use.
+ *
+ * A good result: `pass: true`, `armsProven: true`, `rpcProbe.ok: true`, and a
+ * tally of 4 RPC builds, 4 row-scan builds, and 0 fallbacks.
+ *
+ * @return {!Object}
+ */
+function _diag_verifyWorkstreamB2() {
+  var probeRange = resolveResourceAssignmentRangeYmd_(null, null, []);
+  var probe = fetchResourceAllocationsViaRpc_(probeRange.startYmd, probeRange.endYmd);
+  var rpcProbe = {
+    ok: !!probe.ok,
+    message: probe.ok ? null : probe.message,
+    rangeStart: probeRange.startYmd,
+    rangeEnd: probeRange.endYmd,
+    totalCount: probe.ok ? probe.totalCount : null,
+    matchedCount: probe.ok ? probe.matchedCount : null,
+  };
+
+  raAllocSourceTallyReset_();
+  var parity = _diag_comparePerfParityAllFixtures('resource-assignments');
+  var tally = {
+    rpc: RA_ALLOC_SOURCE_TALLY_.rpc,
+    rows: RA_ALLOC_SOURCE_TALLY_.rows,
+    rpcFallbacks: RA_ALLOC_SOURCE_TALLY_.rpcFallbacks,
+  };
+  var fixtureCount = (parity.runs || []).length;
+  var armsProven =
+    fixtureCount > 0 &&
+    tally.rpc === fixtureCount &&
+    tally.rows === fixtureCount &&
+    tally.rpcFallbacks === 0;
+
+  var summary = {
+    workstream: 'B2',
+    pass: !!parity.pass && armsProven && rpcProbe.ok,
+    parityPass: parity.pass,
+    parityComplete: parity.complete,
+    parityRunId: parity.runId || null,
+    armsProven: armsProven,
+    fixtureCount: fixtureCount,
+    tally: tally,
+    rpcProbe: rpcProbe,
+    runs: parity.runs,
+  };
+  console.log('===== WORKSTREAM B2 VERIFICATION =====');
+  console.log(JSON.stringify(summary, null, 2));
+  if (!armsProven) {
+    console.error(
+      'Arms not proven: expected ' +
+        fixtureCount +
+        ' RPC build(s) and ' +
+        fixtureCount +
+        ' row-scan build(s) with 0 fallbacks, got ' +
+        JSON.stringify(tally) +
+        '. Parity result is meaningless until this is 0 fallbacks.'
+    );
+  }
+  perfPersistRun_('parity', 'workstream B2 (resource-assignments RPC)', summary.pass, summary);
+  return summary;
 }
 
 function _diag_verifyWorkstreamA() {
