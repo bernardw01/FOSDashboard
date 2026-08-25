@@ -6,7 +6,7 @@
 > **Release task:** [Feature 047 - Dashboard performance and responsiveness](https://win.godeap.io/app/tasks/40839335) (re-scoped from Feature 044)
 >
 > **Status:** Spec Approved
-> **PRD version:** 3.9.2 (workstream A shipped as **FR-144**, **AC-105**; later workstreams bump again)
+> **PRD version:** 3.10.1 (workstream A shipped as **FR-144**, **AC-105**; workstream B1 as **FR-145**, **AC-106**; later workstreams bump again)
 > **Feature id:** 047 | **Task list:** Data platform
 > **Release type:** Enhancement
 > **Supersedes:** [044 - Live visualization serve performance](044-live-visualization-serve-performance.md) (Spec Draft, never implemented). Workstream B below absorbs 044 phases A-D. See **Relationship to feature 044**.
@@ -273,6 +273,8 @@ Post-approval customer edits land here until ship (Teamwork notebook). Merge int
 
 | Date | PRD | Notes |
 | --- | --- | --- |
+| 2026-08-24 | 3.10.1 | **Codec verified, and a constraint bug found by it.** `_diag_verifyUtilRowCodec()` on the deployed 3.10.0: **6,042 rows, zero diffs**, rows array **4,351,066 -> 843,367 bytes (80.6 percent)**, better than the 880 kB predicted from SQL. The run's result could not be saved, because migration `048` pinned `fos_perf_runs.kind` to `baseline` and `parity`. Migration `049` swaps that allow-list for a lowercase-slug shape check so later workstreams add kinds freely, accepting the loss of typo detection on an internal diagnostics table. The diagnostic is folded to a single pass over the rows; this is a simplification, and notably **not** a timeout fix, which was the first and wrong hypothesis for the missing row. The whole run took 9 seconds. |
+| 2026-08-24 | 3.10.0 | **Workstream B1 shipped.** Utilization payload about **5.9 MB -> ~1.2 MB** for the default window. Measurement redirected the design: repeated **key names** were **44.5 percent** of remaining row bytes, more than the string values, so rows became positional arrays first and dictionaries second. A dictionary-only change would have left nearly half the waste. Eight dead or derivable fields dropped. Server-side re-slicing had to learn to decode first, or the fallback path would have returned an empty panel silently. Row drawer **Agreement state** and **Agreement type**, blank since the Datastore cutover, now resolve; **Created** removed as unsourceable. `cacheSchemaVersion` **6 -> 7**. |
 | 2026-08-24 | 3.9.3 | Harness results persist to **`fos_perf_runs`** (migration `048`) so later workstreams can be compared against the workstream A baseline with SQL. `clasp run` is not viable here: it needs a linked standard GCP project and a private OAuth client, and satisfying its scope requirements would mean adding explicit `oauthScopes` to the manifest, which re-prompts every Web App user for consent. Adds `_diag_verifyWorkstreamA()` and a 4.5-minute budget so batch runs report partial results instead of being killed at the 6-minute limit. |
 | 2026-08-24 | 3.9.2 | **Workstream A shipped.** See the PRD changelog for scope. Two corrections to this spec are recorded in the rows below. |
 | 2026-08-24 | 3.9.1 | Spec Draft. Measured baseline against the live Datastore: DB is 101 MB with 100% cache hits and Postgres aggregates the 90-day utilization window in 17.8 ms, while GAS pages 9,508 rows over ~10 MB in 10 serial round trips. Four workstreams: stop over-fetching and schema drift, aggregate in Postgres (absorbs 044), fix hydrate, client responsiveness. |

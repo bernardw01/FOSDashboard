@@ -1,5 +1,5 @@
 /**
- * PRD version 3.10.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.10.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Supabase (PostgREST) client for Feature 036.
  * Secrets stay in Script Properties; never returned to the client.

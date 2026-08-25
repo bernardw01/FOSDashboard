@@ -169,9 +169,23 @@ On 3.9.4 all four fixtures pass with **zero diffs**, and the tolerance is confir
 **Ship as:** MINOR (for example 3.10.0). May split into B1 (RPCs) and B2 (slim charts and range cache) as two releases.
 **Kill switches:** `PERF_USE_UTIL_RPC`, `PERF_USE_RA_RPC`, `PERF_USE_SLIM_CHARTS`, `PERF_USE_RANGE_CACHE`.
 
+> **Resequenced during implementation.** B1 below assumed the payload could stop
+> carrying `rows[]`. It cannot, at least not yet: the client filters and
+> re-aggregates those rows in the browser, so removing them breaks Operations
+> rather than speeding it up. B1 was therefore split. **B1a/B1b shipped first as
+> v3.10.0**, slimming the row payload in place with no parity risk: eight dead or
+> derivable fields removed, rows sent as positional arrays, and repeating strings
+> dictionary-encoded, together **80.6 percent** off the rows array, verified
+> lossless at zero diffs over 6,042 rows. The RPC described below is still worth
+> doing, but it is now an aggregate-side optimization rather than the thing that
+> makes the payload fit in `sessionStorage`, which the codec already achieved.
+>
+> **Migration numbers shifted.** `049` was consumed by the `fos_perf_runs.kind`
+> constraint fix. The RPC migrations below move to **`050`** and **`051`**.
+
 ### B1. Utilization aggregates RPC
 
-**Migration `049_fos_rpc_util_aggregates.sql`.** One `plpgsql` function returning a single `jsonb` document containing KPIs, `byWeek`, `byCustomer`, `byProject`, `byPerson`, `byRole`, `billableMix`, and `byPersonWeek`. It must reuse `fos_labor_costs_util_dims` (migration 046, currently unqueried) for the agreement, customer, and role joins rather than re-implementing them.
+**Migration `050_fos_rpc_util_aggregates.sql`.** One `plpgsql` function returning a single `jsonb` document containing KPIs, `byWeek`, `byCustomer`, `byProject`, `byPerson`, `byRole`, `billableMix`, and `byPersonWeek`. It must reuse `fos_labor_costs_util_dims` (migration 046, currently unqueried) for the agreement, customer, and role joins rather than re-implementing them.
 
 ```sql
 create or replace function public.fos_rpc_util_aggregates(
@@ -189,11 +203,11 @@ Set an explicit `statement_timeout` so a bad range fails fast rather than burnin
 
 **Server:** add `fetchUtilAggregatesViaRpc_(startIso, endIso)` in `src/fiberyUtilizationDashboard.js` using the existing but currently uncalled `supabaseRpc_` (`src/supabaseClient.js` lines 176-178). `buildUtilizationPayloadFromFosLaborCosts_` calls it when the kill switch allows, and falls back to the row-paging builder otherwise.
 
-**Keep `rows[]` out of the aggregate response.** The detail table paginates at 100 rows client-side; it should fetch its own page rather than riding along in the panel payload. This is what takes the utilization blob from 5,331 kB to something that fits in `sessionStorage`.
+**`rows[]` stays for now.** The original plan dropped it from the response, but the client filters and re-aggregates those rows in the browser, so removing them changes behavior rather than just size. The v3.10.0 codec already brought the payload under the `sessionStorage` quota, which was the real objective. Serving the detail table its own page remains a sound idea, but it is a client-architecture change and should be scoped on its own rather than smuggled into an RPC release.
 
 ### B2. Resource assignments week grid RPC
 
-**Migration `050_fos_rpc_ra_week_grid.sql`.** Filter allocation overlap in SQL:
+**Migration `051_fos_rpc_ra_week_grid.sql`.** Filter allocation overlap in SQL:
 
 ```sql
 where a.duration_start < p_end and a.duration_end >= p_start
