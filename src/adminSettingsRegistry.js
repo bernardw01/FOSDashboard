@@ -1,5 +1,5 @@
 /**
- * PRD version 3.15.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.16.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -1116,8 +1116,8 @@ function getAdminSettingsCatalog_() {
     adminSettingEntry_(
       'PERF_INCREMENTAL_AM_MIRROR',
       'performance',
-      'Incremental Fibery mirror (reserved)',
-      'Feature 047 workstream C. Reserved until that workstream ships. This flag currently gates nothing, so the nightly mirror still re-scans every entity. Leave it off; turning it on has no effect on hydrate duration.',
+      'Incremental Fibery mirror',
+      'Feature 047 workstream C. When on, the Agreement Management mirror fetches only entities modified since the stored fos_sync_watermarks cursor (Sunday runs a full reconcile). Upsert chunking and fetchAll parallelism always apply. Failed hydrates email ADMIN and the next Pull resumes from the failed step. Ships off until a no-change hydrate is measured under 10 minutes.',
       'boolean',
       false
     ),

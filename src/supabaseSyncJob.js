@@ -1,5 +1,5 @@
 /**
- * PRD version 3.15.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.16.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: Fibery -> Supabase hydrate (nightly + ADMIN Pull).
  * Dataset am-mirror (supabaseAmMirror.js) hydrates Agreement Management typed
@@ -142,6 +142,19 @@ function getSupabaseSyncStatus() {
     readSource: dashboardReadSource_(),
     ping: ping,
     state: state,
+    lastRun: state
+      ? {
+          status: state.status || null,
+          startedAt: state.startedAt || null,
+          finishedAt: state.finishedAt || null,
+          durationMs: state.durationMs != null ? state.durationMs : null,
+          lastError: state.lastError || null,
+          scriptVersion: state.scriptVersion || null,
+          datasetsDone: state.datasetsDone != null ? state.datasetsDone : null,
+          datasetsTotal: state.datasetsTotal != null ? state.datasetsTotal : null,
+          resumeEligible: !!state.resumeEligible,
+        }
+      : null,
     nightlyTrigger: nightly,
     schemaDrift: schemaDrift,
     perfFlags: perfFlagsSnapshot_(),
@@ -206,32 +219,54 @@ function startSupabaseSync_(triggerKind) {
         state: existing,
       };
     }
+    var resume = supabaseSyncShouldResume_(existing);
     var runId =
       'supabase:' + new Date().toISOString() + ':' + Utilities.getUuid().slice(0, 8);
-    var state = {
-      runId: runId,
-      trigger: triggerKind || 'manual',
-      status: 'running',
-      // Feature 047 A2: the schema versions a hydrate writes come from the
-      // constants in the *running* script, which nothing else records. When
-      // git is ahead of the last `clasp push`, the run looks healthy and the
-      // stale blob version is the only symptom. Stamping the version here makes
-      // "which code produced this blob" answerable after the fact.
-      scriptVersion: typeof FOS_PRD_VERSION !== 'undefined' ? FOS_PRD_VERSION : null,
-      startedAt: new Date().toISOString(),
-      finishedAt: null,
-      datasetIndex: 0,
-      datasets: SUPABASE_SYNC_DATASETS_.slice(),
-      datasetsDone: 0,
-      datasetsTotal: SUPABASE_SYNC_DATASETS_.length,
-      notes: [],
-      lastError: null,
-    };
-    resetAmMirrorCursor_(state);
+    var state;
+    if (resume) {
+      state = existing;
+      state.runId = runId;
+      state.trigger = triggerKind || 'manual';
+      state.status = 'running';
+      state.scriptVersion = typeof FOS_PRD_VERSION !== 'undefined' ? FOS_PRD_VERSION : null;
+      state.startedAt = new Date().toISOString();
+      state.finishedAt = null;
+      state.lastError = null;
+      state.resumeEligible = false;
+      state.notes = state.notes || [];
+      state.notes.push(
+        'resuming from dataset ' +
+          (state.datasets[state.datasetIndex] || '?') +
+          (state.amMirror
+            ? ' · am-mirror step ' + state.amMirror.stepIndex + ' offset ' + state.amMirror.offset
+            : '')
+      );
+    } else {
+      state = {
+        runId: runId,
+        trigger: triggerKind || 'manual',
+        status: 'running',
+        scriptVersion: typeof FOS_PRD_VERSION !== 'undefined' ? FOS_PRD_VERSION : null,
+        startedAt: new Date().toISOString(),
+        finishedAt: null,
+        datasetIndex: 0,
+        datasets: SUPABASE_SYNC_DATASETS_.slice(),
+        datasetsDone: 0,
+        datasetsTotal: SUPABASE_SYNC_DATASETS_.length,
+        notes: [],
+        lastError: null,
+        resumeEligible: false,
+      };
+      resetAmMirrorCursor_(state);
+    }
     writeSupabaseSyncState_(state);
     insertSupabaseSyncRunRow_(state, 'running');
     scheduleSupabaseSyncContinuation_(500);
-    return { ok: true, message: 'Supabase sync started.', state: state };
+    return {
+      ok: true,
+      message: resume ? 'Supabase sync resumed.' : 'Supabase sync started.',
+      state: state,
+    };
   } finally {
     try {
       if (lock) {
@@ -241,6 +276,40 @@ function startSupabaseSync_(triggerKind) {
       /* ignore */
     }
   }
+}
+
+/**
+ * Feature 047 C4: resume a failed hydrate from the saved dataset / am-mirror cursor
+ * unless forced full or the failure is stale.
+ * @param {?Object} existing
+ * @return {boolean}
+ * @private
+ */
+function supabaseSyncShouldResume_(existing) {
+  if (!existing || existing.status !== 'failed' || !existing.resumeEligible) {
+    return false;
+  }
+  var force = PropertiesService.getScriptProperties().getProperty('SUPABASE_SYNC_FORCE_FULL');
+  if (force && /^(true|1|yes)$/i.test(String(force).trim())) {
+    return false;
+  }
+  if (existing.finishedAt) {
+    try {
+      var ageMs = Date.now() - new Date(existing.finishedAt).getTime();
+      if (ageMs > 24 * 60 * 60 * 1000) {
+        return false;
+      }
+    } catch (_) {
+      /* ignore */
+    }
+  }
+  if (!Array.isArray(existing.datasets) || !existing.datasets.length) {
+    return false;
+  }
+  if (typeof existing.datasetIndex !== 'number' || existing.datasetIndex < 0) {
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -595,9 +664,123 @@ function finishSupabaseSync_(status, note) {
       state.durationMs = null;
     }
   }
+  if (status === 'failed') {
+    // C4: keep datasetIndex + amMirror so the next trigger can resume.
+    state.resumeEligible = true;
+  } else {
+    state.resumeEligible = false;
+    if (status === 'complete' || status === 'cancelled') {
+      state.amMirror = null;
+    }
+  }
   writeSupabaseSyncState_(state);
   insertSupabaseSyncRunRow_(state, status);
   deleteSupabaseSyncContinuationTriggers_();
+  if (status === 'failed') {
+    try {
+      notifyAdminsHydrateFailed_(state, note || state.lastError || 'Hydrate failed.');
+    } catch (e) {
+      try {
+        console.warn('notifyAdminsHydrateFailed_: ' + (e && e.message ? e.message : e));
+      } catch (_) {
+        /* ignore */
+      }
+    }
+  }
+}
+
+/**
+ * Feature 047 C3: email ADMIN users and append Notification Log on hydrate failure.
+ * @param {!Object} state
+ * @param {string} note
+ * @private
+ */
+function notifyAdminsHydrateFailed_(state, note) {
+  var emails =
+    typeof listAdminEmailsFromUsersSheet_ === 'function' ? listAdminEmailsFromUsersSheet_() : [];
+  if (!emails.length) {
+    try {
+      console.warn('notifyAdminsHydrateFailed_: no ADMIN emails on Users sheet');
+    } catch (_) {
+      /* ignore */
+    }
+    return;
+  }
+  var durationLabel =
+    state.durationMs != null && isFinite(Number(state.durationMs))
+      ? Math.round(Number(state.durationMs) / 1000) + 's'
+      : 'n/a';
+  var subject = 'FinOps Datastore hydrate failed';
+  var summary =
+    'runId=' +
+    (state.runId || '') +
+    ' · scriptVersion=' +
+    (state.scriptVersion || '') +
+    ' · datasets=' +
+    (state.datasetsDone != null ? state.datasetsDone : '?') +
+    '/' +
+    (state.datasetsTotal != null ? state.datasetsTotal : '?') +
+    ' · duration=' +
+    durationLabel +
+    ' · error=' +
+    String(note || '').slice(0, 400);
+  var body =
+    'The Fibery → Datastore hydrate ended in failure.\n\n' +
+    summary +
+    '\n\nOpen ADMIN Settings → Datastore hydrate for status, then Pull from Fibery to resume from the failed step (or set SUPABASE_SYNC_FORCE_FULL=true for a full restart).\n';
+  var fromName = 'FinOps Performance Hub';
+  for (var i = 0; i < emails.length; i++) {
+    var email = emails[i];
+    try {
+      MailApp.sendEmail({
+        to: email,
+        subject: subject,
+        body: body,
+        name: fromName,
+      });
+      if (typeof appendNotificationLogRow_ === 'function') {
+        appendNotificationLogRow_({
+          email: email,
+          catalogIds: ['system.hydrate_failed'],
+          alertIds: ['hydrate-failed:' + (state.runId || '')],
+          frequency: 'immediate',
+          digestKey: 'hydrate-failed:' + (state.runId || Utilities.getUuid()),
+          subject: subject,
+          summary: summary,
+          deepLink: '',
+          status: 'sent',
+        });
+      }
+    } catch (sendErr) {
+      try {
+        console.warn(
+          'notifyAdminsHydrateFailed_: send failed for ' +
+            email +
+            ': ' +
+            (sendErr && sendErr.message ? sendErr.message : sendErr)
+        );
+      } catch (_) {
+        /* ignore */
+      }
+      if (typeof appendNotificationLogRow_ === 'function') {
+        try {
+          appendNotificationLogRow_({
+            email: email,
+            catalogIds: ['system.hydrate_failed'],
+            alertIds: ['hydrate-failed:' + (state.runId || '')],
+            frequency: 'immediate',
+            digestKey: 'hydrate-failed:' + (state.runId || Utilities.getUuid()),
+            subject: subject,
+            summary: summary,
+            deepLink: '',
+            status: 'failed',
+          });
+        } catch (_) {
+          /* ignore */
+        }
+      }
+    }
+  }
 }
 
 /**

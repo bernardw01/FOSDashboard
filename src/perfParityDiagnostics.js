@@ -1,5 +1,5 @@
 /**
- * PRD version 3.15.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.16.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 047 Step 0: parity and measurement harness.
  *
@@ -1615,4 +1615,50 @@ function _diag_comparePerfParityAllFixtures(panelKey) {
     summary
   );
   return summary;
+}
+
+/**
+ * Feature 047 Workstream C smoke check (safe, non-destructive).
+ * Run from the Apps Script editor: _diag_verifyWorkstreamC()
+ * @return {!Object}
+ */
+function _diag_verifyWorkstreamC() {
+  var out = {
+    kind: 'workstream-c',
+    pass: false,
+    flagOn: false,
+    sundayFullReconcile: false,
+    watermarksReadable: false,
+    watermarkSample: null,
+    upsertChunkSize: typeof AM_MIRROR_UPSERT_CHUNK_SIZE_ !== 'undefined' ? AM_MIRROR_UPSERT_CHUNK_SIZE_ : null,
+    fetchAllAvailable: typeof UrlFetchApp !== 'undefined' && typeof UrlFetchApp.fetchAll === 'function',
+    hasNotifyHelper: typeof notifyAdminsHydrateFailed_ === 'function',
+    hasResumeHelper: typeof supabaseSyncShouldResume_ === 'function',
+    notes: [],
+  };
+  try {
+    out.flagOn = !!perfFlag_('PERF_INCREMENTAL_AM_MIRROR');
+  } catch (e) {
+    out.notes.push('flag: ' + (e && e.message ? e.message : e));
+  }
+  try {
+    out.sundayFullReconcile = typeof amMirrorIsSundayFullReconcile_ === 'function' && amMirrorIsSundayFullReconcile_();
+  } catch (e2) {
+    out.notes.push('sunday: ' + (e2 && e2.message ? e2.message : e2));
+  }
+  try {
+    var res = supabaseSelect_('fos_sync_watermarks', null, 'dataset_key,cursor_json,updated_at', 5);
+    out.watermarksReadable = !!(res && res.ok);
+    if (res && res.ok && Array.isArray(res.json)) {
+      out.watermarkSample = res.json.slice(0, 3);
+    } else if (res && !res.ok) {
+      out.notes.push('watermarks: ' + (res.message || res.reason || 'read failed'));
+    }
+  } catch (e3) {
+    out.notes.push('watermarks threw: ' + (e3 && e3.message ? e3.message : e3));
+  }
+  out.pass = out.watermarksReadable && out.fetchAllAvailable && out.hasNotifyHelper && out.hasResumeHelper && out.upsertChunkSize >= 100;
+  out.runId = perfPersistRun_('workstream-c', 'verify C helpers', out.pass, out);
+  console.log('_diag_verifyWorkstreamC -> ' + JSON.stringify(out).slice(0, 3000));
+  return out;
 }

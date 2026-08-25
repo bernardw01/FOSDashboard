@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.15.1 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.16.0 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -11048,13 +11048,13 @@
 
         var title = document.createElement('div');
         title.className = 'fw-semibold text-white mb-2';
-        title.textContent = 'Fibery → Supabase hydrate';
+        title.textContent = 'Datastore health (Fibery → Supabase hydrate)';
         wrap.appendChild(title);
 
         var help = document.createElement('p');
         help.className = 'small text-secondary mb-2';
         help.textContent =
-          'Pull mirrors Agreement Management tables into Supabase, then rebuilds panel JSON from those tables (labor from Clockify fos_labor_costs only). Continuation batches. The first Pull also installs the nightly hydrate trigger. Live panels always read Datastore after hydrate; Reload re-reads Postgres.';
+          'Pull mirrors Agreement Management tables into Supabase, then rebuilds panel JSON from those tables (labor from Clockify fos_labor_costs only). Continuation batches. Failed runs email ADMIN and the next Pull resumes from the failed step unless SUPABASE_SYNC_FORCE_FULL is set. The first Pull also installs the nightly hydrate trigger.';
         wrap.appendChild(help);
 
         var status = adminSettingsState_.supabaseSync;
@@ -11066,12 +11066,13 @@
           statusLine.style.color = 'var(--danger)';
           statusLine.textContent = statusErr;
         } else if (!status) {
-          statusLine.textContent = 'Loading Supabase sync status…';
+          statusLine.textContent = 'Loading Datastore hydrate status…';
         } else if (status.ok === false) {
           statusLine.style.color = 'var(--danger)';
           statusLine.textContent = status.message || 'Could not load status.';
         } else {
           var st = status.state || {};
+          var last = status.lastRun || {};
           var pingOk = status.ping && status.ping.ok;
           var nightly = status.nightlyTrigger || {};
           var nightlyLabel = nightly.installed
@@ -11079,6 +11080,11 @@
               (nightly.hour != null ? nightly.hour : '?') +
               ')'
             : 'missing (run Pull to install)';
+          var durMs = last.durationMs != null ? last.durationMs : st.durationMs;
+          var durLabel =
+            durMs != null && isFinite(Number(durMs))
+              ? Math.round(Number(durMs) / 1000) + 's'
+              : 'n/a';
           statusLine.textContent =
             'Read source: ' +
             (status.readSource || 'supabase') +
@@ -11088,16 +11094,39 @@
             (pingOk ? 'ok' : 'fail') +
             ' · Nightly trigger: ' +
             nightlyLabel +
-            ' · Sync: ' +
-            (st.status || 'idle') +
+            ' · Last run: ' +
+            (last.status || st.status || 'idle') +
+            ' · Duration: ' +
+            durLabel +
+            (last.scriptVersion || st.scriptVersion
+              ? ' · Script: ' + (last.scriptVersion || st.scriptVersion)
+              : '') +
             (st.datasetsDone != null
-              ? ' (' + st.datasetsDone + '/' + (st.datasetsTotal || '?') + ')'
-              : '');
-          if (!nightly.installed) {
+              ? ' · Progress: ' + st.datasetsDone + '/' + (st.datasetsTotal || '?')
+              : '') +
+            (last.resumeEligible || st.resumeEligible ? ' · resume pending' : '');
+          if (!nightly.installed || last.status === 'failed' || st.status === 'failed') {
             statusLine.style.color = 'var(--warning, #c9a227)';
+          }
+          if (last.status === 'failed' || st.status === 'failed') {
+            statusLine.style.color = 'var(--danger)';
           }
         }
         wrap.appendChild(statusLine);
+
+        if (
+          status &&
+          ((status.lastRun && status.lastRun.lastError) ||
+            (status.state && status.state.lastError))
+        ) {
+          var errLine = document.createElement('p');
+          errLine.className = 'small mb-2';
+          errLine.style.color = 'var(--danger)';
+          errLine.textContent = String(
+            (status.lastRun && status.lastRun.lastError) || status.state.lastError
+          ).slice(0, 400);
+          wrap.appendChild(errLine);
+        }
 
         if (status && status.state && status.state.notes && status.state.notes.length) {
           var notes = document.createElement('p');

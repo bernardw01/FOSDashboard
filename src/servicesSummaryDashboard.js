@@ -1,5 +1,5 @@
 /**
- * PRD version 3.15.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.16.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 043: Services Summary (Delivery). Portfolio of active Services
  * agreements: customer filter, KPI cards, and plan-vs-actual table.

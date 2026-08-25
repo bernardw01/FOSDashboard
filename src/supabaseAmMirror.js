@@ -1,5 +1,5 @@
 /**
- * PRD version 3.15.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.16.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement Management Fibery → Supabase relational mirror (Pull / nightly).
  * Panel aggregation builders read the typed tables this mirror hydrates
@@ -34,8 +34,14 @@ var AM_MIRROR_MIN_PAGE_SIZE_ = 25;
 /** @const {number} */
 var AM_MIRROR_MAX_PAGE_SIZE_ = 200;
 
-/** @const {number} Rows per supabaseUpsert_ call. */
-var AM_MIRROR_UPSERT_CHUNK_SIZE_ = 50;
+/** @const {number} Rows per supabaseUpsert_ call (Workstream C2). */
+var AM_MIRROR_UPSERT_CHUNK_SIZE_ = 200;
+
+/** @const {number} Max parallel PostgREST upserts per fetchAll batch (C2). */
+var AM_MIRROR_UPSERT_PARALLEL_ = 5;
+
+/** @const {number} Fibery fetch retries with backoff before failing the step (C4). */
+var AM_MIRROR_FETCH_RETRIES_ = 3;
 
 /** @const {number} Collection subquery caps (Fibery discourages q/no-limit in subqueries). */
 var AM_MIRROR_SEGMENTS_SUBQUERY_LIMIT_ = 50;
@@ -458,6 +464,11 @@ var AM_MIRROR_STEPS_ = AM_MIRROR_ENUM_STEPS_.concat(AM_MIRROR_ENTITY_STEPS_);
  * called repeatedly (e.g. from a Supabase sync continuation batch) until it
  * returns `continue: false`.
  *
+ * Feature 047 Workstream C: when PERF_INCREMENTAL_AM_MIRROR is on, entity steps
+ * filter Fibery by modification-date against fos_sync_watermarks (Sunday =
+ * full reconcile). Enums always full-scan. Fibery fetch failures retry with
+ * backoff before failing the page.
+ *
  * @param {!Object} syncState Mutable running sync state from
  *   readSupabaseSyncState_(). Uses/creates syncState.amMirror as the cursor.
  * @return {!{ ok: true, continue: boolean, detail: string }|
@@ -490,18 +501,37 @@ function hydrateSupabaseAmMirror_(syncState) {
   if (!select) {
     return { ok: false, message: 'AM mirror step "' + step.key + '" has no select map.' };
   }
-  var page = amMirrorFetchPage_(step.from, select, pageSize, cursor.offset);
+
+  var incremental = perfFlag_('PERF_INCREMENTAL_AM_MIRROR');
+  var fullReconcile = amMirrorIsSundayFullReconcile_();
+  var sinceIso = null;
+  if (incremental && !fullReconcile && step.kind !== 'enum') {
+    sinceIso = amMirrorReadWatermarkSince_(step.key);
+  }
+
+  var page = amMirrorFetchPageWithRetry_(step.from, select, pageSize, cursor.offset, {
+    sinceIso: sinceIso,
+    orderByModification: !!sinceIso,
+  });
   if (!page.ok) {
     return {
       ok: false,
-      message: 'AM mirror step "' + step.key + '" fetch failed: ' + (page.message || page.reason || 'unknown error'),
+      message:
+        'AM mirror step "' +
+        step.key +
+        '" fetch failed: ' +
+        (page.message || page.reason || 'unknown error'),
     };
   }
 
   var rows = page.rows || [];
   if (!rows.length) {
+    if (incremental && step.kind !== 'enum') {
+      amMirrorAdvanceWatermark_(step.key, cursor.maxModifiedAt || sinceIso || new Date().toISOString());
+    }
     cursor.stepIndex++;
     cursor.offset = 0;
+    cursor.maxModifiedAt = null;
     var doneAfterEmpty = cursor.stepIndex >= AM_MIRROR_STEPS_.length;
     if (doneAfterEmpty) {
       syncState.amMirror = null;
@@ -509,8 +539,19 @@ function hydrateSupabaseAmMirror_(syncState) {
     return {
       ok: true,
       continue: !doneAfterEmpty,
-      detail: 'step complete: ' + step.key + ' (0 rows on final page)',
+      detail:
+        'step complete: ' +
+        step.key +
+        ' (0 rows on final page)' +
+        (sinceIso ? ' · incremental' : fullReconcile && incremental ? ' · sunday-full' : ''),
     };
+  }
+
+  var pageMax = amMirrorMaxModifiedAt_(rows);
+  if (pageMax) {
+    if (!cursor.maxModifiedAt || String(pageMax) > String(cursor.maxModifiedAt)) {
+      cursor.maxModifiedAt = pageMax;
+    }
   }
 
   var processed;
@@ -529,8 +570,15 @@ function hydrateSupabaseAmMirror_(syncState) {
   cursor.offset += rows.length;
   var pageWasShort = rows.length < pageSize;
   if (pageWasShort) {
+    if (incremental && step.kind !== 'enum') {
+      amMirrorAdvanceWatermark_(
+        step.key,
+        cursor.maxModifiedAt || sinceIso || new Date().toISOString()
+      );
+    }
     cursor.stepIndex++;
     cursor.offset = 0;
+    cursor.maxModifiedAt = null;
   }
   var allDone = cursor.stepIndex >= AM_MIRROR_STEPS_.length;
   if (allDone) {
@@ -539,7 +587,13 @@ function hydrateSupabaseAmMirror_(syncState) {
   return {
     ok: true,
     continue: !allDone,
-    detail: step.key + ': ' + rows.length + ' row(s)' + (pageWasShort ? ' (step complete)' : ''),
+    detail:
+      step.key +
+      ': ' +
+      rows.length +
+      ' row(s)' +
+      (pageWasShort ? ' (step complete)' : '') +
+      (sinceIso ? ' · incremental' : fullReconcile && incremental ? ' · sunday-full' : ''),
   };
 }
 
@@ -549,8 +603,124 @@ function hydrateSupabaseAmMirror_(syncState) {
  */
 function resetAmMirrorCursor_(syncState) {
   if (syncState && typeof syncState === 'object') {
-    syncState.amMirror = { stepIndex: 0, offset: 0 };
+    syncState.amMirror = { stepIndex: 0, offset: 0, maxModifiedAt: null };
   }
+}
+
+/**
+ * True when Script TZ says today is Sunday (weekly full reconcile).
+ * @return {boolean}
+ * @private
+ */
+function amMirrorIsSundayFullReconcile_() {
+  try {
+    var tz = Session.getScriptTimeZone() || 'UTC';
+    var day = Utilities.formatDate(new Date(), tz, 'u'); // 1=Mon ... 7=Sun
+    return String(day) === '7';
+  } catch (_) {
+    return false;
+  }
+}
+
+/**
+ * @param {string} stepKey
+ * @return {?string} ISO watermark or null
+ * @private
+ */
+function amMirrorReadWatermarkSince_(stepKey) {
+  var key = 'am-mirror:' + String(stepKey || '').trim();
+  if (!key || key === 'am-mirror:') return null;
+  try {
+    var res = supabaseSelect_('fos_sync_watermarks', { dataset_key: 'eq.' + key }, 'cursor_json', 1);
+    if (!res.ok) return null;
+    var rows = Array.isArray(res.json) ? res.json : [];
+    var row = rows[0] || null;
+    var cursor = row && row.cursor_json;
+    if (typeof cursor === 'string') {
+      try {
+        cursor = JSON.parse(cursor);
+      } catch (_) {
+        cursor = null;
+      }
+    }
+    if (cursor && cursor.since) {
+      return String(cursor.since);
+    }
+  } catch (e) {
+    try {
+      console.warn('amMirrorReadWatermarkSince_: ' + (e && e.message ? e.message : e));
+    } catch (_) {
+      /* ignore */
+    }
+  }
+  return null;
+}
+
+/**
+ * @param {string} stepKey
+ * @param {string} sinceIso
+ * @private
+ */
+function amMirrorAdvanceWatermark_(stepKey, sinceIso) {
+  var key = 'am-mirror:' + String(stepKey || '').trim();
+  var since = String(sinceIso || '').trim();
+  if (!key || key === 'am-mirror:' || !since) return;
+  var nowIso = new Date().toISOString();
+  try {
+    supabaseUpsert_(
+      'fos_sync_watermarks',
+      [{ dataset_key: key, cursor_json: { since: since }, updated_at: nowIso }],
+      'dataset_key'
+    );
+  } catch (e) {
+    try {
+      console.warn('amMirrorAdvanceWatermark_: ' + (e && e.message ? e.message : e));
+    } catch (_) {
+      /* ignore */
+    }
+  }
+}
+
+/**
+ * @param {!Array<!Object>} rows
+ * @return {?string}
+ * @private
+ */
+function amMirrorMaxModifiedAt_(rows) {
+  var max = null;
+  for (var i = 0; i < (rows || []).length; i++) {
+    var m = rows[i] && rows[i].modifiedAt;
+    if (!m) continue;
+    var s = String(m);
+    if (!max || s > max) max = s;
+  }
+  return max;
+}
+
+/**
+ * Fetches one Fibery page with bounded retry/backoff (C4).
+ * @param {string} from
+ * @param {!Object} select
+ * @param {number} limit
+ * @param {number} offset
+ * @param {?{ sinceIso?: ?string, orderByModification?: boolean }=} opt
+ * @return {!{ ok: true, rows: !Array }|!{ ok: false, reason: string, message: string }}
+ * @private
+ */
+function amMirrorFetchPageWithRetry_(from, select, limit, offset, opt) {
+  var last = null;
+  for (var attempt = 0; attempt < AM_MIRROR_FETCH_RETRIES_; attempt++) {
+    if (attempt > 0) {
+      try {
+        Utilities.sleep(1000 * Math.pow(2, attempt - 1));
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    last = amMirrorFetchPage_(from, select, limit, offset, opt);
+    if (last && last.ok) return last;
+  }
+  return last || { ok: false, reason: 'FIBERY_FETCH', message: 'Fibery fetch failed.' };
 }
 
 // ---------------------------------------------------------------------------
@@ -1219,7 +1389,8 @@ function amMirrorPageSize_() {
 }
 
 /**
- * Upserts rows to Supabase in chunks of AM_MIRROR_UPSERT_CHUNK_SIZE_.
+ * Upserts rows to Supabase in chunks. Uses UrlFetchApp.fetchAll for parallel
+ * PostgREST writes when multiple chunks are present (Workstream C2).
  * @param {string} table
  * @param {!Array<!Object>} rows
  * @param {string} onConflict
@@ -1229,12 +1400,30 @@ function amMirrorUpsertChunks_(table, rows, onConflict) {
   if (!rows || !rows.length) {
     return { ok: true };
   }
+  var chunks = [];
   for (var i = 0; i < rows.length; i += AM_MIRROR_UPSERT_CHUNK_SIZE_) {
-    var chunk = rows.slice(i, i + AM_MIRROR_UPSERT_CHUNK_SIZE_);
-    var res = supabaseUpsert_(table, chunk, onConflict);
-    if (!res.ok) {
-      supabaseWarn_('amMirror upsert failed for ' + table, { message: res.message });
-      return { ok: false, message: 'Upsert to ' + table + ' failed: ' + (res.message || 'unknown error') };
+    chunks.push(rows.slice(i, i + AM_MIRROR_UPSERT_CHUNK_SIZE_));
+  }
+  if (chunks.length === 1 || typeof UrlFetchApp.fetchAll !== 'function') {
+    for (var c = 0; c < chunks.length; c++) {
+      var res = supabaseUpsert_(table, chunks[c], onConflict);
+      if (!res.ok) {
+        supabaseWarn_('amMirror upsert failed for ' + table, { message: res.message });
+        return { ok: false, message: 'Upsert to ' + table + ' failed: ' + (res.message || 'unknown error') };
+      }
+    }
+    return { ok: true };
+  }
+  var parallel = AM_MIRROR_UPSERT_PARALLEL_ > 0 ? AM_MIRROR_UPSERT_PARALLEL_ : 5;
+  for (var start = 0; start < chunks.length; start += parallel) {
+    var batch = chunks.slice(start, start + parallel);
+    var batchRes = supabaseUpsertFetchAll_(table, batch, onConflict);
+    if (!batchRes.ok) {
+      supabaseWarn_('amMirror upsert fetchAll failed for ' + table, { message: batchRes.message });
+      return {
+        ok: false,
+        message: 'Upsert to ' + table + ' failed: ' + (batchRes.message || 'unknown error'),
+      };
     }
   }
   return { ok: true };
@@ -1266,22 +1455,44 @@ function amMirrorSelectForStep_(step) {
 }
 
 /**
- * Fetches one page of a Fibery database, ordered by creation date ascending
- * for stable pagination.
+ * Fetches one page of a Fibery database. When `opt.sinceIso` is set, filters
+ * by fibery/modification-date and orders by modification-date for stable
+ * incremental pagination (Workstream C1). Otherwise orders by creation-date.
  *
  * @param {string} from `q/from` database name.
  * @param {!Object} select `q/select` map.
  * @param {number} limit
  * @param {number} offset
+ * @param {?{ sinceIso?: ?string, orderByModification?: boolean }=} opt
  * @return {!{ ok: true, rows: !Array }|!{ ok: false, reason: string, message: string }}
  */
-function amMirrorFetchPage_(from, select, limit, offset) {
-  return fiberyQuery_({
+function amMirrorFetchPage_(from, select, limit, offset, opt) {
+  opt = opt || {};
+  var sinceIso = opt.sinceIso ? String(opt.sinceIso).trim() : '';
+  var orderField =
+    opt.orderByModification || sinceIso ? 'fibery/modification-date' : 'fibery/creation-date';
+  // Clarify precedence: prefer modification-date whenever incremental filter is active.
+  if (sinceIso || opt.orderByModification) {
+    orderField = 'fibery/modification-date';
+  } else {
+    orderField = 'fibery/creation-date';
+  }
+  var query = {
     'q/from': from,
     'q/select': select,
     'q/limit': limit,
     'q/offset': offset,
-    'q/order-by': [[['fibery/creation-date'], 'q/asc']],
+    'q/order-by': [[[orderField], 'q/asc']],
+  };
+  if (sinceIso) {
+    query['q/where'] = ['>', ['fibery/modification-date'], '$since'];
+    return fiberyQuery_({
+      query: query,
+      params: { $since: sinceIso },
+    });
+  }
+  return fiberyQuery_({
+    query: query,
   });
 }
 

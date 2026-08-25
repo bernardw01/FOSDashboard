@@ -5,8 +5,8 @@
 > **Feature notebook:** [Feature 047 - Dashboard performance and responsiveness](https://win.godeap.io/app/projects/1615262/notebooks/313457)  
 > **Release task:** [Feature 047 - Dashboard performance and responsiveness](https://win.godeap.io/app/tasks/40839335)
 >
-> **PRD version:** 3.14.1. Each workstream ships its own version bump.
-> **Status:** Approved 2026-08-24. **Workstream B closed out in 3.14.1; see B6.** **B6 follow-on personVariances codec shipped in 3.15.0** (`PERF_SLIM_RA_PERSON_VARIANCES` off pending `_diag_verifyCodec_RaPersonVariances()`). A shipped in 3.9.2 and is live. B1 rows codec shipped in 3.10.0 / 3.10.1 and is live unconditionally. B2 shipped in 3.11.0, verified, and is **live**. B3's codec shipped in 3.12.0, verified, and is **live**; B3's Agreements first paint is shipped but **still off and unverified**. B4 shipped in 3.13.0, verified, and is **live**, though its hydrate warm and GC step has never executed. B5 shipped in 3.14.0, **verified** on the second `_diag_verifyWorkstreamB5()` run (both panels, 0 diffs, `armsProven`); the flag may still be off pending operator enable. The B1 aggregates RPC was **never built**, and its flag `PERF_USE_UTIL_RPC` is inert. C and D are not started, and their flags are inert too.
+> **PRD version:** 3.16.0. Each workstream ships its own version bump.
+> **Status:** Approved 2026-08-24. **Workstream C shipped in 3.16.0** (`PERF_INCREMENTAL_AM_MIRROR` off pending measured no-change hydrate under 10 minutes). Workstream B closed out in 3.14.1; B6 personVariances codec in 3.15.0. A shipped in 3.9.2. D is not started (`PERF_LAZY_PANEL_MARKUP` inert).
 
 ## How to read this plan
 

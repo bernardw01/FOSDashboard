@@ -1,5 +1,5 @@
 /**
- * PRD version 3.15.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.16.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Supabase (PostgREST) client for Feature 036.
  * Secrets stay in Script Properties; never returned to the client.
@@ -231,6 +231,69 @@ function supabaseUpsert_(table, rows, onConflict) {
     query = { on_conflict: onConflict };
   }
   return supabaseRest_('post', '/rest/v1/' + encodeURIComponent(table), query, rows, headers);
+}
+
+/**
+ * Parallel PostgREST upserts via UrlFetchApp.fetchAll (Feature 047 C2).
+ * @param {string} table
+ * @param {!Array<!Array<!Object>>} chunks
+ * @param {string=} onConflict
+ * @return {!{ ok: true }|!{ ok: false, message: string }}
+ */
+function supabaseUpsertFetchAll_(table, chunks, onConflict) {
+  if (!chunks || !chunks.length) {
+    return { ok: true };
+  }
+  var cfg = supabaseConfig_();
+  if (!cfg.ok) {
+    return { ok: false, message: cfg.message || 'Supabase is not configured.' };
+  }
+  var path = '/rest/v1/' + encodeURIComponent(table);
+  var url = cfg.url + path;
+  if (onConflict) {
+    url +=
+      (url.indexOf('?') >= 0 ? '&' : '?') +
+      'on_conflict=' +
+      encodeURIComponent(String(onConflict));
+  }
+  var requests = [];
+  for (var i = 0; i < chunks.length; i++) {
+    requests.push({
+      url: url,
+      method: 'post',
+      contentType: 'application/json',
+      headers: {
+        apikey: cfg.key,
+        Authorization: 'Bearer ' + cfg.key,
+        Accept: 'application/json',
+        Prefer: 'resolution=merge-duplicates,return=minimal',
+      },
+      payload: JSON.stringify(chunks[i]),
+      muteHttpExceptions: true,
+      followRedirects: true,
+      timeoutSeconds: Math.round(SUPABASE_HTTP_TIMEOUT_MS_ / 1000),
+    });
+  }
+  var responses;
+  try {
+    responses = UrlFetchApp.fetchAll(requests);
+  } catch (e) {
+    return {
+      ok: false,
+      message: 'fetchAll threw: ' + (e && e.message ? e.message : String(e)),
+    };
+  }
+  for (var r = 0; r < responses.length; r++) {
+    var code = responses[r].getResponseCode();
+    if (code < 200 || code >= 300) {
+      var text = responses[r].getContentText() || '';
+      return {
+        ok: false,
+        message: 'HTTP ' + code + ' on chunk ' + r + ': ' + String(text).slice(0, 200),
+      };
+    }
+  }
+  return { ok: true };
 }
 
 /**

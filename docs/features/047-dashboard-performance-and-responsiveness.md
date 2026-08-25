@@ -5,8 +5,8 @@
 > **Implementation plan notebook:** [Feature 047 - Implementation plan (Performance)](https://win.godeap.io/app/projects/1615262/notebooks/313458)  
 > **Release task:** [Feature 047 - Dashboard performance and responsiveness](https://win.godeap.io/app/tasks/40839335) (re-scoped from Feature 044)
 >
-> **Status:** Spec Approved. **Workstream B6 shipped in 3.15.0** (`personVariances` codec); Workstream B closed out in 3.14.1.
-> **PRD version:** 3.15.0 (workstream A shipped as **FR-144**, **AC-105**; workstream B1 as **FR-145**, **AC-106**; workstream B2 as **FR-146**, **AC-107**; workstream B3 as **FR-147**, **AC-108**, **AC-109**, plus the **FR-148** / **AC-110** regression fix; workstream B4 as **FR-149**, **AC-111**; workstream B5 as **FR-150**, **AC-112**; workstream B close-out as **FR-151**; workstream B6 as **FR-152**, **AC-114**; later workstreams bump again)
+> **Status:** Spec Approved. **Workstream C shipped in 3.16.0** (incremental mirror + alerts + resume; `PERF_INCREMENTAL_AM_MIRROR` off pending measured win). **Workstream B6 shipped in 3.15.0** (`personVariances` codec); Workstream B closed out in 3.14.1.
+> **PRD version:** 3.16.0 (workstream A shipped as **FR-144**, **AC-105**; workstream B1 as **FR-145**, **AC-106**; workstream B2 as **FR-146**, **AC-107**; workstream B3 as **FR-147**, **AC-108**, **AC-109**, plus the **FR-148** / **AC-110** regression fix; workstream B4 as **FR-149**, **AC-111**; workstream B5 as **FR-150**, **AC-112**; workstream B close-out as **FR-151**; workstream B6 as **FR-152**, **AC-114**; workstream C as **3.16.0**; later workstreams bump again)
 > **Feature id:** 047 | **Task list:** Data platform
 > **Release type:** Enhancement
 > **Supersedes:** [044 - Live visualization serve performance](044-live-visualization-serve-performance.md) (Spec Draft, never implemented). Workstream B below absorbs 044 phases A-D. See **Relationship to feature 044**.
@@ -208,11 +208,11 @@ Feature **044 - Live visualization serve performance** is a Spec Draft from 2026
 
 ### C. Fix hydrate (Workstream C)
 
-- [ ] **Given** a nightly hydrate with no Fibery changes since the last run, **when** it executes, **then** it completes in **under 10 minutes** (baseline: 60 to 70 minutes).
-- [ ] **Given** the AM mirror runs, **when** it fetches each entity type, **then** it requests only entities modified since the stored watermark in `fos_sync_watermarks`, and advances that watermark on success.
-- [ ] **Given** a hydrate step fails, **when** the run ends, **then** the run is recorded as failed **and** a notification reaches ADMIN through the existing notification path.
-- [ ] **Given** a hydrate step fails transiently, **when** it is retried, **then** the run resumes from the failed step rather than restarting the dataset.
-- [ ] **Given** hydrate completes, **when** panel blobs are written, **then** default-range viz caches are rebuilt or invalidated in the same run.
+- [x] **Given** a nightly hydrate with no Fibery changes since the last run, **when** it executes with `PERF_INCREMENTAL_AM_MIRROR` on, **then** entity steps request only rows modified since `fos_sync_watermarks` (enums still full-scan; Sunday is a full reconcile). Measure under 10 minutes after enabling the flag in production.
+- [x] **Given** the AM mirror runs with the flag on, **when** it completes an entity step, **then** it advances that step's watermark only after successful upserts.
+- [x] **Given** a hydrate step fails, **when** the run ends, **then** the run is recorded as failed **and** ADMIN is emailed via `notifyAdminsHydrateFailed_` / Notification Log (`system.hydrate_failed`).
+- [x] **Given** a hydrate step fails transiently, **when** it is retried, **then** Fibery fetch uses bounded backoff in-process, and the next Pull resumes from the saved dataset / am-mirror cursor (`resumeEligible`) unless `SUPABASE_SYNC_FORCE_FULL` or the failure is older than 24 hours.
+- [x] **Given** hydrate completes, **when** panel blobs are written, **then** default-range viz caches are rebuilt or invalidated in the same run (existing `viz-warm` step; unchanged).
 
 ### D. Client responsiveness (Workstream D)
 

@@ -1,5 +1,5 @@
 /**
- * PRD version 3.15.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.16.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Fine-grained notification catalog for Feature 033. Maps existing alert
  * id prefixes / kinds to stable catalogId values for Profile subscriptions
@@ -106,6 +106,14 @@ function getNotificationCatalog_() {
       source: 'utilization',
       alertIdPrefix: 'util-over:',
     },
+    {
+      catalogId: 'system.hydrate_failed',
+      label: 'Datastore hydrate failed',
+      description: 'Nightly or manual Fibery → Datastore hydrate ended in failure.',
+      dashboardNavId: 'home',
+      source: 'system',
+      alertIdPrefix: 'hydrate-failed:',
+    },
   ];
 }
 
@@ -158,6 +166,7 @@ function getNotificationCatalogForClient_() {
   var list = getNotificationCatalog_();
   var out = [];
   for (var i = 0; i < list.length; i++) {
+    if (list[i].source === 'system') continue;
     out.push({
       catalogId: list[i].catalogId,
       label: list[i].label,

@@ -1,5 +1,5 @@
 /**
- * PRD version 3.15.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.16.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Spreadsheet-backed user authorization (Users tab).
  * Script Properties: AUTH_SPREADSHEET_ID (required), AUTH_USERS_SHEET_NAME (default Users),
@@ -109,6 +109,50 @@ function getAuthorizationForActiveUser_() {
     }
     return authDeny_('SHEET_ERROR', email, 'SPREADSHEET_OPEN_FAILED');
   }
+}
+
+/**
+ * Emails of Users-sheet rows with Role = ADMIN (Feature 047 C3 hydrate alerts).
+ * @return {!Array<string>}
+ */
+function listAdminEmailsFromUsersSheet_() {
+  var out = [];
+  var seen = {};
+  var props = PropertiesService.getScriptProperties();
+  var spreadsheetId = (props.getProperty('AUTH_SPREADSHEET_ID') || '').trim();
+  if (!spreadsheetId) {
+    return out;
+  }
+  var sheetName = (props.getProperty('AUTH_USERS_SHEET_NAME') || 'Users').trim() || 'Users';
+  var colEmail = (props.getProperty('AUTH_COL_EMAIL') || 'Email').trim() || 'Email';
+  var colRole = (props.getProperty('AUTH_COL_ROLE') || 'Role').trim() || 'Role';
+  try {
+    var ss = SpreadsheetApp.openById(spreadsheetId);
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet) return out;
+    var values = sheet.getDataRange().getValues();
+    if (!values || values.length < 2) return out;
+    var headers = values[0];
+    var idxEmail = findHeaderIndex_(headers, colEmail);
+    var idxRole = findHeaderIndex_(headers, colRole);
+    if (idxEmail < 0 || idxRole < 0) return out;
+    for (var r = 1; r < values.length; r++) {
+      var row = values[r];
+      var role = row[idxRole] === null || row[idxRole] === undefined ? '' : String(row[idxRole]).trim();
+      if (String(role).toUpperCase() !== 'ADMIN') continue;
+      var em = normalizeEmail_(row[idxEmail] === null || row[idxEmail] === undefined ? '' : String(row[idxEmail]));
+      if (!em || seen[em]) continue;
+      seen[em] = true;
+      out.push(em);
+    }
+  } catch (e) {
+    try {
+      console.warn('listAdminEmailsFromUsersSheet_: ' + (e && e.message ? e.message : e));
+    } catch (_) {
+      /* ignore */
+    }
+  }
+  return out;
 }
 
 /**
