@@ -1,5 +1,5 @@
 /**
- * PRD version 3.13.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.14.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -1085,7 +1085,7 @@ function getAdminSettingsCatalog_() {
       'PERF_SLIM_VIZ_AGGREGATES',
       'performance',
       'Slim Utilization visualization payload',
-      'Feature 047 workstream B3. When on, the Utilization heatmap slice (aggregates.byPersonWeek) travels as positional tuples plus string tables instead of 617 fully-keyed objects, measured 272,469 to 48,654 JSON chars (82.1 percent). The transform is lossless and reversed in the browser before the heatmap sees an entry. Turn on only after _diag_verifyUtilVizCodec() reports pass with 0 diffs.',
+      'Feature 047 workstream B3. When on, the Utilization heatmap slice (aggregates.byPersonWeek) travels as positional tuples plus string tables instead of 617 fully-keyed objects, measured 272,469 to 48,654 JSON chars (82.1 percent). The transform is lossless and reversed in the browser before the heatmap sees an entry. Turn on only after _diag_verifyCodec_HeatmapWeeks() reports pass with 0 diffs.',
       'boolean',
       false
     ),
@@ -1094,6 +1094,14 @@ function getAdminSettingsCatalog_() {
       'performance',
       'Range-keyed visualization cache',
       'Feature 047 workstream B4. When on, Utilization caches the normalized labor rows for the UTC-day-aligned window containing the request in fos_viz_range_payloads (migration 051), and later requests for that window are one read instead of eleven (seven labor pages plus four dimension tables). The rows are always filtered back to the exact requested instants before any KPI is computed, so no number changes. Entries are invalidated automatically when the labor or dimension tables advance, and the nightly hydrate warms the 30, 60, and 90 day presets. Turn on only after _diag_verifyWorkstreamB4() reports pass with armsProven true.',
+      'boolean',
+      false
+    ),
+    adminSettingEntry_(
+      'PERF_RELOAD_REREADS_BLOB',
+      'performance',
+      'Reload re-reads the stored panel blob',
+      'Feature 047 workstream B5. When on, Reload on Agreements, Revenue review, Delivery, and Services summary re-reads the stored panel blob instead of rebuilding it from the typed tables inside your request, which measured about 4.6 seconds over seven round trips. No numbers change: the tables that rebuild reads (fos_agreements, fos_companies, fos_company_segments, fos_revenue_items, fos_clockify_users) are written only by the nightly mirror, so between hydrates a rebuild re-derives the same figures from the same rows. Reload still rebuilds when the blob is missing, its schema version lags, an agreement threshold has been retuned since it was written, or it was built on an earlier UTC day. Turn on only after _diag_verifyWorkstreamB5() reports pass with armsProven true.',
       'boolean',
       false
     ),

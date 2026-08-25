@@ -5,8 +5,8 @@
 > **Feature notebook:** [Feature 047 - Dashboard performance and responsiveness](https://win.godeap.io/app/projects/1615262/notebooks/313457)  
 > **Release task:** [Feature 047 - Dashboard performance and responsiveness](https://win.godeap.io/app/tasks/40839335)
 >
-> **PRD version:** 3.13.0. Each workstream ships its own version bump.
-> **Status:** Approved 2026-08-24. **Workstream A shipped in 3.9.2. B1 shipped in 3.10.0 / 3.10.1. B2 shipped in 3.11.0 with its kill switch off pending a parity run. B3 shipped in 3.12.0 with both kill switches off pending `_diag_verifyUtilVizCodec()`. B4 shipped in 3.13.0 with its kill switch off pending `_diag_verifyWorkstreamB4()`.** B1 RPC, B5, C, D pending.
+> **PRD version:** 3.14.0. Each workstream ships its own version bump.
+> **Status:** Approved 2026-08-24. **Workstream A shipped in 3.9.2. B1 shipped in 3.10.0 / 3.10.1. B2 shipped in 3.11.0 with its kill switch off pending a parity run. B3 shipped in 3.12.0 with both kill switches off pending `_diag_verifyCodec_HeatmapWeeks()`. B4 shipped in 3.13.0 with its kill switch off pending `_diag_verifyWorkstreamB4()`. B5 shipped in 3.14.0 with its kill switch off pending `_diag_verifyWorkstreamB5()`.** B1 RPC, C, D pending.
 
 ## How to read this plan
 
@@ -299,7 +299,7 @@ The lossy variant was measured and rejected. The extra 8.6 points costs the abil
 
 Kill switch **`PERF_SLIM_VIZ_AGGREGATES`**, ships **false**. Only the **encoder** is gated; the decoder always runs, so a client can always read an encoded blob it finds. Encoding happens after `buildUtilizationAlerts_` on all three builders, because the alert rules read the object form.
 
-Verification: **`_diag_verifyUtilVizCodec()`**. It builds `byPersonWeek` from live rows, encodes, decodes, and compares every field of every entry against the pre-encoding reference, with `roles` and `customers` compared element by element. A good result is `pass: true`, `diffCount: 0`, roughly 600 entries, `reductionPct` near 82.
+Verification: **`_diag_verifyCodec_HeatmapWeeks()`**. It builds `byPersonWeek` from live rows, encodes, decodes, and compares every field of every entry against the pre-encoding reference, with `roles` and `customers` compared element by element. A good result is `pass: true`, `diffCount: 0`, roughly 600 entries, `reductionPct` near 82.
 
 #### What shipped: the Agreements slim chart endpoint
 
@@ -432,9 +432,74 @@ The fix is the primary key as a tiebreaker: `order: 'start_date_time.asc,clockif
 
 Stated plainly for a reviewer: this makes production row order **deterministic where it was previously arbitrary**. It can shift a row's position within a single timestamp, and with it a Top-N entry whose summed hours tie exactly. It cannot change any total. The alternative was leaving a latent nondeterminism in place and being unable to prove the cache correct, which is worse.
 
-### B5. Refresh semantics
+### B5. Reload semantics (shipped 3.14.0)
 
-Change `serveLiveAgreementFamilyOrRebuild_` so `forceRefresh` re-reads the stored blob and only rebuilds on schema mismatch or a missing row. Refresh must not rebuild the warehouse inside a user's request.
+The original text was three sentences: change `serveLiveAgreementFamilyOrRebuild_` so `forceRefresh` re-reads the stored blob and only rebuilds on schema mismatch or a missing row, because Refresh must not rebuild the warehouse inside a user's request.
+
+**This is the first workstream where the plan's proposal survived measurement.** It is directionally right and it shipped essentially as written. What measurement changed was the *product framing* and three cases the three sentences did not cover.
+
+#### The premise, measured rather than assumed
+
+`forceRefresh` calls `rebuildAgreementDeliveryPanelsFromTyped_`, which is the same function `hydrateSupabaseAgreement_` calls. It reads five typed tables and upserts two panel blobs.
+
+| Table the rebuild reads | Rows | Only writer |
+| --- | --- | --- |
+| `fos_agreements` | 45 | `supabaseAmMirror.js` |
+| `fos_companies` | 10 | `supabaseAmMirror.js` |
+| `fos_company_segments` | 3 | `supabaseAmMirror.js` |
+| `fos_revenue_items` | 797 | `supabaseAmMirror.js` |
+| `fos_clockify_users` | 105 | `supabaseAmMirror.js` |
+
+The mirror runs only inside the nightly hydrate, and it full-replaces: all 45 agreement rows share a `synced_at` within **6 ms**. A grep for every `supabaseUpsert_` call site in `src/` confirms no other writer exists. The hydrate then writes the panel blob **after** the mirror in the same run, at **09:51:40** against the mirror's 09:17 to 09:47.
+
+So between hydrates the rebuild re-derives identical numbers from identical rows. Its cost, timed from the hydrate's own stamps rather than estimated:
+
+| Step | Measured |
+| --- | --- |
+| Agreement payload build (`fetchedAt` 09:51:37.958 to `synced_at` 09:51:40.843) | **2,885 ms** |
+| Agreement upsert plus delivery derive (to delivery `synced_at` 09:51:42.573) | **1,730 ms** |
+| Delivery upsert (24,112 chars) | not separately stamped |
+| Total | **about 4.6 s** over **7** PostgREST round trips |
+
+#### The product framing was backwards
+
+The concern going in was that a user pressing Refresh would see stale data and conclude the button was broken. Reading the client says otherwise. `applyLiveDataModeChrome_` already labels every one of these buttons **Reload**, with the tooltip *"Reload from Datastore. Does not pull Fibery; newer data arrives after ADMIN Pull from Fibery or the nightly sync."* And `formatPayloadLastRefresh_` already renders **"Reloaded: ... · Data as of ... · Datastore"** for Datastore payloads.
+
+The stored blob's as-of time is therefore already surfaced, and the promise the button makes is already exactly Datastore semantics. The rebuild was over-delivering against its own tooltip and charging 4.6 seconds for it.
+
+It was also **less** honest, not more: the rebuild path tags `dataAsOf` with `fresh.dataAsOf || fresh.fetchedAt`, which is the rebuild instant, so "Data as of" jumped to now even though the upstream mirror was hours old. The blob re-read reports the hydrate time the data actually came from. **No UI change was required or made**, which is also why the mobile rule has nothing new to accommodate.
+
+#### Three cases the three sentences missed
+
+1. **ADMIN thresholds.** `getAgreementThresholds_()` reads Script Properties, not the mirror, and feeds `computeKpis_`, `evaluateAlerts_`, `buildChartViewModels_`, `buildFinancialTable_`, and the customer order and palette. An ADMIN who retunes a knob and presses Reload gets the new numbers today. Fixed by hashing the whole resolved object into a new additive `thresholdFingerprint` field, stamped in `rebuildAgreementDeliveryPanelsFromTyped_` (the only writer of both blobs), and rebuilding on a mismatch. Over-keyed on purpose, exactly as the B4 range-cache hash is: a fingerprint that omitted a knob which later began feeding a stored field would serve wrong numbers with no symptom. An **absent** fingerprint counts as a match, so blobs written before this release stay servable for one hydrate cycle instead of making the flag useless until the next hydrate.
+2. **The UTC day boundary.** The build splits revenue items on `target_date > todayIso`, and `formatDateOnlyIso_` is UTC. A blob built on an earlier UTC day classifies for that day, so Reload rebuilds when the blob's build day is not today. In practice this costs one rebuild on the first Reload after UTC midnight, because the hydrate writes today's blob before business hours.
+3. **The Delivery P&L force path is deliberately untouched.** `serveLiveDeliveryPnLOrRebuildFull_` has the same `forceRefresh` shape, and the plan's wording invites changing it too. It reads **`fos_status_updates`**, which users write during the day through `upsertSupabaseStatusUpdate_`. Its max `synced_at` on 2026-08-25 was **09:34**, inside business hours and independent of the hydrate. Re-reading its stored row would hide a status update the user had just posted, which is the exact "button looks broken" failure the framing above was worried about. Only the Agreement family changed.
+
+#### No second way to obtain a payload
+
+Worth stating explicitly, because this is the trap that produced FR-148 and its v3.10.0 server-side twin. B5 introduces **no** new payload source. The blob-read branch of `serveLiveAgreementFamilyOrRebuild_` already existed and is already the default cold-load path; B5 only routes the forced call into it. Both branches end at the same `tagPayloadFromSupabase_`, so the client receives an identically shaped object either way.
+
+`loadSource` deliberately stays `supabase`. B4 used `loadSource` as its which-path signal and added it to the parity ignore list, but that cannot be copied here: on this panel the client reads `loadSource` through `isDatastorePayload_` and `loadSourceFromPayload_` to choose the Reload chrome and the "Data as of" label, so a new value would change the panel header. The path is reported in additive `reloadPath` and `reloadRebuildReason` fields instead, which nothing renders.
+
+#### No schema bump
+
+No panel `cacheSchemaVersion` moves, so **no re-hydrate is required** (a bump would cost roughly 71 minutes to take effect and, worse here, would force every Reload to rebuild until it finished). `thresholdFingerprint` is additive and its absence is handled, which is what makes that safe.
+
+#### Verification
+
+**`_diag_verifyWorkstreamB5()`**, three arms per panel, run in a deliberate order because an agreement rebuild also rewrites the delivery blob:
+
+1. `stored`, flag on, forced. Reads the blob the **hydrate** wrote, before anything in the run touches it.
+2. `rebuild`, flag off, forced. Unchanged production behavior. Rewrites both blobs.
+3. `reread`, flag on, forced. Reads the blob arm 2 just wrote.
+
+`storedVsRebuild` tests the **premise** of the workstream: the stored blob already equals what a rebuild would produce. `rereadVsRebuild` tests the store-and-read round trip. Serve-time provenance keys (`dataAsOf`, `servedAt`, `supabaseSyncedAt`, `cacheDateKey`, `reloadPath`, `reloadRebuildReason`, `thresholdFingerprint`) are ignored per run rather than globally, so the other workstreams' runs still compare them.
+
+The arm tally is load-bearing for the same reason as B2's and B4's: every non-serve outcome falls back to a rebuild, so without checking `reloadPath` per arm a flag that never took effect would compare the rebuild against itself and pass. A good run is `pass: true`, `armsProven: true`, `diffCount: 0` on both comparisons for both panels, and `rebuild.httpCalls` well above `reread.httpCalls`. Results persist to `fos_perf_runs` under kind `reload-reread`.
+
+One caveat for whoever runs it first. `fos_sync_runs.summary` records that the 2026-08-25 08:57 hydrate ran **`scriptVersion: "3.10.0"`** while git was already several releases ahead, so today's stored blobs were built by older code than what will serve them. If `storedVsRebuild` shows diffs on the first run, check that field before concluding the premise is false; arm 2 has already rewritten both blobs with current code, so an immediate second run gives a same-code comparison.
+
+**`PERF_RELOAD_REREADS_BLOB` ships `false`.**
 
 ### B6. Verify
 

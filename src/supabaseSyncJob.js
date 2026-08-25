@@ -1,5 +1,5 @@
 /**
- * PRD version 3.13.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.14.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: Fibery -> Supabase hydrate (nightly + ADMIN Pull).
  * Dataset am-mirror (supabaseAmMirror.js) hydrates Agreement Management typed
@@ -364,6 +364,18 @@ function rebuildAgreementDeliveryPanelsFromTyped_() {
       message: (built && built.message) || 'Agreement Supabase build failed.',
     };
   }
+  // Feature 047 B5: stamped here rather than in the builder because this is the
+  // only writer of the `agreement` and `delivery` blobs, so one line covers both
+  // and the builders stay usable by anything that does not persist.
+  // `serveLiveAgreementFamilyOrRebuild_` compares it before serving a stored
+  // blob on Reload, so an ADMIN threshold retune still rebuilds.
+  var inputFingerprint =
+    typeof agreementPayloadInputFingerprint_ === 'function'
+      ? agreementPayloadInputFingerprint_()
+      : null;
+  if (inputFingerprint) {
+    built.thresholdFingerprint = inputFingerprint;
+  }
   var save = saveSupabasePanelPayload_(
     'agreement',
     built,
@@ -380,6 +392,9 @@ function rebuildAgreementDeliveryPanelsFromTyped_() {
   try {
     delivery = buildDeliveryDashboardPayloadFromAgreement_(built);
     if (delivery && delivery.ok !== false) {
+      if (inputFingerprint) {
+        delivery.thresholdFingerprint = inputFingerprint;
+      }
       saveSupabasePanelPayload_(
         'delivery',
         delivery,

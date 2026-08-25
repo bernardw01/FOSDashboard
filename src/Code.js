@@ -1,11 +1,11 @@
 /**
- * PRD version 3.13.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.14.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.13.0';
+var FOS_PRD_VERSION = '3.14.0';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.13.0';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.13.0 A repeated Utilization date window can now be served from a range-keyed cache in one read instead of eleven, with the rows always filtered back to the exact requested instants so no number changes.';
+  'v3.14.0 Reload on Agreements, Revenue review, Delivery, and Services summary now re-reads the stored Datastore payload instead of rebuilding it from the typed tables inside your request, which measured about 4.6 seconds, and it still rebuilds when a threshold changes or the stored copy is from an earlier day.';
 
 /**
  * @return {string}

@@ -1,5 +1,5 @@
 /**
- * PRD version 3.13.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.14.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036: read/write dashboard panel payloads and status rows in Supabase.
  */
@@ -377,9 +377,109 @@ function panelPayloadSchemaMatches_(payload, expectedSchema) {
 }
 
 /**
+ * Fingerprint of every ADMIN-tunable input the Agreement / Delivery payload
+ * depends on but the typed tables do not carry.
+ *
+ * Feature 047 B5. The Reload path serves the stored blob instead of rebuilding,
+ * which is only sound while nothing that shaped the blob can have changed since
+ * it was written. The typed tables cannot change between hydrates (the AM mirror
+ * is their only writer). Script Properties can change at any moment, and
+ * `getAgreementThresholds_()` feeds `computeKpis_`, `evaluateAlerts_`,
+ * `buildChartViewModels_`, `buildFinancialTable_`, and the customer order and
+ * palette. So the whole resolved object is hashed and stamped on the blob, and a
+ * Reload after an ADMIN retune rebuilds rather than serving numbers computed
+ * with the old knobs.
+ *
+ * Deliberately over-keyed, for the same reason as the B4 range-cache hash: a
+ * fingerprint that omitted a threshold which later began feeding a stored field
+ * would serve wrong numbers with no symptom, whereas hashing everything costs
+ * one rebuild per retune.
+ *
+ * @return {?string} null when the thresholds cannot be resolved.
+ */
+function agreementPayloadInputFingerprint_() {
+  if (
+    typeof getAgreementThresholds_ !== 'function' ||
+    typeof vizRangeCacheKeyHash_ !== 'function'
+  ) {
+    return null;
+  }
+  try {
+    return vizRangeCacheKeyHash_({ agreementThresholds: getAgreementThresholds_() });
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Why a stored Agreement / Delivery blob cannot answer this request, or null
+ * when it can.
+ *
+ * `strict` is set only on the Reload path (feature 047 B5). A cold load has
+ * always served whatever blob was there, and tightening that here would turn
+ * every early-morning first load into a rebuild, which is a behavior change
+ * this workstream is not making.
+ *
+ * @param {?Object} loadResult `loadSupabasePanelPayload_` result
+ * @param {number=} expectedSchema
+ * @param {boolean=} strict Apply the Reload-only freshness checks.
+ * @return {?string}
+ * @private
+ */
+function agreementBlobRebuildReason_(loadResult, expectedSchema, strict) {
+  if (!loadResult || !loadResult.ok || !loadResult.payload) {
+    return 'blob-missing';
+  }
+  var payload = loadResult.payload;
+  if (!panelPayloadSchemaMatches_(payload, expectedSchema)) {
+    return 'schema-mismatch';
+  }
+  if (strict !== true) {
+    return null;
+  }
+  // The build splits revenue items on `target_date > todayIso` (UTC) and
+  // evaluates alerts against its own clock, so a blob built on an earlier UTC
+  // day classifies for that day. The hydrate normally writes today's blob
+  // before business hours, so in practice this costs at most one rebuild on the
+  // first Reload after UTC midnight.
+  var builtAt = payload.fetchedAt || loadResult.syncedAt || loadResult.asOf || '';
+  var builtDay = String(builtAt).slice(0, 10);
+  var todayUtc = new Date().toISOString().slice(0, 10);
+  if (!builtDay || builtDay !== todayUtc) {
+    return 'built-on-earlier-utc-day';
+  }
+  // Absent on blobs written before this release. Treated as a match rather than
+  // as a rebuild trigger, so the flag still helps for the one hydrate cycle
+  // before every blob carries a fingerprint.
+  var stamped = payload.thresholdFingerprint;
+  if (stamped) {
+    var current = agreementPayloadInputFingerprint_();
+    if (current && String(stamped) !== String(current)) {
+      return 'thresholds-changed';
+    }
+  }
+  return null;
+}
+
+/**
  * Live Agreement / Delivery serve: read panel blob, or rebuild both from typed
- * AM tables when Refresh is forced, the blob is missing, or schema lags.
+ * AM tables when Reload is forced, the blob is missing, or schema lags.
  * Does not call Fibery.
+ *
+ * Feature 047 B5: with `PERF_RELOAD_REREADS_BLOB` on, a forced Reload re-reads
+ * the stored blob instead of rebuilding it. Measured from the 2026-08-25
+ * hydrate, the rebuild is about 4.6 seconds of work over seven PostgREST round
+ * trips, and it reads `fos_agreements`, `fos_companies`, `fos_company_segments`,
+ * `fos_revenue_items`, and `fos_clockify_users`, whose only writer is the AM
+ * mirror inside the nightly hydrate. So between hydrates it re-derives the same
+ * numbers from the same rows and charges the user for it.
+ *
+ * That also makes the freshness label honest rather than less honest: the
+ * rebuild stamps `dataAsOf` with the rebuild time, which claims the data is
+ * newer than the upstream mirror actually is, while the blob re-read reports the
+ * hydrate time the data really came from. The button already reads **Reload**
+ * and already promises "Does not pull Fibery", so this aligns the code with the
+ * promise the UI makes.
  *
  * @param {string} panelKey `agreement` or `delivery`
  * @param {number} expectedSchema
@@ -392,17 +492,27 @@ function serveLiveAgreementFamilyOrRebuild_(panelKey, expectedSchema, forceRefre
     return supabaseLiveMissPayload_(key, null, expectedSchema);
   }
 
-  var needRebuild = forceRefresh === true;
-  if (!needRebuild) {
+  var forced = forceRefresh === true;
+  var rereadOnReload =
+    forced && typeof perfFlag_ === 'function' && perfFlag_('PERF_RELOAD_REREADS_BLOB');
+  var reason = forced && !rereadOnReload ? 'reload-forced-rebuild' : null;
+
+  if (!reason) {
     var existing = loadSupabasePanelPayload_(key);
-    if (
-      existing.ok &&
-      existing.payload &&
-      panelPayloadSchemaMatches_(existing.payload, expectedSchema)
-    ) {
-      return tagPayloadFromSupabase_(existing.payload, existing.asOf || existing.syncedAt);
+    reason = agreementBlobRebuildReason_(existing, expectedSchema, rereadOnReload);
+    if (!reason) {
+      // `loadSource` stays `supabase` on purpose. The client reads it through
+      // `isDatastorePayload_` and `loadSourceFromPayload_` to pick the Reload
+      // chrome and the "Data as of" label, so a new value here would change the
+      // panel header. The path is reported in additive fields instead.
+      var served = tagPayloadFromSupabase_(
+        existing.payload,
+        existing.asOf || existing.syncedAt
+      );
+      served.reloadPath = forced ? 'blob-reread' : 'blob';
+      served.reloadRebuildReason = null;
+      return served;
     }
-    needRebuild = true;
   }
 
   if (typeof rebuildAgreementDeliveryPanelsFromTyped_ !== 'function') {
@@ -413,24 +523,29 @@ function serveLiveAgreementFamilyOrRebuild_(panelKey, expectedSchema, forceRefre
   if (rebuilt && rebuilt.ok) {
     var fresh = key === 'delivery' ? rebuilt.delivery : rebuilt.agreement;
     if (fresh && typeof fresh === 'object') {
-      return tagPayloadFromSupabase_(
+      var tagged = tagPayloadFromSupabase_(
         fresh,
         fresh.dataAsOf || fresh.fetchedAt || null
       );
+      tagged.reloadPath = 'rebuild';
+      tagged.reloadRebuildReason = reason;
+      return tagged;
     }
   }
 
   var stale = loadSupabasePanelPayload_(key);
   if (stale.ok && stale.payload) {
-    var tagged = tagPayloadFromSupabase_(stale.payload, stale.asOf || stale.syncedAt);
+    var staleTagged = tagPayloadFromSupabase_(stale.payload, stale.asOf || stale.syncedAt);
     var warn =
       'Typed rebuild failed; serving stale ' +
       key +
       ' panel' +
       (rebuilt && rebuilt.message ? ' (' + rebuilt.message + ')' : '') +
       '.';
-    tagged.warnings = (tagged.warnings || []).concat([warn]);
-    return tagged;
+    staleTagged.warnings = (staleTagged.warnings || []).concat([warn]);
+    staleTagged.reloadPath = 'rebuild-failed-stale-blob';
+    staleTagged.reloadRebuildReason = reason;
+    return staleTagged;
   }
 
   return supabaseLiveMissPayload_(

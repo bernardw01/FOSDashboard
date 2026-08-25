@@ -1,5 +1,5 @@
 /**
- * PRD version 3.13.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.14.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 047 performance kill switches.
  *
@@ -36,6 +36,9 @@ var PERF_FLAG_DEFAULTS_ = {
   // Workstream B4: cache normalized labor rows per UTC-day-aligned window in
   // fos_viz_range_payloads and re-slice to the exact requested instants.
   PERF_USE_RANGE_CACHE: false,
+  // Workstream B5: Reload re-reads the stored Agreement / Delivery blob instead
+  // of rebuilding it from typed tables inside the user's request.
+  PERF_RELOAD_REREADS_BLOB: false,
   // Workstream C: incremental AM mirror driven by fos_sync_watermarks.
   PERF_INCREMENTAL_AM_MIRROR: false,
   // Workstream D: lazy panel markup in DashboardShell.

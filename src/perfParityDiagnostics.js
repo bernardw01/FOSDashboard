@@ -1,5 +1,5 @@
 /**
- * PRD version 3.13.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.14.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 047 Step 0: parity and measurement harness.
  *
@@ -20,6 +20,22 @@
  *     The one to run for workstream B2. Parity across all fixtures for
  *     Resource assignments, plus proof that one arm really used the Postgres
  *     RPC and the other really used the row scan.
+ *
+ *   _diag_verifyWorkstreamB4()
+ *     The one to run for workstream B4 (range-keyed Utilization row cache).
+ *
+ *   _diag_verifyWorkstreamB5()
+ *     The one to run for workstream B5 (Reload re-reads the stored Agreement /
+ *     Delivery blob instead of rebuilding it in the request).
+ *
+ *   _diag_verifyCodec_UtilizationRows()
+ *     Workstream B1 row codec: every field of every decoded labor row against
+ *     the same row before encoding.
+ *
+ *   _diag_verifyCodec_HeatmapWeeks()
+ *     Workstream B3 heatmap codec: every field of every aggregates.byPersonWeek
+ *     entry. Renamed from _diag_verifyUtilVizCodec, which sat one line away from
+ *     the row codec in the editor's function dropdown and was picked by mistake.
  *
  *   _diag_measurePanelLoad('utilization', '2026-05-26', '2026-08-24')
  *     One panel: elapsed ms, PostgREST calls, bytes received, payload size.
@@ -398,7 +414,7 @@ function _diag_capturePerfBaseline(panelKeys) {
  *
  * @return {!Object}
  */
-function _diag_verifyUtilRowCodec() {
+function _diag_verifyCodec_UtilizationRows() {
   var thresholds = getUtilizationThresholds_();
   var now = new Date();
   var range = resolveRange_(null, null, now, thresholds);
@@ -483,7 +499,7 @@ function _diag_verifyUtilRowCodec() {
  * Proves the utilization visualization codec (feature 047 workstream B3) is
  * lossless on live data.
  *
- * Same reasoning as `_diag_verifyUtilRowCodec`: the parity harness compares two
+ * Same reasoning as `_diag_verifyCodec_UtilizationRows`: the parity harness compares two
  * arms that both encode, so a dropped field cancels out and reports a pass.
  * This builds `byPersonWeek` once, encodes it, decodes it, and compares every
  * field of every entry against the pre-encoding reference, including the
@@ -495,7 +511,7 @@ function _diag_verifyUtilRowCodec() {
  *
  * @return {!Object}
  */
-function _diag_verifyUtilVizCodec() {
+function _diag_verifyCodec_HeatmapWeeks() {
   var thresholds = getUtilizationThresholds_();
   var now = new Date();
   var range = resolveRange_(null, null, now, thresholds);
@@ -834,6 +850,228 @@ function perfB4Compare_(expected, actual, fixture) {
   };
 }
 
+/**
+ * Serve-time provenance fields that legitimately differ between a stored blob
+ * and a rebuild made minutes later. Everything here is a timestamp, a timestamp
+ * derivative, or the B5 path marker; nothing here can carry a number.
+ * @const {!Array<string>}
+ */
+var PERF_B5_IGNORE_KEYS_ = [
+  'dataAsOf',
+  'servedAt',
+  'supabaseSyncedAt',
+  'cacheDateKey',
+  'reloadPath',
+  'reloadRebuildReason',
+  'thresholdFingerprint',
+];
+
+/**
+ * Panels served by `serveLiveAgreementFamilyOrRebuild_`, in the order B5 exercises
+ * them. Services summary is deliberately excluded: it wraps the same agreement
+ * serve, so it would re-test the same code path and spend another rebuild.
+ * @const {!Array<string>}
+ */
+var PERF_B5_PANELS_ = ['agreement', 'delivery'];
+
+/**
+ * Runs one Agreement-family Reload with `PERF_RELOAD_REREADS_BLOB` forced.
+ *
+ * Always passes `forceRefresh = true`, because B5 changes the forced path only.
+ * `perfInvokePanel_` deliberately passes `false`, so it cannot be reused here.
+ *
+ * @param {string} panelKey `agreement` or `delivery`
+ * @param {boolean} reread
+ * @return {!Object}
+ * @private
+ */
+function perfB5Arm_(panelKey, reread) {
+  supabasePerfCounterStart_();
+  var startedAt = Date.now();
+  var payload = null;
+  var error = null;
+  perfFlagOverridePush_({ PERF_RELOAD_REREADS_BLOB: reread });
+  try {
+    payload =
+      panelKey === 'delivery'
+        ? getDeliveryDashboardData(true)
+        : getAgreementDashboardData(true);
+  } catch (e) {
+    error = String((e && e.message) || e);
+  } finally {
+    perfFlagOverridePop_();
+  }
+  var elapsedMs = Date.now() - startedAt;
+  var counter = supabasePerfCounterStop_();
+  return {
+    panel: panelKey,
+    flagOn: reread,
+    error: error,
+    elapsedMs: elapsedMs,
+    httpCalls: counter.calls,
+    httpMs: counter.ms,
+    bytesReceived: counter.bytes,
+    payloadBytes: payload ? JSON.stringify(payload).length : 0,
+    reloadPath: (payload && payload.reloadPath) || null,
+    reloadRebuildReason: (payload && payload.reloadRebuildReason) || null,
+    loadSource: (payload && payload.loadSource) || null,
+    ok: !!(payload && payload.ok !== false),
+    payload: payload,
+  };
+}
+
+/**
+ * Compares two Agreement-family payloads, ignoring serve-time provenance.
+ *
+ * @param {*} expected
+ * @param {*} actual
+ * @return {!{diffCount: number, diffs: !Array<!Object>, toleratedCount: number}}
+ * @private
+ */
+function perfB5Compare_(expected, actual) {
+  var diffs = [];
+  var opts = {
+    // Both arms build their own window from the clock, so bounded ISO drift is
+    // expected for the same reason the default-window fixture tolerates it.
+    clockToleranceMs: PERF_PARITY_CLOCK_TOLERANCE_MS_,
+    tolerated: [],
+    extraIgnoreKeys: PERF_B5_IGNORE_KEYS_,
+  };
+  perfParityWalk_(expected, actual, '$', diffs, opts);
+  return {
+    diffCount: diffs.length,
+    diffs: diffs.slice(0, 25),
+    toleratedCount: opts.tolerated.length,
+  };
+}
+
+/**
+ * One-call verification for workstream B5 (Reload re-reads the stored blob).
+ *
+ * Three arms per panel, run in a deliberate order:
+ *
+ *   1. `stored`  flag on, forced. Reads the blob the **hydrate** wrote, before
+ *                anything in this run has touched it.
+ *   2. `rebuild` flag off, forced. Unchanged production behavior. Also rewrites
+ *                both blobs, which is why arm 1 has to run first for every panel.
+ *   3. `reread`  flag on, forced. Reads the blob arm 2 just wrote.
+ *
+ * Two comparisons, testing two different things:
+ *
+ *   `storedVsRebuild` is the **premise** of the whole workstream: the stored blob
+ *   already equals what a rebuild would produce, because the five typed tables
+ *   the rebuild reads have no writer other than the nightly AM mirror. A diff
+ *   here means the premise is false and the flag must stay off.
+ *
+ *   `rereadVsRebuild` is the store-and-read round trip. A diff here means the
+ *   blob does not survive its own jsonb round trip.
+ *
+ * The tally is load-bearing for the same reason it is in B2 and B4: every
+ * non-serve outcome falls back to a rebuild, so without checking `reloadPath`
+ * per arm a flag that never took effect would compare the rebuild against itself
+ * and report a clean pass.
+ *
+ * A good result: `pass: true`, `armsProven: true`, both `diffCount` values 0 on
+ * both panels, and `rebuild.httpCalls` well above `reread.httpCalls`.
+ *
+ * **If `storedVsRebuild` shows diffs on the first run**, check the blob's
+ * provenance before concluding the premise is wrong: `fos_sync_runs.summary ->>
+ * 'scriptVersion'` records which code built it, and on 2026-08-25 that was
+ * 3.10.0 while git was several releases ahead. Arm 2 has already rewritten both
+ * blobs with current code by the time you read the result, so re-running this
+ * diagnostic immediately gives a same-code comparison.
+ *
+ * @return {!Object}
+ */
+function _diag_verifyWorkstreamB5() {
+  var stored = {};
+  var rebuild = {};
+  var reread = {};
+  var i;
+  var panel;
+
+  // Arm 1 for every panel first: an agreement rebuild rewrites the delivery blob
+  // too, so a per-panel loop would destroy delivery's premise comparison.
+  for (i = 0; i < PERF_B5_PANELS_.length; i++) {
+    panel = PERF_B5_PANELS_[i];
+    stored[panel] = perfB5Arm_(panel, true);
+  }
+  for (i = 0; i < PERF_B5_PANELS_.length; i++) {
+    panel = PERF_B5_PANELS_[i];
+    rebuild[panel] = perfB5Arm_(panel, false);
+  }
+  for (i = 0; i < PERF_B5_PANELS_.length; i++) {
+    panel = PERF_B5_PANELS_[i];
+    reread[panel] = perfB5Arm_(panel, true);
+  }
+
+  var runs = [];
+  var allPass = true;
+  var armsProven = true;
+  for (i = 0; i < PERF_B5_PANELS_.length; i++) {
+    panel = PERF_B5_PANELS_[i];
+    var s = stored[panel];
+    var b = rebuild[panel];
+    var r = reread[panel];
+    var run = {
+      panel: panel,
+      storedVsRebuild: perfB5Compare_(s.payload, b.payload),
+      rereadVsRebuild: perfB5Compare_(r.payload, b.payload),
+      armsOk:
+        s.reloadPath === 'blob-reread' &&
+        b.reloadPath === 'rebuild' &&
+        b.reloadRebuildReason === 'reload-forced-rebuild' &&
+        r.reloadPath === 'blob-reread' &&
+        b.httpCalls > r.httpCalls,
+      cost: {
+        rebuildMs: b.elapsedMs,
+        rereadMs: r.elapsedMs,
+        rebuildHttpCalls: b.httpCalls,
+        rereadHttpCalls: r.httpCalls,
+        rebuildBytesReceived: b.bytesReceived,
+        rereadBytesReceived: r.bytesReceived,
+        speedup:
+          r.elapsedMs > 0 ? Math.round((b.elapsedMs / r.elapsedMs) * 100) / 100 : null,
+      },
+      arms: { stored: s, rebuild: b, reread: r },
+    };
+    run.pass =
+      run.storedVsRebuild.diffCount === 0 &&
+      run.rereadVsRebuild.diffCount === 0 &&
+      run.armsOk &&
+      !s.error &&
+      !b.error &&
+      !r.error;
+    if (!run.pass) allPass = false;
+    if (!run.armsOk) armsProven = false;
+    // The agreement payload is about 766 kB; keep the numbers, drop the data.
+    run.arms.stored.payload = null;
+    run.arms.rebuild.payload = null;
+    run.arms.reread.payload = null;
+    runs.push(run);
+  }
+
+  var summary = {
+    workstream: 'B5',
+    pass: allPass && armsProven,
+    armsProven: armsProven,
+    panels: PERF_B5_PANELS_.slice(),
+    runs: runs,
+  };
+  console.log('===== WORKSTREAM B5 VERIFICATION =====');
+  console.log(JSON.stringify(summary, null, 2));
+  if (!armsProven) {
+    console.error(
+      'Arms not proven. Every panel must record reloadPath "blob-reread" with the ' +
+        'flag on and "rebuild" with it off, and the rebuild must cost more round ' +
+        'trips than the re-read. Anything else means the flag did not take effect ' +
+        'and the parity result compares the rebuild against itself.'
+    );
+  }
+  perfPersistRun_('reload-reread', 'workstream B5 (agreement family reload)', summary.pass, summary);
+  return summary;
+}
+
 function _diag_verifyWorkstreamA() {
   var parity = _diag_comparePerfParityAllFixtures('utilization');
   var baseline = _diag_capturePerfBaseline(['utilization']);
@@ -853,14 +1091,29 @@ function _diag_verifyWorkstreamA() {
 /**
  * True when a leaf key should be skipped during comparison.
  *
+ * `opts.extraIgnoreKeys` is per-run rather than global on purpose. B5 compares a
+ * stored blob against a fresh rebuild, so the serve-time provenance fields
+ * legitimately differ; adding them to `PERF_PARITY_IGNORE_KEYS_` would blind
+ * every other workstream's run to them as well.
+ *
  * @param {string} key
+ * @param {!Object=} opts
  * @return {boolean}
  * @private
  */
-function perfParityIgnoresKey_(key) {
-  for (var i = 0; i < PERF_PARITY_IGNORE_KEYS_.length; i++) {
+function perfParityIgnoresKey_(key, opts) {
+  var i;
+  for (i = 0; i < PERF_PARITY_IGNORE_KEYS_.length; i++) {
     if (PERF_PARITY_IGNORE_KEYS_[i].test(key)) {
       return true;
+    }
+  }
+  var extra = opts && opts.extraIgnoreKeys;
+  if (extra) {
+    for (i = 0; i < extra.length; i++) {
+      if (extra[i] === key) {
+        return true;
+      }
     }
   }
   return false;
@@ -897,7 +1150,7 @@ function perfParityWalk_(expected, actual, path, diffs, opts) {
     return;
   }
   var lastKey = path.split('.').pop().replace(/\[\d+\]$/, '');
-  if (lastKey && perfParityIgnoresKey_(lastKey)) {
+  if (lastKey && perfParityIgnoresKey_(lastKey, opts)) {
     return;
   }
 
@@ -969,7 +1222,7 @@ function perfParityWalk_(expected, actual, path, diffs, opts) {
     if (!Object.prototype.hasOwnProperty.call(expected, k)) continue;
     seen[k] = true;
     if (!Object.prototype.hasOwnProperty.call(actual, k)) {
-      if (!perfParityIgnoresKey_(k)) {
+      if (!perfParityIgnoresKey_(k, opts)) {
         diffs.push({ path: path + '.' + k, kind: 'missing-in-actual' });
       }
       continue;
@@ -978,7 +1231,7 @@ function perfParityWalk_(expected, actual, path, diffs, opts) {
   }
   for (k in actual) {
     if (!Object.prototype.hasOwnProperty.call(actual, k)) continue;
-    if (!seen[k] && !perfParityIgnoresKey_(k)) {
+    if (!seen[k] && !perfParityIgnoresKey_(k, opts)) {
       diffs.push({ path: path + '.' + k, kind: 'missing-in-expected' });
     }
   }
