@@ -48,6 +48,7 @@ Migrations are **idempotent** (`create table if not exists`, `create index if no
 | `048_perf_diagnostic_runs.sql` | Table `fos_perf_runs`: parity and baseline harness results |
 | `049_perf_runs_kind_constraint.sql` | Replaces the `fos_perf_runs.kind` allow-list with a lowercase-slug shape check |
 | `050_fos_rpc_ra_week_grid.sql` | Function `fos_rpc_ra_week_grid(date, date)`: resource allocations overlapping a range with person / project / customer / role joins resolved in SQL. Called behind `PERF_USE_RA_RPC` |
+| `051_fos_viz_range_payloads.sql` | Feature 047 workstream B4: table `fos_viz_range_payloads` plus `fos_viz_source_fingerprint()`, `fos_rpc_viz_range_get(...)`, and `fos_rpc_viz_range_gc(...)`. Range-keyed row-bundle cache read behind `PERF_USE_RANGE_CACHE` |
 
 After schema apply: set Script Properties (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`), run ADMIN **Pull from Fibery** (also installs the nightly hydrate trigger as of v3.0.12), then smoke Live panels. See [cutover notes](sql/036/README.md).
 
@@ -138,6 +139,9 @@ The AM mirror graph uses **soft FK columns** (plain `text` fibery ids) so hydrat
 | --- | --- | --- | --- |
 | `fos_panel_payloads` | `panel_key` | `as_of`, `synced_at`, `cache_schema_version`, `payload` (jsonb) | `synced_at desc` |
 | `fos_delivery_pnl` | `agreement_id` | `agreement_name`, `as_of`, `synced_at`, `cache_schema_version`, `payload` | `synced_at desc`, `agreement_name` |
+| `fos_viz_range_payloads` | `(panel_key, range_start, range_end, cache_schema_version, key_hash)` | `payload` (jsonb row bundle), `row_count`, `payload_chars`, `built_at`, `source_watermark`, `source_row_count` | `(panel_key, source_watermark)` for GC |
+
+`fos_viz_range_payloads` is a cache, not a source. Its `range_start` / `range_end` are the **UTC-day-aligned superset** of a requested window, never the window itself, and the stored `payload` holds only normalized rows in the wire codec. Apps Script filters those rows to the exact requested instants before computing anything, so the date bounds are a cache key and are never the answer. See feature 047 workstream B4.
 
 Typical `panel_key` values align with Hub routes (for example `agreement-dashboard`, `operations`, `pipeline`, `portfolio-pnl`, `ai-usage`). Exact keys are owned by `supabaseSyncJob.js` / dashboard modules.
 

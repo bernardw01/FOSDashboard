@@ -5,8 +5,8 @@
 > **Feature notebook:** [Feature 047 - Dashboard performance and responsiveness](https://win.godeap.io/app/projects/1615262/notebooks/313457)  
 > **Release task:** [Feature 047 - Dashboard performance and responsiveness](https://win.godeap.io/app/tasks/40839335)
 >
-> **PRD version:** 3.12.0. Each workstream ships its own version bump.
-> **Status:** Approved 2026-08-24. **Workstream A shipped in 3.9.2. B1 shipped in 3.10.0 / 3.10.1. B2 shipped in 3.11.0 with its kill switch off pending a parity run. B3 shipped in 3.12.0 with both kill switches off pending `_diag_verifyUtilVizCodec()`.** B4, B5, C, D pending.
+> **PRD version:** 3.13.0. Each workstream ships its own version bump.
+> **Status:** Approved 2026-08-24. **Workstream A shipped in 3.9.2. B1 shipped in 3.10.0 / 3.10.1. B2 shipped in 3.11.0 with its kill switch off pending a parity run. B3 shipped in 3.12.0 with both kill switches off pending `_diag_verifyUtilVizCodec()`. B4 shipped in 3.13.0 with its kill switch off pending `_diag_verifyWorkstreamB4()`.** B1 RPC, B5, C, D pending.
 
 ## How to read this plan
 
@@ -189,12 +189,17 @@ On 3.9.4 all four fixtures pass with **zero diffs**, and the tolerance is confir
 > | Migration | Scope | State |
 > | --- | --- | --- |
 > | **`050_fos_rpc_ra_week_grid.sql`** | B2 resource assignments week grid | **Applied 2026-08-24** |
-> | `051_fos_rpc_util_aggregates.sql` | B1 utilization aggregates RPC | Pending |
-> | `052_fos_viz_range_payloads.sql` | B4 range-keyed cache table | Pending |
+> | **`051_fos_viz_range_payloads.sql`** | B4 range-keyed cache table and RPCs | **Applied 2026-08-25** |
+> | `052_fos_rpc_util_aggregates.sql` | B1 utilization aggregates RPC | Pending |
+>
+> **Renumbered again at B4's ship, and for the same reason as last time:** number in
+> the order migrations are actually applied, not the order the plan lists sections.
+> B4 shipped before the B1 aggregates RPC, so B4 took `051` and the aggregates RPC
+> moves to `052`. Nothing outside this table referenced either number.
 
 ### B1. Utilization aggregates RPC
 
-**Migration `051_fos_rpc_util_aggregates.sql`.** One `plpgsql` function returning a single `jsonb` document containing KPIs, `byWeek`, `byCustomer`, `byProject`, `byPerson`, `byRole`, `billableMix`, and `byPersonWeek`. It must reuse `fos_labor_costs_util_dims` (migration 046, currently unqueried) for the agreement, customer, and role joins rather than re-implementing them.
+**Migration `052_fos_rpc_util_aggregates.sql`** (renumbered from `051`, which B4 took at ship). One `plpgsql` function returning a single `jsonb` document containing KPIs, `byWeek`, `byCustomer`, `byProject`, `byPerson`, `byRole`, `billableMix`, and `byPersonWeek`. It must reuse `fos_labor_costs_util_dims` (migration 046, currently unqueried) for the agreement, customer, and role joins rather than re-implementing them.
 
 ```sql
 create or replace function public.fos_rpc_util_aggregates(
@@ -310,24 +315,122 @@ Client wiring is deliberately narrow: cold Agreements load only, best-effort, an
 
 This is the same failure mode B1 caught on the server path, one call site later.
 
-### B4. Range-keyed cache
+### B4. Range-keyed cache (shipped 3.13.0)
 
-**Migration `052_fos_viz_range_payloads.sql`:**
+**Migration `051_fos_viz_range_payloads.sql`, applied 2026-08-25.**
+
+#### The premise was right and the DDL was wrong
+
+The section above proposed:
 
 ```sql
-create table if not exists public.fos_viz_range_payloads (
-  panel_key            text        not null,
-  range_start          date        not null,
-  range_end            date        not null,
-  cache_schema_version int         not null,
-  payload              jsonb       not null,
-  built_at             timestamptz not null default now(),
-  source_watermark     timestamptz,
-  primary key (panel_key, range_start, range_end, cache_schema_version)
-);
+-- proposed, and not usable as written
+primary key (panel_key, range_start, range_end, cache_schema_version)
+-- with range_start and range_end typed `date`
 ```
 
-Read-through on panel load; invalidated when hydrate advances the labor watermark. Warm the default ranges at the end of hydrate so the first user of the day does not pay the 2,225 ms cold-start penalty measured above.
+Two measurements kill the `date` key.
+
+| Measurement | Value | Consequence |
+| --- | --- | --- |
+| Labor rows sitting exactly on UTC midnight | **168 of 22,546** | Timestamps are intra-day |
+| Distinct times of day in `start_date_time` | **1,163** | A day is never all-in or all-out |
+| Rows between the day floor and the requested start, default window | **51 of 6,246** | A `date` key moves every KPI |
+
+The client compounds it. `resolveRangeFromPreset()` builds every rolling preset from `new Date()`, so the default window is a millisecond-precision instant pair that never repeats. The stored panel blob shows the same thing from the other side: its window is `2026-06-26T09:53:46.331Z` to `2026-08-25T09:53:46.331Z`, which is why nothing but that one window can ever be served from it. A key on the exact instants would therefore never hit, and a key that rounded the *request* to a day would silently include or drop about 51 rows.
+
+#### What shipped: a superset key, an exact slice
+
+The key is the UTC-day-aligned **superset** of the request:
+
+```
+range_start = floor(requested start to UTC day)
+range_end   = ceil (requested end   to UTC day)
+```
+
+The bundle holds every row in that superset. Apps Script then filters it to the exact requested instants before computing anything, which is the same re-slice `applyUtilizationRequestedRange_` has always performed on the stored blob. The window becomes cacheable and the arithmetic is untouched. Cost of the extra rows: **51 of 6,246**, about **0.8 percent**.
+
+`normalizeLaborRows_` was checked, not assumed: it is strictly row-local, with no dedupe and no cross-row state, which is what makes normalize-then-filter equal to filter-then-normalize.
+
+**Rows only.** A bundle stores normalized rows in the B1 wire encoding and nothing derived. Alerts are a function of `new Date()` and every aggregate is a function of the resolved thresholds, so caching either would age or would survive an ADMIN retune. It also means the artifact is deliberately **not** payload-shaped and cannot be handed to a browser by accident, which is the same class of bug as FR-148.
+
+#### Key design, stated in full
+
+| Component | Why |
+| --- | --- |
+| `panel_key` | One table, more panels later |
+| `range_start`, `range_end` | The day-aligned superset above |
+| `cache_schema_version` | The bundle stores rows in the codec whose field list is tied to `UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_`, so a panel bump must orphan every entry. In the primary key, so it does that with no purge step |
+| `key_hash` | MD5 of the whole resolved threshold object plus `PERF_USE_NORMALIZED_LABOR_COLS` |
+
+The hash is **deliberately over-keyed**. Only `internalCompanyNames` provably reaches a stored row today, through `isInternal`; everything else feeds an aggregate that is recomputed per serve. Hashing the whole object means an ADMIN retuning any utilization knob costs one rebuild, whereas a hash that omitted a threshold which later began feeding a row would serve wrong numbers with no symptom. `PERF_SLIM_VIZ_AGGREGATES` is excluded on purpose: a bundle stores no aggregates, so the flag cannot change one.
+
+#### Invalidation
+
+`fos_viz_source_fingerprint()` returns the greatest `synced_at` across `fos_labor_costs`, `fos_clockify_users`, `fos_team_member_roles`, `fos_agreements`, and `fos_companies`, plus the labor row count. Measured **19.5 ms** warm, entirely from shared buffers, so no new index is needed (migration `047` dropped the `synced_at` index as unused and it stays dropped).
+
+Three things about it are worth stating.
+
+1. **"Last completed hydrate" would not work.** The plan says "invalidated when hydrate advances the labor watermark", but `fos_labor_costs` is written by the **Clockify sync project**, not by this repo's hydrate. On 2026-08-25 its max `synced_at` was 05:35 while this hydrate ran 08:57 to 10:04. The fingerprint has to come from the source tables.
+2. **The row count is carried separately** because an upstream delete advances no `synced_at`. It is also a live signal: two reads twelve minutes apart returned 22,546 and 22,111, which is the upstream mirror rewriting rows. During a rewrite the cache correctly refuses to serve.
+3. **The fingerprint is read before the row fetch**, and that value is what gets stamped on the write. If a sync lands mid-build, the new entry is stale immediately. The failure direction is a wasted rebuild, never a stale serve.
+
+`fos_rpc_viz_range_gc(panel_key)` deletes every entry whose fingerprint is behind the live one, which is exactly the set that can never be served again. No TTL, no size cap, no guessing which windows matter.
+
+#### One payload assembler, not two paths
+
+`assembleUtilizationPayload_(rows, range, thresholds, now, opts)` is extracted from `buildUtilizationPayloadFromFosLaborCosts_` and is now the only place a Live utilization payload is constructed. Both the fresh build and the cache serve call it.
+
+This is the structural fix for the failure mode that produced **FR-148** and its v3.10.0 server-side twin: two call sites handling the same payload where only one applied a transform. With one assembler there is no second key set, no second key order, and no second encoding step to keep in sync. `loadSource` is the only intentional difference (`fos_labor_costs`, `fos_viz_range_cache`, `fos_viz_range_cache_build`) and it is in the parity walk's ignore list, so it doubles as the "which path served this" signal the spec's verification step asks for.
+
+Every non-serve outcome in `serveUtilizationFromRangeCache_` returns **null**, so a cache read error, an unresolvable range, a failed fetch, or a truncated fetch all fall through to the unchanged exact-range build. A truncated superset is refused rather than stored, because it is missing rows by definition and would poison every later request for that window.
+
+#### Round trips and bytes
+
+| | Uncached | Cache hit |
+| --- | --- | --- |
+| PostgREST round trips | **11** (7 labor pages + 4 dimension tables) | **1** |
+| JSON received | **2,353 kB** labor + dimensions | **~870 kB** bundle |
+
+The round-trip and byte figures are arithmetic from measured values (page size 1,000 against 6,195 rows in the default window; the 3.10.1 codec measurement of 843,367 bytes for 6,042 encoded rows). **Wall clock is not yet measured**; `_diag_verifyWorkstreamB4()` reports it.
+
+#### Warming
+
+New final hydrate dataset **`viz-warm`** -> `hydrateSupabaseVizRangeCache_()` -> `warmUtilizationRangeCache_()`.
+
+It warms the **30, 60, and 90** day presets from a **single** labor fetch, by fetching and normalizing the widest window once and slicing the narrower bundles out of it in memory. Five separate builds would have cost roughly fifteen seconds; this costs roughly four. The 180-day and YTD presets are deliberately **not** warmed: `hydrateSupabaseUtilization_` records that a YTD-sized JSON upsert times out in Postgres, and those two options would spend the most hydrate time on the least used windows. They still populate on first use, subject to `VIZ_RANGE_CACHE_MAX_CHARS_` (3 MB), above which a bundle is simply not written and the panel builds fresh.
+
+The step **cannot fail the hydrate**. A cache has no downstream consumer, so a warm failure is recorded as a note. Marking a 60-minute run failed because a cache did not fill would be worse than a cold cache, and would also mask the real failures workstream C is meant to alert on.
+
+A warmed key only helps requests on the same UTC day, because the day-aligned end bound moves at UTC midnight. Accepted: a request that misses writes its own entry.
+
+#### No schema bump, and why the B3 pattern only half applies
+
+No panel `cacheSchemaVersion` moves, so **no re-hydrate is required** (a bump would cost roughly 71 minutes to take effect).
+
+B3 made its codec self-describing specifically so a payload change would **not** force a re-hydrate. B4 has an envelope version too (`VIZ_RANGE_CACHE_BUNDLE_VERSION_`), but the trade is different and worth stating rather than copying: the panel version is *also* part of the primary key here, because the bundle stores rows in a codec whose field list is pinned to `UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_`, so a future panel bump **must** orphan every bundle. The envelope version covers changes to the wrapper around those rows, which the panel version would not catch. Two versions, two jobs, neither redundant.
+
+#### Verification
+
+**`_diag_verifyWorkstreamB4()`**, three arms per fixture:
+
+1. flag off, the unchanged exact-range build
+2. flag on, cold, with the entry deleted first so the superset is fetched, stored, and sliced
+3. flag on, warm, the same request served from the stored bundle
+
+Arms 2 and 3 are both compared against arm 1. Comparing only arm 3 would miss a superset-slicing bug; comparing only arm 2 would miss an encode / store / decode bug. The outcome tally is load-bearing for the same reason as B2's: every failure path falls back to the exact-range build, so without the tally a cache that never worked would compare the old path against itself and pass. A good run is `pass: true`, `armsProven: true`, `diffCount: 0` on both comparisons for all four fixtures, exactly one `miss` on each cold arm and one `hit` on each warm arm, and `warm.httpCalls` well below `baseline.httpCalls`. Results persist to `fos_perf_runs` under kind `range-cache`.
+
+**`PERF_USE_RANGE_CACHE` ships `false`.**
+
+#### Row order had to be made deterministic first
+
+This was found by measuring rather than by reasoning, and it is the one production behavior change in the release.
+
+`fetchFosLaborCostsByRange_` ordered by `start_date_time.asc` alone. On the default window, **4,736 of 5,821** rows share their timestamp with at least one other row: **865** tied timestamps, largest group **19**. The plan is an index scan feeding a **quicksort**, which is unstable, so two identical requests could already return tied rows in different positions. A cache cannot be verified against a freshly built window under those conditions, and the parity run would have failed for reasons that were not defects.
+
+The fix is the primary key as a tiebreaker: `order: 'start_date_time.asc,clockify_time_log_id.asc'`, on both paths, in both flag states. Measured cost of the second sort key: **16.9 ms** against a roughly 2,800 ms panel build.
+
+Stated plainly for a reviewer: this makes production row order **deterministic where it was previously arbitrary**. It can shift a row's position within a single timestamp, and with it a Top-N entry whose summed hours tie exactly. It cannot change any total. The alternative was leaving a latent nondeterminism in place and being unable to prove the cache correct, which is worse.
 
 ### B5. Refresh semantics
 

@@ -1,5 +1,5 @@
 /**
- * PRD version 3.12.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.13.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard orchestrator (route id `operations`, panel
  * `#panel-operations`). Reads `Agreement Management/Labor Costs` from Fibery
@@ -110,7 +110,47 @@ function buildUtilizationPayloadFromFosLaborCosts_(range, thresholds, now) {
   if (!isSupabaseConfigured_()) {
     return { ok: false, reason: 'SUPABASE_UNCONFIGURED' };
   }
-  var fetched = fetchFosLaborCostsByRange_(range.start, range.end);
+  // Feature 047 B4. The cache path returns null for every outcome that is not a
+  // usable serve, so a cache read error, an oversized window, or a truncated
+  // fetch all fall through to the exact-range build below unchanged.
+  if (perfFlag_('PERF_USE_RANGE_CACHE')) {
+    var cached = serveUtilizationFromRangeCache_(range, thresholds, now);
+    if (cached) {
+      return cached;
+    }
+  }
+  var built = buildUtilizationRowsForWindow_(range.start, range.end, thresholds);
+  if (!built.ok) {
+    return {
+      ok: false,
+      reason: built.reason || 'FOS_LABOR_FETCH_FAILED',
+      message: built.message || 'Could not read fos_labor_costs.',
+    };
+  }
+  return assembleUtilizationPayload_(built.rows, range, thresholds, now, {
+    truncated: built.truncated,
+    loadSource: 'fos_labor_costs',
+  });
+}
+
+/**
+ * Reads `[startIso, endIso)` from `fos_labor_costs` and returns normalized rows.
+ *
+ * Split out of `buildUtilizationPayloadFromFosLaborCosts_` in 3.13.0 so the
+ * range cache can build a day-aligned superset through exactly the same fetch,
+ * mapping, and normalization the direct path uses. `normalizeLaborRows_` is
+ * strictly row-local, which is what makes normalizing a superset and then
+ * filtering equivalent to filtering and then normalizing.
+ *
+ * @param {string} startIso inclusive
+ * @param {string} endIso exclusive
+ * @param {!Object} thresholds
+ * @return {!{ok: boolean, rows?: !Array<!Object>, truncated?: boolean,
+ *            reason?: string, message?: string}}
+ * @private
+ */
+function buildUtilizationRowsForWindow_(startIso, endIso, thresholds) {
+  var fetched = fetchFosLaborCostsByRange_(startIso, endIso);
   if (!fetched.ok) {
     return {
       ok: false,
@@ -118,18 +158,13 @@ function buildUtilizationPayloadFromFosLaborCosts_(range, thresholds, now) {
       message: fetched.message || 'Could not read fos_labor_costs.',
     };
   }
-  if (!fetched.rows || !fetched.rows.length) {
-    // Empty range is still a valid answer (show zeros), not a hard miss.
-    fetched.rows = [];
-  }
-
+  var source = fetched.rows || [];
   var dimMaps = loadUtilizationLaborDimMaps_();
-
   var raw = [];
-  for (var i = 0; i < fetched.rows.length; i++) {
+  for (var i = 0; i < source.length; i++) {
     raw.push(
       mapFosLaborCostRowToUtilRaw_(
-        fetched.rows[i],
+        source[i],
         dimMaps.usersByClockifyId,
         dimMaps.agreementsByProjectId,
         dimMaps.companiesMap,
@@ -137,7 +172,38 @@ function buildUtilizationPayloadFromFosLaborCosts_(range, thresholds, now) {
       )
     );
   }
-  var rows = normalizeLaborRows_(raw, thresholds);
+  return {
+    ok: true,
+    rows: normalizeLaborRows_(raw, thresholds),
+    truncated: !!fetched.truncated,
+  };
+}
+
+/**
+ * Assembles the Live utilization payload from normalized rows.
+ *
+ * This is the single payload constructor for every Live utilization path. It
+ * exists because feature 047 has already shipped two bugs of the same class: two
+ * call sites handling the same data where only one applied the required
+ * transform. B1 hit it on the server re-slice and 3.10.0 hit it in
+ * `applyUtilPayload`. With the fresh build and the range-cache serve both
+ * routing through here, the two cannot disagree about key set, key order, or
+ * encoding, so there is nothing left for a reviewer to have to keep in sync.
+ *
+ * Everything here is derived, not stored: alerts depend on `now`, and every
+ * aggregate depends on the resolved thresholds, so recomputing per serve keeps an
+ * ADMIN threshold change effective immediately.
+ *
+ * @param {!Array<!Object>} rows Normalized rows already filtered to `range`.
+ * @param {!{start: string, end: string, defaulted: boolean, clamped: boolean}} range
+ * @param {!Object} thresholds
+ * @param {!Date} now
+ * @param {!{truncated: (boolean|undefined), loadSource: (string|undefined)}} opts
+ * @return {!Object}
+ * @private
+ */
+function assembleUtilizationPayload_(rows, range, thresholds, now, opts) {
+  opts = opts || {};
   var kpis = computeUtilizationKpis_(rows);
   var dimensions = buildUtilizationDimensions_(rows, thresholds);
   var aggregates = buildUtilizationAggregates_(rows, thresholds);
@@ -153,7 +219,7 @@ function buildUtilizationPayloadFromFosLaborCosts_(range, thresholds, now) {
   encodeUtilizationAggregatesForWire_(aggregates);
 
   var warnings = [];
-  if (fetched.truncated) {
+  if (opts.truncated) {
     warnings.push(
       'fos_labor_costs page ceiling reached; data may be incomplete for this range.'
     );
@@ -169,7 +235,7 @@ function buildUtilizationPayloadFromFosLaborCosts_(range, thresholds, now) {
   var out = {
     ok: true,
     source: 'supabase',
-    loadSource: 'fos_labor_costs',
+    loadSource: opts.loadSource || 'fos_labor_costs',
     fetchedAt: now.toISOString(),
     cacheSchemaVersion: UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_,
     ttlMinutes: thresholds.cacheTtlMinutes,
@@ -189,6 +255,307 @@ function buildUtilizationPayloadFromFosLaborCosts_(range, thresholds, now) {
     out.partial = true;
   }
   return out;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Range-keyed cache (feature 047 workstream B4)                             */
+/* ------------------------------------------------------------------------- */
+
+/**
+ * The inputs, other than the window itself, that can change a cached bundle's
+ * rows. Hashed into the cache key.
+ *
+ * Deliberately over-keyed. Only `internalCompanyNames` provably reaches a stored
+ * row today, through `isInternal`; every other threshold feeds an aggregate that
+ * is recomputed on serve. Keying on the whole resolved threshold object means an
+ * ADMIN retuning any utilization knob costs one rebuild, whereas a key that
+ * missed a threshold which later started feeding a row would serve wrong numbers
+ * with no symptom. The palettes ride along harmlessly: they are code constants,
+ * so they add no key churn between deploys.
+ *
+ * `PERF_USE_NORMALIZED_LABOR_COLS` is included because it selects which columns
+ * the mapper reads. `PERF_SLIM_VIZ_AGGREGATES` is excluded on purpose: a bundle
+ * stores no aggregates, so the flag cannot change one.
+ *
+ * @param {!Object} thresholds
+ * @return {!Object}
+ * @private
+ */
+function utilizationRangeCacheKeyInputs_(thresholds) {
+  return {
+    bundleVersion: VIZ_RANGE_CACHE_BUNDLE_VERSION_,
+    thresholds: thresholds,
+    normalizedLaborCols: perfFlag_('PERF_USE_NORMALIZED_LABOR_COLS'),
+  };
+}
+
+/**
+ * Filters normalized rows to `[range.start, range.end)`.
+ *
+ * Mirrors the PostgREST predicate `start_date_time >= start and < end`, using the
+ * same `utilizationRowStartMs_` the stored-blob re-slice uses. A row with no
+ * parseable start is dropped here and excluded by `>=` there, so the two agree.
+ *
+ * @param {!Array<!Object>} rows
+ * @param {!{start: string, end: string}} range
+ * @return {!Array<!Object>}
+ * @private
+ */
+function filterUtilizationRowsToRange_(rows, range) {
+  var startMs = parseIsoMs_(range.start);
+  var endMs = parseIsoMs_(range.end);
+  if (startMs === null || endMs === null) {
+    return rows || [];
+  }
+  var out = [];
+  for (var i = 0; i < (rows || []).length; i++) {
+    var ms = utilizationRowStartMs_(rows[i]);
+    if (ms === null) {
+      continue;
+    }
+    if (ms >= startMs && ms < endMs) {
+      out.push(rows[i]);
+    }
+  }
+  return out;
+}
+
+/**
+ * Serves a utilization payload through the range cache, or returns null so the
+ * caller falls back to the exact-range build.
+ *
+ * On a hit the bundle's rows are filtered to the exact requested instants. On a
+ * miss the superset is built once, stored, and the same filter applied, so a
+ * first request pays about 0.8 percent more rows than it needs and every later
+ * request in the same hydrate epoch pays one read instead of eleven.
+ *
+ * Returns null (never a partial payload) whenever the cache cannot be trusted:
+ * an unresolvable range, an RPC error, a fetch failure, or a truncated superset.
+ * A truncated superset is refused rather than stored because it is missing rows
+ * by definition and would poison every later request for that window.
+ *
+ * @param {!{start: string, end: string, defaulted: boolean, clamped: boolean}} range
+ * @param {!Object} thresholds
+ * @param {!Date} now
+ * @return {?Object}
+ * @private
+ */
+function serveUtilizationFromRangeCache_(range, thresholds, now) {
+  var superset = vizRangeCacheSupersetForRange_(range);
+  if (!superset) {
+    vizRangeCacheTallyBump_('skip');
+    return null;
+  }
+  var keyHash = vizRangeCacheKeyHash_(utilizationRangeCacheKeyInputs_(thresholds));
+  var got = vizRangeCacheGet_(
+    'utilization',
+    superset,
+    UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_,
+    keyHash
+  );
+  if (!got.ok) {
+    vizRangeCacheTallyBump_('error');
+    return null;
+  }
+
+  if (got.fresh && got.bundle) {
+    var decoded = decodeUtilizationRowsFromWire_(got.bundle);
+    var cachedRows = decoded && decoded.rows;
+    if (Object.prototype.toString.call(cachedRows) === '[object Array]') {
+      vizRangeCacheTallyBump_('hit');
+      return assembleUtilizationPayload_(
+        filterUtilizationRowsToRange_(cachedRows, range),
+        range,
+        thresholds,
+        now,
+        { truncated: false, loadSource: 'fos_viz_range_cache' }
+      );
+    }
+  }
+
+  var built = buildUtilizationRowsForWindow_(superset.startIso, superset.endIso, thresholds);
+  if (!built.ok || built.truncated) {
+    vizRangeCacheTallyBump_('error');
+    return null;
+  }
+  vizRangeCachePut_(
+    'utilization',
+    superset,
+    UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_,
+    keyHash,
+    {
+      v: VIZ_RANGE_CACHE_BUNDLE_VERSION_,
+      window: { start: superset.startIso, end: superset.endIso },
+      rowCount: built.rows.length,
+      rows: encodeUtilizationRowsForWire_(built.rows),
+      rowsCodec: utilizationRowsCodec_(),
+    },
+    got.currentWatermark,
+    got.currentRowCount
+  );
+  vizRangeCacheTallyBump_('miss');
+  return assembleUtilizationPayload_(
+    filterUtilizationRowsToRange_(built.rows, range),
+    range,
+    thresholds,
+    now,
+    { truncated: false, loadSource: 'fos_viz_range_cache_build' }
+  );
+}
+
+/**
+ * Rolling day presets to warm at the end of hydrate.
+ *
+ * These are the `util-range-preset` options the client can send as a rolling
+ * window. **180 and YTD are deliberately absent.** `hydrateSupabaseUtilization_`
+ * records that a YTD-sized JSON upsert times out in Postgres, and warming the
+ * two widest windows would spend the most hydrate time on the least used
+ * options. They still populate on first use, subject to
+ * `VIZ_RANGE_CACHE_MAX_CHARS_`.
+ * @const {!Array<number>}
+ */
+var UTILIZATION_WARM_PRESET_DAYS_ = [30, 60, 90];
+
+/**
+ * Warms the range cache for the rolling presets, then garbage-collects entries
+ * whose sources have moved on.
+ *
+ * One labor fetch, not one per preset. The presets are nested windows ending on
+ * the same UTC day, so the widest is fetched and normalized once and the
+ * narrower bundles are sliced out of it in memory. That is the difference
+ * between roughly four seconds and roughly fifteen at the end of the hydrate.
+ *
+ * A warmed key only helps a request on the same UTC day, because the day-aligned
+ * end bound moves at UTC midnight. That is accepted: a request that misses
+ * writes its own entry.
+ *
+ * @return {!{ok: boolean, detail: string, warmed: !Array<!Object>, message?: string}}
+ */
+function warmUtilizationRangeCache_() {
+  var thresholds = getUtilizationThresholds_();
+  var now = new Date();
+  var keyHash = vizRangeCacheKeyHash_(utilizationRangeCacheKeyInputs_(thresholds));
+
+  var dayList = [thresholds.defaultRangeDays];
+  for (var p = 0; p < UTILIZATION_WARM_PRESET_DAYS_.length; p++) {
+    if (dayList.indexOf(UTILIZATION_WARM_PRESET_DAYS_[p]) === -1) {
+      dayList.push(UTILIZATION_WARM_PRESET_DAYS_[p]);
+    }
+  }
+  var widestDays = 0;
+  for (var w = 0; w < dayList.length; w++) {
+    if (dayList[w] > widestDays) {
+      widestDays = dayList[w];
+    }
+  }
+
+  var widestRange = resolveRange_(
+    new Date(now.getTime() - widestDays * 86400000).toISOString(),
+    now.toISOString(),
+    now,
+    thresholds
+  );
+  var widestSuperset = vizRangeCacheSupersetForRange_(widestRange);
+  if (!widestSuperset) {
+    return { ok: false, detail: 'no window', warmed: [], message: 'Could not resolve a window.' };
+  }
+  // Read the fingerprint before the fetch so a mid-build upstream sync makes the
+  // new entries stale rather than making them look current.
+  var probe = vizRangeCacheGet_(
+    'utilization',
+    widestSuperset,
+    UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_,
+    keyHash
+  );
+  if (!probe.ok || !probe.currentWatermark) {
+    return {
+      ok: false,
+      detail: 'no fingerprint',
+      warmed: [],
+      message: probe.message || 'Could not read the source fingerprint.',
+    };
+  }
+  var built = buildUtilizationRowsForWindow_(
+    widestSuperset.startIso,
+    widestSuperset.endIso,
+    thresholds
+  );
+  if (!built.ok) {
+    return {
+      ok: false,
+      detail: 'fetch failed',
+      warmed: [],
+      message: built.message || 'Labor fetch failed.',
+    };
+  }
+  if (built.truncated) {
+    return { ok: false, detail: 'truncated fetch', warmed: [], message: 'Page ceiling reached.' };
+  }
+
+  var warmed = [];
+  for (var i = 0; i < dayList.length; i++) {
+    var days = dayList[i];
+    var range = resolveRange_(
+      new Date(now.getTime() - days * 86400000).toISOString(),
+      now.toISOString(),
+      now,
+      thresholds
+    );
+    var superset = vizRangeCacheSupersetForRange_(range);
+    if (!superset) {
+      continue;
+    }
+    var slice = filterUtilizationRowsToRange_(built.rows, {
+      start: superset.startIso,
+      end: superset.endIso,
+    });
+    var put = vizRangeCachePut_(
+      'utilization',
+      superset,
+      UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_,
+      keyHash,
+      {
+        v: VIZ_RANGE_CACHE_BUNDLE_VERSION_,
+        window: { start: superset.startIso, end: superset.endIso },
+        rowCount: slice.length,
+        rows: encodeUtilizationRowsForWire_(slice),
+        rowsCodec: utilizationRowsCodec_(),
+      },
+      probe.currentWatermark,
+      probe.currentRowCount
+    );
+    warmed.push({
+      days: days,
+      rangeStart: superset.startYmd,
+      rangeEnd: superset.endYmd,
+      rowCount: slice.length,
+      chars: put.chars,
+      stored: put.ok,
+      skipped: put.skipped || null,
+    });
+  }
+
+  var gc = vizRangeCacheGc_('utilization');
+  var storedCount = 0;
+  for (var s = 0; s < warmed.length; s++) {
+    if (warmed[s].stored) {
+      storedCount++;
+    }
+  }
+  return {
+    ok: true,
+    detail:
+      'warmed ' +
+      storedCount +
+      '/' +
+      warmed.length +
+      ' preset(s) from ' +
+      built.rows.length +
+      ' rows; gc deleted ' +
+      gc.deleted,
+    warmed: warmed,
+    gc: gc,
+  };
 }
 
 /**
@@ -228,7 +595,19 @@ function fetchFosLaborCostsByRange_(startIso, endIso) {
       {
         select: selectCols,
         and: andFilter,
-        order: 'start_date_time.asc',
+        // Feature 047 B4: the primary key is a required tiebreaker, not a
+        // nicety. Measured on the default window, 4,736 of 5,821 rows share
+        // their `start_date_time` with at least one other row (865 tied
+        // timestamps, largest group 19), and the plan for this query is an index
+        // scan feeding a quicksort, which is unstable. Two identical requests
+        // could therefore already return tied rows in different positions, and a
+        // range cache cannot be verified against a freshly built window unless
+        // the order is deterministic. Cost of the second sort key: 16.9 ms
+        // against a ~2,800 ms panel build. This makes production order
+        // deterministic where it was previously arbitrary; it can shift a row's
+        // position within one timestamp, and with it a Top-N entry whose hours
+        // tie exactly, but it cannot change any total.
+        order: 'start_date_time.asc,clockify_time_log_id.asc',
         limit: String(pageSize),
         offset: String(offset),
       },

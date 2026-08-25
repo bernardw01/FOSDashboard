@@ -1,5 +1,5 @@
 /**
- * PRD version 3.12.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.13.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 032 - FinOps Ask AI (panel-scoped Q&A).
  */

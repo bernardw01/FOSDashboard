@@ -1,11 +1,11 @@
 /**
- * PRD version 3.12.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.13.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.12.0';
+var FOS_PRD_VERSION = '3.13.0';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.12.0';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.12.0 The Utilization heatmap slice ships as a lossless 82 percent smaller codec, Agreements can paint charts from a 23 kB slice, and the Operations Live fetch renders again.';
+  'v3.13.0 A repeated Utilization date window can now be served from a range-keyed cache in one read instead of eleven, with the rows always filtered back to the exact requested instants so no number changes.';
 
 /**
  * @return {string}

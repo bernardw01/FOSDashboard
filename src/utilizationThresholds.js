@@ -1,5 +1,5 @@
 /**
- * PRD version 3.12.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.13.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard constants per
  * docs/features/005-utilization-management-dashboard.md:
@@ -204,7 +204,7 @@ function getUtilizationThresholds_() {
  * Section U.10 utilization-bucket color for a numeric percent.
  *   < underPercent      ->  UNDER  (red)
  *   < targetPercent     ->  BUILDING (yellow)
- *   â‰¤ overPercent       ->  TARGET (green)
+ *   <= overPercent      ->  TARGET (green)
  *   > overPercent       ->  OVER   (orange)
  *   null / NaN          ->  UNKNOWN (grey)
  *

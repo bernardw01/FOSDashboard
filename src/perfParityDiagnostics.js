@@ -1,5 +1,5 @@
 /**
- * PRD version 3.12.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.13.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 047 Step 0: parity and measurement harness.
  *
@@ -647,6 +647,191 @@ function _diag_verifyWorkstreamB2() {
   }
   perfPersistRun_('parity', 'workstream B2 (resource-assignments RPC)', summary.pass, summary);
   return summary;
+}
+
+/**
+ * One-call verification for workstream B4 (range-keyed visualization cache).
+ *
+ * Three arms per fixture, not two, because the interesting failure modes are on
+ * different paths:
+ *
+ *   1. flag off        the exact-range build, unchanged production behavior
+ *   2. flag on, cold   the entry is deleted first, so this build fetches the
+ *                      day-aligned superset, stores it, and serves a slice
+ *   3. flag on, warm   the same request again, served from the stored bundle
+ *
+ * Arms 2 and 3 are both compared against arm 1. Comparing only arm 3 would miss
+ * a superset-slicing bug, and comparing only arm 2 would miss an
+ * encode/decode/round-trip bug in the stored bundle.
+ *
+ * The outcome tally is load-bearing for the same reason it is in B2: every
+ * failure path in `serveUtilizationFromRangeCache_` returns null and falls back
+ * to the exact-range build. Without the tally a cache that never worked at all
+ * would compare the old path against itself and report a clean pass. A run is
+ * only meaningful when arm 2 records exactly one `miss` and arm 3 exactly one
+ * `hit` on every fixture.
+ *
+ * A good result: `pass: true`, `armsProven: true`, `diffCount: 0` on every
+ * fixture, and `warm.httpCalls` materially below `baseline.httpCalls`.
+ *
+ * @return {!Object}
+ */
+function _diag_verifyWorkstreamB4() {
+  var deadline = Date.now() + PERF_HARNESS_BUDGET_MS_;
+  var thresholds = getUtilizationThresholds_();
+  var keyHash = vizRangeCacheKeyHash_(utilizationRangeCacheKeyInputs_(thresholds));
+  var runs = [];
+  var skipped = [];
+  var allPass = true;
+  var armsProven = true;
+
+  for (var i = 0; i < PERF_PARITY_FIXTURES_.length; i++) {
+    var fx = PERF_PARITY_FIXTURES_[i];
+    if (Date.now() > deadline) {
+      skipped.push(fx.id);
+      armsProven = false;
+      continue;
+    }
+    var range = resolveRange_(fx.start || null, fx.end || null, new Date(), thresholds);
+    var superset = vizRangeCacheSupersetForRange_(range);
+    var run = {
+      fixture: fx.id,
+      rangeStart: fx.start || '(default)',
+      rangeEnd: fx.end || '(default)',
+      cacheKey: superset
+        ? superset.startYmd + '..' + superset.endYmd + '#' + keyHash
+        : null,
+    };
+
+    run.baseline = perfB4Arm_(fx, false);
+    if (superset) {
+      vizRangeCacheDelete_(
+        'utilization',
+        superset,
+        UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_,
+        keyHash
+      );
+    }
+    run.cold = perfB4Arm_(fx, true);
+    run.warm = perfB4Arm_(fx, true);
+
+    run.coldDiffs = perfB4Compare_(run.baseline.payload, run.cold.payload, fx);
+    run.warmDiffs = perfB4Compare_(run.baseline.payload, run.warm.payload, fx);
+    run.coldOutcomeOk = run.cold.outcomes.miss === 1 && run.cold.outcomes.hit === 0;
+    run.warmOutcomeOk = run.warm.outcomes.hit === 1 && run.warm.outcomes.miss === 0;
+    run.pass =
+      run.coldDiffs.diffCount === 0 &&
+      run.warmDiffs.diffCount === 0 &&
+      run.coldOutcomeOk &&
+      run.warmOutcomeOk;
+    if (!run.pass) {
+      allPass = false;
+    }
+    if (!run.coldOutcomeOk || !run.warmOutcomeOk) {
+      armsProven = false;
+    }
+    // The payloads are megabytes each; keep the numbers, drop the data.
+    run.baseline.payload = null;
+    run.cold.payload = null;
+    run.warm.payload = null;
+    runs.push(run);
+  }
+
+  var summary = {
+    workstream: 'B4',
+    pass: allPass && armsProven && skipped.length === 0,
+    armsProven: armsProven,
+    complete: skipped.length === 0,
+    skipped: skipped,
+    keyHash: keyHash,
+    runs: runs,
+  };
+  console.log('===== WORKSTREAM B4 VERIFICATION =====');
+  console.log(JSON.stringify(summary, null, 2));
+  if (!armsProven) {
+    console.error(
+      'Arms not proven. Every fixture must record exactly one cache miss on the ' +
+        'cold arm and one hit on the warm arm. Anything else means the cache path ' +
+        'fell back to the exact-range build and the parity result is meaningless.'
+    );
+  }
+  perfPersistRun_('range-cache', 'workstream B4 (utilization range cache)', summary.pass, summary);
+  return summary;
+}
+
+/**
+ * Runs one Utilization load with `PERF_USE_RANGE_CACHE` forced, and reports the
+ * cache outcomes and PostgREST cost attributable to that call alone.
+ *
+ * @param {!{start: string, end: string}} fixture
+ * @param {boolean} useCache
+ * @return {!Object}
+ * @private
+ */
+function perfB4Arm_(fixture, useCache) {
+  vizRangeCacheTallyReset_();
+  supabasePerfCounterStart_();
+  var startedAt = Date.now();
+  var payload = null;
+  var error = null;
+  perfFlagOverridePush_({ PERF_USE_RANGE_CACHE: useCache });
+  try {
+    payload = getUtilizationDashboardData(fixture.start || undefined, fixture.end || undefined);
+  } catch (e) {
+    error = String((e && e.message) || e);
+  } finally {
+    perfFlagOverridePop_();
+  }
+  var elapsedMs = Date.now() - startedAt;
+  var counter = supabasePerfCounterStop_();
+  var outcomes = {
+    hit: VIZ_RANGE_CACHE_TALLY_.hit,
+    miss: VIZ_RANGE_CACHE_TALLY_.miss,
+    skip: VIZ_RANGE_CACHE_TALLY_.skip,
+    error: VIZ_RANGE_CACHE_TALLY_.error,
+    put: VIZ_RANGE_CACHE_TALLY_.put,
+    putSkipped: VIZ_RANGE_CACHE_TALLY_.putSkipped,
+  };
+  return {
+    useCache: useCache,
+    error: error,
+    elapsedMs: elapsedMs,
+    httpCalls: counter.calls,
+    httpMs: counter.ms,
+    bytesReceived: counter.bytes,
+    // `rows` is the B1 encoded envelope `{d, r}` on this panel, so the generic
+    // `.length` probe would report 0.
+    rowCount:
+      payload && payload.rows && payload.rows.r && payload.rows.r.length
+        ? payload.rows.r.length
+        : perfPayloadRowCount_(payload),
+    loadSource: (payload && payload.loadSource) || null,
+    outcomes: outcomes,
+    payload: payload,
+  };
+}
+
+/**
+ * Deep-compares two utilization payloads with the standard tolerances.
+ *
+ * @param {*} expected
+ * @param {*} actual
+ * @param {!{start: string, end: string}} fixture
+ * @return {!{diffCount: number, diffs: !Array<!Object>, toleratedCount: number}}
+ * @private
+ */
+function perfB4Compare_(expected, actual, fixture) {
+  var diffs = [];
+  var opts = {
+    clockToleranceMs: fixture.start || fixture.end ? 0 : PERF_PARITY_CLOCK_TOLERANCE_MS_,
+    tolerated: [],
+  };
+  perfParityWalk_(expected, actual, '$', diffs, opts);
+  return {
+    diffCount: diffs.length,
+    diffs: diffs.slice(0, 25),
+    toleratedCount: opts.tolerated.length,
+  };
 }
 
 function _diag_verifyWorkstreamA() {

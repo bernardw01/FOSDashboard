@@ -1,5 +1,5 @@
 /**
- * PRD version 3.12.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.13.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -1093,7 +1093,7 @@ function getAdminSettingsCatalog_() {
       'PERF_USE_RANGE_CACHE',
       'performance',
       'Range-keyed visualization cache',
-      'Feature 047 workstream B. When on, a custom From/To window is cached after its first build for that hydrate epoch.',
+      'Feature 047 workstream B4. When on, Utilization caches the normalized labor rows for the UTC-day-aligned window containing the request in fos_viz_range_payloads (migration 051), and later requests for that window are one read instead of eleven (seven labor pages plus four dimension tables). The rows are always filtered back to the exact requested instants before any KPI is computed, so no number changes. Entries are invalidated automatically when the labor or dimension tables advance, and the nightly hydrate warms the 30, 60, and 90 day presets. Turn on only after _diag_verifyWorkstreamB4() reports pass with armsProven true.',
       'boolean',
       false
     ),

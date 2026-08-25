@@ -1,5 +1,5 @@
 /**
- * PRD version 3.12.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.13.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: Fibery -> Supabase hydrate (nightly + ADMIN Pull).
  * Dataset am-mirror (supabaseAmMirror.js) hydrates Agreement Management typed
@@ -33,6 +33,10 @@ var SUPABASE_SYNC_DATASETS_ = [
   'resource-assignments',
   'ai-usage',
   'portfolio-pnl',
+  // Feature 047 B4. Last, and deliberately so: it reads the same labor and
+  // dimension tables the steps above have just finished writing, and its only
+  // product is a cache, so nothing downstream depends on it.
+  'viz-warm',
 ];
 
 /**
@@ -344,6 +348,8 @@ function hydrateSupabaseDataset_(datasetKey, syncState) {
       return hydrateSupabaseAiUsage_();
     case 'portfolio-pnl':
       return hydrateSupabasePortfolio_();
+    case 'viz-warm':
+      return hydrateSupabaseVizRangeCache_();
     default:
       return { ok: false, message: 'Unknown dataset: ' + datasetKey };
   }
@@ -523,6 +529,35 @@ function hydrateSupabasePortfolio_() {
     }
   }
   return { ok: true, detail: 'portfolioBlob + embeddedPnl=' + embedded };
+}
+
+/**
+ * Feature 047 B4. Warms the range-keyed visualization cache for the rolling
+ * Utilization presets and drops entries the hydrate just invalidated.
+ *
+ * **Never fails the run.** A cache warm is an optimization with no downstream
+ * consumer, so a warm failure is recorded as a note and the hydrate is still
+ * reported complete. Marking a 60-minute hydrate failed because a cache did not
+ * fill would be a worse outcome than a cold cache, and it would also mask the
+ * real failures workstream C is meant to start alerting on.
+ *
+ * @return {!Object}
+ */
+function hydrateSupabaseVizRangeCache_() {
+  if (!perfFlag_('PERF_USE_RANGE_CACHE')) {
+    return { ok: true, detail: 'skipped (PERF_USE_RANGE_CACHE off)' };
+  }
+  var res;
+  try {
+    res = warmUtilizationRangeCache_();
+  } catch (e) {
+    supabaseWarn_('viz-warm', e);
+    return { ok: true, detail: 'warm threw: ' + ((e && e.message) || String(e)) };
+  }
+  if (!res || !res.ok) {
+    return { ok: true, detail: 'warm skipped: ' + ((res && res.message) || 'unknown') };
+  }
+  return { ok: true, detail: res.detail };
 }
 
 /**
