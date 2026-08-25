@@ -1,5 +1,5 @@
 /**
- * PRD version 3.9.5 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.10.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: panel hydrate builders that read Supabase typed
  * tables (Agreement Management mirror from `supabaseAmMirror.js`, labor
@@ -63,10 +63,13 @@ function supabaseDimCacheGet_(key, loaderFn) {
 function loadFosAgreementsMetaMap_() {
   return supabaseDimCacheGet_('agreementsByFiberyId', function () {
     var map = {};
+    // state_name / agreement_type feed the Utilization row detail modal, which
+    // had been rendering them as blanks because the labor mapper hardcoded
+    // nulls and this select never carried the columns.
     var res = supabaseSelectAll_(
       'fos_agreements',
       null,
-      'fibery_id,name,customer_id,clockify_project_id'
+      'fibery_id,name,customer_id,clockify_project_id,state_name,agreement_type'
     );
     if (!res.ok) {
       supabaseWarn_('loadFosAgreementsMetaMap_ failed', { message: res.message });

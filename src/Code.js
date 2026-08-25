@@ -1,11 +1,11 @@
 /**
- * PRD version 3.9.5 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.10.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.9.5';
+var FOS_PRD_VERSION = '3.10.0';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.9.5';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.9.5 Portfolio P&L child rows indent past the expand arrow; P&L labor joins Clockify time when the agreement Clockify Project ID is empty.';
+  'v3.10.0 Operations loads a much smaller payload, and the row detail drawer shows Agreement state and type again.';
 
 /**
  * @return {string}

@@ -1,5 +1,5 @@
 /**
- * PRD version 3.9.5 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.10.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 047 Step 0: parity and measurement harness.
  *
@@ -380,6 +380,88 @@ function _diag_capturePerfBaseline(panelKeys) {
  *
  * @return {!Object}
  */
+/**
+ * Proves the utilization row codec is lossless on live data.
+ *
+ * The parity harness cannot catch a lossy codec: both of its arms encode, so it
+ * compares encoded against encoded and a dropped field would cancel out. This
+ * decodes what the builder actually shipped and compares it field by field
+ * against the same rows built without encoding.
+ *
+ * @return {!Object}
+ */
+function _diag_verifyUtilRowCodec() {
+  var thresholds = getUtilizationThresholds_();
+  var now = new Date();
+  var range = resolveRange_(null, null, now, thresholds);
+  var built = buildUtilizationPayloadFromFosLaborCosts_(range, thresholds, now);
+  if (!built || built.ok === false) {
+    return { ok: false, message: (built && built.message) || 'Build failed.' };
+  }
+
+  var decoded = (decodeUtilizationRowsFromWire_(built) || {}).rows || [];
+  var encodedBytes = JSON.stringify(built.rows).length;
+
+  // Rebuild the same window without the codec to get the reference shape.
+  var fetched = fetchFosLaborCostsByRange_(range.start, range.end);
+  var dimMaps = loadUtilizationLaborDimMaps_();
+  var raw = [];
+  for (var i = 0; i < (fetched.rows || []).length; i++) {
+    raw.push(
+      mapFosLaborCostRowToUtilRaw_(
+        fetched.rows[i],
+        dimMaps.usersByClockifyId,
+        dimMaps.agreementsByProjectId,
+        dimMaps.companiesMap,
+        dimMaps.rolesMap
+      )
+    );
+  }
+  var reference = normalizeLaborRows_(raw, thresholds);
+  var referenceBytes = JSON.stringify(reference).length;
+
+  var diffs = [];
+  if (reference.length !== decoded.length) {
+    diffs.push({
+      path: '$.rows.length',
+      expected: reference.length,
+      actual: decoded.length,
+    });
+  }
+  var limit = Math.min(reference.length, decoded.length);
+  for (var r = 0; r < limit && diffs.length < 25; r++) {
+    var exp = reference[r] || {};
+    var act = decoded[r] || {};
+    for (var f = 0; f < UTIL_ROW_WIRE_FIELDS_.length; f++) {
+      var key = UTIL_ROW_WIRE_FIELDS_[f];
+      var ev = exp[key] === undefined ? null : exp[key];
+      var av = act[key] === undefined ? null : act[key];
+      if (ev !== av) {
+        diffs.push({ path: '$.rows[' + r + '].' + key, expected: ev, actual: av });
+        if (diffs.length >= 25) break;
+      }
+    }
+  }
+
+  var result = {
+    ok: true,
+    pass: diffs.length === 0,
+    rowCount: decoded.length,
+    diffCount: diffs.length,
+    diffs: diffs,
+    encodedBytes: encodedBytes,
+    unencodedBytes: referenceBytes,
+    reductionPct:
+      referenceBytes > 0
+        ? Math.round((1 - encodedBytes / referenceBytes) * 1000) / 10
+        : null,
+  };
+  console.log('===== UTIL ROW CODEC =====');
+  console.log(JSON.stringify(result, null, 2));
+  perfPersistRun_('codec', 'utilization rows', result.pass, result);
+  return result;
+}
+
 function _diag_verifyWorkstreamA() {
   var parity = _diag_comparePerfParityAllFixtures('utilization');
   var baseline = _diag_capturePerfBaseline(['utilization']);

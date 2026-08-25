@@ -1,5 +1,5 @@
 /**
- * PRD version 3.9.5 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.10.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard orchestrator (route id `operations`, panel
  * `#panel-operations`). Reads `Agreement Management/Labor Costs` from Fibery
@@ -173,7 +173,8 @@ function buildUtilizationPayloadFromFosLaborCosts_(range, thresholds, now) {
     ttlMinutes: thresholds.cacheTtlMinutes,
     range: range,
     dataWindow: { start: range.start, end: range.end },
-    rows: rows,
+    rows: encodeUtilizationRowsForWire_(rows),
+    rowsCodec: utilizationRowsCodec_(),
     kpis: kpis,
     dimensions: dimensions,
     aggregates: aggregates,
@@ -478,9 +479,13 @@ function mapFosLaborCostRowToUtilRaw_(
   var customer = customerNameFromFiberyLaborPayload_(p);
   var agreementId = null;
   var agreementName = null;
+  var agreementState = null;
+  var agreementType = null;
   if (agreement) {
     agreementId = agreement.fibery_id || null;
     agreementName = agreement.name || null;
+    agreementState = agreement.state_name || null;
+    agreementType = agreement.agreement_type || null;
     var companyRow =
       agreement.customer_id && companiesMap
         ? companiesMap[agreement.customer_id]
@@ -521,8 +526,6 @@ function mapFosLaborCostRowToUtilRaw_(
 
   return {
     id: row.clockify_time_log_id || '',
-    publicId: null,
-    name: '',
     hours: hours,
     seconds: numberOr_(row.seconds, 0),
     cost: cost,
@@ -530,11 +533,10 @@ function mapFosLaborCostRowToUtilRaw_(
       row.billable || p['Agreement Management/Billable'] || 'No',
     startDateTime: startIso,
     endDateTime: endIso,
-    dateOfCreation: null,
     agreementId: agreementId,
     agreementName: agreementName,
-    agreementType: null,
-    agreementState: null,
+    agreementType: agreementType,
+    agreementState: agreementState,
     customer: customer,
     projectName:
       row.time_entry_project_name ||
@@ -565,6 +567,8 @@ function mapFosLaborCostRowToUtilRaw_(
  * @private
  */
 function applyUtilizationRequestedRange_(payload, rangeStart, rangeEnd) {
+  // The stored blob ships encoded rows; slicing needs the object form.
+  payload = decodeUtilizationRowsFromWire_(payload);
   var thresholds = getUtilizationThresholds_();
   var now = new Date();
   var range = resolveRange_(rangeStart, rangeEnd, now, thresholds);
@@ -638,7 +642,8 @@ function applyUtilizationRequestedRange_(payload, rangeStart, rangeEnd) {
     dataWindow: dataWindow
       ? { start: dataWindow.start, end: dataWindow.end }
       : null,
-    rows: filtered,
+    rows: encodeUtilizationRowsForWire_(filtered),
+    rowsCodec: utilizationRowsCodec_(),
     kpis: kpis,
     dimensions: dimensions,
     aggregates: aggregates,
@@ -748,7 +753,8 @@ function buildUtilizationDashboardPayload_(rangeStart, rangeEnd) {
     ttlMinutes: ttlMinutes,
     range: range,
     dataWindow: { start: range.start, end: range.end },
-    rows: rows,
+    rows: encodeUtilizationRowsForWire_(rows),
+    rowsCodec: utilizationRowsCodec_(),
     kpis: kpis,
     dimensions: dimensions,
     aggregates: aggregates,
@@ -983,19 +989,18 @@ function normalizeLaborRows_(rawRows, thresholds) {
       customerName = '(Unassigned)';
     }
 
+    // Feature 047 B1: `billableLabel`, `day`, `marginPerHour`, and
+    // `revenueFromLabor` were derivable from fields already present, and
+    // `seconds`, `endDateTime`, and `name` had no client reader at all. They
+    // cost ~1 MB per default-window payload to carry. `week` stays because the
+    // client re-aggregates on it and reproducing the Monday-anchored UTC key in
+    // two places invites drift.
     var row = {
       id: stringOr_(r.id, ''),
-      publicId: stringOrNull_(r.publicId),
-      name: stringOr_(r.name, ''),
       hours: hours,
-      seconds: numberOr_(r.seconds, 0),
       cost: numberOr_(r.cost, 0),
       billable: billable,
-      billableLabel: billable ? 'Yes' : 'No',
       startDateTime: startIso,
-      endDateTime: stringOrNull_(r.endDateTime),
-      dateOfCreation: stringOrNull_(r.dateOfCreation),
-      day: extractDayKey_(startIso),
       week: extractIsoWeekKey_(startIso),
       agreementId: stringOrNull_(r.agreementId),
       agreementName: stringOrNull_(r.agreementName),
@@ -1013,13 +1018,201 @@ function normalizeLaborRows_(rawRows, thresholds) {
       userRole: stringOrNull_(r.userRole),
       userRoleBillRate: billRate,
       userRoleCostRate: costRate,
-      revenueFromLabor: billRate !== null ? hours * billRate : null,
-      marginPerHour: billRate !== null && costRate !== null ? billRate - costRate : null,
     };
     row.isInternal = isInternalLabor_(row, thresholds.internalCompanyNames);
     out.push(row);
   }
   return out;
+}
+
+/**
+ * Wire field order for encoded utilization rows. Append-only: the client maps
+ * positionally, so inserting or reordering silently corrupts every row. Add new
+ * fields at the end and bump `UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_`.
+ * @const {!Array<string>}
+ */
+var UTIL_ROW_WIRE_FIELDS_ = [
+  'id',
+  'hours',
+  'cost',
+  'billable',
+  'startDateTime',
+  'week',
+  'agreementId',
+  'agreementName',
+  'agreementType',
+  'agreementState',
+  'customer',
+  'projectName',
+  'projectId',
+  'task',
+  'userName',
+  'userId',
+  'clockifyUserCompany',
+  'clockifyUserRole',
+  'clockifyUserWorkStatus',
+  'userRole',
+  'userRoleBillRate',
+  'userRoleCostRate',
+  'isInternal',
+];
+
+/**
+ * Fields encoded as an index into a per-field string table rather than repeated
+ * inline. Chosen by cardinality against a default window: 8 customers, 22
+ * agreements, 26 projects, 76 users, and 23 roles across ~6,000 rows. `task` is
+ * included at ~978 distinct values because it still repeats about six times
+ * each. `id` and `startDateTime` are deliberately excluded, being near-unique.
+ * @const {!Array<string>}
+ */
+var UTIL_ROW_DICT_FIELDS_ = [
+  'billable',
+  'week',
+  'agreementId',
+  'agreementName',
+  'agreementType',
+  'agreementState',
+  'customer',
+  'projectName',
+  'projectId',
+  'task',
+  'userName',
+  'userId',
+  'clockifyUserCompany',
+  'clockifyUserRole',
+  'clockifyUserWorkStatus',
+  'userRole',
+];
+
+/**
+ * Server-side inverse of `encodeUtilizationRowsForWire_`.
+ *
+ * Needed because the stored panel blob is re-sliced in Apps Script by
+ * `applyUtilizationRequestedRange_` before it reaches a browser. Without this
+ * that path would iterate the encoded envelope as if it were an array, find no
+ * length, and quietly return an empty panel.
+ *
+ * Idempotent: payloads without a codec, or already decoded, pass through.
+ *
+ * @param {?Object} payload
+ * @return {?Object} Payload whose `rows` is a plain array of row objects.
+ * @private
+ */
+function decodeUtilizationRowsFromWire_(payload) {
+  if (!payload || !payload.rowsCodec) {
+    return payload;
+  }
+  var enc = payload.rows;
+  if (!enc || Object.prototype.toString.call(enc.r) !== '[object Array]') {
+    return payload;
+  }
+  var fields = payload.rowsCodec.fields || [];
+  var dictFields = payload.rowsCodec.dictFields || [];
+  var isDict = {};
+  for (var d = 0; d < dictFields.length; d++) {
+    isDict[dictFields[d]] = true;
+  }
+  var tables = enc.d || {};
+  var out = [];
+  for (var i = 0; i < enc.r.length; i++) {
+    var tuple = enc.r[i] || [];
+    var row = {};
+    for (var f = 0; f < fields.length; f++) {
+      var field = fields[f];
+      var v = tuple[f];
+      if (isDict[field] && typeof v === 'number') {
+        var table = tables[field];
+        row[field] = table && table.length > v ? table[v] : null;
+      } else {
+        row[field] = v === undefined ? null : v;
+      }
+    }
+    out.push(row);
+  }
+  var decoded = {};
+  for (var k in payload) {
+    if (Object.prototype.hasOwnProperty.call(payload, k)) {
+      decoded[k] = payload[k];
+    }
+  }
+  decoded.rows = out;
+  return decoded;
+}
+
+/**
+ * Codec descriptor shipped alongside encoded rows so the client can decode
+ * without hardcoding the field order.
+ * @return {!Object}
+ * @private
+ */
+function utilizationRowsCodec_() {
+  return {
+    version: 1,
+    fields: UTIL_ROW_WIRE_FIELDS_.slice(),
+    dictFields: UTIL_ROW_DICT_FIELDS_.slice(),
+  };
+}
+
+/**
+ * Encodes normalized rows for transport: each row becomes a positional array,
+ * and high-repetition string fields become integer indexes into a shared table.
+ *
+ * Two separate costs are being removed. Repeated **key names** were 44.5% of the
+ * remaining row bytes, since every one of ~6,000 rows carried all 23 field names
+ * verbatim; positional arrays drop that to zero. Repeated **values** are then
+ * folded into per-field dictionaries. The transform is lossless and reversed by
+ * `decodeUtilPayload_` in `DashboardShell.html` before any consumer sees a row,
+ * so filters, the detail table, CSV export, and the drawer are unaffected.
+ *
+ * Aggregates, KPIs, and alerts are computed upstream on the object form, so this
+ * never participates in dashboard math.
+ *
+ * @param {!Array<!Object>} rows Normalized rows from `normalizeLaborRows_`.
+ * @return {!{d: !Object<string, !Array<*>>, r: !Array<!Array<*>>}}
+ * @private
+ */
+function encodeUtilizationRowsForWire_(rows) {
+  rows = rows || [];
+  var isDict = {};
+  for (var d = 0; d < UTIL_ROW_DICT_FIELDS_.length; d++) {
+    isDict[UTIL_ROW_DICT_FIELDS_[d]] = true;
+  }
+  var tables = {};
+  var lookups = {};
+  for (var t = 0; t < UTIL_ROW_DICT_FIELDS_.length; t++) {
+    tables[UTIL_ROW_DICT_FIELDS_[t]] = [];
+    lookups[UTIL_ROW_DICT_FIELDS_[t]] = {};
+  }
+
+  var encoded = [];
+  for (var i = 0; i < rows.length; i++) {
+    var row = rows[i] || {};
+    var tuple = [];
+    for (var f = 0; f < UTIL_ROW_WIRE_FIELDS_.length; f++) {
+      var field = UTIL_ROW_WIRE_FIELDS_[f];
+      var value = row[field];
+      if (!isDict[field]) {
+        tuple.push(value === undefined ? null : value);
+        continue;
+      }
+      if (value === null || value === undefined) {
+        tuple.push(null);
+        continue;
+      }
+      // Prefix the lookup key so a value of "constructor" or "__proto__" cannot
+      // collide with Object.prototype members.
+      var key = 'v:' + String(value);
+      var idx = lookups[field][key];
+      if (idx === undefined) {
+        idx = tables[field].length;
+        tables[field].push(value);
+        lookups[field][key] = idx;
+      }
+      tuple.push(idx);
+    }
+    encoded.push(tuple);
+  }
+  return { d: tables, r: encoded };
 }
 
 /* ------------------------------------------------------------------------- */

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.9.5 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.10.0 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -8268,7 +8268,7 @@
       var AI_USAGE_DETAIL_PAGE_SIZE = 100;
       // v3 (PRD 2.11.0) drops labor approval / pending-approvals fields.
       // v2 (PRD 1.14.0) added aggregates.byPersonWeek + alerts[].
-      var UTIL_CACHE_SCHEMA_VERSION = 6;
+      var UTIL_CACHE_SCHEMA_VERSION = 7;
       var UTIL_TTL_PREF_KEY = 'fos_utilization_dashboard_ttl_minutes_v1';
       var UTIL_FILTERS_PREF_KEY = 'fos_utilization_filters_v1';
       var UTIL_FILTERS_SCHEMA_VERSION = 1;
@@ -9257,8 +9257,10 @@
           writeAgreementCache(bundle.agreement);
         }
         if (bundle.utilization) {
+          // writeUtilizationCache already stores the decoded payload in
+          // utilState; re-assigning the raw bundle here would put encoded rows
+          // back in front of every consumer.
           writeUtilizationCache(bundle.utilization);
-          utilState.payload = bundle.utilization;
         }
         if (bundle.deliveryProjects) {
           writeDeliveryCache(bundle.deliveryProjects);
@@ -9411,7 +9413,7 @@
             }
             dataSourceState.manifest = bundle.manifest;
             dataSourceState.agreement = bundle.agreement;
-            dataSourceState.utilization = bundle.utilization;
+            dataSourceState.utilization = decodeUtilPayload_(bundle.utilization);
             dataSourceState.deliveryProjects = bundle.deliveryProjects;
             dataSourceState.expenses = bundle.expenses || null;
             dataSourceState.pipeline = bundle.pipeline || null;
@@ -14599,6 +14601,48 @@
          memory; only a date-range change re-fetches.
          ================================================================== */
 
+      /**
+       * Reverses `encodeUtilizationRowsForWire_`: positional tuples plus
+       * per-field string tables become the plain row objects every consumer
+       * already expects. Runs once per payload, before filters, the detail
+       * table, CSV export, or the drawer see anything.
+       *
+       * Idempotent. Payloads that predate the codec, and payloads already
+       * decoded, are returned untouched, so snapshots and the legacy Fibery
+       * builder keep working.
+       */
+      function decodeUtilPayload_(payload) {
+        if (!payload || !payload.rowsCodec) return payload;
+        var enc = payload.rows;
+        if (!enc || !enc.r || Object.prototype.toString.call(enc.r) !== '[object Array]') {
+          return payload;
+        }
+        var fields = payload.rowsCodec.fields || [];
+        var dictFields = payload.rowsCodec.dictFields || [];
+        var isDict = {};
+        for (var d = 0; d < dictFields.length; d++) isDict[dictFields[d]] = true;
+        var tables = enc.d || {};
+        var out = [];
+        for (var i = 0; i < enc.r.length; i++) {
+          var tuple = enc.r[i] || [];
+          var row = {};
+          for (var f = 0; f < fields.length; f++) {
+            var field = fields[f];
+            var v = tuple[f];
+            if (isDict[field] && typeof v === 'number') {
+              var table = tables[field];
+              row[field] = table && table.length > v ? table[v] : null;
+            } else {
+              row[field] = v === undefined ? null : v;
+            }
+          }
+          out.push(row);
+        }
+        var decoded = Object.assign({}, payload);
+        decoded.rows = out;
+        return decoded;
+      }
+
       function migrateUtilizationSessionCache_() {
         try {
           for (var li = 0; li < UTIL_CACHE_LEGACY_KEYS_.length; li++) {
@@ -14626,7 +14670,7 @@
             sessionStorage.removeItem(UTIL_CACHE_KEY);
             return null;
           }
-          return o;
+          return decodeUtilPayload_(o);
         } catch (e) {
           try {
             sessionStorage.removeItem(UTIL_CACHE_KEY);
@@ -14642,7 +14686,9 @@
         // Always keep the live in-memory copy. Utilization payloads often exceed
         // sessionStorage quota (~5 MB); a silent setItem failure must not force
         // a Fibery refetch when the user navigates away and back in-session.
-        utilState.payload = envelope;
+        // Memory holds the decoded rows; sessionStorage keeps the encoded form,
+        // which is what brings the payload back under quota.
+        utilState.payload = decodeUtilPayload_(envelope);
         try {
           sessionStorage.setItem(UTIL_CACHE_KEY, JSON.stringify(envelope));
         } catch (e) {
@@ -15622,11 +15668,20 @@
         persistUtilFilters_();
       }
 
+      // Feature 047 B1: the server used to ship a `day` key alongside
+      // `startDateTime` on every row, which is the same value truncated. Derive
+      // it here instead of carrying it ~6,000 times per payload.
+      function utilRowDay_(row) {
+        if (!row) return '';
+        if (row.day) return row.day;
+        return row.startDateTime ? String(row.startDateTime).slice(0, 10) : '';
+      }
+
       // Detail Table (Phase B §N.12) ---------------------------------------
       function detailRowValue_(row, key) {
         switch (key) {
           case 'day':
-            return row.day || row.startDateTime || '';
+            return utilRowDay_(row);
           case 'role':
             return row.userRole || row.clockifyUserRole || '';
           case 'hours':
@@ -16659,12 +16714,12 @@
         var costRate = row.userRoleCostRate != null
           ? '$' + Number(row.userRoleCostRate).toFixed(2) + '/hr'
           : ' - ';
-        var margin = row.marginPerHour != null
-          ? '$' + Number(row.marginPerHour).toFixed(2) + '/hr'
+        var margin = row.userRoleBillRate != null && row.userRoleCostRate != null
+          ? '$' + (Number(row.userRoleBillRate) - Number(row.userRoleCostRate)).toFixed(2) + '/hr'
           : ' - ';
         els.utilDrawerBody.innerHTML =
           '<dl>' +
-            row_(row.day || row.startDateTime, 'Date') +
+            row_(utilRowDay_(row), 'Date') +
             row_(row.userName, 'Person') +
             row_(row.userRole || row.clockifyUserRole, 'Role') +
             row_(row.customer, 'Customer') +
@@ -16675,8 +16730,7 @@
             row_(pct, 'Bill rate', true) +
             row_(costRate, 'Cost rate', true) +
             row_(margin, 'Margin per hr', true) +
-            row_(row.billableLabel || (row.billable ? 'Yes' : 'No'), 'Billable') +
-            row_(row.dateOfCreation || ' - ', 'Created') +
+            row_(row.billable ? 'Yes' : 'No', 'Billable') +
             row_(row.agreementName || ' - ', 'Agreement') +
             row_(row.agreementState || ' - ', 'Agreement state') +
             row_(row.agreementType || ' - ', 'Agreement type') +
@@ -16693,6 +16747,13 @@
       // operator can pop devtools and see *why* the "Open in Fibery →" link
       // is hidden. The link suppresses silently in production but every
       // empty-URL branch leaves a trace here (FR-88 diagnostic, v1.18.0).
+      // Known gap (feature 047 B1): this has returned '' for every row since the
+      // Supabase cutover, because the labor mapper hardcoded `publicId` and
+      // `name` to null/empty and nothing repopulated them. The link needs the
+      // Labor Cost entity's own Fibery public-id and name, which the Clockify
+      // mirror does not write to `fos_labor_costs`. The agreement's public-id is
+      // NOT a substitute: it would build a wrong deep link. Recovering this
+      // needs `public_id` and `name` columns on the mirror first.
       function getFiberyLaborCostUrl_(row) {
         var why = '';
         if (!row) {
@@ -18440,6 +18501,7 @@
               }
               return;
             }
+            data = decodeUtilPayload_(data);
             laborHoursFetchCache_.key = cacheKey;
             laborHoursFetchCache_.payload = data;
             var cfg2 = cfgFrom(data);

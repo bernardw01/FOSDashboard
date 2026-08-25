@@ -1,5 +1,5 @@
 /**
- * PRD version 3.9.5 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.10.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard constants per
  * docs/features/005-utilization-management-dashboard.md:
@@ -47,7 +47,7 @@
 
 /** @const {number} Bumped when the client cache shape changes. v3 drops labor
  *  approval / pending-approvals fields (v2.11.0). */
-var UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_ = 6;
+var UTILIZATION_DASHBOARD_CACHE_SCHEMA_VERSION_ = 7;
 
 /** @const {number} Default Fibery `q/limit` per labor-cost page. */
 var UTILIZATION_QUERY_PAGE_LIMIT_ = 1000;

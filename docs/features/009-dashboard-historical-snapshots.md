@@ -46,7 +46,7 @@ The `agreement-cache/` and `portfolio-pnl-cache/` folders are **Live-mode daily 
 | Artifact | Source | Notes |
 |----------|--------|--------|
 | `agreement.json` | `buildAgreementDashboardPayload_(snapshotDate)` | Future revenue filtered as of snapshot date; `cacheSchemaVersion: 4` (v3.4.4: `assignedOwner`; was **3**) |
-| `utilization.json` | `buildUtilizationDashboardPayload_(start, end)` | Default 90-day window ending snapshot date; `cacheSchemaVersion: 6` (v3.9.1: Datastore customer/role joins; was **5** through v3.9.0) |
+| `utilization.json` | `buildUtilizationDashboardPayload_(start, end)` | Default 90-day window ending snapshot date; `cacheSchemaVersion: 7` (v3.10.0: slimmer row shape, feature 047 B1; was **6** in v3.9.1 for Datastore customer/role joins, **5** through v3.9.0) |
 | `delivery-projects.json` | `buildDeliveryDashboardPayloadFromAgreement_` | No extra Fibery fetch; `cacheSchemaVersion: 2` (v3.4.4: `assignedOwner`; was **1**) |
 | `expenses.json` | `buildExpensesDashboardPayload_()` | Spreadsheet tab at job run time; `cacheSchemaVersion: 3` (v2.17.2: category column resolution; was **2** through v2.11.2); skip when **`SNAPSHOT_INCLUDE_EXPENSES`** is false |
 | `pipeline.json` | `buildPipelineDashboardPayload_()` | Merged Opportunity Tracker + Fibery `HubSpot/Deal`; `cacheSchemaVersion: 3` (v2.21.0; was **2** in v2.11.1); skip when **`SNAPSHOT_INCLUDE_PIPELINE`** is false |

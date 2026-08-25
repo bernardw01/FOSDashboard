@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contractor billable utilization — 12 weeks</title>
+<style>
+:root {
+  --navy:#152744; --teal:#2B8B8B; --yellow:#ca8a04; --yellow-bg:#fefce8;
+  --red:#dc2626; --red-bg:#fef2f2; --gray:#6b7280; --cream:#F2EFE5; --border:#DDD9CE;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--cream); color:#1f2937; font-size:14px; line-height:1.5; }
+.header { background:var(--navy); color:#fff; padding:24px 40px; display:flex; justify-content:space-between; align-items:flex-end; gap:24px; flex-wrap:wrap; }
+.kicker { font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#93c5fd; margin-bottom:6px; }
+.header h1 { font-size:22px; }
+.header .sub { font-size:13px; color:#93c5fd; margin-top:4px; }
+.header-meta { text-align:right; font-size:12px; color:#93c5fd; }
+.wrap { max-width:1280px; margin:0 auto; padding:28px 24px 64px; }
+.toolbar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:20px; }
+.chip { border:1px solid var(--border); background:#fff; color:#374151; padding:8px 14px; border-radius:999px; cursor:pointer; font-size:13px; font-weight:600; }
+.chip:hover { border-color:var(--teal); }
+.chip.on { background:var(--navy); color:#fff; border-color:var(--navy); }
+.search { margin-left:auto; min-width:220px; padding:8px 12px; border:1px solid var(--border); border-radius:8px; font-size:13px; }
+.kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px; }
+.kpi { background:#fff; border-radius:8px; padding:16px 18px; border-top:4px solid var(--teal); }
+.kpi.warn { border-top-color:var(--yellow); }
+.kpi.bad { border-top-color:var(--red); }
+.kpi .lbl { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--gray); }
+.kpi .val { font-size:30px; font-weight:700; line-height:1.15; margin-top:6px; }
+.kpi .hint { font-size:12px; color:var(--gray); margin-top:6px; }
+.grid-2 { display:grid; grid-template-columns:1.4fr .8fr; gap:16px; margin-bottom:22px; }
+.card { background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+.card h2 { font-size:14px; padding:14px 18px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.card .body { padding:16px 18px; }
+.notes { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:22px; }
+.note { background:#fff; border-radius:8px; padding:14px 16px; border-left:4px solid var(--teal); }
+.note.bad { border-left-color:var(--red); background:var(--red-bg); }
+.note.warn { border-left-color:var(--yellow); background:var(--yellow-bg); }
+.note h3 { font-size:13px; margin-bottom:4px; }
+.note p { font-size:13px; color:#374151; }
+.heat-wrap { overflow-x:auto; }
+table.heat { border-collapse:collapse; min-width:980px; width:100%; }
+table.heat th, table.heat td { padding:6px 5px; font-size:11px; text-align:center; }
+table.heat th { color:var(--gray); font-weight:600; }
+table.heat td.name { text-align:left; font-weight:600; white-space:nowrap; padding-left:10px; width:170px; }
+table.heat td.co { text-align:left; color:var(--gray); width:80px; }
+table.heat .cell { border-radius:4px; min-width:52px; font-variant-numeric:tabular-nums; font-weight:600; padding:6px 0; }
+.legend { display:flex; gap:12px; flex-wrap:wrap; font-size:12px; color:var(--gray); padding:0 18px 14px; }
+.sw { width:12px; height:12px; border-radius:3px; display:inline-block; margin-right:4px; vertical-align:-1px; }
+table.detail { width:100%; border-collapse:collapse; }
+table.detail th { text-align:left; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--gray); padding:10px 12px; border-bottom:1px solid var(--border); cursor:pointer; user-select:none; background:#fafaf9; white-space:nowrap; }
+table.detail th.num, table.detail td.num { text-align:right; font-variant-numeric:tabular-nums; }
+table.detail td { padding:10px 12px; border-bottom:1px solid #f3f4f6; }
+table.detail tr:hover td { background:#f9fafb; }
+.bar-row { display:flex; align-items:center; gap:10px; margin:8px 0; font-size:13px; }
+.bar-row .nm { width:220px; flex-shrink:0; }
+.bar-track { flex:1; height:10px; background:#f3f4f6; border-radius:99px; overflow:hidden; }
+.bar-fill { height:100%; background:var(--teal); }
+.muted { color:var(--gray); font-size:12px; }
+.tog { display:flex; gap:6px; }
+.tog button { border:1px solid var(--border); background:#fff; padding:4px 10px; border-radius:6px; font-size:12px; cursor:pointer; font-weight:600; }
+.tog button.on { background:var(--navy); color:#fff; border-color:var(--navy); }
+footer { margin-top:18px; font-size:12px; color:var(--gray); }
+@media (max-width:900px) {
+  .kpis, .grid-2, .notes { grid-template-columns:1fr; }
+  .header { padding:20px; }
+  .search { margin-left:0; width:100%; }
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <div class="kicker">FOS labor hours · Clockify via fos_labor_costs</div>
+    <h1>Contractor billable utilization</h1>
+    <div class="sub">RET · KForce · Coherent · 12 complete weeks ending 23 Aug 2026</div>
+  </div>
+  <div class="header-meta">
+    Mon 1 Jun 2026 – Sun 23 Aug 2026<br>
+    Billable mix = billable hours ÷ hours logged<br>
+    Capacity = billable hours ÷ (45h × 12 weeks)
+  </div>
+</div>
+<div class="wrap">
+  <div class="toolbar">
+    <button class="chip on" data-co="ALL">All companies</button>
+    <button class="chip" data-co="RET">RET</button>
+    <button class="chip" data-co="KForce">KForce</button>
+    <button class="chip" data-co="Coherent">Coherent</button>
+    <input class="search" id="q" placeholder="Filter by name…">
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <div class="notes">
+    <div class="note bad">
+      <h3>KForce mix is 55%</h3>
+      <p><strong>Luis Addor</strong> logged 426h, all on Product, all non-billable (0% mix). <strong>Kaleb Silva</strong> is 100% billable on LeadWhisper / PCL LW. Neither logged the week of 17 Aug.</p>
+    </div>
+    <div class="note">
+      <h3>RET is fully billable</h3>
+      <p>4,883h at 100% mix. <strong>Sathyaraj Anandhan</strong> last logged the week of 6 Jul (6 weeks). <strong>Amrik Das</strong> is Active with 0 hours. <strong>Tanmay Doiphode</strong> averaged 54h/week (135h the week of 3 Aug).</p>
+    </div>
+    <div class="note">
+      <h3>Coherent is 99.5% billable</h3>
+      <p>8,280h logged. The only non-billable block is <strong>Ivan Zenov</strong> 40h on Harpin General the week of 27 Jul (90.9% mix). Several people regularly post 64–80h weeks.</p>
+    </div>
+    <div class="note warn">
+      <h3>Week of 3 Aug is spiky</h3>
+      <p>Several contractors show 80–135h that week (Tanmay 135, Abhilash 90, Yash 81, Kaleb 80). Treat as overtime or a catch-up / export artifact until Clockify is spot-checked.</p>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <h2>Weekly billable vs non-billable hours <span class="muted" id="trendCaption">All companies</span></h2>
+      <div class="body"><svg id="trend" viewBox="0 0 640 220" width="100%" height="220"></svg></div>
+    </div>
+    <div class="card">
+      <h2>Hours by project <span class="muted">filtered set</span></h2>
+      <div class="body" id="projects"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:22px">
+    <h2>
+      Person × week heatmap
+      <span class="tog">
+        <button class="on" id="modeMix">Billable mix</button>
+        <button id="modeHrs">Hours vs 45h</button>
+      </span>
+    </h2>
+    <div class="legend" id="legend"></div>
+    <div class="heat-wrap"><table class="heat" id="heat"></table></div>
+  </div>
+  <div class="card">
+    <h2>People <span class="muted" id="peopleCount"></span></h2>
+    <table class="detail" id="detail"><thead></thead><tbody></tbody></table>
+  </div>
+  <footer>
+    Source: Supabase <code>fos_labor_costs</code> joined to <code>fos_clockify_users</code>
+    (company enum RET / KForce / Coherent). Weeks are Monday-start, America/New_York.
+    Contractor weekly target is 45 hours (Labor Hours partner default). Current week of 24 Aug is excluded as incomplete.
+    Clockify company name is <strong>Coherent</strong> (not “Coherrent Resources”).
+    Inactive roster rows without time are omitted except Active RET <em>Amrik Das</em> (zero hours).
+  </footer>
+</div>
+<script>
+const DATA = {"generated":"2026-08-24","range":"2026-06-01 to 2026-08-23","weeks":["2026-06-01","2026-06-08","2026-06-15","2026-06-22","2026-06-29","2026-07-06","2026-07-13","2026-07-20","2026-07-27","2026-08-03","2026-08-10","2026-08-17"],"weekLabels":["Jun 1","Jun 8","Jun 15","Jun 22","Jun 29","Jul 6","Jul 13","Jul 20","Jul 27","Aug 3","Aug 10","Aug 17"],"target":45.0,"people":[{"name":"Alexander Evtushenko","company":"Coherent","email":"alexander.evtushenko@harpin.ai","status":"Active","hours":[32.0,40.0,40.0,40.0,40.0,40.0,40.0,40.0,40.0,80.0,64.0,0.0],"billable":[32.0,40.0,40.0,40.0,40.0,40.0,40.0,40.0,40.0,80.0,64.0,0.0],"total":496.0,"bill":496.0,"nonbill":0.0,"weeksLogged":11,"mix":100.0,"cap12":91.9,"capPresent":100.2,"avg":41.3},{"name":"Anatoly Burdo","company":"Coherent","email":"anatoly.burdo@harpin.ai","status":"Active","hours":[0.0,0.0,0.0,0.0,24.0,40.0,40.0,40.0,40.0,40.0,32.0,40.0],"billable":[0.0,0.0,0.0,0.0,24.0,40.0,40.0,40.0,40.0,40.0,32.0,40.0],"total":296.0,"bill":296.0,"nonbill":0.0,"weeksLogged":8,"mix":100.0,"cap12":54.8,"capPresent":82.2,"avg":24.7},{"name":"Anton Shulga","company":"Coherent","email":"anton.shulga@harpin.ai","status":"Active","hours":[0.0,0.0,0.0,0.0,16.0,40.1,40.0,40.0,40.0,40.0,40.0,0.0],"billable":[0.0,0.0,0.0,0.0,16.0,40.1,40.0,40.0,40.0,40.0,40.0,0.0],"total":256.1,"bill":256.1,"nonbill":0.0,"weeksLogged":7,"mix":100.0,"cap12":47.4,"capPresent":81.3,"avg":21.3},{"name":"Denys Kozko","company":"Coherent","email":"denys.kozko@harpin.ai","status":"Active","hours":[32.0,40.0,40.0,16.0,64.0,80.0,32.0,80.0,80.0,80.0,80.0,0.0],"billable":[32.0,40.0,40.0,16.0,64.0,80.0,32.0,80.0,80.0,80.0,80.0,0.0],"total":624.0,"bill":624.0,"nonbill":0.0,"weeksLogged":11,"mix":100.0,"cap12":115.6,"capPresent":126.1,"avg":52.0},{"name":"Eugen Alkhimov","company":"Coherent","email":"eugen.alkhimov@harpin.ai","status":"Active","hours":[40.0,32.0,16.0,32.0,64.0,32.0,80.0,72.0,80.0,80.0,64.0,40.0],"billable":[40.0,32.0,16.0,32.0,64.0,32.0,80.0,72.0,80.0,80.0,64.0,40.0],"total":632.0,"bill":632.0,"nonbill":0.0,"weeksLogged":12,"mix":100.0,"cap12":117.0,"capPresent":117.0,"avg":52.7},{"name":"Inna Kostrykina","company":"Coherent","email":"inna.kostrykina@harpin.ai","status":"Active","hours":[40.0,40.0,40.0,40.0,32.0,40.0,40.0,40.0,40.0,40.0,40.0,40.0],"billable":[40.0,40.0,40.0,40.0,32.0,40.0,40.0,40.0,40.0,40.0,40.0,40.0],"total":472.0,"bill":472.0,"nonbill":0.0,"weeksLogged":12,"mix":100.0,"cap12":87.4,"capPresent":87.4,"avg":39.3},{"name":"Kiryl Bialitski","company":"Coherent","email":"kiryl.bialitski@harpin.ai","status":"Active","hours":[32.0,40.0,40.0,40.0,32.0,16.0,40.0,40.0,40.0,40.0,40.0,0.0],"billable":[32.0,40.0,40.0,40.0,32.0,16.0,40.0,40.0,40.0,40.0,40.0,0.0],"total":400.0,"bill":400.0,"nonbill":0.0,"weeksLogged":11,"mix":100.0,"cap12":74.1,"capPresent":80.8,"avg":33.3},{"name":"Olga Rutskaya","company":"Coherent","email":"olga.rutskaya@harpin.ai","status":"Active","hours":[40.0,32.0,24.0,40.0,40.0,40.0,40.0,48.0,40.0,80.0,40.0,40.0],"billable":[40.0,32.0,24.0,40.0,40.0,40.0,40.0,48.0,40.0,80.0,40.0,40.0],"total":504.0,"bill":504.0,"nonbill":0.0,"weeksLogged":12,"mix":100.0,"cap12":93.3,"capPresent":93.3,"avg":42.0},{"name":"Paul Cozma","company":"Coherent","email":"paul.cozma@harpin.ai","status":"Active","hours":[32.0,40.0,40.0,0.0,48.0,64.0,80.0,80.0,80.0,40.0,40.0,40.0],"billable":[32.0,40.0,40.0,0.0,48.0,64.0,80.0,80.0,80.0,40.0,40.0,40.0],"total":584.0,"bill":584.0,"nonbill":0.0,"weeksLogged":11,"mix":100.0,"cap12":108.1,"capPresent":118.0,"avg":48.7},{"name":"Pavel Kostoglod","company":"Coherent","email":"pavel.kostoglod@harpin.ai","status":"Active","hours":[32.0,40.0,40.0,40.0,40.0,24.0,40.0,40.0,40.0,40.0,40.0,40.0],"billable":[32.0,40.0,40.0,40.0,40.0,24.0,40.0,40.0,40.0,40.0,40.0,40.0],"total":456.0,"bill":456.0,"nonbill":0.0,"weeksLogged":12,"mix":100.0,"cap12":84.4,"capPresent":84.4,"avg":38.0},{"name":"Sandra Muniz","company":"Coherent","email":"sandra.muniz@harpin.ai","status":"Active","hours":[40.0,40.0,40.0,40.0,24.0,32.0,40.0,40.0,40.0,40.0,40.0,40.0],"billable":[40.0,40.0,40.0,40.0,24.0,32.0,40.0,40.0,40.0,40.0,40.0,40.0],"total":456.0,"bill":456.0,"nonbill":0.0,"weeksLogged":12,"mix":100.0,"cap12":84.4,"capPresent":84.4,"avg":38.0},{"name":"Sergey Vologa","company":"Coherent","email":"sergey.vologa@harpin.ai","status":"Active","hours":[40.0,40.0,40.0,40.0,32.0,40.0,40.0,40.0,40.0,32.0,32.0,0.0],"billable":[40.0,40.0,40.0,40.0,32.0,40.0,40.0,40.0,40.0,32.0,32.0,0.0],"total":416.0,"bill":416.0,"nonbill":0.0,"weeksLogged":11,"mix":100.0,"cap12":77.0,"capPresent":84.0,"avg":34.7},{"name":"Tatiana Prokhorchuk","company":"Coherent","email":"tatiana.prokhorchuk@harpin.ai","status":"Active","hours":[40.0,40.0,32.0,40.0,40.0,40.0,40.0,40.0,40.0,40.0,32.0,40.0],"billable":[40.0,40.0,32.0,40.0,40.0,40.0,40.0,40.0,40.0,40.0,32.0,40.0],"total":464.0,"bill":464.0,"nonbill":0.0,"weeksLogged":12,"mix":100.0,"cap12":85.9,"capPresent":85.9,"avg":38.7},{"name":"Tatsiana Kantarovich","company":"Coherent","email":"tatsiana.kantarovich@harpin.ai","status":"Active","hours":[40.0,32.0,40.0,40.0,40.0,40.0,40.0,40.0,32.0,40.0,40.0,40.0],"billable":[40.0,32.0,40.0,40.0,40.0,40.0,40.0,40.0,32.0,40.0,40.0,40.0],"total":464.0,"bill":464.0,"nonbill":0.0,"weeksLogged":12,"mix":100.0,"cap12":85.9,"capPresent":85.9,"avg":38.7},{"name":"Vasily Denisov","company":"Coherent","email":"vasily.denisov@harpin.ai","status":"Active","hours":[40.0,40.0,40.0,40.0,40.0,40.0,40.0,0.0,0.0,40.0,40.0,40.0],"billable":[40.0,40.0,40.0,40.0,40.0,40.0,40.0,0.0,0.0,40.0,40.0,40.0],"total":400.0,"bill":400.0,"nonbill":0.0,"weeksLogged":10,"mix":100.0,"cap12":74.1,"capPresent":88.9,"avg":33.3},{"name":"Yauhen Dashkevich","company":"Coherent","email":"yauhen.dashkevich@harpin.ai","status":"Active","hours":[24.0,40.0,40.0,32.0,24.0,24.0,40.0,40.0,40.0,40.0,40.0,40.0],"billable":[24.0,40.0,40.0,32.0,24.0,24.0,40.0,40.0,40.0,40.0,40.0,40.0],"total":424.0,"bill":424.0,"nonbill":0.0,"weeksLogged":12,"mix":100.0,"cap12":78.5,"capPresent":78.5,"avg":35.3},{"name":"Yauheni Shaikevich","company":"Coherent","email":"yauheni.shaikevich@harpin.ai","status":"Active","hours":[40.0,40.0,40.0,40.0,40.0,40.0,40.0,40.0,24.0,32.0,80.0,40.0],"billable":[40.0,40.0,40.0,40.0,40.0,40.0,40.0,40.0,24.0,32.0,80.0,40.0],"total":496.0,"bill":496.0,"nonbill":0.0,"weeksLogged":12,"mix":100.0,"cap12":91.9,"capPresent":91.9,"avg":41.3},{"name":"Ivan Zenov","company":"Coherent","email":"ivan.zenov@harpin.ai","status":"Active","hours":[40.0,40.0,40.0,40.0,0.0,40.0,40.0,40.0,40.0,40.0,40.0,40.0],"billable":[40.0,40.0,40.0,40.0,0.0,40.0,40.0,40.0,0.0,40.0,40.0,40.0],"total":440.0,"bill":400.0,"nonbill":40.0,"weeksLogged":11,"mix":90.9,"cap12":74.1,"capPresent":80.8,"avg":36.7},{"name":"Kaleb Silva","company":"KForce","email":"kaleb.silva@harpin.ai","status":"Active","hours":[40.0,40.0,40.0,40.0,40.0,40.0,40.0,40.0,40.0,80.0,80.0,0.0],"billable":[40.0,40.0,40.0,40.0,40.0,40.0,40.0,40.0,40.0,80.0,80.0,0.0],"total":520.0,"bill":520.0,"nonbill":0.0,"weeksLogged":11,"mix":100.0,"cap12":96.3,"capPresent":105.1,"avg":43.3},{"name":"Luis Addor","company":"KForce","email":"luis.addor@harpin.ai","status":"Active","hours":[32.0,40.0,38.0,36.0,40.0,40.0,40.0,40.0,40.0,40.0,40.0,0.0],"billable":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"total":426.0,"bill":0.0,"nonbill":426.0,"weeksLogged":11,"mix":0.0,"cap12":0.0,"capPresent":0.0,"avg":35.5},{"name":"Abhilash Panda","company":"RET","email":"abhilash.panda@harpin.ai","status":"Active","hours":[45.0,45.0,45.0,45.0,45.0,45.0,36.0,45.0,46.0,90.0,45.0,36.0],"billable":[45.0,45.0,45.0,45.0,45.0,45.0,36.0,45.0,46.0,90.0,45.0,36.0],"total":568.0,"bill":568.0,"nonbill":0.0,"weeksLogged":12,"mix":100.0,"cap12":105.2,"capPresent":105.2,"avg":47.3},{"name":"Debesh Satapathy","company":"RET","email":"debesh.satapathy@harpin.ai","status":"Active","hours":[42.0,36.0,45.0,36.0,45.0,36.0,18.0,45.0,46.0,45.0,45.0,36.0],"billable":[42.0,36.0,45.0,36.0,45.0,36.0,18.0,45.0,46.0,45.0,45.0,36.0],"total":475.0,"bill":475.0,"nonbill":0.0,"weeksLogged":12,"mix":100.0,"cap12":88.0,"capPresent":88.0,"avg":39.6},{"name":"Meghna Das","company":"RET","email":"meghna.das@harpin.ai","status":"Active","hours":[45.0,36.0,45.0,45.0,45.0,31.5,45.0,45.0,41.5,45.0,45.0,40.5],"billable":[45.0,36.0,45.0,45.0,45.0,31.5,45.0,45.0,41.5,45.0,45.0,40.5],"total":509.5,"bill":509.5,"nonbill":0.0,"weeksLogged":12,"mix":100.0,"cap12":94.4,"capPresent":94.4,"avg":42.5},{"name":"Prabhat Subudhi","company":"RET","email":"prabhat.subudhi@harpin.ai","status":"Active","hours":[45.0,36.0,45.0,45.0,45.0,40.5,18.0,9.0,46.0,45.0,45.0,36.0],"billable":[45.0,36.0,45.0,45.0,45.0,40.5,18.0,9.0,46.0,45.0,45.0,36.0],"total":455.5,"bill":455.5,"nonbill":0.0,"weeksLogged":12,"mix":100.0,"cap12":84.4,"capPresent":84.4,"avg":38.0},{"name":"Sathyaraj Anandhan","company":"RET","email":"sathyaraj.anandhan@harpin.ai","status":"Active","hours":[45.0,36.0,45.0,27.0,45.0,36.0,0.0,0.0,0.0,0.0,0.0,0.0],"billable":[45.0,36.0,45.0,27.0,45.0,36.0,0.0,0.0,0.0,0.0,0.0,0.0],"total":234.0,"bill":234.0,"nonbill":0.0,"weeksLogged":6,"mix":100.0,"cap12":43.3,"capPresent":86.7,"avg":19.5},{"name":"Sourabh Sharma","company":"RET","email":"sourabh.sharma@harpin.ai","status":"Active","hours":[45.0,45.0,45.0,45.0,45.0,45.0,36.0,45.0,45.0,45.0,45.0,36.0],"billable":[45.0,45.0,45.0,45.0,45.0,45.0,36.0,45.0,45.0,45.0,45.0,36.0],"total":522.0,"bill":522.0,"nonbill":0.0,"weeksLogged":12,"mix":100.0,"cap12":96.7,"capPresent":96.7,"avg":43.5},{"name":"Subhashree Baral","company":"RET","email":"subhashree.baral@harpin.ai","status":"Active","hours":[9.0,36.0,36.0,45.0,45.0,45.0,36.0,45.0,46.0,45.0,36.0,0.0],"billable":[9.0,36.0,36.0,45.0,45.0,45.0,36.0,45.0,46.0,45.0,36.0,0.0],"total":424.0,"bill":424.0,"nonbill":0.0,"weeksLogged":11,"mix":100.0,"cap12":78.5,"capPresent":85.7,"avg":35.3},{"name":"Tanmay Doiphode","company":"RET","email":"tanmay.doiphode@harpin.ai","status":"Active","hours":[45.0,18.0,36.0,45.0,45.0,45.0,36.0,45.0,63.0,135.0,63.0,72.0],"billable":[45.0,18.0,36.0,45.0,45.0,45.0,36.0,45.0,63.0,135.0,63.0,72.0],"total":648.0,"bill":648.0,"nonbill":0.0,"weeksLogged":12,"mix":100.0,"cap12":120.0,"capPresent":120.0,"avg":54.0},{"name":"Vishal Pal","company":"RET","email":"vishal.pal@harpin.ai","status":"Active","hours":[45.0,45.0,45.0,45.0,45.0,45.0,45.0,45.0,46.0,45.0,36.0,0.0],"billable":[45.0,45.0,45.0,45.0,45.0,45.0,45.0,45.0,46.0,45.0,36.0,0.0],"total":487.0,"bill":487.0,"nonbill":0.0,"weeksLogged":11,"mix":100.0,"cap12":90.2,"capPresent":98.4,"avg":40.6},{"name":"Yash Pradhan","company":"RET","email":"yash.pradhan@harpin.ai","status":"Active","hours":[45.0,36.0,45.0,45.0,45.0,45.0,45.0,45.0,46.0,81.0,46.0,36.0],"billable":[45.0,36.0,45.0,45.0,45.0,45.0,45.0,45.0,46.0,81.0,46.0,36.0],"total":560.0,"bill":560.0,"nonbill":0.0,"weeksLogged":12,"mix":100.0,"cap12":103.7,"capPresent":103.7,"avg":46.7},{"name":"Amrik Das","company":"RET","email":"amrik.das@harpin.ai","status":"Active","hours":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"billable":[0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0],"total":0.0,"bill":0.0,"nonbill":0.0,"weeksLogged":0,"mix":null,"cap12":0.0,"capPresent":null,"avg":0.0}],"companyWeek":{"RET":{"h":[411.0,369.0,432.0,423.0,450.0,414.0,315.0,369.0,425.5,576.0,406.0,292.5],"b":[411.0,369.0,432.0,423.0,450.0,414.0,315.0,369.0,425.5,576.0,406.0,292.5]},"KForce":{"h":[72.0,80.0,78.0,76.0,80.0,80.0,80.0,80.0,80.0,120.0,120.0,0.0],"b":[40.0,40.0,40.0,40.0,40.0,40.0,40.0,40.0,40.0,80.0,80.0,0.0]},"Coherent":{"h":[584.0,616.0,592.0,560.0,640.0,712.1,792.0,800.0,776.0,864.0,824.0,520.0],"b":[584.0,616.0,592.0,560.0,640.0,712.1,792.0,800.0,736.0,864.0,824.0,520.0]}},"projects":[{"company":"Coherent","project":"Shipwright (PCL - Utility Services)","hours":3057.0,"billable":3057.0},{"company":"Coherent","project":"Ocean Identity","hours":1465.0,"billable":1465.0},{"company":"Coherent","project":"LeadWhisper","hours":1294.0,"billable":1294.0},{"company":"Coherent","project":"Marriott CO 15&16","hours":804.0,"billable":804.0},{"company":"Coherent","project":"Marriott","hours":644.0,"billable":644.0},{"company":"Coherent","project":"Marriott SOW 1 + CO 1-12","hours":392.0,"billable":392.0},{"company":"Coherent","project":"Omnichannel","hours":296.1,"billable":296.1},{"company":"Coherent","project":"2026 Dedicated LW Team for PCL","hours":288.0,"billable":288.0},{"company":"Coherent","project":"Harpin General","hours":40.0,"billable":0.0},{"company":"KForce","project":"LeadWhisper","hours":440.0,"billable":440.0},{"company":"KForce","project":"Product","hours":426.0,"billable":0.0},{"company":"KForce","project":"2026 Dedicated LW Team for PCL","hours":80.0,"billable":80.0},{"company":"RET","project":"LeadWhisper","hours":3649.0,"billable":3649.0},{"company":"RET","project":"2026 Dedicated LW Team for PCL","hours":982.0,"billable":982.0},{"company":"RET","project":"Customer IP Dev Support","hours":252.0,"billable":252.0}]};
+let company = "ALL";
+let query = "";
+let heatMode = "mix";
+let sortKey = "mix";
+let sortDir = "asc";
+const $ = (id) => document.getElementById(id);
+
+function peopleFiltered() {
+  const q = query.trim().toLowerCase();
+  return DATA.people.filter((p) => {
+    if (company !== "ALL" && p.company !== company) return false;
+    if (q && !p.name.toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+function fmt(n, d) {
+  if (d == null) d = 1;
+  if (n == null || Number.isNaN(n)) return "—";
+  return Number(n).toLocaleString(undefined, { maximumFractionDigits: d, minimumFractionDigits: d });
+}
+function pct(n) { return n == null ? "—" : fmt(n, 1) + "%"; }
+function mixTone(m) {
+  if (m == null) return "";
+  if (m < 80) return "bad";
+  if (m < 95) return "warn";
+  return "";
+}
+function cellColorMix(b, h) {
+  if (!h) return "#e5e7eb";
+  const m = 100 * b / h;
+  if (m < 50) return "#fecaca";
+  if (m < 80) return "#fed7aa";
+  if (m < 95) return "#fde68a";
+  return "#99f6e4";
+}
+function cellColorHours(h) {
+  if (!h) return "#e5e7eb";
+  if (h < 36) return "#fde68a";
+  if (h <= 50) return "#99f6e4";
+  return "#fdba74";
+}
+function renderKpis() {
+  const ps = peopleFiltered();
+  const hours = ps.reduce((s, p) => s + p.total, 0);
+  const bill = ps.reduce((s, p) => s + p.bill, 0);
+  const mix = hours ? (100 * bill / hours) : 0;
+  const n = ps.filter((p) => p.weeksLogged > 0).length;
+  const zero = ps.filter((p) => p.total === 0).length;
+  const lowMix = ps.filter((p) => p.mix != null && p.mix < 95).length;
+  $("kpis").innerHTML =
+    '<div class="kpi"><div class="lbl">People in view</div><div class="val">' + ps.length + '</div><div class="hint">' + n + " with time · " + zero + " zero hours</div></div>" +
+    '<div class="kpi"><div class="lbl">Hours logged</div><div class="val">' + fmt(hours, 0) + '</div><div class="hint">' + fmt(bill, 0) + " billable · " + fmt(hours - bill, 0) + " non-billable</div></div>" +
+    '<div class="kpi ' + mixTone(mix) + '"><div class="lbl">Billable mix</div><div class="val">' + pct(mix) + '</div><div class="hint">Billable hours ÷ hours logged</div></div>' +
+    '<div class="kpi ' + (lowMix ? "warn" : "") + '"><div class="lbl">Below 95% mix</div><div class="val">' + lowMix + '</div><div class="hint">People whose logged time is not fully billable</div></div>';
+}
+function renderTrend() {
+  const svg = $("trend");
+  const labels = DATA.weekLabels;
+  let bill = Array(12).fill(0);
+  let non = Array(12).fill(0);
+  if (company === "ALL") {
+    Object.keys(DATA.companyWeek).forEach((key) => {
+      const c = DATA.companyWeek[key];
+      c.b.forEach((v, i) => { bill[i] += v; });
+      c.h.forEach((v, i) => { non[i] += (c.h[i] - c.b[i]); });
+    });
+  } else {
+    const c = DATA.companyWeek[company];
+    bill = c.b.slice();
+    non = c.h.map((h, i) => h - c.b[i]);
+  }
+  $("trendCaption").textContent = company === "ALL" ? "All companies" : company;
+  const max = Math.max.apply(null, bill.map((b, i) => b + non[i]).concat([1]));
+  const W = 640, H = 220, padL = 44, padR = 12, padT = 16, padB = 36;
+  const iw = W - padL - padR, ih = H - padT - padB;
+  const x = (i) => padL + (i + 0.5) * iw / 12;
+  const y = (v) => padT + ih - (v / max) * ih;
+  const barW = iw / 12 * 0.62;
+  const NS = "http://www.w3.org/2000/svg";
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  function el(name, attrs, text) {
+    const node = document.createElementNS(NS, name);
+    Object.keys(attrs).forEach((k) => node.setAttribute(k, String(attrs[k])));
+    if (text != null) node.textContent = text;
+    svg.appendChild(node);
+  }
+  [0, max / 2, max].forEach((v) => {
+    const yy = y(v);
+    el("line", { x1: padL, y1: yy, x2: W - padR, y2: yy, stroke: "#eee" });
+    el("text", { x: padL - 6, y: yy + 4, "text-anchor": "end", "font-size": 10, fill: "#6b7280" }, String(Math.round(v)));
+  });
+  bill.forEach((b, i) => {
+    const n = non[i];
+    const x0 = x(i) - barW / 2;
+    el("rect", { x: x0, y: y(b + n), width: barW, height: Math.max((n / max) * ih, 0), fill: "#9ca3af" });
+    el("rect", { x: x0, y: y(b), width: barW, height: Math.max((b / max) * ih, 0), fill: "#2B8B8B" });
+  });
+  labels.forEach((lb, i) => {
+    el("text", { x: x(i), y: H - 10, "text-anchor": "middle", "font-size": 10, fill: "#6b7280" }, lb);
+  });
+  el("rect", { x: padL, y: 2, width: 10, height: 10, fill: "#2B8B8B" });
+  el("text", { x: padL + 14, y: 11, "font-size": 11, fill: "#374151" }, "Billable");
+  el("rect", { x: padL + 80, y: 2, width: 10, height: 10, fill: "#9ca3af" });
+  el("text", { x: padL + 94, y: 11, "font-size": 11, fill: "#374151" }, "Non-billable");
+}
+function renderProjects() {
+  const rows = DATA.projects.filter((p) => company === "ALL" || p.company === company);
+  const max = Math.max.apply(null, rows.map((r) => r.hours).concat([1]));
+  $("projects").innerHTML = rows.map((r) => {
+    const mix = r.hours ? (100 * r.billable / r.hours) : 0;
+    const fill = mix < 50 ? "#dc2626" : "#2B8B8B";
+    return '<div class="bar-row"><div class="nm">' + r.project + '<div class="muted">' + r.company + "</div></div>" +
+      '<div class="bar-track"><div class="bar-fill" style="width:' + (100 * r.hours / max) + "%;background:" + fill + '"></div></div>' +
+      '<div class="muted" style="width:110px;text-align:right;font-variant-numeric:tabular-nums">' + fmt(r.hours, 0) + "h · " + pct(mix) + "</div></div>";
+  }).join("");
+}
+function renderHeat() {
+  const ps = peopleFiltered().slice().sort((a, b) => a.company.localeCompare(b.company) || a.name.localeCompare(b.name));
+  if (heatMode === "mix") {
+    $("legend").innerHTML =
+      '<span><i class="sw" style="background:#e5e7eb"></i>No time</span>' +
+      '<span><i class="sw" style="background:#fecaca"></i>&lt; 50% billable</span>' +
+      '<span><i class="sw" style="background:#fed7aa"></i>50–80%</span>' +
+      '<span><i class="sw" style="background:#fde68a"></i>80–95%</span>' +
+      '<span><i class="sw" style="background:#99f6e4"></i>≥ 95%</span>';
+  } else {
+    $("legend").innerHTML =
+      '<span><i class="sw" style="background:#e5e7eb"></i>No time</span>' +
+      '<span><i class="sw" style="background:#fde68a"></i>&lt; 36h</span>' +
+      '<span><i class="sw" style="background:#99f6e4"></i>36–50h (near 45h target)</span>' +
+      '<span><i class="sw" style="background:#fdba74"></i>&gt; 50h</span>';
+  }
+  const head = "<tr><th></th><th></th>" + DATA.weekLabels.map((w) => "<th>" + w + "</th>").join("") + "<th>Mix</th></tr>";
+  const body = ps.map((p) => {
+    const cells = p.hours.map((h, i) => {
+      const b = p.billable[i];
+      const bg = heatMode === "mix" ? cellColorMix(b, h) : cellColorHours(h);
+      const label = h ? fmt(h, 0) : "";
+      const title = p.name + " · " + DATA.weekLabels[i] + ": " + fmt(h, 1) + "h logged, " + fmt(b, 1) + "h billable";
+      return '<td><div class="cell" title="' + title.replace(/"/g, "") + '" style="background:' + bg + '">' + label + "</div></td>";
+    }).join("");
+    return '<tr><td class="co">' + p.company + '</td><td class="name">' + p.name + "</td>" + cells + "<td>" + pct(p.mix) + "</td></tr>";
+  }).join("");
+  $("heat").innerHTML = "<thead>" + head + "</thead><tbody>" + body + "</tbody>";
+}
+function renderTable() {
+  const cols = [
+    ["name", "Person"], ["company", "Company"], ["total", "Hours"], ["bill", "Billable"],
+    ["nonbill", "Non-bill"], ["mix", "Mix %"], ["avg", "Avg wk"], ["cap12", "Cap. 12w"], ["weeksLogged", "Weeks"]
+  ];
+  $("detail").querySelector("thead").innerHTML = "<tr>" + cols.map(([k, l]) => {
+    const num = (k !== "name" && k !== "company") ? "num" : "";
+    const mark = sortKey === k ? (sortDir === "asc" ? " ▲" : " ▼") : "";
+    return '<th class="' + num + '" data-k="' + k + '">' + l + mark + "</th>";
+  }).join("") + "</tr>";
+  const ps = peopleFiltered().slice().sort((a, b) => {
+    const av = a[sortKey], bv = b[sortKey];
+    if (av == null && bv == null) return 0;
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    if (typeof av === "string") return av.localeCompare(bv) * (sortDir === "asc" ? 1 : -1);
+    return (av - bv) * (sortDir === "asc" ? 1 : -1);
+  });
+  $("peopleCount").textContent = ps.length + " rows · click a header to sort";
+  $("detail").querySelector("tbody").innerHTML = ps.map((p) => {
+    const tone = p.mix != null && p.mix < 95 ? (p.mix < 50 ? "color:var(--red)" : "color:#92400e") : "";
+    return "<tr><td>" + p.name + "</td><td>" + p.company + "</td>" +
+      '<td class="num">' + fmt(p.total, 1) + "</td>" +
+      '<td class="num">' + fmt(p.bill, 1) + "</td>" +
+      '<td class="num">' + fmt(p.nonbill, 1) + "</td>" +
+      '<td class="num" style="' + tone + '">' + pct(p.mix) + "</td>" +
+      '<td class="num">' + fmt(p.avg, 1) + "</td>" +
+      '<td class="num">' + pct(p.cap12) + "</td>" +
+      '<td class="num">' + p.weeksLogged + "</td></tr>";
+  }).join("");
+}
+function renderAll() {
+  renderKpis();
+  renderTrend();
+  renderProjects();
+  renderHeat();
+  renderTable();
+}
+document.querySelectorAll(".chip").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".chip").forEach((b) => b.classList.remove("on"));
+    btn.classList.add("on");
+    company = btn.dataset.co;
+    renderAll();
+  });
+});
+$("q").addEventListener("input", (e) => { query = e.target.value; renderAll(); });
+$("modeMix").addEventListener("click", () => {
+  heatMode = "mix";
+  $("modeMix").classList.add("on");
+  $("modeHrs").classList.remove("on");
+  renderHeat();
+});
+$("modeHrs").addEventListener("click", () => {
+  heatMode = "hrs";
+  $("modeHrs").classList.add("on");
+  $("modeMix").classList.remove("on");
+  renderHeat();
+});
+$("detail").querySelector("thead").addEventListener("click", (e) => {
+  const th = e.target.closest("th");
+  if (!th) return;
+  const k = th.dataset.k;
+  if (!k) return;
+  if (sortKey === k) sortDir = sortDir === "asc" ? "desc" : "asc";
+  else {
+    sortKey = k;
+    sortDir = (k === "name" || k === "company") ? "asc" : "desc";
+  }
+  renderTable();
+});
+renderAll();
+</script>
+</body>
+</html>
