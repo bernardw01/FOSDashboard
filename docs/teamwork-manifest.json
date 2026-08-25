@@ -481,7 +481,7 @@
       "url": "https://win.godeap.io/app/projects/1615262/notebooks/313457",
       "featureId": "047",
       "publishedAt": "2026-08-24",
-      "lastSyncedAt": "2026-08-24",
+      "lastSyncedAt": "2026-08-25",
       "gitMirror": "docs/features/047-dashboard-performance-and-responsiveness.md"
     },
     "feature_047_implementation_plan": {
@@ -490,7 +490,7 @@
       "url": "https://win.godeap.io/app/projects/1615262/notebooks/313458",
       "featureId": "047",
       "publishedAt": "2026-08-24",
-      "lastSyncedAt": "2026-08-24",
+      "lastSyncedAt": "2026-08-25",
       "gitMirror": "docs/features/047-dashboard-performance-and-responsiveness-implementation-plan.md"
     }
   },
@@ -1615,6 +1615,84 @@
         "Total (rounded to nearest 0.5h): 10.0h"
       ],
       "estDevHoursGitBase": "af545be"
+    },
+    "v3.11.0 - Resource assignment allocations selected in Postgres": {
+      "id": 40883082,
+      "featureId": "047",
+      "releaseType": "Enhancement",
+      "shippedVersion": "v3.11.0",
+      "provisionalTaskName": false,
+      "releaseTitle": "Resource assignment allocations selected in Postgres",
+      "tasklist": "Data platform",
+      "tasklistId": 4174287,
+      "notebookKey": "feature_047",
+      "implementationPlanNotebookKey": "feature_047_implementation_plan",
+      "parentReleaseTaskId": 40839335,
+      "url": "https://win.godeap.io/app/tasks/40883082",
+      "createdAt": "2026-08-25",
+      "backfilledAt": "2026-08-25",
+      "backfillNote": "Shipped in commit 581c668 (feature 047 workstream B2, migration 050) with no Teamwork release task; task created retroactively. PERF_USE_RA_RPC ships off and end-to-end parity is not yet proven; _diag_verifyWorkstreamB2() must pass before the flag is enabled.",
+      "shippedAt": "2026-08-24",
+      "estDevHours": 7,
+      "estDevHoursRationale": [
+        "Git range: 24f9e39..581c668 (75 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +1 lines): +1.5h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +1 lines): +2.0h",
+        "Apps Script module `src/perfParityDiagnostics.js`: +1.1h",
+        "Apps Script module `src/supabasePanelBuilders.js`: +1.4h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 7.0h"
+      ],
+      "estDevHoursGitBase": "24f9e39",
+      "workflowStage": "Shipped"
+    }
+  },
+  "supersededDuplicates": {
+    "features_041_042": {
+      "resolvedAt": "2026-08-25",
+      "note": "The 2026-08-14 intake and publish run for features 041 and 042 executed twice about ten seconds apart and created two complete sets of records. The second set shipped as v3.7.0 and is the one tracked above. The first set was never worked and has been moved to workflow stage Archived (389194) with a supersede note appended to each description. Nothing was deleted and nothing was marked complete. Script: scripts/teamwork_resolve_duplicate_tasks_041_042.py",
+      "archivedTasks": [
+        {
+          "id": 40793084,
+          "name": "Feature 041 - PM Overview rebrand",
+          "tasklist": "Delivery",
+          "previousStage": "Spec Draft",
+          "supersededByTaskId": 40793088,
+          "supersededNotebookIds": [
+            313278,
+            313279
+          ]
+        },
+        {
+          "id": 40793085,
+          "name": "Feature 042 - Resource assignments By person variances",
+          "tasklist": "Operations",
+          "previousStage": "Spec Draft",
+          "supersededByTaskId": 40793089,
+          "supersededNotebookIds": [
+            313280,
+            313281
+          ]
+        },
+        {
+          "id": 40793083,
+          "name": "Feature request - Resource assignments by person variances",
+          "tasklist": "Inbox",
+          "previousStage": "Backlog",
+          "supersededByTaskId": 40793086,
+          "supersededNotebookIds": [
+            313280
+          ]
+        }
+      ],
+      "supersededNotebooksNotTracked": [
+        313278,
+        313279,
+        313280,
+        313281
+      ]
     }
   },
   "lastBootstrappedAt": "2026-06-10"

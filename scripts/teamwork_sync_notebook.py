@@ -146,10 +146,32 @@ def parse_args() -> argparse.Namespace:
 
 
 def default_md_for_key(notebook_key: str) -> Path:
-    feature_id = notebook_key.replace("feature_", "")
+    """Resolve the markdown for a notebook key.
+
+    The manifest `gitMirror` is authoritative. Without it, a bare glob is
+    ambiguous for any feature that also has an implementation plan, because
+    `NNN-<slug>-implementation-plan.md` sorts *before* `NNN-<slug>.md`. That
+    ordering silently published the plan into the customer-facing notebook for
+    feature 047. Filter the plan out unless the key asks for it.
+    """
+    nb_entry = load_manifest().get("notebooks", {}).get(notebook_key) or {}
+    mirror = nb_entry.get("gitMirror")
+    if mirror:
+        return ROOT / mirror
+
+    wants_plan = notebook_key.endswith("_implementation_plan")
+    feature_id = notebook_key.replace("_implementation_plan", "").replace("feature_", "")
     matches = sorted(ROOT.glob(f"docs/features/{feature_id}-*.md"))
+    matches = [
+        p for p in matches if p.name.endswith("-implementation-plan.md") == wants_plan
+    ]
     if not matches:
         raise SystemExit(f"No docs/features/{feature_id}-*.md found for {notebook_key}")
+    if len(matches) > 1:
+        names = ", ".join(p.name for p in matches)
+        raise SystemExit(
+            f"Ambiguous markdown for {notebook_key}: {names}. Pass --md explicitly."
+        )
     return matches[0]
 
 
