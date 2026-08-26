@@ -1,5 +1,5 @@
 /**
- * PRD version 3.17.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement Management Fibery → Supabase relational mirror (Pull / nightly).
  * Panel aggregation builders read the typed tables this mirror hydrates
@@ -220,6 +220,21 @@ var AM_MIRROR_ENTITY_STEPS_ = [
     mapRow: amMirrorMapServicesEstimate_,
   },
   {
+    key: 'programs',
+    kind: 'entity',
+    table: 'fos_programs',
+    onConflict: 'fibery_id',
+    from: 'Agreement Management/Program',
+    select: {
+      id: 'fibery/id',
+      publicId: 'fibery/public-id',
+      name: 'Agreement Management/Name',
+      createdAt: 'fibery/creation-date',
+      modifiedAt: 'fibery/modification-date',
+    },
+    mapRow: amMirrorMapProgram_,
+  },
+  {
     key: 'agreements',
     kind: 'entity',
     table: 'fos_agreements',
@@ -240,6 +255,9 @@ var AM_MIRROR_ENTITY_STEPS_ = [
       assignedOwnerId: ['Agreement Management/Assigned Owner', 'fibery/id'],
       customerLeadSourceId: ['Agreement Management/Customer Lead Source', 'fibery/id'],
       customerLeadSourceName: ['Agreement Management/Customer Lead Source', 'enum/name'],
+      programId: ['Agreement Management/Program', 'fibery/id'],
+      programRelName: ['Agreement Management/Program', 'Agreement Management/Name'],
+      programName: 'Agreement Management/Program Name',
       clockifyProjectId: 'Agreement Management/Clockify Project ID',
       executionDate: 'Agreement Management/Execution Date',
       duration: 'Agreement Management/Duration',
@@ -249,6 +267,10 @@ var AM_MIRROR_ENTITY_STEPS_ = [
       targetPlannedMarginAtComplete: 'Agreement Management/Target Planned Margin at Complete',
       targetCosts: 'Agreement Management/Target Costs',
       targetRevenue: 'Agreement Management/Target Revenue',
+      bidCost: 'Agreement Management/Bid Cost',
+      bidMargin: 'Agreement Management/Bid Margin',
+      bidRevenue: 'Agreement Management/Bid Revenue',
+      initialPlannedHours: 'Agreement Management/Initial Planned Hours',
       revRecognized: 'Agreement Management/Rev Recognized',
       totalAllocatedLaborCosts: 'Agreement Management/Total Allocated Labor Costs',
       totalExpenses: 'Agreement Management/Total Expenses',
@@ -1029,9 +1051,31 @@ function amMirrorMapServicesEstimate_(row) {
  * @return {?Object}
  * @private
  */
+function amMirrorMapProgram_(row) {
+  if (!row || !row.id) return null;
+  return {
+    fibery_id: row.id,
+    public_id: row.publicId || null,
+    name: row.name || null,
+    created_at: amMirrorDate_(row.createdAt),
+    modified_at: amMirrorDate_(row.modifiedAt),
+    synced_at: amMirrorNowIso_(),
+    raw: row,
+  };
+}
+
+/**
+ * @param {!Object} row
+ * @return {?Object}
+ * @private
+ */
 function amMirrorMapAgreement_(row) {
   if (!row || !row.id) return null;
   var dur = amMirrorDateRange_(row.duration);
+  var programName =
+    (row.programName && String(row.programName).trim()) ||
+    (row.programRelName && String(row.programRelName).trim()) ||
+    null;
   return {
     fibery_id: row.id,
     public_id: row.publicId || null,
@@ -1049,6 +1093,8 @@ function amMirrorMapAgreement_(row) {
     agreement_progress_name: row.agreementProgressName || null,
     customer_lead_source_id: amMirrorRelId_(row.customerLeadSourceId),
     customer_lead_source_name: row.customerLeadSourceName || null,
+    program_id: amMirrorRelId_(row.programId),
+    program_name: programName,
     clockify_project_id: row.clockifyProjectId || null,
     execution_date: amMirrorDate_(row.executionDate),
     duration_start: dur.start,
@@ -1059,6 +1105,10 @@ function amMirrorMapAgreement_(row) {
     target_planned_margin_at_complete: amMirrorNum_(row.targetPlannedMarginAtComplete),
     target_costs: amMirrorNum_(row.targetCosts),
     target_revenue: amMirrorNum_(row.targetRevenue),
+    bid_cost: amMirrorNum_(row.bidCost),
+    bid_margin: amMirrorNum_(row.bidMargin),
+    bid_revenue: amMirrorNum_(row.bidRevenue),
+    initial_planned_hours: amMirrorNum_(row.initialPlannedHours),
     rev_recognized: amMirrorNum_(row.revRecognized),
     total_allocated_labor_costs: amMirrorNum_(row.totalAllocatedLaborCosts),
     total_expenses: amMirrorNum_(row.totalExpenses),

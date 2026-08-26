@@ -1,12 +1,12 @@
 /**
- * PRD version 3.17.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Resource assignment dashboard (feature 027): portfolio-wide Fibery
  * Resource Allocations by ISO week with alerts.
  */
 
-/** @const {number} */
-var RESOURCE_ASSIGNMENTS_CACHE_SCHEMA_VERSION_ = 3;
+/** @const {number} Schema 4 adds coverageGaps punch list (feature 048). */
+var RESOURCE_ASSIGNMENTS_CACHE_SCHEMA_VERSION_ = 5;
 
 /** @const {number} */
 var RESOURCE_ASSIGNMENTS_QUERY_PAGE_LIMIT_ = 500;
@@ -194,6 +194,7 @@ function buildResourceAssignmentDashboardPayload_(rangeStartYmd, rangeEndYmd) {
     laborByDay,
     weeks
   );
+  var coverage = buildResourceAssignmentCoverageGaps_(projects, laborByDay, assignedByDay);
   var dimensions = buildResourceAssignmentDimensions_(built.persons, projects);
   var alerts = buildResourceAssignmentAlerts_(built.persons, rawRows, weeks, warnings);
   var kpis = {
@@ -216,6 +217,8 @@ function buildResourceAssignmentDashboardPayload_(rangeStartYmd, rangeEndYmd) {
     persons: built.persons,
     projects: projects,
     personVariances: personVariances,
+    coverageGaps: coverage.rows,
+    coverageGapKpis: coverage.kpis,
     dimensions: dimensions,
     kpis: kpis,
     alerts: alerts.items,
@@ -879,6 +882,40 @@ function remapResourceAssignmentLaborByDay_(byDay, laborPersonMeta, resolver) {
 }
 
 /**
+ * UTC Saturday (6) or Sunday (0).
+ * @param {!Date} d
+ * @return {boolean}
+ * @private
+ */
+function isUtcWeekendDay_(d) {
+  var day = d.getUTCDay();
+  return day === 0 || day === 6;
+}
+
+/**
+ * Inclusive Mon-Fri count between UTC date-only bounds.
+ * @param {!Date} start
+ * @param {!Date} end
+ * @return {number}
+ * @private
+ */
+function workdaysInclusiveUtc_(start, end) {
+  var n = 0;
+  var cursor = new Date(start.getTime());
+  while (cursor.getTime() <= end.getTime()) {
+    if (!isUtcWeekendDay_(cursor)) {
+      n++;
+    }
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return n;
+}
+
+/**
+ * Spread each ISO week's assigned hours across Mon-Fri only (UTC), not all
+ * calendar days. A full 40h week becomes 8h/day Mon-Fri and 0 on weekends.
+ * Week totals from computeResourceAssignmentWeekBuckets_ are unchanged.
+ *
  * @param {!Array<!Object>} rawRows
  * @param {!Array<!Object>} weeks
  * @param {number} weeklyCapacity
@@ -942,22 +979,24 @@ function aggregateResourceAssignmentAssignedByDay_(
           continue;
         }
       }
-      var overlapDays = calendarDaysInclusiveUtc_(intersect.start, intersect.end);
-      if (overlapDays <= 0) {
+      var workdayCount = workdaysInclusiveUtc_(intersect.start, intersect.end);
+      if (workdayCount <= 0) {
         continue;
       }
-      var dayHours = bucket.hours / overlapDays;
+      var dayHours = bucket.hours / workdayCount;
       var cursor = new Date(intersect.start.getTime());
       while (cursor.getTime() <= intersect.end.getTime()) {
-        var ymd = Utilities.formatDate(cursor, 'UTC', 'yyyy-MM-dd');
-        if (!out[agreementId]) {
-          out[agreementId] = {};
+        if (!isUtcWeekendDay_(cursor)) {
+          var ymd = Utilities.formatDate(cursor, 'UTC', 'yyyy-MM-dd');
+          if (!out[agreementId]) {
+            out[agreementId] = {};
+          }
+          if (!out[agreementId][personKey]) {
+            out[agreementId][personKey] = {};
+          }
+          out[agreementId][personKey][ymd] =
+            (out[agreementId][personKey][ymd] || 0) + dayHours;
         }
-        if (!out[agreementId][personKey]) {
-          out[agreementId][personKey] = {};
-        }
-        out[agreementId][personKey][ymd] =
-          (out[agreementId][personKey][ymd] || 0) + dayHours;
         cursor.setUTCDate(cursor.getUTCDate() + 1);
       }
     }
@@ -1196,6 +1235,162 @@ function buildResourceAssignmentPersonVariances_(
     });
   }
   return out;
+}
+
+/**
+ * Punch list of person x project rows that need SOW / allocation attention
+ * (feature 048). Omits fully fine pairs and internal/harpin customers.
+ *
+ * @param {!Array<!Object>} projects
+ * @param {!Object} laborByDay agreementId -> personKey -> ymd -> hours
+ * @param {!Object} assignedByDay agreementId -> personKey -> ymd -> hours
+ * @return {!{ rows: !Array<!Object>, kpis: !Object }}
+ * @private
+ */
+function buildResourceAssignmentCoverageGaps_(projects, laborByDay, assignedByDay) {
+  projects = projects || [];
+  laborByDay = laborByDay || {};
+  assignedByDay = assignedByDay || {};
+  var rows = [];
+  var personSeen = {};
+  var hoursNoSow = 0;
+  var hoursUnplanned = 0;
+
+  for (var pi = 0; pi < projects.length; pi++) {
+    var proj = projects[pi];
+    var customer = proj.customerName || '';
+    if (typeof isNoAllocationOrangeExemptCustomer_ === 'function') {
+      if (isNoAllocationOrangeExemptCustomer_(customer)) {
+        continue;
+      }
+    }
+    var aid = proj.agreementId || proj.key || '';
+    var persons = proj.persons || [];
+    for (var ui = 0; ui < persons.length; ui++) {
+      var pers = persons[ui];
+      var pKey = pers.personKey;
+      var hoursLogged = 0;
+      var hoursAssigned = 0;
+      var byWeek = pers.byWeek || {};
+      for (var wk in byWeek) {
+        if (!Object.prototype.hasOwnProperty.call(byWeek, wk)) continue;
+        hoursLogged += byWeek[wk].actualHours || 0;
+        hoursAssigned += byWeek[wk].assignedHours || 0;
+      }
+      hoursLogged = Math.round(hoursLogged * 10) / 10;
+      hoursAssigned = Math.round(hoursAssigned * 10) / 10;
+      if (hoursLogged <= 0) {
+        continue;
+      }
+
+      var hasAssignment = !!pers.hasAssignment;
+      var allocatedBillable = pers.allocatedAndBillable !== false;
+      var unplanned = !hasAssignment || hoursAssigned <= 0;
+      var noSow = !hasAssignment || !allocatedBillable || hoursAssigned <= 0;
+      if (!unplanned && !noSow) {
+        continue;
+      }
+
+      var issues = [];
+      if (noSow) {
+        issues.push('no_sow');
+        hoursNoSow += hoursLogged;
+      }
+      if (unplanned) {
+        issues.push('unplanned');
+        hoursUnplanned += hoursLogged;
+      }
+
+      var sowStatus = 'not_on_sow';
+      if (hasAssignment && allocatedBillable && hoursAssigned > 0) {
+        sowStatus = 'allocated_billable';
+      } else if (!hasAssignment && hoursAssigned <= 0) {
+        sowStatus = 'none';
+      }
+
+      var byDayMerged = {};
+      var firstLogged = null;
+      var lastLogged = null;
+      var laborDays =
+        (laborByDay[aid] && laborByDay[aid][pKey]) || {};
+      var assignedDays =
+        (assignedByDay[aid] && assignedByDay[aid][pKey]) || {};
+      var dayKeys = {};
+      var dk;
+      for (dk in laborDays) {
+        if (Object.prototype.hasOwnProperty.call(laborDays, dk)) {
+          dayKeys[dk] = true;
+        }
+      }
+      for (dk in assignedDays) {
+        if (Object.prototype.hasOwnProperty.call(assignedDays, dk)) {
+          dayKeys[dk] = true;
+        }
+      }
+      var sortedDays = Object.keys(dayKeys).sort();
+      for (var di = 0; di < sortedDays.length; di++) {
+        var ymd = sortedDays[di];
+        var act = laborDays[ymd] || 0;
+        var asg = assignedDays[ymd] || 0;
+        if (!act && !asg) {
+          continue;
+        }
+        byDayMerged[ymd] = {
+          assignedHours: Math.round(asg * 10) / 10,
+          actualHours: Math.round(act * 10) / 10,
+          varianceHours: Math.round((act - asg) * 10) / 10,
+        };
+        if (act > 0) {
+          if (!firstLogged || ymd < firstLogged) {
+            firstLogged = ymd;
+          }
+          if (!lastLogged || ymd > lastLogged) {
+            lastLogged = ymd;
+          }
+        }
+      }
+
+      personSeen[pKey] = true;
+      rows.push({
+        personKey: pKey,
+        personName: pers.name || '(Unnamed)',
+        roleName: pers.roleName || '(No role)',
+        company: pers.company || '',
+        customer: customer,
+        projectName: proj.projectName || '(Unnamed project)',
+        agreementId: aid,
+        issues: issues,
+        hoursLogged: hoursLogged,
+        hoursAssigned: hoursAssigned,
+        sowStatus: sowStatus,
+        firstLoggedDate: firstLogged,
+        lastLoggedDate: lastLogged,
+        byDay: byDayMerged,
+      });
+    }
+  }
+
+  rows.sort(function (a, b) {
+    if (b.hoursLogged !== a.hoursLogged) {
+      return b.hoursLogged - a.hoursLogged;
+    }
+    var na = a.personName || '';
+    var nb = b.personName || '';
+    if (na !== nb) {
+      return na.localeCompare(nb);
+    }
+    return String(a.projectName || '').localeCompare(String(b.projectName || ''));
+  });
+
+  return {
+    rows: rows,
+    kpis: {
+      rowCount: rows.length,
+      personCount: Object.keys(personSeen).length,
+      hoursNoSow: Math.round(hoursNoSow * 10) / 10,
+      hoursUnplanned: Math.round(hoursUnplanned * 10) / 10,
+    },
+  };
 }
 
 /* ------------------------------------------------------------------------- */

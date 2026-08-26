@@ -1,6 +1,6 @@
 # Feature: Resource assignment dashboard (Operations)
 
-> **PRD version 3.15.1** - sync with `docs/FOS-Dashboard-PRD.md` (**FR-122**, **AC-81**; allocation read path extended by **FR-146** / **AC-107** in feature 047 workstream B2).  
+> **PRD version 3.19.1** - sync with `docs/FOS-Dashboard-PRD.md` (**FR-122**, **AC-81**; allocation read path extended by **FR-146** / **AC-107** in feature 047 workstream B2; daily Assigned hours workday spread extends **FR-139**).  
 > **Intake:** Inbox task [40228925 - Resource Assignment Dashboard](https://win.godeap.io/app/tasks/40228925).  
 > **Feature id:** 027 | **Task list:** Operations  
 > **Extends / reuses:** [Feature 019](019-resource-allocation-pnl-chart.md) (Fibery Resource Allocations, calendar-day proration), [Feature 024](024-delivery-pnl-resource-assignments-modal.md) (assignment row fields), [Feature 007](007-labor-hours-dashboard.md) (expand/collapse project breakdown UX), [Feature 005](005-utilization-management-dashboard.md) (Operations date range + filter patterns).  
@@ -78,6 +78,7 @@ Phase B and C are **out of scope** for initial implementation unless explicitly 
 - [ ] When **`Percent Allocated`** is present on a row, weekly **%** = `percentAllocated` (treat values `0 < n ≤ 1` as fractions × 100, consistent with feature **024**).
 - [ ] When **`Percent Allocated`** is missing, derive weekly hours by **calendar-day proration** of **`Allocated Hours`** across the row **`Duration`**, then convert to **%** using work-week capacity (reuse calendar-day intersection helpers from feature **019** / `prorateAllocationRowToMonths_` family, adapted to ISO weeks).
 - [ ] For **partial weeks** at range or allocation boundaries, prorate **%** and **hours** by `(overlapDaysInWeek / 7)` so totals stay consistent between collapsed % bars and expanded hour cells.
+- [x] **Daily Assigned hours** (modal / `assignedByDay`, **v3.19.1**): spread each week’s assigned hours across **Mon–Fri only** (UTC workdays in the allocation ∩ week ∩ range). A full 40h week is **8h** per weekday and **0** on Sat/Sun. Week grid totals still use calendar-day week proration above.
 - [ ] **Collapsed total %** for a person-week = **sum of segment %** across all overlapping assignments (MAY exceed 100%; bar MAY extend visually with over-allocation styling).
 
 ### Alerts
@@ -109,8 +110,9 @@ Phase B and C are **out of scope** for initial implementation unless explicitly 
 | **2.18.2** | 2026-06-09 | **Alerts UX.** Alerts grouped by **type** then **person**; both levels collapsible. |
 | **2.18.3** | 2026-06-09 | **Current week + heatmap.** Prominent **current ISO week** banner near panel top; collapsed grid cells use allocation **% heatmap** (blue → green **100-110%** → yellow/red) instead of per-project stacked bars. |
 | **3.7.4** | 2026-08-15 | **Live date range.** `getResourceAssignmentDashboardData` rebuilds weeks from Supabase typed tables for the From/To picker (hydrate blob is default-range fallback only). |
+| **3.19.1** | 2026-08-25 | **Daily Assigned hours.** Modal/`assignedByDay` spreads week hours across Mon–Fri only (8h weekday for a full 40h week); cache schema **5**. |
 
-**Current product version:** **3.7.4** (`FOS_PRD_VERSION` in `src/Code.js`).
+**Current product version:** **3.19.1** (`FOS_PRD_VERSION` in `src/Code.js`).
 
 ## UI notes
 

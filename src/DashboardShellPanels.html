@@ -1,4 +1,4 @@
-<!-- PRD version 3.17.0 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md -->
 <!-- Feature 047 D2: deferred dashboard panel markup. -->
         <div id="panel-settings" class="d-none fos-settings-root">
           <div class="card fos-card rounded-4 mb-3">
@@ -1055,6 +1055,9 @@
                 <li class="nav-item" role="presentation">
                   <button type="button" class="nav-link" id="ra-tab-project" data-ra-tab="project" role="tab" aria-selected="false" aria-controls="ra-tab-panel-project">By project</button>
                 </li>
+                <li class="nav-item" role="presentation">
+                  <button type="button" class="nav-link" id="ra-tab-coverage-gaps" data-ra-tab="coverageGaps" role="tab" aria-selected="false" aria-controls="ra-tab-panel-coverage-gaps">Coverage gaps</button>
+                </li>
               </ul>
               <p class="small mb-2" id="ra-grid-intro" style="color: var(--ag-text-muted)">Person → Assigned / Actual / Variance → project. Click a week cell for daily detail. Collapse rows to see group totals only.</p>
               <div id="ra-legend-wrap" class="mb-2 d-none">
@@ -1065,7 +1068,43 @@
                 <div class="small fw-semibold mb-1" style="color: var(--ag-text)">Plan vs actual</div>
                 <p class="ra-plan-actual-legend mb-0">Expand a project, then a person, to see <strong>Assigned</strong>, <strong>Actual</strong>, and <strong>Variance</strong> rows per week. Orange name and actual hours = no assignment or allocation not marked <em>Allocated &amp; Billable</em> in Fibery.</p>
               </div>
-              <div class="ra-grid-wrap">
+              <div id="ra-coverage-wrap" class="d-none">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2" id="ra-coverage-issue-chips" role="group" aria-label="Coverage gap issue filter">
+                  <button type="button" class="btn btn-sm fos-util-clear-btn active" data-ra-coverage-issue="all" style="min-height:44px">All problems</button>
+                  <button type="button" class="btn btn-sm fos-util-clear-btn" data-ra-coverage-issue="no_sow" style="min-height:44px">No SOW</button>
+                  <button type="button" class="btn btn-sm fos-util-clear-btn" data-ra-coverage-issue="unplanned" style="min-height:44px">Unplanned</button>
+                  <button type="button" class="btn btn-sm fos-util-clear-btn fos-mobile-only" id="ra-coverage-issue-sheet-btn" style="min-height:44px">Issue type…</button>
+                </div>
+                <div class="row g-2 mb-2" id="ra-coverage-kpis">
+                  <div class="col-6 col-md-3"><div class="fos-agreement-kpi"><div class="small text-muted">Problem rows</div><div class="fs-5 fw-bold" id="ra-coverage-kpi-rows">0</div></div></div>
+                  <div class="col-6 col-md-3"><div class="fos-agreement-kpi"><div class="small text-muted">People</div><div class="fs-5 fw-bold" id="ra-coverage-kpi-people">0</div></div></div>
+                  <div class="col-6 col-md-3"><div class="fos-agreement-kpi"><div class="small text-muted">Hours no SOW</div><div class="fs-5 fw-bold" id="ra-coverage-kpi-nosow">0</div></div></div>
+                  <div class="col-6 col-md-3"><div class="fos-agreement-kpi"><div class="small text-muted">Hours unplanned</div><div class="fs-5 fw-bold" id="ra-coverage-kpi-unplanned">0</div></div></div>
+                </div>
+                <p class="small mb-2" style="color: var(--ag-text-muted)"><strong>No SOW</strong> = not listed as Allocated &amp; Billable (or no allocation). <strong>Unplanned</strong> = logged time with no overlapping allocation. Internal/harpin projects are excluded.</p>
+                <div class="table-responsive ra-coverage-desktop-table" id="ra-coverage-table-wrap">
+                  <table class="table table-sm align-middle mb-0" id="ra-coverage-table" aria-label="SOW coverage gaps">
+                    <thead>
+                      <tr>
+                        <th scope="col">Person</th>
+                        <th scope="col">Customer</th>
+                        <th scope="col">Project</th>
+                        <th scope="col">Issues</th>
+                        <th scope="col" class="text-end">Logged h</th>
+                        <th scope="col" class="text-end">Assigned h</th>
+                        <th scope="col">SOW</th>
+                        <th scope="col">First log</th>
+                        <th scope="col">Last log</th>
+                      </tr>
+                    </thead>
+                    <tbody id="ra-coverage-tbody"></tbody>
+                  </table>
+                </div>
+                <div class="fos-mobile-only ra-coverage-mobile-cards" id="ra-coverage-cards" aria-label="SOW coverage gap cards"></div>
+                <p class="small mt-2 d-none" id="ra-coverage-empty" style="color: var(--ag-text-muted)">No coverage gaps in this date range.</p>
+                <p class="small mt-2 d-none" id="ra-coverage-unavailable" style="color: var(--ag-text-muted)">Coverage gaps are not available for this snapshot date. Switch to Live or pick a newer snapshot.</p>
+              </div>
+              <div class="ra-grid-wrap" id="ra-grid-wrap">
                 <table class="ra-grid" id="ra-grid-table" aria-label="Resource assignments by week">
                   <thead id="ra-grid-thead"></thead>
                   <tbody id="ra-grid-tbody"></tbody>

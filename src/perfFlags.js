@@ -1,5 +1,5 @@
 /**
- * PRD version 3.17.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 047 performance kill switches.
  *
@@ -36,10 +36,13 @@ var PERF_FLAG_DEFAULTS_ = {
   // Workstream B6: encode resource-assignments.personVariances as positional
   // tuples plus string tables with shared byDay dedup (measured 94.1 percent
   // off the compact slice).
-  PERF_SLIM_RA_PERSON_VARIANCES: false,
+  PERF_SLIM_RA_PERSON_VARIANCES: true,
   // Workstream B4: cache normalized labor rows per UTC-day-aligned window in
   // fos_viz_range_payloads and re-slice to the exact requested instants.
   PERF_USE_RANGE_CACHE: false,
+  // Feature 047 follow-on: serve assembled Resource assignments payloads from
+  // fos_viz_range_payloads for the exact From/To window (migration 053).
+  PERF_USE_RA_RANGE_CACHE: true,
   // Workstream B5: Reload re-reads the stored Agreement / Delivery blob instead
   // of rebuilding it from typed tables inside the user's request.
   PERF_RELOAD_REREADS_BLOB: false,

@@ -1,5 +1,5 @@
 /**
- * PRD version 3.17.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 047 Step 0: parity and measurement harness.
  *
@@ -20,6 +20,9 @@
  *     The one to run for workstream B2. Parity across all fixtures for
  *     Resource assignments, plus proof that one arm really used the Postgres
  *     RPC and the other really used the row scan.
+ *
+ *   _diag_verifyRaRangeCache()
+ *     Resource assignments assembled-payload range cache (PERF_USE_RA_RANGE_CACHE).
  *
  *   _diag_verifyWorkstreamB4()
  *     The one to run for workstream B4 (range-keyed Utilization row cache).
@@ -620,10 +623,19 @@ function _diag_verifyCodec_HeatmapWeeks() {
  * @return {!Object}
  */
 function _diag_verifyCodec_RaPersonVariances() {
-  perfFlagOverridePush_({ PERF_SLIM_RA_PERSON_VARIANCES: false });
+  perfFlagOverridePush_({
+    PERF_SLIM_RA_PERSON_VARIANCES: false,
+    PERF_USE_RA_RANGE_CACHE: false,
+  });
   var payload;
   try {
     if (
+      typeof isSupabaseConfigured_ === 'function' &&
+      isSupabaseConfigured_() &&
+      typeof buildResourceAssignmentDashboardPayloadFromSupabaseCore_ === 'function'
+    ) {
+      payload = buildResourceAssignmentDashboardPayloadFromSupabaseCore_(null, null);
+    } else if (
       typeof isSupabaseConfigured_ === 'function' &&
       isSupabaseConfigured_() &&
       typeof buildResourceAssignmentDashboardPayloadFromSupabase_ === 'function'
@@ -851,7 +863,13 @@ function _diag_verifyWorkstreamB2() {
   };
 
   raAllocSourceTallyReset_();
-  var parity = _diag_comparePerfParityAllFixtures('resource-assignments');
+  perfFlagOverridePush_({ PERF_USE_RA_RANGE_CACHE: false });
+  var parity;
+  try {
+    parity = _diag_comparePerfParityAllFixtures('resource-assignments');
+  } finally {
+    perfFlagOverridePop_();
+  }
   var tally = {
     rpc: RA_ALLOC_SOURCE_TALLY_.rpc,
     rows: RA_ALLOC_SOURCE_TALLY_.rows,
@@ -890,6 +908,108 @@ function _diag_verifyWorkstreamB2() {
     );
   }
   perfPersistRun_('parity', 'workstream B2 (resource-assignments RPC)', summary.pass, summary);
+  return summary;
+}
+
+/**
+ * Proves the Resource assignments range payload cache serves the same panel as
+ * a typed rebuild: cold miss builds+stores, warm hit reads one Postgres row.
+ *
+ * @return {!Object}
+ */
+function _diag_verifyRaRangeCache() {
+  var range = resolveResourceAssignmentRangeYmd_(null, null, []);
+  var keyHash = vizRangeCacheKeyHash_(raRangeCacheKeyInputs_());
+  vizRangeCacheDelete_(
+    RA_RANGE_CACHE_PANEL_KEY_,
+    { startYmd: range.startYmd, endYmd: range.endYmd },
+    RESOURCE_ASSIGNMENTS_CACHE_SCHEMA_VERSION_,
+    keyHash
+  );
+
+  perfFlagOverridePush_({ PERF_USE_RA_RANGE_CACHE: false });
+  var baseline;
+  var baselineMs;
+  try {
+    var t0 = Date.now();
+    baseline = buildResourceAssignmentDashboardPayloadFromSupabaseCore_(null, null);
+    baselineMs = Date.now() - t0;
+  } finally {
+    perfFlagOverridePop_();
+  }
+  if (!baseline || baseline.ok === false) {
+    return {
+      ok: false,
+      pass: false,
+      message: (baseline && baseline.message) || 'Baseline RA build failed.',
+    };
+  }
+
+  vizRangeCacheTallyReset_();
+  perfFlagOverridePush_({ PERF_USE_RA_RANGE_CACHE: true });
+  var cold;
+  var warm;
+  var coldMs;
+  var warmMs;
+  var coldTally;
+  var warmTally;
+  try {
+    var t1 = Date.now();
+    cold = buildResourceAssignmentDashboardPayloadFromSupabase_(null, null);
+    coldMs = Date.now() - t1;
+    coldTally = JSON.parse(JSON.stringify(VIZ_RANGE_CACHE_TALLY_));
+    vizRangeCacheTallyReset_();
+    var t2 = Date.now();
+    warm = buildResourceAssignmentDashboardPayloadFromSupabase_(null, null);
+    warmMs = Date.now() - t2;
+    warmTally = JSON.parse(JSON.stringify(VIZ_RANGE_CACHE_TALLY_));
+  } finally {
+    perfFlagOverridePop_();
+  }
+
+  function scrub_(p) {
+    if (!p || typeof p !== 'object') return p;
+    var copy = JSON.parse(JSON.stringify(p));
+    delete copy.fetchedAt;
+    delete copy.loadSource;
+    delete copy.rangeCacheHit;
+    delete copy.rangeCacheBuiltAt;
+    return copy;
+  }
+
+  var diffsCold = [];
+  var diffsWarm = [];
+  perfParityWalk_(scrub_(baseline), scrub_(cold), '$', diffsCold, { clockToleranceMs: 0, tolerated: [] });
+  perfParityWalk_(scrub_(baseline), scrub_(warm), '$', diffsWarm, { clockToleranceMs: 0, tolerated: [] });
+
+  var coldOutcomeOk = coldTally.miss >= 1 && coldTally.hit === 0;
+  var warmOutcomeOk = warmTally.hit >= 1 && warmTally.miss === 0;
+  var summary = {
+    workstream: 'RA-range-cache',
+    pass:
+      diffsCold.length === 0 &&
+      diffsWarm.length === 0 &&
+      coldOutcomeOk &&
+      warmOutcomeOk &&
+      !!warm.rangeCacheHit,
+    rangeStart: range.startYmd,
+    rangeEnd: range.endYmd,
+    keyHash: keyHash,
+    baselineMs: baselineMs,
+    coldMs: coldMs,
+    warmMs: warmMs,
+    coldTally: coldTally,
+    warmTally: warmTally,
+    coldDiffCount: diffsCold.length,
+    warmDiffCount: diffsWarm.length,
+    coldDiffs: diffsCold.slice(0, 25),
+    warmDiffs: diffsWarm.slice(0, 25),
+    coldOutcomeOk: coldOutcomeOk,
+    warmOutcomeOk: warmOutcomeOk,
+  };
+  console.log('===== RA RANGE CACHE VERIFICATION =====');
+  console.log(JSON.stringify(summary, null, 2));
+  perfPersistRun_('parity', 'RA range payload cache', summary.pass, summary);
   return summary;
 }
 

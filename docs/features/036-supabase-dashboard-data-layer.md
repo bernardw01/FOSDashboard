@@ -173,6 +173,7 @@ See [implementation plan](036-supabase-dashboard-data-layer-implementation-plan.
 
 | Date | Note |
 | --- | --- |
+| 2026-08-25 | **v3.19.0 (feature 049):** Migration **052** / `fos_programs`; `fos_agreements` Bid/Program/Initial Planned Hours columns; AM mirror `programs` + agreements select/map; Agreement cache schema **5**. |
 | 2026-08-15 | **v3.7.4:** Live Resource assignments honors From/To by rebuilding from typed tables (`buildResourceAssignmentDashboardPayloadFromSupabase_`); hydrate blob stays default-range fallback (mirrors Utilization + `fos_labor_costs`). |
 | 2026-07-29 | **v3.4.10:** AM mirror `estimated_allocations` select maps `allocation` → Fibery **Percent Allocated** (field `Agreement Management/Allocation` does not exist; overnight sync failed after resource_allocations). |
 | 2026-07-27 | **v3.4.6:** Migration **044** restores `anon`/`authenticated` grants + RLS policies on `fos_labor_costs` / `labor_costs` (fixes Live Labor Hours / Utilization and Pull `permission denied for table fos_labor_costs`). |

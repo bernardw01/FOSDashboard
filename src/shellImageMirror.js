@@ -1,5 +1,5 @@
 /**
- * PRD version 3.17.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Drive mirror helpers for bundled shell images (hero, logo). Apps Script
  * HtmlService serves HTTPS URLs efficiently; inline base64 in the initial HTML

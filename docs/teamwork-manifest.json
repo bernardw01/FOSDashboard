@@ -492,6 +492,16 @@
       "publishedAt": "2026-08-24",
       "lastSyncedAt": "2026-08-25",
       "gitMirror": "docs/features/047-dashboard-performance-and-responsiveness-implementation-plan.md"
+    },
+    "feature_048": {
+      "id": 313508,
+      "title": "Feature 048 - SOW coverage gaps and unplanned time",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/313508",
+      "featureId": "048",
+      "intakeTaskId": 40554541,
+      "publishedAt": "2026-08-25",
+      "lastSyncedAt": "2026-08-25",
+      "gitMirror": "docs/features/048-sow-coverage-gaps-and-unplanned-time.md"
     }
   },
   "tasks": {
@@ -1850,6 +1860,23 @@
       ],
       "estDevHoursGitBase": "8c0f5c04bfb18898f7c5b80f4d8e8ace6a2e3c79",
       "workflowStage": "Shipped"
+    },
+    "Feature 048 - SOW coverage gaps and unplanned time": {
+      "id": 40898277,
+      "url": "https://win.godeap.io/app/tasks/40898277",
+      "featureId": "048",
+      "releaseType": "Enhancement",
+      "releaseTitle": "SOW coverage gaps and unplanned time",
+      "provisionalTaskName": true,
+      "shippedVersion": null,
+      "tasklist": "Operations",
+      "tasklistId": 4174282,
+      "notebookKey": "feature_048",
+      "intakeTaskId": 40554541,
+      "inboxTaskUrl": "https://win.godeap.io/app/tasks/40554541",
+      "workflowStage": "In-progress",
+      "createdAt": "2026-08-25",
+      "renameAtShip": "v{FOS_PRD_VERSION} - SOW coverage gaps and unplanned time"
     }
   },
   "supersededDuplicates": {

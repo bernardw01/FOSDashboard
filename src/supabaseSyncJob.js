@@ -1,5 +1,5 @@
 /**
- * PRD version 3.17.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: Fibery -> Supabase hydrate (nightly + ADMIN Pull).
  * Dataset am-mirror (supabaseAmMirror.js) hydrates Agreement Management typed
@@ -628,20 +628,40 @@ function hydrateSupabasePortfolio_() {
  * @return {!Object}
  */
 function hydrateSupabaseVizRangeCache_() {
-  if (!perfFlag_('PERF_USE_RANGE_CACHE')) {
-    return { ok: true, detail: 'skipped (PERF_USE_RANGE_CACHE off)' };
+  var parts = [];
+  if (perfFlag_('PERF_USE_RANGE_CACHE')) {
+    var res;
+    try {
+      res = warmUtilizationRangeCache_();
+    } catch (e) {
+      supabaseWarn_('viz-warm', e);
+      parts.push('util warm threw: ' + ((e && e.message) || String(e)));
+      res = null;
+    }
+    if (res && res.ok) {
+      parts.push(res.detail || 'util warm ok');
+    } else if (res) {
+      parts.push('util warm skipped: ' + (res.message || 'unknown'));
+    }
+  } else {
+    parts.push('util skipped (PERF_USE_RANGE_CACHE off)');
   }
-  var res;
-  try {
-    res = warmUtilizationRangeCache_();
-  } catch (e) {
-    supabaseWarn_('viz-warm', e);
-    return { ok: true, detail: 'warm threw: ' + ((e && e.message) || String(e)) };
+  if (typeof warmResourceAssignmentRangeCache_ === 'function') {
+    var ra;
+    try {
+      ra = warmResourceAssignmentRangeCache_();
+    } catch (e2) {
+      supabaseWarn_('ra-warm', e2);
+      parts.push('ra warm threw: ' + ((e2 && e2.message) || String(e2)));
+      ra = null;
+    }
+    if (ra && ra.ok) {
+      parts.push(ra.detail || 'ra warm ok');
+    } else if (ra) {
+      parts.push('ra warm skipped: ' + ((ra && ra.detail) || 'unknown'));
+    }
   }
-  if (!res || !res.ok) {
-    return { ok: true, detail: 'warm skipped: ' + ((res && res.message) || 'unknown') };
-  }
-  return { ok: true, detail: res.detail };
+  return { ok: true, detail: parts.join('; ') };
 }
 
 /**

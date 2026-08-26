@@ -1,11 +1,11 @@
 /**
- * PRD version 3.17.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.17.0';
+var FOS_PRD_VERSION = '3.20.0';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.17.0';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.17.0 Workstream D: Drive-hosted hero/logo, lazy panel markup, IndexedDB panel cache, chunked renders, skeleton loaders.';
+  'v3.20.0 Resource assignments range payload cache + slim personVariances on by default.';
 
 /**
  * @return {string}

@@ -1,5 +1,5 @@
 /**
- * PRD version 3.17.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -1093,9 +1093,9 @@ function getAdminSettingsCatalog_() {
       'PERF_SLIM_RA_PERSON_VARIANCES',
       'performance',
       'Slim Resource Assignments personVariances',
-      'Feature 047 workstream B6. When on, resource-assignments.personVariances travels as positional tuples plus string tables with shared byDay dedup across assigned/actual/variance groups, measured 2,113,091 to 124,060 compact JSON chars (94.1 percent). The transform is reversed in the browser before the grid or day-detail modal sees a row. cacheSchemaVersion stays 3 (self-describing codec; no re-hydrate). Turn on only after _diag_verifyCodec_RaPersonVariances() reports pass with 0 diffs.',
+      'Feature 047 workstream B6. When on (default), resource-assignments.personVariances travels as positional tuples plus string tables with shared byDay dedup across assigned/actual/variance groups, measured 2,113,091 to 124,060 compact JSON chars (94.1 percent). The transform is reversed in the browser before the grid or day-detail modal sees a row. Self-describing personVariancesCodec. Turn off only to revert a suspected decode regression.',
       'boolean',
-      false
+      true
     ),
     adminSettingEntry_(
       'PERF_USE_RANGE_CACHE',
@@ -1104,6 +1104,14 @@ function getAdminSettingsCatalog_() {
       'Feature 047 workstream B4. When on, Utilization caches the normalized labor rows for the UTC-day-aligned window containing the request in fos_viz_range_payloads (migration 051), and later requests for that window are one read instead of eleven (seven labor pages plus four dimension tables). The rows are always filtered back to the exact requested instants before any KPI is computed, so no number changes. Entries are invalidated automatically when the labor or dimension tables advance, and the nightly hydrate warms the 30, 60, and 90 day presets. Turn on only after _diag_verifyWorkstreamB4() reports pass with armsProven true.',
       'boolean',
       false
+    ),
+    adminSettingEntry_(
+      'PERF_USE_RA_RANGE_CACHE',
+      'performance',
+      'Resource assignments range payload cache',
+      'Feature 047 follow-on. When on (default), Resource assignments serves a fresh assembled panel payload from fos_viz_range_payloads for the exact From/To window (one Postgres read) instead of rebuilding in Apps Script. Invalidates when labor or allocations advance (migration 053 fingerprint). Nightly hydrate warms the default -30/+90 window. Turn off only to force a full typed rebuild on every load.',
+      'boolean',
+      true
     ),
     adminSettingEntry_(
       'PERF_RELOAD_REREADS_BLOB',

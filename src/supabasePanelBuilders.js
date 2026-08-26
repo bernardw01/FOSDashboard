@@ -1,5 +1,5 @@
 /**
- * PRD version 3.17.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: panel hydrate builders that read Supabase typed
  * tables (Agreement Management mirror from `supabaseAmMirror.js`, labor
@@ -619,11 +619,46 @@ function buildPipelineDashboardPayloadFromSupabase_() {
  * JavaScript overlap filter. The payload shape is identical either way, which
  * is why no `cacheSchemaVersion` bump is needed.
  *
+ * Feature 047 RA range cache: when `PERF_USE_RA_RANGE_CACHE` is on, serves a
+ * fresh assembled payload from `fos_viz_range_payloads` for the exact From/To
+ * window (migration 053 fingerprint). Misses rebuild via the core path and
+ * write back.
+ *
  * @param {?string} rangeStartYmd
  * @param {?string} rangeEndYmd
  * @return {!Object}
  */
 function buildResourceAssignmentDashboardPayloadFromSupabase_(rangeStartYmd, rangeEndYmd) {
+  var warnings = [];
+  var range = resolveResourceAssignmentRangeYmd_(rangeStartYmd, rangeEndYmd, warnings);
+  if (typeof tryServeResourceAssignmentFromRangeCache_ === 'function') {
+    var cached = tryServeResourceAssignmentFromRangeCache_(range.startYmd, range.endYmd);
+    if (cached) {
+      return cached;
+    }
+  }
+  var built = buildResourceAssignmentDashboardPayloadFromSupabaseCore_(
+    rangeStartYmd,
+    rangeEndYmd
+  );
+  if (built && built.ok !== false && typeof putResourceAssignmentRangeCache_ === 'function') {
+    putResourceAssignmentRangeCache_(built);
+    if (!built.loadSource) {
+      built.loadSource = 'fos_typed_rebuild';
+    }
+  }
+  return built;
+}
+
+/**
+ * Always builds from typed tables (no range-cache read). Used by the cache
+ * miss path and by warm/diagnostics that must not recurse through the cache.
+ *
+ * @param {?string} rangeStartYmd
+ * @param {?string} rangeEndYmd
+ * @return {!Object}
+ */
+function buildResourceAssignmentDashboardPayloadFromSupabaseCore_(rangeStartYmd, rangeEndYmd) {
   var fetchedAt = new Date().toISOString();
   var warnings = [];
   var range = resolveResourceAssignmentRangeYmd_(rangeStartYmd, rangeEndYmd, warnings);
@@ -742,6 +777,7 @@ function buildResourceAssignmentDashboardPayloadFromSupabase_(rangeStartYmd, ran
     laborByDay,
     weeks
   );
+  var coverage = buildResourceAssignmentCoverageGaps_(projects, laborByDay, assignedByDay);
   var dimensions = buildResourceAssignmentDimensions_(built.persons, projects);
   var alerts = buildResourceAssignmentAlerts_(built.persons, rawRows, weeks, warnings);
   var kpis = {
@@ -764,6 +800,8 @@ function buildResourceAssignmentDashboardPayloadFromSupabase_(rangeStartYmd, ran
     persons: built.persons,
     projects: projects,
     personVariances: personVariances,
+    coverageGaps: coverage.rows,
+    coverageGapKpis: coverage.kpis,
     dimensions: dimensions,
     kpis: kpis,
     alerts: alerts.items,

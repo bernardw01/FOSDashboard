@@ -1,5 +1,5 @@
 /**
- * PRD version 3.17.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement Dashboard orchestrator (route id `agreement-dashboard`, panel
  * `#panel-agreement-dashboard`). Live loads use same-day Drive warm cache
@@ -26,7 +26,7 @@
  */
 
 /** @const {number} Bumped when the client cache shape changes. */
-var AGREEMENT_DASHBOARD_CACHE_SCHEMA_VERSION_ = 4;
+var AGREEMENT_DASHBOARD_CACHE_SCHEMA_VERSION_ = 5;
 
 /** @const {number} Default TTL (minutes) for the client-side cache. */
 var AGREEMENT_DEFAULT_CACHE_TTL_MIN_ = 10;
@@ -378,6 +378,13 @@ function buildAgreementsQuery_() {
         duration: 'Agreement Management/Duration',
         executionDate: 'Agreement Management/Execution Date',
         assignedOwner: ['Agreement Management/Assigned Owner', 'Agreement Management/Name'],
+        bidCost: 'Agreement Management/Bid Cost',
+        bidMargin: 'Agreement Management/Bid Margin',
+        bidRevenue: 'Agreement Management/Bid Revenue',
+        initialPlannedHours: 'Agreement Management/Initial Planned Hours',
+        programId: ['Agreement Management/Program', 'fibery/id'],
+        programName: 'Agreement Management/Program Name',
+        programRelName: ['Agreement Management/Program', 'Agreement Management/Name'],
       },
       'q/where': ['!=', ['workflow/state', 'enum/name'], '$closedLost'],
       // Fibery's REST `/api/commands` expects q/order-by as an array of
@@ -515,6 +522,16 @@ function normalizeAgreements_(rows) {
       durStart: dur ? stringOrNull_(dur.start) : null,
       durEnd: dur ? stringOrNull_(dur.end) : null,
       executionDate: stringOrNull_(r.executionDate),
+      bidCost: numberOr_(r.bidCost, 0),
+      bidMargin: scaleFractionToPercent_(r.bidMargin),
+      bidRevenue: numberOr_(r.bidRevenue, 0),
+      initialPlannedHours: numberOr_(r.initialPlannedHours, 0),
+      programId: stringOrNull_(r.programId),
+      programName: stringOrNull_(
+        (r.programName && String(r.programName).trim()) ||
+          (r.programRelName && String(r.programRelName).trim()) ||
+          null
+      ),
       revenueItemCount: 0,
       futureRevenueItemCount: 0,
       schedulingStatus: 'No Pipeline Items',

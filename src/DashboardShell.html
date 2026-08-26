@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.17.0 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.19.0 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -393,6 +393,56 @@
         min-height: 44px;
         white-space: nowrap;
       }
+      .ra-coverage-desktop-table {
+        display: none !important;
+      }
+      .ra-coverage-mobile-cards.fos-mobile-only {
+        display: block !important;
+      }
+      .ra-coverage-card {
+        border: 1px solid var(--ag-border, #1a4060);
+        border-radius: 10px;
+        padding: 0.85rem 1rem;
+        margin-bottom: 0.65rem;
+        background: var(--ag-surface2, #0d2e4a);
+        cursor: pointer;
+        min-height: 44px;
+      }
+      .ra-coverage-card:focus {
+        outline: 2px solid var(--accent, #52C9E5);
+        outline-offset: 2px;
+      }
+      #ra-coverage-issue-chips .btn[data-ra-coverage-issue] {
+        display: none;
+      }
+    }
+    @media (min-width: 768px) {
+      .ra-coverage-mobile-cards.fos-mobile-only {
+        display: none !important;
+      }
+    }
+    .ra-coverage-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      margin-right: 0.25rem;
+      border: 1px solid var(--ag-border, #1a4060);
+    }
+    .ra-coverage-badge-nosow {
+      color: #fbbf24;
+      border-color: #fbbf24;
+    }
+    .ra-coverage-badge-unplanned {
+      color: #fb923c;
+      border-color: #fb923c;
+    }
+    #ra-coverage-table tbody tr {
+      cursor: pointer;
+    }
+    #ra-coverage-table tbody tr:hover {
+      background: rgba(82, 201, 229, 0.08);
     }
     .fos-attention-group-children .fos-attention-group {
       margin-top: 8px;
@@ -5686,7 +5736,7 @@
     (function () {
       var navState = { items: [], userLabel: '', activeNavId: 'home', isAdmin: false };
       var AGREEMENT_CACHE_KEY = 'fos_agreement_dashboard_v2';
-      var AGREEMENT_CACHE_SCHEMA_VERSION = 4;
+      var AGREEMENT_CACHE_SCHEMA_VERSION = 5;
       var AGREEMENT_TTL_PREF_KEY = 'fos_agreement_dashboard_ttl_minutes_v1';
       var UTIL_CACHE_KEY = 'fos_utilization_dashboard_v2';
       var UTIL_CACHE_LEGACY_KEYS_ = ['fos_utilization_dashboard_v1'];
@@ -5741,7 +5791,7 @@
       var EXPENSES_FILTERS_SCHEMA_VERSION = 1;
       var DEFAULT_TTL_MINUTES = 10;
       var RA_CACHE_KEY = 'fos_resource_assignments_v1';
-      var RA_CACHE_SCHEMA_VERSION = 3;
+      var RA_CACHE_SCHEMA_VERSION = 5;
       var RA_TTL_PREF_KEY = 'fos_resource_assignments_ttl_minutes_v1';
       var RA_FILTERS_PREF_KEY = 'fos_resource_assignments_filters_v1';
       var RA_FILTERS_SCHEMA_VERSION = 1;
@@ -6074,6 +6124,18 @@
           raTabPerson: document.getElementById('ra-tab-person'),
           raTabPersonVariances: document.getElementById('ra-tab-person-variances'),
           raTabProject: document.getElementById('ra-tab-project'),
+          raTabCoverageGaps: document.getElementById('ra-tab-coverage-gaps'),
+          raCoverageWrap: document.getElementById('ra-coverage-wrap'),
+          raCoverageTbody: document.getElementById('ra-coverage-tbody'),
+          raCoverageCards: document.getElementById('ra-coverage-cards'),
+          raCoverageEmpty: document.getElementById('ra-coverage-empty'),
+          raCoverageUnavailable: document.getElementById('ra-coverage-unavailable'),
+          raCoverageKpiRows: document.getElementById('ra-coverage-kpi-rows'),
+          raCoverageKpiPeople: document.getElementById('ra-coverage-kpi-people'),
+          raCoverageKpiNosow: document.getElementById('ra-coverage-kpi-nosow'),
+          raCoverageKpiUnplanned: document.getElementById('ra-coverage-kpi-unplanned'),
+          raCoverageIssueSheetBtn: document.getElementById('ra-coverage-issue-sheet-btn'),
+          raGridWrap: document.getElementById('ra-grid-wrap'),
           raDayDetailModal: document.getElementById('raDayDetailModal'),
           raDayDetailTbody: document.getElementById('ra-day-detail-tbody'),
           raDayDetailModalLabel: document.getElementById('raDayDetailModalLabel'),
@@ -16488,6 +16550,7 @@
         expandedPersonVariances: {},
         expandedPersonVarianceGroups: {},
         activeTab: 'personVariances',
+        coverageIssueFilter: 'all',
         wired: false,
         csvStatusTimer: null,
         filterTimer: null,
@@ -16783,7 +16846,14 @@
       function readRaActiveTabSession_() {
         try {
           var t = sessionStorage.getItem(RA_TAB_SESSION_KEY);
-          if (t === 'project' || t === 'person' || t === 'personVariances') return t;
+          if (
+            t === 'project' ||
+            t === 'person' ||
+            t === 'personVariances' ||
+            t === 'coverageGaps'
+          ) {
+            return t;
+          }
           return 'personVariances';
         } catch (e) {
           return 'personVariances';
@@ -16997,7 +17067,13 @@
 
       function setRaActiveTab_(tab) {
         raState.activeTab =
-          tab === 'project' ? 'project' : tab === 'personVariances' ? 'personVariances' : 'person';
+          tab === 'project'
+            ? 'project'
+            : tab === 'personVariances'
+              ? 'personVariances'
+              : tab === 'coverageGaps'
+                ? 'coverageGaps'
+                : 'person';
         writeRaActiveTabSession_();
         if (els.raTabPerson) {
           var personOn = raState.activeTab === 'person';
@@ -17014,6 +17090,11 @@
           els.raTabProject.classList.toggle('active', projOn);
           els.raTabProject.setAttribute('aria-selected', projOn ? 'true' : 'false');
         }
+        if (els.raTabCoverageGaps) {
+          var covOn = raState.activeTab === 'coverageGaps';
+          els.raTabCoverageGaps.classList.toggle('active', covOn);
+          els.raTabCoverageGaps.setAttribute('aria-selected', covOn ? 'true' : 'false');
+        }
         if (els.raLegendWrap) {
           els.raLegendWrap.classList.toggle('d-none', raState.activeTab !== 'person');
         }
@@ -17023,6 +17104,12 @@
             raState.activeTab !== 'project' && raState.activeTab !== 'personVariances'
           );
         }
+        if (els.raCoverageWrap) {
+          els.raCoverageWrap.classList.toggle('d-none', raState.activeTab !== 'coverageGaps');
+        }
+        if (els.raGridWrap) {
+          els.raGridWrap.classList.toggle('d-none', raState.activeTab === 'coverageGaps');
+        }
         if (els.raGridIntro) {
           if (raState.activeTab === 'project') {
             els.raGridIntro.textContent =
@@ -17030,6 +17117,9 @@
           } else if (raState.activeTab === 'personVariances') {
             els.raGridIntro.textContent =
               'Expand a person, then Assigned, Actual, or Variance, to see hours by project. Click a week cell for daily detail.';
+          } else if (raState.activeTab === 'coverageGaps') {
+            els.raGridIntro.textContent =
+              'Punch list of people logging time with no SOW listing and/or no current allocation. Click a row for daily detail.';
           } else {
             els.raGridIntro.textContent =
               'Collapsed rows show planned % of work week as a heatmap. Expand a person to see hours per project.';
@@ -18102,6 +18192,217 @@
         }
       }
 
+      function filterRaCoverageGaps_(rows) {
+        rows = rows || [];
+        var f = raState.filters || {};
+        var issue = raState.coverageIssueFilter || 'all';
+        var out = [];
+        for (var i = 0; i < rows.length; i++) {
+          var row = rows[i];
+          if (!raFilterMapHits_(f.persons, row.personKey)) continue;
+          if (!raFilterMapHits_(f.companies, row.company)) continue;
+          if (!raFilterMapHits_(f.roles, row.roleName)) continue;
+          var projKey = row.agreementId || row.projectName || '';
+          if (!raFilterMapHits_(f.projects, projKey)) continue;
+          var issues = row.issues || [];
+          if (issue === 'no_sow' && issues.indexOf('no_sow') < 0) continue;
+          if (issue === 'unplanned' && issues.indexOf('unplanned') < 0) continue;
+          out.push(row);
+        }
+        return out;
+      }
+
+      function raCoverageIssueBadgesHtml_(issues) {
+        var html = '';
+        issues = issues || [];
+        if (issues.indexOf('no_sow') >= 0) {
+          html += '<span class="ra-coverage-badge ra-coverage-badge-nosow">No SOW</span>';
+        }
+        if (issues.indexOf('unplanned') >= 0) {
+          html += '<span class="ra-coverage-badge ra-coverage-badge-unplanned">Unplanned</span>';
+        }
+        return html || '—';
+      }
+
+      function raCoverageSowLabel_(status) {
+        if (status === 'allocated_billable') return 'Allocated & Billable';
+        if (status === 'none') return '—';
+        return 'Not on SOW';
+      }
+
+      function openRaCoverageGapDrill_(row) {
+        if (!row) return;
+        openRaDayDetailModal_({
+          personKey: row.personKey,
+          personName: row.personName,
+          projectKey: row.agreementId || row.projectName,
+          projectName: row.projectName,
+          weekKey: (row.firstLoggedDate || '') + (row.lastLoggedDate ? ' → ' + row.lastLoggedDate : ''),
+          groupLabel: 'Coverage gaps',
+          bucket: { byDay: row.byDay || {} },
+        });
+        logActivity_(
+          'resource_assignments_coverage_drill',
+          'resource-assignments',
+          String(row.personKey || '') + '|' + String(row.agreementId || row.projectName || '')
+        );
+      }
+
+      function renderResourceAssignmentCoverageGaps_(payload, rows) {
+        var hasSlice = payload && Object.prototype.toString.call(payload.coverageGaps) === '[object Array]';
+        if (els.raCoverageUnavailable) {
+          els.raCoverageUnavailable.classList.toggle('d-none', hasSlice);
+        }
+        if (els.raEmpty) {
+          els.raEmpty.classList.add('d-none');
+        }
+        if (!hasSlice) {
+          if (els.raCoverageTbody) els.raCoverageTbody.innerHTML = '';
+          if (els.raCoverageCards) els.raCoverageCards.innerHTML = '';
+          if (els.raCoverageEmpty) els.raCoverageEmpty.classList.add('d-none');
+          if (els.raCoverageKpiRows) els.raCoverageKpiRows.textContent = '—';
+          if (els.raCoverageKpiPeople) els.raCoverageKpiPeople.textContent = '—';
+          if (els.raCoverageKpiNosow) els.raCoverageKpiNosow.textContent = '—';
+          if (els.raCoverageKpiUnplanned) els.raCoverageKpiUnplanned.textContent = '—';
+          return;
+        }
+
+        var personSet = {};
+        var hoursNoSow = 0;
+        var hoursUnplanned = 0;
+        for (var ki = 0; ki < rows.length; ki++) {
+          personSet[rows[ki].personKey] = true;
+          var iss = rows[ki].issues || [];
+          if (iss.indexOf('no_sow') >= 0) hoursNoSow += rows[ki].hoursLogged || 0;
+          if (iss.indexOf('unplanned') >= 0) hoursUnplanned += rows[ki].hoursLogged || 0;
+        }
+        if (els.raCoverageKpiRows) els.raCoverageKpiRows.textContent = String(rows.length);
+        if (els.raCoverageKpiPeople) {
+          els.raCoverageKpiPeople.textContent = String(Object.keys(personSet).length);
+        }
+        if (els.raCoverageKpiNosow) {
+          els.raCoverageKpiNosow.textContent = formatHours(Math.round(hoursNoSow * 10) / 10);
+        }
+        if (els.raCoverageKpiUnplanned) {
+          els.raCoverageKpiUnplanned.textContent = formatHours(Math.round(hoursUnplanned * 10) / 10);
+        }
+
+        if (els.raCoverageEmpty) {
+          els.raCoverageEmpty.classList.toggle('d-none', rows.length > 0);
+        }
+        if (els.raCoverageTbody) {
+          els.raCoverageTbody.innerHTML = '';
+          for (var i = 0; i < rows.length; i++) {
+            (function (row) {
+              var tr = document.createElement('tr');
+              tr.tabIndex = 0;
+              tr.innerHTML =
+                '<td>' +
+                escapeHtml(row.personName || '') +
+                '</td>' +
+                '<td>' +
+                escapeHtml(row.customer || '') +
+                '</td>' +
+                '<td>' +
+                escapeHtml(row.projectName || '') +
+                '</td>' +
+                '<td>' +
+                raCoverageIssueBadgesHtml_(row.issues) +
+                '</td>' +
+                '<td class="text-end">' +
+                escapeHtml(formatHours(row.hoursLogged || 0)) +
+                '</td>' +
+                '<td class="text-end">' +
+                escapeHtml(formatHours(row.hoursAssigned || 0)) +
+                '</td>' +
+                '<td>' +
+                escapeHtml(raCoverageSowLabel_(row.sowStatus)) +
+                '</td>' +
+                '<td>' +
+                escapeHtml(row.firstLoggedDate || '—') +
+                '</td>' +
+                '<td>' +
+                escapeHtml(row.lastLoggedDate || '—') +
+                '</td>';
+              tr.addEventListener('click', function () {
+                openRaCoverageGapDrill_(row);
+              });
+              tr.addEventListener('keydown', function (ev) {
+                if (ev.key === 'Enter' || ev.key === ' ') {
+                  ev.preventDefault();
+                  openRaCoverageGapDrill_(row);
+                }
+              });
+              els.raCoverageTbody.appendChild(tr);
+            })(rows[i]);
+          }
+        }
+        if (els.raCoverageCards) {
+          els.raCoverageCards.innerHTML = '';
+          for (var ci = 0; ci < rows.length; ci++) {
+            (function (row) {
+              var card = document.createElement('div');
+              card.className = 'ra-coverage-card';
+              card.tabIndex = 0;
+              card.setAttribute('role', 'button');
+              card.innerHTML =
+                '<div class="fw-semibold mb-1">' +
+                escapeHtml(row.personName || '') +
+                '</div>' +
+                '<div class="small mb-1" style="color:var(--ag-text-muted)">' +
+                escapeHtml(row.customer || '') +
+                ' · ' +
+                escapeHtml(row.projectName || '') +
+                '</div>' +
+                '<div class="mb-2">' +
+                raCoverageIssueBadgesHtml_(row.issues) +
+                '</div>' +
+                '<div class="small">Logged <strong>' +
+                escapeHtml(formatHours(row.hoursLogged || 0)) +
+                '</strong> · Assigned <strong>' +
+                escapeHtml(formatHours(row.hoursAssigned || 0)) +
+                '</strong></div>' +
+                '<div class="small" style="color:var(--ag-text-muted)">' +
+                escapeHtml(raCoverageSowLabel_(row.sowStatus)) +
+                (row.firstLoggedDate
+                  ? ' · ' +
+                    escapeHtml(row.firstLoggedDate) +
+                    (row.lastLoggedDate ? ' → ' + escapeHtml(row.lastLoggedDate) : '')
+                  : '') +
+                '</div>';
+              card.addEventListener('click', function () {
+                openRaCoverageGapDrill_(row);
+              });
+              card.addEventListener('keydown', function (ev) {
+                if (ev.key === 'Enter' || ev.key === ' ') {
+                  ev.preventDefault();
+                  openRaCoverageGapDrill_(row);
+                }
+              });
+              els.raCoverageCards.appendChild(card);
+            })(rows[ci]);
+          }
+        }
+
+        var chipBtns = document.querySelectorAll('#ra-coverage-issue-chips [data-ra-coverage-issue]');
+        for (var bi = 0; bi < chipBtns.length; bi++) {
+          var btn = chipBtns[bi];
+          var on = btn.getAttribute('data-ra-coverage-issue') === (raState.coverageIssueFilter || 'all');
+          btn.classList.toggle('active', on);
+        }
+      }
+
+      function setRaCoverageIssueFilter_(issue) {
+        var next =
+          issue === 'no_sow' || issue === 'unplanned' ? issue : 'all';
+        if (raState.coverageIssueFilter === next) return;
+        raState.coverageIssueFilter = next;
+        logActivity_('resource_assignments_coverage_filter', 'resource-assignments', next);
+        if (raState.activeTab === 'coverageGaps') {
+          renderResourceAssignmentGridOrTab_();
+        }
+      }
+
       function renderResourceAssignmentGridOrTab_() {
         var payload = raState.payload;
         if (!payload) return;
@@ -18111,6 +18412,11 @@
           renderResourceAssignmentPersonVariancesGrid_(
             payload,
             filterRaPersonVariances_(getRaPersonVariances_(payload))
+          );
+        } else if (raState.activeTab === 'coverageGaps') {
+          renderResourceAssignmentCoverageGaps_(
+            payload,
+            filterRaCoverageGaps_(payload.coverageGaps || [])
           );
         } else {
           renderResourceAssignmentGrid_(payload, filterRaPersons_(payload.persons || []));
@@ -18268,6 +18574,27 @@
               }
             }
           }
+        } else if (raState.activeTab === 'coverageGaps') {
+          lines.push(
+            'Person,Customer,Project,Issues,LoggedHours,AssignedHours,SowStatus,FirstLoggedDate,LastLoggedDate'
+          );
+          var covRows = filterRaCoverageGaps_(payload.coverageGaps || []);
+          for (var cri = 0; cri < covRows.length; cri++) {
+            var crow = covRows[cri];
+            lines.push(
+              [
+                csvEscapeLh_(crow.personName || ''),
+                csvEscapeLh_(crow.customer || ''),
+                csvEscapeLh_(crow.projectName || ''),
+                csvEscapeLh_((crow.issues || []).join('|')),
+                crow.hoursLogged != null ? String(crow.hoursLogged) : '',
+                crow.hoursAssigned != null ? String(crow.hoursAssigned) : '',
+                csvEscapeLh_(raCoverageSowLabel_(crow.sowStatus)),
+                csvEscapeLh_(crow.firstLoggedDate || ''),
+                csvEscapeLh_(crow.lastLoggedDate || ''),
+              ].join(',')
+            );
+          }
         } else {
           lines.push('Person,Role,Company,Project,Customer,Week,Hours,Percent');
           var personsByPerson = filterRaPersons_(payload.persons || []);
@@ -18399,6 +18726,36 @@
         }
         if (els.raTabPersonVariances) {
           els.raTabPersonVariances.addEventListener('click', function () { onRaTabClick_('personVariances'); });
+        }
+        if (els.raTabCoverageGaps) {
+          els.raTabCoverageGaps.addEventListener('click', function () {
+            onRaTabClick_('coverageGaps');
+          });
+        }
+        var covChipBtns = document.querySelectorAll('#ra-coverage-issue-chips [data-ra-coverage-issue]');
+        for (var cbi = 0; cbi < covChipBtns.length; cbi++) {
+          (function (btn) {
+            btn.addEventListener('click', function () {
+              setRaCoverageIssueFilter_(btn.getAttribute('data-ra-coverage-issue'));
+            });
+          })(covChipBtns[cbi]);
+        }
+        if (els.raCoverageIssueSheetBtn && typeof openMobileFilterSheet_ === 'function') {
+          els.raCoverageIssueSheetBtn.addEventListener('click', function () {
+            var current = raState.coverageIssueFilter || 'all';
+            openMobileFilterSheet_({
+              title: 'Coverage gap issue type',
+              context: 'resource-assignments',
+              items: [
+                { id: 'all', label: 'All problems', selected: current === 'all' },
+                { id: 'no_sow', label: 'No SOW', selected: current === 'no_sow' },
+                { id: 'unplanned', label: 'Unplanned', selected: current === 'unplanned' },
+              ],
+              onSelect: function (itemId) {
+                setRaCoverageIssueFilter_(itemId);
+              },
+            });
+          });
         }
       }
 

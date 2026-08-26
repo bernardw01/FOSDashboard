@@ -1,7 +1,7 @@
 # Feature: Resource assignments - By person variances tab
 
 > **Status:** Shipped (**v3.7.2**)  
-> **PRD version:** **3.7.2** (`FR-139`, `AC-100`)  
+> **PRD version:** **3.19.1** (`FR-139`, `AC-100`; daily Assigned workday spread)  
 > **Feature ID:** **042**  
 > **Release type:** Enhancement  
 > **Task list:** Operations  
@@ -190,3 +190,4 @@ cacheSchemaVersion: 3  // was 2 in feature 028
 | 2026-08-14 | Locked decisions; shipped **v3.7.0** with Feature **041**. |
 | 2026-08-14 | **v3.7.1:** default tab By person variances; expand on load; client hydrate from `projects[]` when `personVariances` missing. |
 | 2026-08-14 | Variance group includes **non-zero** variance (not only &gt; 0); people/groups collapsed by default again (**v3.7.2**). |
+| 2026-08-25 | **v3.19.1:** daily Assigned hours Mon–Fri only (8h weekday / 0 weekend for a full 40h week); RA cache schema **5**. |
