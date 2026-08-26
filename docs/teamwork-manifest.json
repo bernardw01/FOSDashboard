@@ -1824,6 +1824,32 @@
       ],
       "estDevHoursGitBase": "7d2d16b5a900a8ab8068d395134ab4f6dfba6f02",
       "workflowStage": "Shipped"
+    },
+    "v3.17.0 - Dashboard client responsiveness (Workstream D)": {
+      "id": 40898252,
+      "featureId": "047",
+      "releaseType": "Enhancement",
+      "shippedVersion": "v3.17.0",
+      "provisionalTaskName": false,
+      "releaseTitle": "Dashboard client responsiveness (Workstream D)",
+      "url": "https://win.godeap.io/app/tasks/40898252",
+      "shippedAt": "2026-08-25",
+      "estDevHours": 12,
+      "estDevHoursRationale": [
+        "Git range: 8c0f5c04..HEAD (78 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +1459 lines): +4.5h",
+        "Apps Script module `src/brandLogoAsset.js`: +0.9h",
+        "Apps Script module `src/dashboardPanelMarkup.js`: +1.0h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +1 lines): +2.0h",
+        "Apps Script module `src/homeHeroImage.js`: +0.9h",
+        "Apps Script module `src/shellImageMirror.js`: +1.5h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 11.5h"
+      ],
+      "estDevHoursGitBase": "8c0f5c04bfb18898f7c5b80f4d8e8ace6a2e3c79",
+      "workflowStage": "Shipped"
     }
   },
   "supersededDuplicates": {
