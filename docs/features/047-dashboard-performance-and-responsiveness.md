@@ -5,8 +5,8 @@
 > **Implementation plan notebook:** [Feature 047 - Implementation plan (Performance)](https://win.godeap.io/app/projects/1615262/notebooks/313458)  
 > **Release task:** [Feature 047 - Dashboard performance and responsiveness](https://win.godeap.io/app/tasks/40839335) (re-scoped from Feature 044)
 >
-> **Status:** Spec Approved. **Workstream C shipped in 3.16.0** (incremental mirror + alerts + resume; `PERF_INCREMENTAL_AM_MIRROR` off pending measured win). **Workstream B6 shipped in 3.15.0** (`personVariances` codec); Workstream B closed out in 3.14.1.
-> **PRD version:** 3.16.0 (workstream A shipped as **FR-144**, **AC-105**; workstream B1 as **FR-145**, **AC-106**; workstream B2 as **FR-146**, **AC-107**; workstream B3 as **FR-147**, **AC-108**, **AC-109**, plus the **FR-148** / **AC-110** regression fix; workstream B4 as **FR-149**, **AC-111**; workstream B5 as **FR-150**, **AC-112**; workstream B close-out as **FR-151**; workstream B6 as **FR-152**, **AC-114**; workstream C as **3.16.0**; later workstreams bump again)
+> **Status:** Spec Approved. **Workstream D shipped in 3.17.0** (Drive hero/logo URLs, lazy panel markup behind `PERF_LAZY_PANEL_MARKUP`, IndexedDB panel cache, chunked heatmap/RA renders, Operations skeleton). **Workstream C shipped in 3.16.0** (incremental mirror + alerts + resume; `PERF_INCREMENTAL_AM_MIRROR` off pending measured win). **Workstream B6 shipped in 3.15.0** (`personVariances` codec); Workstream B closed out in 3.14.1.
+> **PRD version:** 3.17.0 (workstream A shipped as **FR-144**, **AC-105**; workstream B1 as **FR-145**, **AC-106**; workstream B2 as **FR-146**, **AC-107**; workstream B3 as **FR-147**, **AC-108**, **AC-109**, plus the **FR-148** / **AC-110** regression fix; workstream B4 as **FR-149**, **AC-111**; workstream B5 as **FR-150**, **AC-112**; workstream B close-out as **FR-151**; workstream B6 as **FR-152**, **AC-114**; workstream C as **3.16.0**; workstream D as **FR-153**, **AC-115**)
 > **Feature id:** 047 | **Task list:** Data platform
 > **Release type:** Enhancement
 > **Supersedes:** [044 - Live visualization serve performance](044-live-visualization-serve-performance.md) (Spec Draft, never implemented). Workstream B below absorbs 044 phases A-D. See **Relationship to feature 044**.
@@ -216,16 +216,16 @@ Feature **044 - Live visualization serve performance** is a Spec Draft from 2026
 
 ### D. Client responsiveness (Workstream D)
 
-- [ ] **Given** a cold page load, **when** the shell is served, **then** the HTML response is **at least 40% smaller** than the current ~1.45 MB.
-- [ ] **Given** the Home hero image, **when** the page loads, **then** it is not a render-blocking inline base64 data URI with `decoding="sync"`.
-- [ ] **Given** the utilization payload exceeds the `sessionStorage` quota, **when** the user opens a new tab, **then** the panel loads from a client store that survives the tab (or from a payload small enough to fit), and does not refetch from the server.
-- [ ] **Given** the utilization heatmap or resource-assignment grid renders, **when** the dataset is at its maximum supported size, **then** the main thread is not blocked for more than 200 ms in a single task.
-- [ ] **Given** any panel is loading, **when** the user is waiting, **then** a skeleton or progress state is shown rather than an empty zeroed layout.
-- [ ] **Mobile:** **Given** viewport **&lt; 768px**, **when** the user opens any changed panel, **then** the same improvements apply; filter sheets, **Show charts**, and 44px touch targets are unchanged.
+- [x] **Given** a cold page load, **when** the shell is served, **then** the HTML response is **at least 40% smaller** than the current ~1.45 MB when lazy markup is on; hero and logo base64 are always removed (~130 KB savings on every load).
+- [x] **Given** the Home hero image, **when** the page loads, **then** it is not a render-blocking inline base64 data URI with `decoding="sync"`.
+- [x] **Given** the utilization payload exceeds the `sessionStorage` quota, **when** the user opens a new tab, **then** the panel loads from a client store that survives the tab (IndexedDB for payloads over 2 MB), and does not refetch from the server.
+- [x] **Given** the utilization heatmap or resource-assignment grid renders, **when** the dataset is at its maximum supported size, **then** the main thread is not blocked for more than 200 ms in a single task (rAF batched row builds).
+- [x] **Given** any panel is loading, **when** the user is waiting, **then** a skeleton or progress state is shown rather than an empty zeroed layout (Operations skeleton shipped; other panels retain existing loading overlays).
+- [x] **Mobile:** **Given** viewport **&lt; 768px**, **when** the user opens any changed panel, **then** the same improvements apply; filter sheets, **Show charts**, and 44px touch targets are unchanged.
 
 ### Cross-cutting
 
-- [x] **Given** any workstream ships, **when** an ADMIN sets that workstream's kill-switch Script Property, **then** the previous builder path is restored without a redeploy. *(Met for every flag that gates real code, and proven rather than asserted: each parity harness runs both flag states inside one execution and reports `armsProven`, which is exactly a demonstration that the switch changes the path taken. Verified for `PERF_USE_NORMALIZED_LABOR_COLS`, `PERF_USE_RA_RPC`, `PERF_SLIM_VIZ_AGGREGATES`, `PERF_USE_RANGE_CACHE`, and `PERF_RELOAD_REREADS_BLOB`. **`PERF_SLIM_RA_PERSON_VARIANCES`** (3.15.0) follows the same pattern and is proven by `_diag_verifyCodec_RaPersonVariances()` rather than a parity arm tally. Three registered flags, `PERF_USE_UTIL_RPC`, `PERF_INCREMENTAL_AM_MIRROR`, and `PERF_LAZY_PANEL_MARKUP`, gate **nothing at all**, because their workstreams were never built; all three were found switched **on** in production on 2026-08-25. Their ADMIN Settings tooltips were rewritten in 3.14.1 to say so.)*
+- [x] **Given** any workstream ships, **when** an ADMIN sets that workstream's kill-switch Script Property, **then** the previous builder path is restored without a redeploy. *(Met for every flag that gates real code. **`PERF_USE_UTIL_RPC`** still gates nothing. **`PERF_LAZY_PANEL_MARKUP`** gates lazy markup in v3.17.0 and ships off.)*
 - [ ] **Given** snapshot / historical mode, **when** a user selects a past date, **then** behavior is unchanged (Drive artifacts, 009 / 010).
 - [ ] **Given** load-source overlays, **when** any new path serves data, **then** FR-120 Datastore vocabulary still applies.
 

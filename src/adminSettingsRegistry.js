@@ -1,5 +1,5 @@
 /**
- * PRD version 3.16.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.17.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -1124,8 +1124,8 @@ function getAdminSettingsCatalog_() {
     adminSettingEntry_(
       'PERF_LAZY_PANEL_MARKUP',
       'performance',
-      'Lazy panel markup (reserved)',
-      'Feature 047 workstream D. Reserved until that workstream ships. This flag currently gates nothing, so every panel still ships in the initial HTML. Leave it off; turning it on has no effect on first paint.',
+      'Lazy panel markup (Workstream D)',
+      'When on, non-Home dashboard panel HTML loads after the shell paints via getDashboardDeferredPanelMarkup(), shrinking the initial HTML response. Kill switch for feature 047 workstream D.',
       'boolean',
       false
     ),

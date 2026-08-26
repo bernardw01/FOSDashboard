@@ -1,11 +1,11 @@
 /**
- * PRD version 3.16.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.17.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.16.0';
+var FOS_PRD_VERSION = '3.17.0';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.16.0';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.16.0 Workstream C: incremental AM mirror watermarks, parallel upserts, ADMIN hydrate failure alerts, resume from failed step.';
+  'v3.17.0 Workstream D: Drive-hosted hero/logo, lazy panel markup, IndexedDB panel cache, chunked renders, skeleton loaders.';
 
 /**
  * @return {string}
@@ -75,7 +75,7 @@ function doGet(e) {
     deny.reasonDetail = auth.detail || '';
     deny.userEmail = auth.email || '';
     deny.prdVersion = getFosPrdVersion_();
-    deny.brandLogoUrl = getBrandLogoDataUrl_();
+    deny.brandLogoUrl = getBrandLogoUrlForWebApp_();
     return applyWebAppHtmlChrome_(deny.evaluate(), 'Access not granted');
   }
 
@@ -105,8 +105,9 @@ function doGet(e) {
 
   var template = HtmlService.createTemplateFromFile('DashboardShell');
   template.prdVersion = getFosPrdVersion_();
-  template.homeHeroImageUrl = getHomeHeroImageDataUrl_();
-  template.brandLogoUrl = getBrandLogoDataUrl_();
+  template.homeHeroImageUrl = getHomeHeroImageUrlForWebApp_();
+  template.brandLogoUrl = getBrandLogoUrlForWebApp_();
+  template.lazyPanelMarkup = isLazyPanelMarkupEnabled_();
   // Feature 036: client loading overlays use effective serve source (Datastore vs Fibery).
   template.dashboardReadSource = shouldServeFromSupabase_() ? 'supabase' : 'unconfigured';
   return applyWebAppHtmlChrome_(template.evaluate(), 'FinOps Performance Hub');
@@ -295,6 +296,8 @@ function buildNavigationModel_(auth) {
     // off state costs no extra round trip.
     perfSlimCharts:
       typeof perfFlag_ === 'function' ? perfFlag_('PERF_USE_SLIM_CHARTS') : false,
+    perfLazyPanelMarkup:
+      typeof perfFlag_ === 'function' ? perfFlag_('PERF_LAZY_PANEL_MARKUP') : false,
     items: navItems,
   };
 

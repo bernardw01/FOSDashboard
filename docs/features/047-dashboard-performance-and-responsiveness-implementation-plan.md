@@ -5,7 +5,7 @@
 > **Feature notebook:** [Feature 047 - Dashboard performance and responsiveness](https://win.godeap.io/app/projects/1615262/notebooks/313457)  
 > **Release task:** [Feature 047 - Dashboard performance and responsiveness](https://win.godeap.io/app/tasks/40839335)
 >
-> **PRD version:** 3.16.0. Each workstream ships its own version bump.
+> **PRD version:** 3.17.0. Each workstream ships its own version bump.
 > **Status:** Approved 2026-08-24. **Workstream C shipped in 3.16.0** (`PERF_INCREMENTAL_AM_MIRROR` off pending measured no-change hydrate under 10 minutes). Workstream B closed out in 3.14.1; B6 personVariances codec in 3.15.0. A shipped in 3.9.2. D is not started (`PERF_LAZY_PANEL_MARKUP` inert).
 
 ## How to read this plan
@@ -519,7 +519,7 @@ Script Properties cannot be read from outside Apps Script, so the authority here
 | `PERF_RELOAD_REREADS_BLOB` | default off; verified | yes | Workstream B5. `_diag_verifyWorkstreamB5()` second run on 2026-08-25 passed both panels with 0 diffs and `armsProven: true`. First run failed only on `storedVsRebuild` because today's blobs were built by deployed 3.10.0. |
 | `PERF_USE_UTIL_RPC` | on | **no** | B1 aggregates RPC was never built. The flag has no consumer. |
 | `PERF_INCREMENTAL_AM_MIRROR` | on | **no** | Workstream C. Not built. |
-| `PERF_LAZY_PANEL_MARKUP` | on | **no** | Workstream D. Not built. |
+| `PERF_LAZY_PANEL_MARKUP` | on | **off (default)** | Workstream D. Shipped 3.17.0; gates deferred panel markup fetch. |
 
 **Three flags were switched on that gate nothing.** `PERF_USE_UTIL_RPC`, `PERF_INCREMENTAL_AM_MIRROR`, and `PERF_LAZY_PANEL_MARKUP` appear only in `perfFlags.js` defaults and in `adminSettingsRegistry.js`; a grep of `src/` finds no `perfFlag_()` call site for any of them. Their registry tooltips described them in the present tense ("When on, the nightly mirror fetches only entities modified since the stored watermark"), so an operator reading ADMIN Settings had every reason to believe the incremental mirror was running. It was not, and the 60 to 70 minute hydrate duration is unchanged. Fixed in 3.14.1 by rewriting all three tooltips to say plainly that the flag is reserved and has no effect until its workstream ships. No flag semantics changed, because there is nothing to change.
 

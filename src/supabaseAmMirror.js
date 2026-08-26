@@ -1,5 +1,5 @@
 /**
- * PRD version 3.16.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.17.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement Management Fibery → Supabase relational mirror (Pull / nightly).
  * Panel aggregation builders read the typed tables this mirror hydrates

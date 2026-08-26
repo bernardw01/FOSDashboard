@@ -1,5 +1,5 @@
 /**
- * PRD version 3.16.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.17.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub sidebar logo as a data URL (HtmlService template).
  * Source: src/assets/finops-performance-hub-icon-source.png (128px display width)
@@ -14,4 +14,25 @@ var BRAND_LOGO_DATA_URL_ = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAA
  */
 function getBrandLogoDataUrl_() {
   return BRAND_LOGO_DATA_URL_;
+}
+
+/** @const {string} */
+var BRAND_LOGO_DRIVE_FILE_ID_PROP_ = 'FOS_BRAND_LOGO_DRIVE_FILE_ID';
+
+/** @const {string} */
+var BRAND_LOGO_CONTENT_HASH_PROP_ = 'FOS_BRAND_LOGO_CONTENT_HASH';
+
+/**
+ * HTTPS Drive URL for the sidebar logo (feature 047 D1). Falls back to the
+ * data URL when the mirror is unavailable.
+ *
+ * @return {string}
+ */
+function getBrandLogoUrlForWebApp_() {
+  return getShellImageUrlForWebApp_(
+    BRAND_LOGO_DATA_URL_,
+    'finops-performance-hub-logo.png',
+    BRAND_LOGO_DRIVE_FILE_ID_PROP_,
+    BRAND_LOGO_CONTENT_HASH_PROP_
+  );
 }

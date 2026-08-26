@@ -1,0 +1,2655 @@
+<!-- PRD version 3.17.0 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- Feature 047 D2: deferred dashboard panel markup. -->
+        <div id="panel-settings" class="d-none fos-settings-root">
+          <div class="card fos-card rounded-4 mb-3">
+            <div class="card-body p-4">
+              <h1 class="h4 mb-2 fw-bold text-white">Settings</h1>
+              <p class="text-muted small mb-0">
+                Environment configuration for this deployment. Changes apply to all users after dashboards refresh.
+                Script properties with a built-in default can be reset with <strong>Use default</strong>.
+              </p>
+            </div>
+          </div>
+          <div id="settings-fetch-error" class="alert alert-danger d-none mb-3" role="alert"></div>
+          <div id="settings-save-status" class="alert alert-success d-none mb-3" role="status"></div>
+          <div id="settings-loading" class="text-secondary small py-4 text-center d-none">Loading settings…</div>
+          <div id="settings-versions-host"></div>
+          <div id="settings-usage-host"></div>
+          <div id="settings-groups"></div>
+          <div class="fos-settings-footer sticky-bottom border-top border-secondary border-opacity-25 py-3 mt-3 d-flex flex-wrap align-items-center gap-2">
+            <button type="button" class="btn btn-fos-primary" id="settings-save-btn" disabled>Save changes</button>
+            <button type="button" class="btn btn-outline-secondary" id="settings-discard-btn" disabled>Discard</button>
+            <span id="settings-dirty-hint" class="small text-secondary ms-auto d-none">Unsaved changes</span>
+          </div>
+        </div>
+
+        <div id="panel-profile" class="d-none fos-profile-root">
+          <div class="card fos-card rounded-4 mb-3">
+            <div class="card-body p-4">
+              <h1 class="h4 mb-2 fw-bold text-white">Profile</h1>
+              <p class="text-muted small mb-0">
+                Opt in to email digests for existing Agreement and Utilization alerts. Emails are off until you enable them.
+              </p>
+            </div>
+          </div>
+          <div id="profile-fetch-error" class="alert alert-danger d-none mb-3" role="alert"></div>
+          <div id="profile-save-status" class="alert alert-success d-none mb-3" role="status"></div>
+          <div id="profile-loading" class="text-secondary small py-4 text-center">Loading profile…</div>
+          <div id="profile-form" class="d-none">
+            <div class="card fos-card rounded-4 mb-3">
+              <div class="card-body p-4">
+                <h2 class="h6 fw-semibold text-white mb-3">Email notifications</h2>
+                <div class="form-check form-switch mb-3">
+                  <input class="form-check-input" type="checkbox" role="switch" id="profile-email-enabled" />
+                  <label class="form-check-label" for="profile-email-enabled">Enable alert email digests</label>
+                </div>
+                <label for="profile-timezone" class="form-label small text-secondary">Timezone</label>
+                <input
+                  type="text"
+                  id="profile-timezone"
+                  class="form-control form-control-sm mb-3"
+                  placeholder="America/Chicago"
+                  autocomplete="off"
+                />
+                <div id="profile-subscriptions" class="fos-profile-subscriptions"></div>
+              </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2 pb-4">
+              <button type="button" class="btn btn-fos-primary" id="profile-save-btn" style="min-height: 44px">Save</button>
+              <button type="button" class="btn btn-outline-secondary" id="profile-discard-btn" style="min-height: 44px">Discard</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="panel-pipeline" class="d-none fos-agreement-root">
+          <div id="pipeline-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
+          <div class="fos-agreement-inner shadow-lg">
+            <div class="alert alert-info py-2 px-3 small mb-3 d-none" id="pipeline-live-only" role="status">
+              This snapshot does not include pipeline deals. Switch to <strong>Live data</strong> in the sidebar for current data.
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <div class="flex-grow-1 min-w-0">
+                <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Sales Pipeline</h1>
+                <p class="small mb-0" id="pipeline-subtitle" style="color: var(--ag-text-muted)">Opportunity tracker + HubSpot via Fibery</p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 mb-3 pb-3 border-bottom fos-pipeline-toolbar" style="border-color: var(--ag-border) !important">
+              <div class="fos-pipeline-toolbar-actions">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="pipeline-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
+                Refresh
+              </button>
+              <button type="button" class="btn btn-sm fw-semibold px-3 fos-mobile-only" id="pipeline-mobile-sales-view-btn" style="background: transparent; color: var(--ag-text); border: 1px solid var(--ag-border)">
+                View: Overview
+              </button>
+              <button type="button" class="btn btn-sm fw-semibold px-3 fos-mobile-only d-none" id="pipeline-mobile-hubspot-btn" style="background: transparent; color: var(--ag-text); border: 1px solid var(--ag-border)">
+                HubSpot: All sales
+              </button>
+              <button type="button" class="btn btn-sm fw-semibold px-3 fos-mobile-only" id="pipeline-mobile-charts-btn" style="background: transparent; color: var(--ag-text); border: 1px solid var(--ag-border)">
+                Show charts
+              </button>
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="pipeline-export-btn" style="background: transparent; color: var(--ag-text); border: 1px solid var(--ag-border)">
+                Export CSV
+              </button>
+              </div>
+              <span class="small d-none" id="pipeline-copy-alert" role="status" style="color: var(--ag-accent)">Data copied to clipboard</span>
+              <span class="small" id="pipeline-last-refresh" style="color: var(--ag-text-muted)">Last refreshed:  - </span>
+              <span class="small d-none text-danger" id="pipeline-fetch-error" role="alert"></span>
+            </div>
+
+            <p class="small d-none mb-3" id="pipeline-partial-note" style="color: var(--ag-warn)" role="status"></p>
+
+            <div id="pipeline-one-line-read" class="fos-pipeline-editorial d-none" role="note"></div>
+
+            <div class="fos-pipeline-sales-tabs" id="pipeline-sales-view-tabs" role="tablist" aria-label="Sales views">
+              <button type="button" class="fos-pipeline-sales-tab active" data-sales-view="overview" role="tab">Overview</button>
+              <button type="button" class="fos-pipeline-sales-tab" data-sales-view="expcl" role="tab">Ex-Princess</button>
+              <button type="button" class="fos-pipeline-sales-tab" data-sales-view="deals" role="tab">All Deals</button>
+              <button type="button" class="fos-pipeline-sales-tab" data-sales-view="concentration" role="tab">Concentration</button>
+              <button type="button" class="fos-pipeline-sales-tab" data-sales-view="nextsteps" role="tab">Next Steps</button>
+            </div>
+
+            <div class="fos-pipeline-tabs mb-3 d-none" id="pipeline-hubspot-filter" role="tablist" aria-label="HubSpot pipeline filter"></div>
+
+            <div id="pipeline-view-overview" class="pipeline-sales-view">
+              <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 mb-3 fos-pipeline-kpi-row" id="pipeline-kpi-row"></div>
+              <div class="fos-pipeline-fc-row" id="pipeline-fc-row"></div>
+              <div id="pipeline-overview-insight" class="fos-pipeline-insight d-none mb-3"></div>
+              <div id="pipeline-risk-card" class="fos-pipeline-insight fos-pipeline-risk d-none"></div>
+              <section class="fos-section-card mb-3" aria-labelledby="pipeline-stage-grid-h">
+                <h2 id="pipeline-stage-grid-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Stage distribution</h2>
+                <div class="fos-pipeline-stage-grid" id="pipeline-stage-grid"></div>
+              </section>
+              <section class="fos-section-card mb-3" aria-labelledby="pipeline-stage-h">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                  <h2 id="pipeline-stage-h" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Deals by stage</h2>
+                  <span class="small ms-auto" style="color: var(--ag-text-muted)">Click a stage to expand</span>
+                </div>
+                <div id="pipeline-stage-wrap"></div>
+              </section>
+              <section class="fos-section-card mb-3 fos-pipeline-mobile-extra" aria-labelledby="pipeline-fc-h">
+                <h2 id="pipeline-fc-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Revenue by quarter</h2>
+                <p class="small mb-2" style="color: var(--ag-text-muted)">Bars = Closed Won · lines = forecast by deal close date.</p>
+                <div class="fos-pipeline-chart-wrap"><canvas id="pipeline-forecast-chart"></canvas></div>
+              </section>
+              <section class="fos-section-card mb-3 fos-pipeline-mobile-extra" aria-labelledby="pipeline-funnel-h">
+                <h2 id="pipeline-funnel-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Pipeline shape - deals &amp; dollars by stage</h2>
+                <div class="fos-pipeline-funnel" id="pipeline-funnel"></div>
+              </section>
+            </div>
+
+            <div id="pipeline-view-expcl" class="pipeline-sales-view d-none">
+              <div class="fos-pipeline-insight mb-3">
+                <div>✦</div>
+                <div>
+                  <strong>Ex-Princess view</strong> excludes Princess Cruises / PCL from totals. Use this to see pipeline diversification beyond the PCL account.
+                </div>
+              </div>
+              <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 mb-3" id="pipeline-expcl-kpi-row"></div>
+              <div class="fos-pipeline-fc-row" id="pipeline-expcl-fc-row"></div>
+              <section class="fos-section-card mb-3" aria-labelledby="pipeline-expcl-table-h">
+                <h2 id="pipeline-expcl-table-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Active deals without PCL</h2>
+                <div class="fos-pipeline-tbl-wrap">
+                  <table class="fos-pipeline-deal-tbl" id="pipeline-expcl-table">
+                    <thead>
+                      <tr>
+                        <th data-col="company">Company</th>
+                        <th data-col="stage">Stage</th>
+                        <th data-col="nextStep">Next step</th>
+                        <th data-col="due">Due</th>
+                        <th data-col="notes">Notes</th>
+                        <th data-col="vertical">Vertical</th>
+                        <th data-col="product">Product</th>
+                        <th data-col="contact">Contact</th>
+                        <th data-col="amount">Est. ACV</th>
+                        <th data-col="weighted">Weighted</th>
+                        <th data-col="tcv">TCV</th>
+                      </tr>
+                    </thead>
+                    <tbody id="pipeline-expcl-tbody"></tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+
+            <div id="pipeline-view-deals" class="pipeline-sales-view d-none">
+              <section class="fos-section-card mb-3" aria-labelledby="pipeline-deals-table-h">
+                <h2 id="pipeline-deals-table-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">All opportunities</h2>
+                <div class="fos-pipeline-deal-filters">
+                  <input type="search" id="pipeline-deals-search" placeholder="Search company, contact, notes…" aria-label="Search deals">
+                  <select id="pipeline-deals-stage-filter" aria-label="Filter by stage"><option value="">All stages</option></select>
+                  <select id="pipeline-deals-vertical-filter" aria-label="Filter by vertical"><option value="">All verticals</option></select>
+                  <select id="pipeline-deals-partner-filter" aria-label="Filter by source">
+                    <option value="">All sources</option>
+                    <option value="Y">Partner-sourced</option>
+                    <option value="N">Direct</option>
+                  </select>
+                  <span class="small" id="pipeline-deals-count" style="color: var(--ag-text-muted)">0 deals</span>
+                </div>
+                <div class="fos-pipeline-tbl-wrap">
+                  <table class="fos-pipeline-deal-tbl" id="pipeline-deals-table">
+                    <thead>
+                      <tr>
+                        <th data-sort="company" data-col="company">Company</th>
+                        <th data-sort="stage" data-col="stage">Stage</th>
+                        <th data-col="nextStep">Next step</th>
+                        <th data-col="notes">Notes</th>
+                        <th data-sort="vertical" data-col="vertical">Vertical</th>
+                        <th data-sort="product" data-col="product">Product</th>
+                        <th data-sort="contact" data-col="contact">Contact</th>
+                        <th data-sort="amount" data-col="amount">Est. ACV</th>
+                        <th data-sort="weightedAmount" data-col="weighted">Weighted</th>
+                        <th data-sort="source" data-col="source">Source</th>
+                      </tr>
+                    </thead>
+                    <tbody id="pipeline-deals-tbody"></tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+
+            <div id="pipeline-view-concentration" class="pipeline-sales-view d-none">
+              <div id="pipeline-concentration-risk" class="fos-pipeline-insight fos-pipeline-risk mb-3"></div>
+              <section class="fos-section-card mb-3" aria-labelledby="pipeline-acct-h">
+                <h2 id="pipeline-acct-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Pipeline concentration by account</h2>
+                <div id="pipeline-acct-list"></div>
+              </section>
+              <section class="fos-section-card mb-3 fos-pipeline-mobile-extra" aria-labelledby="pipeline-vertical-h">
+                <h2 id="pipeline-vertical-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Pipeline by vertical</h2>
+                <div class="fos-pipeline-chart-wrap" style="height:220px"><canvas id="pipeline-vertical-chart"></canvas></div>
+              </section>
+            </div>
+
+            <div id="pipeline-view-nextsteps" class="pipeline-sales-view d-none">
+              <div id="pipeline-nextsteps-intro" class="fos-pipeline-insight mb-3"></div>
+              <div class="fos-pipeline-ns-grid" id="pipeline-nextsteps-grid"></div>
+              <section class="fos-section-card mt-3 mb-3" aria-labelledby="pipeline-due-h">
+                <h2 id="pipeline-due-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Follow-ups by date</h2>
+                <div class="fos-pipeline-tbl-wrap">
+                  <table class="fos-pipeline-deal-tbl" id="pipeline-due-table">
+                    <thead>
+                      <tr>
+                        <th data-col="due">Due</th>
+                        <th data-col="company">Company</th>
+                        <th data-col="stage">Stage</th>
+                        <th data-col="nextStep">Next step</th>
+                        <th data-col="notes">Notes</th>
+                        <th data-col="owner">Owner</th>
+                      </tr>
+                    </thead>
+                    <tbody id="pipeline-due-tbody"></tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+
+            <div id="pipeline-empty" class="text-center py-4 d-none" style="color: var(--ag-text-muted)">No active deals in this view.</div>
+          </div>
+        </div>
+
+        <div id="panel-agreement-dashboard" class="d-none fos-agreement-root">
+          <div id="agreement-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
+          <div class="fos-agreement-inner shadow-lg">
+            <div class="fos-loading-overlay d-none" id="agreement-loading" role="status" aria-live="polite" aria-hidden="true">
+              <div class="fos-loading-spinner" aria-hidden="true"></div>
+              <span class="fos-loading-label">Loading data…</span>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <div class="flex-grow-1 min-w-0">
+                <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Agreement Management Dashboard</h1>
+                <p class="small mb-0" id="agreement-subtitle" style="color: var(--ag-text-muted)">
+                  Portfolio state as of …
+                </p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 mb-4 pb-3 border-bottom fos-agreement-toolbar" style="border-color: var(--ag-border) !important">
+              <div class="fos-agreement-toolbar-actions">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="agreement-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
+                Refresh
+              </button>
+              <button type="button" class="btn btn-sm fw-semibold px-3 fos-mobile-only" id="agreement-mobile-charts-btn" style="background: transparent; color: var(--ag-text); border: 1px solid var(--ag-border)">
+                Show charts
+              </button>
+              </div>
+              <span class="small" id="agreement-last-refresh" style="color: var(--ag-text-muted)">Last refreshed:  - </span>
+              <span class="d-none small" id="agreement-stale-badge" style="color: var(--ag-warn); font-weight: 600">Stale</span>
+              <label class="small d-flex align-items-center gap-1" for="agreement-ttl-select" style="color: var(--ag-text-muted)">
+                Auto-refresh
+                <select id="agreement-ttl-select" class="fos-ttl-select" aria-label="Auto-refresh interval">
+                  <option value="5">5 min</option>
+                  <option value="10" selected>10 min</option>
+                  <option value="30">30 min</option>
+                  <option value="0">Off</option>
+                </select>
+              </label>
+              <span class="small d-none text-danger" id="agreement-fetch-error" role="alert"></span>
+            </div>
+
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 fos-agreement-kpi-row">
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-blue h-100" title="Count of active agreements (non-Closed-Lost, non-Internal).">
+                  <div class="label">Total agreements</div>
+                  <div class="value" id="kpi-total-agreements">0</div>
+                  <div class="sub" id="kpi-total-agreements-sub">0 external customers</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-teal h-100" title="Sum of total planned revenue (non-Internal).">
+                  <div class="label">Total contract value</div>
+                  <div class="value" id="kpi-tcv">$0</div>
+                  <div class="sub">Across all active SOWs</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-green h-100" title="Sum of recognized revenue (non-Internal).">
+                  <div class="label">Revenue recognized</div>
+                  <div class="value" id="kpi-rev-rec">$0</div>
+                  <div class="sub" id="kpi-rev-rec-sub">0% of portfolio realized</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-yellow h-100" title="Agreements in Delivery In Progress.">
+                  <div class="label">In delivery</div>
+                  <div class="value" id="kpi-in-delivery">0</div>
+                  <div class="sub" id="kpi-in-delivery-sub">0 proposals · 0 complete</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-blue h-100" title="Customer with highest total contract value.">
+                  <div class="label">Top customer</div>
+                  <div class="value text-truncate" id="kpi-top-customer"> - </div>
+                  <div class="sub" id="kpi-top-customer-sub">0% of portfolio · 0 SOWs</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-margin-low h-100" id="kpi-margin-card" title="Lowest margin or worst negative margin agreement.">
+                  <div class="label">Flagged margin</div>
+                  <div class="value" id="kpi-flag-margin"> - </div>
+                  <div class="sub text-truncate" id="kpi-flag-margin-sub"> - </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+              <div class="col-12 col-xl-7">
+                <section class="fos-section-card h-100" aria-labelledby="attention-heading">
+                  <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <h2 id="attention-heading" class="mb-0">Attention items</h2>
+                    <span class="small" style="color: var(--ag-text-muted)" id="attention-count">0 items</span>
+                    <button type="button"
+                            class="fos-util-clear-btn ms-auto"
+                            id="attention-collapse-all"
+                            hidden>Collapse all</button>
+                  </div>
+                  <div id="attention-list" aria-live="polite"></div>
+                </section>
+              </div>
+              <div class="col-12 col-xl-5 fos-agreement-mobile-extra">
+                <div class="row g-3 h-100">
+                  <div class="col-12 col-md-6 col-xl-12">
+                    <section class="fos-section-card h-100" aria-labelledby="status-donut-heading">
+                      <h2 id="status-donut-heading">Agreement status</h2>
+                      <div class="fos-chart-wrap"><canvas id="chart-status-donut"></canvas></div>
+                    </section>
+                  </div>
+                  <div class="col-12 col-md-6 col-xl-12">
+                    <section class="fos-section-card h-100" aria-labelledby="type-donut-heading">
+                      <h2 id="type-donut-heading">Agreement type mix</h2>
+                      <div class="fos-chart-wrap"><canvas id="chart-type-donut"></canvas></div>
+                    </section>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-1 fos-agreement-mobile-extra">
+              <div class="col-12 col-xl-7">
+                <section class="fos-section-card h-100" aria-labelledby="recognition-heading">
+                  <h2 id="recognition-heading">Revenue recognition progress</h2>
+                  <div class="fos-chart-wrap tall"><canvas id="chart-recognition-stack"></canvas></div>
+                </section>
+              </div>
+              <div class="col-12 col-xl-5">
+                <section class="fos-section-card h-100" aria-labelledby="customer-bar-heading">
+                  <h2 id="customer-bar-heading">Customer contract value</h2>
+                  <div class="fos-chart-wrap tall"><canvas id="chart-customer-bar"></canvas></div>
+                </section>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-1 fos-agreement-mobile-extra">
+              <div class="col-12 col-xl-5">
+                <section class="fos-section-card h-100" aria-labelledby="customer-cards-heading">
+                  <h2 id="customer-cards-heading">Customer relationships</h2>
+                  <div id="customer-cards-list" class="fos-customer-list" aria-live="polite"></div>
+                  <p class="small mb-0 mt-2" id="customer-cards-empty" style="color: var(--ag-text-muted); display: none">
+                    No customer records to display.
+                  </p>
+                </section>
+              </div>
+              <div class="col-12 col-xl-7">
+                <section class="fos-section-card h-100" aria-labelledby="pipeline-heading">
+                  <h2 id="pipeline-heading">Forward revenue pipeline</h2>
+                  <div id="pipeline-list" class="fos-pipeline-list" aria-live="polite"></div>
+                  <p class="small mb-0 mt-2" id="pipeline-empty" style="color: var(--ag-text-muted); display: none">
+                    No forward pipeline data found.
+                  </p>
+                </section>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+              <div class="col-12">
+                <section class="fos-section-card" aria-labelledby="financial-table-heading">
+                  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                    <h2 id="financial-table-heading" class="mb-0">Financial performance</h2>
+                    <button
+                      type="button"
+                      class="btn btn-sm fw-semibold px-3 fos-mobile-only"
+                      id="agreement-mobile-fin-filter-btn"
+                      style="background: transparent; color: var(--ag-text); border: 1px solid var(--ag-border)"
+                    >
+                      Filter: All active
+                    </button>
+                    <div class="fos-table-tabs" role="tablist" aria-label="Financial performance filters">
+                      <button type="button" class="tab active" data-tab="allActive" role="tab" aria-selected="true">All active</button>
+                      <button type="button" class="tab" data-tab="topCustomer" role="tab" aria-selected="false">Top customer</button>
+                      <button type="button" class="tab" data-tab="otherCustomers" role="tab" aria-selected="false">Other customers</button>
+                    </div>
+                  </div>
+                  <div class="fos-financial-scroll">
+                    <table class="fos-financial-table" aria-describedby="financial-table-heading">
+                      <thead>
+                        <tr>
+                          <th scope="col">Agreement</th>
+                          <th scope="col" id="financial-customer-th">Customer</th>
+                          <th scope="col">Type</th>
+                          <th scope="col">Status</th>
+                          <th scope="col" class="num">Planned</th>
+                          <th scope="col" class="num">Recognized</th>
+                          <th scope="col">Margin</th>
+                        </tr>
+                      </thead>
+                      <tbody id="financial-table-body"></tbody>
+                    </table>
+                  </div>
+                  <p class="small mb-0 mt-2" id="financial-empty" style="color: var(--ag-text-muted); display: none">
+                    No agreements match this filter.
+                  </p>
+                </section>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-1 fos-agreement-mobile-extra">
+              <div class="col-12">
+                <section class="fos-section-card" aria-labelledby="sankey-heading">
+                  <h2 id="sankey-heading">Revenue flow - status · customer · type</h2>
+                  <div id="sankey-wrap" class="fos-sankey-wrap" role="img" aria-label="Revenue flow Sankey diagram"></div>
+                </section>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="panel-operations" class="d-none fos-agreement-root">
+          <div id="util-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
+          <div class="fos-agreement-inner shadow-lg">
+            <div class="fos-loading-overlay d-none" id="util-loading" role="status" aria-live="polite" aria-hidden="true">
+              <div class="fos-loading-spinner" aria-hidden="true"></div>
+              <span class="fos-loading-label">Loading data…</span>
+            </div>
+            <div id="util-panel-skeleton" class="fos-panel-skeleton-grid d-none mb-3" aria-hidden="true">
+              <div class="fos-panel-skeleton-block" style="height: 4.5rem"></div>
+              <div class="fos-panel-skeleton-block" style="height: 12rem"></div>
+              <div class="fos-panel-skeleton-block" style="height: 16rem"></div>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <div class="flex-grow-1 min-w-0">
+                <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Utilization Management Dashboard</h1>
+                <p class="small mb-0" id="util-subtitle" style="color: var(--ag-text-muted)">
+                  Labor utilization for …
+                </p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 mb-3 pb-3 border-bottom" style="border-color: var(--ag-border) !important">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="util-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
+                Refresh
+              </button>
+              <span class="small" id="util-last-refresh" style="color: var(--ag-text-muted)">Last refreshed:  - </span>
+              <span class="d-none small" id="util-stale-badge" style="color: var(--ag-warn); font-weight: 600">Stale</span>
+              <label class="small d-flex align-items-center gap-1" for="util-ttl-select" style="color: var(--ag-text-muted)">
+                Auto-refresh
+                <select id="util-ttl-select" class="fos-ttl-select" aria-label="Auto-refresh interval">
+                  <option value="5">5 min</option>
+                  <option value="10" selected>10 min</option>
+                  <option value="30">30 min</option>
+                  <option value="0">Off</option>
+                </select>
+              </label>
+              <span class="small d-none text-danger" id="util-fetch-error" role="alert"></span>
+            </div>
+
+            <section class="fos-util-filter-bar mb-3" aria-label="Utilization filters">
+              <div class="d-flex flex-wrap align-items-end gap-3">
+                <div>
+                  <label class="field-label" for="util-range-preset">Date range</label>
+                  <select id="util-range-preset" aria-label="Date range preset">
+                    <option value="30">Last 30 days</option>
+                    <option value="60" selected>Last 60 days</option>
+                    <option value="90">Last 90 days</option>
+                    <option value="180">Last 6 months</option>
+                    <option value="ytd">Year to date</option>
+                    <option value="custom">Custom…</option>
+                  </select>
+                </div>
+                <div id="util-custom-range" class="d-none d-flex gap-2 align-items-end">
+                  <div>
+                    <label class="field-label" for="util-range-start">Start</label>
+                    <input type="date" id="util-range-start" />
+                  </div>
+                  <div>
+                    <label class="field-label" for="util-range-end">End</label>
+                    <input type="date" id="util-range-end" />
+                  </div>
+                  <button type="button" class="btn btn-sm" id="util-range-apply" style="background: var(--ag-accent); color: #061b30; border: none; align-self: end">
+                    Apply
+                  </button>
+                </div>
+                <div class="fos-util-multi">
+                  <label class="field-label">Customers</label>
+                  <button type="button" class="multi-trigger" id="util-customer-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    All customers
+                  </button>
+                  <ul class="dropdown-menu" id="util-customer-menu" aria-label="Customer filter"></ul>
+                </div>
+                <div class="fos-util-multi">
+                  <label class="field-label">Projects</label>
+                  <button type="button" class="multi-trigger" id="util-project-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    All projects
+                  </button>
+                  <ul class="dropdown-menu" id="util-project-menu" aria-label="Project filter"></ul>
+                </div>
+                <div class="fos-util-multi">
+                  <label class="field-label">Persons</label>
+                  <button type="button" class="multi-trigger" id="util-person-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    All persons
+                  </button>
+                  <ul class="dropdown-menu" id="util-person-menu" aria-label="Person filter"></ul>
+                </div>
+                <div class="fos-util-multi">
+                  <label class="field-label">Roles</label>
+                  <button type="button" class="multi-trigger" id="util-role-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    All roles
+                  </button>
+                  <ul class="dropdown-menu" id="util-role-menu" aria-label="Role filter"></ul>
+                </div>
+                <div>
+                  <label class="field-label">Billable</label>
+                  <div class="btn-group" role="group" id="util-billable-group" aria-label="Billable filter">
+                    <button type="button" class="btn btn-sm active" data-value="all">All</button>
+                    <button type="button" class="btn btn-sm" data-value="billable">Billable</button>
+                    <button type="button" class="btn btn-sm" data-value="non-billable">Non-billable</button>
+                  </div>
+                </div>
+                <div>
+                  <label class="field-label">Internal labor</label>
+                  <div class="btn-group" role="group" id="util-internal-group" aria-label="Internal labor filter">
+                    <button type="button" class="btn btn-sm active" data-value="include">Include</button>
+                    <button type="button" class="btn btn-sm" data-value="exclude">Exclude</button>
+                  </div>
+                </div>
+                <button type="button" class="fos-util-clear-btn ms-auto" id="util-clear-btn">Clear filters</button>
+              </div>
+              <div class="fos-util-chip-row mt-2" id="util-chip-row" aria-live="polite"></div>
+            </section>
+
+            <!-- Utilization Alerts (Phase C) - under-utilized / over-allocated;
+                 mirrors the Agreement Dashboard Attention Items pattern.
+                 As of v1.17.0 the items are grouped by alert kind with a
+                 Collapse all affordance. -->
+            <section class="fos-section-card mb-3" aria-labelledby="util-attention-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="util-attention-heading" class="mb-0">Utilization alerts</h2>
+                <span class="small" style="color: var(--ag-text-muted)" id="util-attention-count">0 alerts</span>
+                <button type="button"
+                        class="fos-util-clear-btn ms-auto"
+                        id="util-attention-collapse-all"
+                        hidden>Collapse all</button>
+              </div>
+              <div id="util-attention-list" aria-live="polite"></div>
+            </section>
+
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-blue h-100" title="Total hours logged in the filtered window.">
+                  <div class="label">Total hours</div>
+                  <div class="value" id="util-kpi-total-hours">0</div>
+                  <div class="sub" id="util-kpi-total-hours-sub">0 entries</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-teal h-100" title="Billable hours (Billable = Yes) in the filter set.">
+                  <div class="label">Billable hours</div>
+                  <div class="value" id="util-kpi-billable-hours">0</div>
+                  <div class="sub" id="util-kpi-non-billable-sub">0 non-billable</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-green h-100" title="Billable hours divided by total hours.">
+                  <div class="label">Utilization</div>
+                  <div class="value" id="util-kpi-utilization">0%</div>
+                  <div class="sub" id="util-kpi-utilization-sub"> -  vs target</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-yellow h-100" title="Sum of precomputed Cost field across the filter set.">
+                  <div class="label">Total cost</div>
+                  <div class="value" id="util-kpi-total-cost">$0</div>
+                  <div class="sub" id="util-kpi-cost-sub">$0/hr effective</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-blue h-100" title="Weighted average User Role Bill Rate for rows with a known rate; coverage shows what fraction of hours those rows represent.">
+                  <div class="label">Effective bill rate</div>
+                  <div class="value" id="util-kpi-bill-rate"> - </div>
+                  <div class="sub" id="util-kpi-bill-rate-sub">0% coverage</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+              <div class="col-12 col-xl-6">
+                <section class="fos-section-card h-100" aria-labelledby="util-customer-heading">
+                  <h2 id="util-customer-heading">Hours by customer</h2>
+                  <div class="fos-chart-wrap fos-util-chart-wrap tall" id="util-customer-bar-wrap"><canvas id="util-customer-bar"></canvas></div>
+                </section>
+              </div>
+              <div class="col-12 col-xl-6">
+                <section class="fos-section-card h-100" aria-labelledby="util-project-heading">
+                  <h2 id="util-project-heading">Hours by project</h2>
+                  <div class="fos-chart-wrap fos-util-chart-wrap tall" id="util-project-bar-wrap"><canvas id="util-project-bar"></canvas></div>
+                </section>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+              <div class="col-12 col-xl-7">
+                <section class="fos-section-card h-100" aria-labelledby="util-weekly-heading">
+                  <h2 id="util-weekly-heading">Weekly trend (total vs billable)</h2>
+                  <div class="fos-chart-wrap fos-util-chart-wrap" id="util-weekly-wrap"><canvas id="util-weekly-line"></canvas></div>
+                </section>
+              </div>
+              <div class="col-12 col-xl-5">
+                <section class="fos-section-card h-100" aria-labelledby="util-billable-heading">
+                  <h2 id="util-billable-heading">Billable vs non-billable</h2>
+                  <div class="fos-chart-wrap fos-util-chart-wrap" id="util-billable-wrap"><canvas id="util-billable-stack"></canvas></div>
+                </section>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+              <div class="col-12 col-xl-5">
+                <section class="fos-section-card h-100" aria-labelledby="util-role-heading">
+                  <h2 id="util-role-heading">Hours by role</h2>
+                  <div class="fos-chart-wrap fos-util-chart-wrap" id="util-role-wrap"><canvas id="util-role-donut"></canvas></div>
+                </section>
+              </div>
+              <div class="col-12 col-xl-7">
+                <section class="fos-section-card h-100" aria-labelledby="util-person-heading">
+                  <h2 id="util-person-heading">Hours by person</h2>
+                  <div class="fos-chart-wrap fos-util-chart-wrap tall" id="util-person-wrap"><canvas id="util-person-bar"></canvas></div>
+                </section>
+              </div>
+            </div>
+
+            <!-- Utilization heatmap (Phase C) -->
+            <div class="row g-3 mt-1">
+              <div class="col-12">
+                <section class="fos-section-card h-100" aria-labelledby="util-heatmap-heading">
+                  <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <h2 id="util-heatmap-heading" class="mb-0">Utilization heatmap</h2>
+                    <span class="small" style="color: var(--ag-text-muted)" id="util-heatmap-meta"> -  ·  - </span>
+                    <div class="fos-util-multi ms-auto">
+                      <label class="field-label" style="display: block; line-height: 1; margin-bottom: 2px">Heatmap role</label>
+                      <button type="button" class="multi-trigger" id="util-heatmap-role-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                        All roles
+                      </button>
+                      <ul class="dropdown-menu" id="util-heatmap-role-menu" aria-label="Heatmap role filter"></ul>
+                    </div>
+                  </div>
+                  <div class="fos-util-heatmap-legend" id="util-heatmap-legend" role="group" aria-label="Heatmap utilization band filters"></div>
+                  <div class="fos-util-heatmap-wrap" id="util-heatmap-wrap">
+                    <div id="util-heatmap-grid" class="fos-util-heatmap-grid" role="img" aria-label="Per-person weekly utilization heatmap"></div>
+                    <div class="fos-util-heatmap-empty d-none" id="util-heatmap-empty">No contributors match the current filter.</div>
+                  </div>
+                </section>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+              <div class="col-12">
+                <section class="fos-section-card" aria-labelledby="util-detail-heading">
+                  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                      <h2 id="util-detail-heading" class="mb-0">Detail entries</h2>
+                      <span class="small" style="color: var(--ag-text-muted)" id="util-detail-count">0 rows</span>
+                      <span class="small d-none" style="color: var(--ag-text-muted)" id="util-detail-filter-hint">(table filters active)</span>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-end gap-2 fos-util-detail-toolbar">
+                      <div class="fos-util-multi">
+                        <label class="field-label" style="display: block; line-height: 1; margin-bottom: 2px">Company</label>
+                        <button type="button" class="multi-trigger" id="util-detail-company-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                          All companies
+                        </button>
+                        <ul class="dropdown-menu" id="util-detail-company-menu" aria-label="Detail table company filter"></ul>
+                      </div>
+                      <div class="fos-util-multi">
+                        <label class="field-label" style="display: block; line-height: 1; margin-bottom: 2px">Person</label>
+                        <button type="button" class="multi-trigger" id="util-detail-person-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                          All persons
+                        </button>
+                        <ul class="dropdown-menu" id="util-detail-person-menu" aria-label="Detail table person filter"></ul>
+                      </div>
+                      <div class="fos-util-multi">
+                        <label class="field-label" style="display: block; line-height: 1; margin-bottom: 2px">Role</label>
+                        <button type="button" class="multi-trigger" id="util-detail-role-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                          All roles
+                        </button>
+                        <ul class="dropdown-menu" id="util-detail-role-menu" aria-label="Detail table role filter"></ul>
+                      </div>
+                      <button type="button" class="fos-util-clear-btn" id="util-detail-clear-filters">Clear table filters</button>
+                      <button type="button" class="btn btn-sm btn-outline-secondary" id="util-detail-export-csv-btn">Copy CSV</button>
+                      <span class="small" id="util-detail-csv-status" style="color: var(--ag-text-muted)"></span>
+                    </div>
+                  </div>
+                  <div class="fos-util-detail-wrap">
+                    <table class="fos-util-detail-table">
+                      <thead>
+                        <tr>
+                          <th data-sort-key="day">Date <span class="sort-icon">↕</span></th>
+                          <th data-sort-key="userName">Person <span class="sort-icon">↕</span></th>
+                          <th data-sort-key="customer">Customer <span class="sort-icon">↕</span></th>
+                          <th data-sort-key="projectName">Project <span class="sort-icon">↕</span></th>
+                          <th data-sort-key="role">Role <span class="sort-icon">↕</span></th>
+                          <th data-sort-key="hours" class="text-end">Hours <span class="sort-icon">↕</span></th>
+                          <th data-sort-key="cost" class="text-end">Cost <span class="sort-icon">↕</span></th>
+                          <th data-sort-key="userRoleBillRate" class="text-end">Bill rate <span class="sort-icon">↕</span></th>
+                        </tr>
+                      </thead>
+                      <tbody id="util-detail-tbody"></tbody>
+                      <tfoot id="util-detail-tfoot" class="d-none">
+                        <tr>
+                          <td colspan="5" class="text-end util-detail-total-label">Total (filtered)</td>
+                          <td class="text-end" id="util-detail-total-hours"> - </td>
+                          <td class="text-end" id="util-detail-total-cost"> - </td>
+                          <td></td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-2 fos-util-detail-pager">
+                    <span class="small" style="color: var(--ag-text-muted)" id="util-detail-page-info"> - </span>
+                    <div class="btn-group" role="group" aria-label="Detail pagination">
+                      <button type="button" class="btn btn-sm" id="util-detail-prev">Prev</button>
+                      <button type="button" class="btn btn-sm" id="util-detail-next">Next</button>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="panel-labor-hours" class="d-none fos-agreement-root">
+          <div id="lh-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
+          <div class="fos-agreement-inner shadow-lg">
+            <div class="fos-loading-overlay d-none" id="lh-loading" role="status" aria-live="polite" aria-hidden="true">
+              <div class="fos-loading-spinner" aria-hidden="true"></div>
+              <span class="fos-loading-label">Loading week…</span>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <div class="flex-grow-1 min-w-0">
+                <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Labor hours review</h1>
+                <p class="small mb-0" id="lh-subtitle" style="color: var(--ag-text-muted)"> - </p>
+                <p class="small mb-0 mt-1" id="lh-source-meta" style="color: var(--ag-text-muted)"></p>
+              </div>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 mb-3 pb-3 border-bottom" style="border-color: var(--ag-border) !important">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="lh-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
+                Refresh
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="lh-export-csv-btn">
+                Copy CSV
+              </button>
+              <span class="small text-success" id="lh-csv-status" role="status" aria-live="polite"></span>
+              <button type="button" class="btn btn-link btn-sm py-0 px-1 text-decoration-none" id="lh-expand-projects-btn" style="color: var(--ag-accent)">
+                Expand projects
+              </button>
+              <button type="button" class="btn btn-link btn-sm py-0 px-1 text-decoration-none" id="lh-collapse-projects-btn" style="color: var(--ag-text-muted)">
+                Collapse projects
+              </button>
+              <label class="small d-flex align-items-center gap-2 mb-0" for="lh-week-input" style="color: var(--ag-text-muted)">
+                <span class="text-nowrap">Week (Mon-Sun)</span>
+                <input type="week" id="lh-week-input" class="form-control form-control-sm" style="width: 11rem; background: var(--ag-surface2); color: var(--ag-text); border-color: var(--ag-border)" />
+              </label>
+              <div class="fos-util-multi">
+                <label class="field-label">Company</label>
+                <button
+                  type="button"
+                  class="multi-trigger"
+                  id="lh-company-trigger"
+                  data-bs-toggle="dropdown"
+                  data-bs-auto-close="outside"
+                  aria-expanded="false"
+                >
+                  All companies
+                </button>
+                <ul class="dropdown-menu" id="lh-company-menu" aria-label="Company filter"></ul>
+              </div>
+              <span class="small d-none text-danger" id="lh-fetch-error" role="alert"></span>
+            </div>
+
+            <div class="row row-cols-2 row-cols-sm-3 row-cols-lg-5 g-3 mb-3" id="lh-kpi-row">
+              <div class="col">
+                <div
+                  class="fos-agreement-kpi kpi-blue h-100 fos-lh-kpi-jump"
+                  title="People who logged time in the selected week (after filters). Click to scroll to the first table."
+                  role="button"
+                  tabindex="0"
+                  data-lh-scroll-to="lh-section-over"
+                >
+                  <div class="label">With time</div>
+                  <div class="value" id="lh-kpi-with">0</div>
+                  <div class="sub">people</div>
+                </div>
+              </div>
+              <div class="col">
+                <div
+                  class="fos-agreement-kpi kpi-margin-neg h-100 fos-lh-kpi-jump"
+                  title="Click to scroll to Over table."
+                  role="button"
+                  tabindex="0"
+                  data-lh-scroll-to="lh-section-over"
+                >
+                  <div class="label">Over target</div>
+                  <div class="value" id="lh-kpi-over">0</div>
+                  <div class="sub">people</div>
+                </div>
+              </div>
+              <div class="col">
+                <div
+                  class="fos-agreement-kpi kpi-yellow h-100 fos-lh-kpi-jump"
+                  title="Click to scroll to Under table."
+                  role="button"
+                  tabindex="0"
+                  data-lh-scroll-to="lh-section-under"
+                >
+                  <div class="label">Under target</div>
+                  <div class="value" id="lh-kpi-under">0</div>
+                  <div class="sub">people</div>
+                </div>
+              </div>
+              <div class="col">
+                <div
+                  class="fos-agreement-kpi kpi-teal h-100 fos-lh-kpi-jump"
+                  title="Click to scroll to On target table."
+                  role="button"
+                  tabindex="0"
+                  data-lh-scroll-to="lh-section-on"
+                >
+                  <div class="label">On target</div>
+                  <div class="value" id="lh-kpi-on">0</div>
+                  <div class="sub">people</div>
+                </div>
+              </div>
+              <div class="col">
+                <div
+                  class="fos-agreement-kpi h-100 fos-lh-kpi-jump"
+                  style="background: var(--ag-surface2); border: 1px solid var(--ag-border)"
+                  title="People in the utilization roster with no time this week. Click to scroll."
+                  role="button"
+                  tabindex="0"
+                  data-lh-scroll-to="lh-section-zero"
+                >
+                  <div class="label" style="color: var(--ag-text-muted)">Zero hours</div>
+                  <div class="value" id="lh-kpi-zero" style="color: var(--ag-text-muted)">0</div>
+                  <div class="sub" style="color: var(--ag-text-muted)">roster</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+              <div class="col-12">
+                <section class="fos-section-card" id="lh-section-zero" aria-labelledby="lh-zero-heading">
+                  <h2 id="lh-zero-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text-muted)">Zero hours this week</h2>
+                  <p class="small mb-2" style="color: var(--ag-text-muted)">
+                    Active Clockify Users in the utilization roster (last ~60 days of labor data) with no qualifying entries in the selected week, after the <strong>Company</strong> filter.
+                  </p>
+                  <div id="lh-zero-chips" class="fos-lh-zero-chips" aria-live="polite"></div>
+                </section>
+              </div>
+              <div class="col-12">
+                <section class="fos-section-card" id="lh-section-over" aria-labelledby="lh-over-heading">
+                  <h2 id="lh-over-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-danger, var(--danger))">Over weekly target</h2>
+                  <div class="fos-util-detail-wrap">
+                    <table class="fos-util-detail-table">
+                      <thead>
+                        <tr>
+                          <th data-lh-section="over" data-lh-sort="person">Person <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="over" data-lh-sort="company">Company <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="over" data-lh-sort="target" class="text-end">Target <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="over" data-lh-sort="hours" class="text-end">Hours <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="over" data-lh-sort="delta" class="text-end">Δ vs target <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="over" data-lh-sort="projects">Projects <span class="sort-icon">↕</span></th>
+                        </tr>
+                      </thead>
+                      <tbody id="lh-over-tbody"></tbody>
+                    </table>
+                  </div>
+                </section>
+              </div>
+              <div class="col-12">
+                <section class="fos-section-card" id="lh-section-under" aria-labelledby="lh-under-heading">
+                  <h2 id="lh-under-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-warn)">Under weekly target</h2>
+                  <div class="fos-util-detail-wrap">
+                    <table class="fos-util-detail-table">
+                      <thead>
+                        <tr>
+                          <th data-lh-section="under" data-lh-sort="person">Person <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="under" data-lh-sort="company">Company <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="under" data-lh-sort="target" class="text-end">Target <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="under" data-lh-sort="hours" class="text-end">Hours <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="under" data-lh-sort="delta" class="text-end">Δ vs target <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="under" data-lh-sort="projects">Projects <span class="sort-icon">↕</span></th>
+                        </tr>
+                      </thead>
+                      <tbody id="lh-under-tbody"></tbody>
+                    </table>
+                  </div>
+                </section>
+              </div>
+              <div class="col-12">
+                <section class="fos-section-card" id="lh-section-on" aria-labelledby="lh-on-heading">
+                  <h2 id="lh-on-heading" class="h6 mb-2 fw-bold" style="color: var(--accent4)">On target</h2>
+                  <div class="fos-util-detail-wrap">
+                    <table class="fos-util-detail-table">
+                      <thead>
+                        <tr>
+                          <th data-lh-section="on" data-lh-sort="person">Person <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="on" data-lh-sort="company">Company <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="on" data-lh-sort="target" class="text-end">Target <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="on" data-lh-sort="hours" class="text-end">Hours <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="on" data-lh-sort="delta" class="text-end">Δ vs target <span class="sort-icon">↕</span></th>
+                          <th data-lh-section="on" data-lh-sort="projects">Projects <span class="sort-icon">↕</span></th>
+                        </tr>
+                      </thead>
+                      <tbody id="lh-on-tbody"></tbody>
+                    </table>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="panel-resource-assignments" class="d-none fos-agreement-root">
+          <div id="ra-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
+          <div class="fos-agreement-inner shadow-lg">
+            <div class="fos-loading-overlay d-none" id="ra-loading" role="status" aria-live="polite" aria-hidden="true">
+              <div class="fos-loading-spinner" aria-hidden="true"></div>
+              <span class="fos-loading-label">Loading assignments…</span>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <div class="flex-grow-1 min-w-0">
+                <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Resource assignments</h1>
+                <p class="small mb-0" id="ra-subtitle" style="color: var(--ag-text-muted)">Planned staffing from Fibery</p>
+                <p class="small mb-0 mt-1" id="ra-source-meta" style="color: var(--ag-text-muted)"></p>
+              </div>
+            </div>
+            <div id="ra-current-week" class="ra-current-week-banner mb-3" role="status" aria-live="polite">
+              <span class="ra-cw-label">Current ISO week</span>
+              <span class="ra-cw-value" id="ra-current-week-value">—</span>
+              <span class="ra-cw-detail" id="ra-current-week-detail"></span>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 mb-3 pb-3 border-bottom" style="border-color: var(--ag-border) !important">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="ra-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">Refresh</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="ra-export-csv-btn">Copy CSV</button>
+              <span class="small text-success" id="ra-csv-status" role="status" aria-live="polite"></span>
+              <span class="badge rounded-pill bg-warning text-dark d-none" id="ra-stale-badge">Stale</span>
+              <label class="small d-flex align-items-center gap-2 mb-0" style="color: var(--ag-text-muted)">
+                <span>From</span>
+                <input type="date" id="ra-range-start" class="form-control form-control-sm" style="width: 9.5rem; background: var(--ag-surface2); color: var(--ag-text); border-color: var(--ag-border)" />
+              </label>
+              <label class="small d-flex align-items-center gap-2 mb-0" style="color: var(--ag-text-muted)">
+                <span>To</span>
+                <input type="date" id="ra-range-end" class="form-control form-control-sm" style="width: 9.5rem; background: var(--ag-surface2); color: var(--ag-text); border-color: var(--ag-border)" />
+              </label>
+              <label class="small d-flex align-items-center gap-2 mb-0" for="ra-ttl-select" style="color: var(--ag-text-muted)">
+                <span>Auto-refresh</span>
+                <select id="ra-ttl-select" class="form-select form-select-sm" style="width: 6.5rem; background: var(--ag-surface2); color: var(--ag-text); border-color: var(--ag-border)">
+                  <option value="5">5 min</option>
+                  <option value="10" selected>10 min</option>
+                  <option value="30">30 min</option>
+                  <option value="0">Off</option>
+                </select>
+              </label>
+              <button type="button" class="fos-util-clear-btn" id="ra-clear-filters-btn">Clear filters</button>
+              <span class="small d-none text-danger" id="ra-fetch-error" role="alert"></span>
+            </div>
+            <div class="row row-cols-2 row-cols-md-5 g-3 mb-3" id="ra-kpi-row">
+              <div class="col"><div class="fos-agreement-kpi kpi-blue h-100"><div class="label">People</div><div class="value" id="ra-kpi-people">0</div></div></div>
+              <div class="col"><div class="fos-agreement-kpi kpi-teal h-100"><div class="label">Projects</div><div class="value" id="ra-kpi-projects">0</div></div></div>
+              <div class="col"><div class="fos-agreement-kpi kpi-purple h-100"><div class="label">Assignments</div><div class="value" id="ra-kpi-assignments">0</div></div></div>
+              <div class="col"><div class="fos-agreement-kpi kpi-margin-neg h-100"><div class="label">Over-allocated weeks</div><div class="value" id="ra-kpi-over">0</div></div></div>
+              <div class="col"><div class="fos-agreement-kpi kpi-yellow h-100"><div class="label">Ending soon</div><div class="value" id="ra-kpi-ending">0</div></div></div>
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-6 col-md-3">
+                <div class="fos-util-multi">
+                  <label class="field-label">Company</label>
+                  <button type="button" class="multi-trigger" id="ra-company-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside">All companies</button>
+                  <ul class="dropdown-menu" id="ra-company-menu"></ul>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="fos-util-multi">
+                  <label class="field-label">Person</label>
+                  <button type="button" class="multi-trigger" id="ra-person-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside">All people</button>
+                  <ul class="dropdown-menu" id="ra-person-menu"></ul>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="fos-util-multi">
+                  <label class="field-label">Role</label>
+                  <button type="button" class="multi-trigger" id="ra-role-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside">All roles</button>
+                  <ul class="dropdown-menu" id="ra-role-menu"></ul>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="fos-util-multi">
+                  <label class="field-label">Project</label>
+                  <button type="button" class="multi-trigger" id="ra-project-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside">All projects</button>
+                  <ul class="dropdown-menu" id="ra-project-menu"></ul>
+                </div>
+              </div>
+            </div>
+            <section class="fos-section-card mb-3" aria-labelledby="ra-alerts-heading">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <h2 id="ra-alerts-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Alerts</h2>
+                <span class="small" id="ra-alert-count" style="color: var(--ag-text-muted)">0 alerts</span>
+              </div>
+              <div id="ra-alert-list" class="fos-attention-list"></div>
+            </section>
+            <section class="fos-section-card mb-3" aria-labelledby="ra-grid-heading">
+              <h2 id="ra-grid-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Weekly assignment grid</h2>
+              <ul class="nav ra-grid-tabs mb-2" id="ra-grid-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                  <button type="button" class="nav-link active" id="ra-tab-person-variances" data-ra-tab="personVariances" role="tab" aria-selected="true" aria-controls="ra-tab-panel-person-variances">By person variances</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button type="button" class="nav-link" id="ra-tab-person" data-ra-tab="person" role="tab" aria-selected="false" aria-controls="ra-tab-panel-person">By person allocations</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button type="button" class="nav-link" id="ra-tab-project" data-ra-tab="project" role="tab" aria-selected="false" aria-controls="ra-tab-panel-project">By project</button>
+                </li>
+              </ul>
+              <p class="small mb-2" id="ra-grid-intro" style="color: var(--ag-text-muted)">Person → Assigned / Actual / Variance → project. Click a week cell for daily detail. Collapse rows to see group totals only.</p>
+              <div id="ra-legend-wrap" class="mb-2 d-none">
+                <div class="small fw-semibold mb-1" style="color: var(--ag-text)">Allocation heatmap</div>
+                <div id="ra-legend" class="ra-heat-scale" aria-label="Allocation percent heatmap legend"></div>
+              </div>
+              <div id="ra-plan-actual-legend-wrap" class="mb-2">
+                <div class="small fw-semibold mb-1" style="color: var(--ag-text)">Plan vs actual</div>
+                <p class="ra-plan-actual-legend mb-0">Expand a project, then a person, to see <strong>Assigned</strong>, <strong>Actual</strong>, and <strong>Variance</strong> rows per week. Orange name and actual hours = no assignment or allocation not marked <em>Allocated &amp; Billable</em> in Fibery.</p>
+              </div>
+              <div class="ra-grid-wrap">
+                <table class="ra-grid" id="ra-grid-table" aria-label="Resource assignments by week">
+                  <thead id="ra-grid-thead"></thead>
+                  <tbody id="ra-grid-tbody"></tbody>
+                </table>
+              </div>
+              <p class="small mt-2 d-none" id="ra-empty" style="color: var(--ag-text-muted)">No resource assignments in this range.</p>
+            </section>
+          </div>
+        </div>
+
+        <div class="modal fade" id="raDayDetailModal" tabindex="-1" aria-labelledby="raDayDetailModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-scrollable modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h2 class="modal-title h6 mb-0" id="raDayDetailModalLabel">Week detail</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-sm mb-0" aria-label="Daily hours breakdown">
+                    <thead>
+                      <tr>
+                        <th scope="col">Day</th>
+                        <th scope="col" class="text-end">Assigned h</th>
+                        <th scope="col" class="text-end">Actual h</th>
+                        <th scope="col" class="text-end">Variance h</th>
+                      </tr>
+                    </thead>
+                    <tbody id="ra-day-detail-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- v1.19.0 - FR-89..93. Delivery Dashboard panel. Active Projects
+             table at the top, per-project monthly P&L below on selection. -->
+        <div id="panel-pm-overview" class="d-none fos-agreement-root">
+          <div id="delivery-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
+          <div class="fos-agreement-inner shadow-lg">
+            <div class="fos-loading-overlay d-none" id="delivery-loading" role="status" aria-live="polite" aria-hidden="true">
+              <div class="fos-loading-spinner" aria-hidden="true"></div>
+              <span class="fos-loading-label">Loading data…</span>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <div class="flex-grow-1 min-w-0">
+                <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">PM Overview</h1>
+                <p class="small mb-0" id="delivery-subtitle" style="color: var(--ag-text-muted)">
+                  Active projects …
+                </p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 mb-4 pb-3 border-bottom" style="border-color: var(--ag-border) !important">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="delivery-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
+                Refresh
+              </button>
+              <span class="small" id="delivery-last-refresh" style="color: var(--ag-text-muted)">Last refreshed:  - </span>
+              <span class="d-none small" id="delivery-stale-badge" style="color: var(--ag-warn); font-weight: 600">Stale</span>
+              <label class="small d-flex align-items-center gap-1" for="delivery-ttl-select" style="color: var(--ag-text-muted)">
+                Auto-refresh
+                <select id="delivery-ttl-select" class="fos-ttl-select" aria-label="Auto-refresh interval">
+                  <option value="5">5 min</option>
+                  <option value="10" selected>10 min</option>
+                  <option value="30">30 min</option>
+                  <option value="0">Off</option>
+                </select>
+              </label>
+              <span class="small d-none text-danger" id="delivery-fetch-error" role="alert"></span>
+            </div>
+
+            <section class="fos-section-card mb-3" aria-labelledby="delivery-filters-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="delivery-filters-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Filters</h2>
+                <button type="button" class="fos-util-clear-btn ms-auto" id="delivery-clear-filters-btn">Clear filters</button>
+              </div>
+              <p class="small mb-2" style="color: var(--ag-text-muted)">
+                Client-side only — narrows the table and signals without refetching.
+              </p>
+              <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-3">
+                  <label class="small d-block mb-1" style="color: var(--ag-text-muted)">Customer</label>
+                  <div class="fos-util-multi">
+                    <button type="button" class="multi-trigger w-100" id="delivery-customer-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">All customers</button>
+                    <ul class="dropdown-menu" id="delivery-customer-menu" aria-label="Customer filter"></ul>
+                  </div>
+                </div>
+                <div class="col-12 col-md-3">
+                  <label class="small d-block mb-1" style="color: var(--ag-text-muted)">Agreement type</label>
+                  <div class="fos-util-multi">
+                    <button type="button" class="multi-trigger w-100" id="delivery-type-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">All types</button>
+                    <ul class="dropdown-menu" id="delivery-type-menu" aria-label="Agreement type filter"></ul>
+                  </div>
+                </div>
+                <div class="col-12 col-md-3">
+                  <label class="small d-block mb-1" style="color: var(--ag-text-muted)">Agreement status</label>
+                  <div class="fos-util-multi">
+                    <button type="button" class="multi-trigger w-100" id="delivery-state-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">All statuses</button>
+                    <ul class="dropdown-menu" id="delivery-state-menu" aria-label="Agreement status filter"></ul>
+                  </div>
+                </div>
+                <div class="col-12 col-md-3">
+                  <label class="small d-block mb-1" style="color: var(--ag-text-muted)">Assigned owner</label>
+                  <div class="fos-util-multi">
+                    <button type="button" class="multi-trigger w-100" id="delivery-owner-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">All owners</button>
+                    <ul class="dropdown-menu" id="delivery-owner-menu" aria-label="Assigned owner filter"></ul>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- v1.21.0 Phase C.2 - portfolio signals from Active Projects rows
+                 only (no per-project P&L fetch). Click an item to select that
+                 project and scroll it into view. -->
+            <section class="fos-section-card mb-3 d-none" id="delivery-attention-section" aria-labelledby="delivery-attention-heading">
+              <h2 id="delivery-attention-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Delivery signals</h2>
+              <p class="small mb-2" style="color: var(--ag-text-muted)" id="delivery-attention-hint">
+                Rules applied to the visible Active Projects list (cached delivery payload).
+              </p>
+              <div id="delivery-attention-list" class="fos-delivery-attention-list" aria-live="polite"></div>
+            </section>
+
+            <section class="fos-section-card mb-3" aria-labelledby="delivery-projects-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="delivery-projects-heading" class="mb-0">Active projects</h2>
+                <span class="small" style="color: var(--ag-text-muted)" id="delivery-projects-count">0 active projects</span>
+                <!-- v1.20.0 (Phase B, FR-98) - client-side substring filter
+                     across Project + Customer columns. Persists via the
+                     filters localStorage entry along with sort + selection. -->
+                <div class="ms-auto fos-delivery-search-wrap">
+                  <input
+                    type="search"
+                    class="form-control form-control-sm fos-delivery-search"
+                    id="delivery-search-input"
+                    aria-label="Filter projects by name, customer, or owner"
+                    placeholder="Filter projects…"
+                    autocomplete="off"
+                    spellcheck="false"
+                  />
+                  <button type="button" class="fos-delivery-search-clear d-none" id="delivery-search-clear" aria-label="Clear filter">×</button>
+                </div>
+              </div>
+              <div class="fos-financial-scroll">
+                <table class="fos-financial-table fos-delivery-table" aria-describedby="delivery-projects-heading">
+                  <thead>
+                    <tr>
+                      <th scope="col" data-sort-key="name" class="fos-delivery-sortable">Project <span class="sort-icon">↕</span></th>
+                      <th scope="col" data-sort-key="customer" class="fos-delivery-sortable">Customer <span class="sort-icon">↕</span></th>
+                      <th scope="col" data-sort-key="type" class="fos-delivery-sortable">Type <span class="sort-icon">↕</span></th>
+                      <th scope="col" data-sort-key="state" class="fos-delivery-sortable">Status <span class="sort-icon">↕</span></th>
+                      <th scope="col" data-sort-key="contractValue" class="num fos-delivery-sortable">Contract value <span class="sort-icon">↕</span></th>
+                      <th scope="col" data-sort-key="revenueRecognized" class="num fos-delivery-sortable">Recognized <span class="sort-icon">↕</span></th>
+                      <th scope="col" data-sort-key="completionPct" class="fos-delivery-sortable">% Complete <span class="sort-icon">↕</span></th>
+                      <th scope="col" data-sort-key="marginPct" class="num fos-delivery-sortable">Margin <span class="sort-icon">↕</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="delivery-projects-body"></tbody>
+                </table>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="delivery-projects-empty" style="color: var(--ag-text-muted)">
+                No active projects in the current cache. Reload to check Datastore, or ask an admin to Pull from Fibery.
+              </p>
+              <!-- v1.20.0 (Phase B) - surfaced when the search input filters
+                   all rows out of view. Distinct copy from the "no projects
+                   in cache" case so the user knows refresh won't help. -->
+              <p class="small mb-0 mt-2 d-none" id="delivery-projects-no-match" style="color: var(--ag-text-muted)">
+                No projects match the current filter.
+              </p>
+            </section>
+
+            <section class="fos-section-card fos-delivery-pnl" aria-labelledby="delivery-pnl-heading">
+              <div class="d-flex flex-wrap align-items-start gap-3 mb-2">
+                <div class="flex-grow-1 min-w-0">
+                  <h2 id="delivery-pnl-heading" class="mb-1">Project financials</h2>
+                  <div class="small" style="color: var(--ag-text-muted)" id="delivery-pnl-subtitle">Select a project above to see performance and P&amp;L.</div>
+                </div>
+                <div class="d-none d-flex flex-wrap gap-2" id="delivery-pnl-kpi-strip" aria-label="Project summary"></div>
+              </div>
+              <div class="d-none fos-delivery-pacing mb-3" id="delivery-pnl-pacing" aria-label="Project pacing"></div>
+              <div class="d-none fos-delivery-pnl-toolbar mb-2" id="delivery-pnl-toolbar">
+                <div class="btn-group btn-group-sm fos-delivery-mode-group" role="group" aria-label="Project financial view">
+                  <button type="button" class="btn fos-delivery-mode-btn active" data-pnl-mode="accounting" aria-pressed="true">Accounting P&amp;L</button>
+                  <button type="button" class="btn fos-delivery-mode-btn" data-pnl-mode="performance" aria-pressed="false">Project Performance</button>
+                </div>
+                <div class="btn-group btn-group-sm fos-delivery-view-group fos-delivery-accounting-only" role="group" aria-label="Profit &amp; Loss view">
+                  <button type="button" class="btn fos-delivery-view-btn active" data-pnl-view="table" aria-pressed="true">Table</button>
+                  <button type="button" class="btn fos-delivery-view-btn" data-pnl-view="chart" aria-pressed="false">Chart</button>
+                </div>
+                <button type="button" class="btn btn-sm fos-delivery-csv-btn" id="delivery-pnl-csv-btn" aria-label="Copy table as CSV to clipboard" style="min-height:44px">
+                  Copy CSV
+                </button>
+                <span class="small fos-delivery-csv-status" id="delivery-pnl-csv-status" aria-live="polite"></span>
+              </div>
+              <div class="d-none" id="delivery-pnl-partial-badge"></div>
+              <div class="position-relative">
+                <div class="fos-delivery-pnl-loading d-none" id="delivery-pnl-loading" role="status" aria-live="polite" aria-hidden="true">
+                  <div class="fos-delivery-pnl-spinner" aria-hidden="true"></div>
+                  <span class="fos-delivery-pnl-loading-label">Fetching monthly P&amp;L…</span>
+                </div>
+                <div class="d-none" id="delivery-pnl-performance" aria-label="Project Performance">
+                  <div class="fos-delivery-perf-kpi-row mb-3">
+                    <div class="fos-delivery-perf-kpi-strip" id="delivery-pnl-perf-kpis"></div>
+                    <div class="fos-delivery-pnl-kpi-chip fos-delivery-perf-date-range" id="delivery-pnl-perf-date-range">
+                      <div class="label">Date range</div>
+                      <div class="fos-delivery-perf-date-fields">
+                        <label for="delivery-pnl-perf-date-start">Start
+                          <input type="date" id="delivery-pnl-perf-date-start" aria-label="Project performance start date" />
+                        </label>
+                        <label for="delivery-pnl-perf-date-end">End
+                          <input type="date" id="delivery-pnl-perf-date-end" aria-label="Project performance end date" />
+                        </label>
+                        <button type="button" class="fos-delivery-perf-date-clear d-none" id="delivery-pnl-perf-date-clear" aria-label="Reset date range to all time">All time</button>
+                      </div>
+                      <div class="sub" id="delivery-pnl-perf-date-sub">All time · filters by calendar month</div>
+                    </div>
+                  </div>
+                  <div class="d-none fos-delivery-perf-badge mb-3" id="delivery-pnl-perf-badge" role="status"></div>
+                  <div class="d-none fos-delivery-perf-no-plan" id="delivery-pnl-perf-no-plan" role="status" aria-live="polite">
+                    <div class="fos-delivery-perf-no-plan-dialog">
+                      <p class="fos-delivery-perf-no-plan-title">No Resource Plan Found</p>
+                      <p class="small mb-2" style="color: var(--ag-text-muted)">This project has no resource allocation records.</p>
+                      <p class="small mb-0" style="color: var(--ag-text-muted)">Planned and projected margins are hidden because no resource plan is available to use.</p>
+                    </div>
+                  </div>
+                  <p class="small mb-2 fos-delivery-perf-orange-legend" id="delivery-pnl-perf-orange-legend" style="color: var(--ag-text-muted)" title="Orange highlight: logged time without a Fibery allocation, or allocation not marked Allocated &amp; Billable (not on the SOW).">
+                    <span class="fos-delivery-perf-orange-swatch" aria-hidden="true"></span>
+                    Orange highlight: logged time without an allocation, or allocation not marked Allocated &amp; Billable in Fibery.
+                  </p>
+                  <div class="fos-financial-scroll fos-delivery-perf-desktop-table mb-2" id="delivery-pnl-perf-table-wrap">
+                    <table class="fos-financial-table" aria-label="Resource performance">
+                      <thead>
+                        <tr>
+                          <th scope="col">Name</th>
+                          <th scope="col">Role</th>
+                          <th scope="col" class="num">Allocated hrs</th>
+                          <th scope="col" class="num">Logged hrs</th>
+                          <th scope="col" class="num">Hours variance</th>
+                          <th scope="col" class="num">Allocated cost</th>
+                          <th scope="col" class="num">Logged cost</th>
+                          <th scope="col" class="num">Cost variance $</th>
+                        </tr>
+                      </thead>
+                      <tbody id="delivery-pnl-perf-body"></tbody>
+                    </table>
+                  </div>
+                  <div class="fos-delivery-perf-mobile-cards fos-mobile-only d-none" id="delivery-pnl-perf-cards"></div>
+                  <p class="small mb-0 d-none" id="delivery-pnl-perf-empty" style="color: var(--ag-text-muted)">No resource performance rows for this project yet.</p>
+                </div>
+                <div class="fos-financial-scroll fos-delivery-monthly-wrap d-none fos-delivery-accounting-only" id="delivery-pnl-grid-wrap">
+                  <table class="fos-financial-table fos-delivery-monthly" aria-describedby="delivery-pnl-heading">
+                    <thead>
+                      <tr>
+                        <th scope="col">Month</th>
+                        <th scope="col" class="num">Revenue</th>
+                        <th scope="col" class="num">Labor</th>
+                        <th scope="col" class="num">Expenses</th>
+                        <th scope="col" class="num">Total cost</th>
+                        <th scope="col" class="num">Margin $</th>
+                        <th scope="col" class="num">Margin %</th>
+                      </tr>
+                    </thead>
+                    <tbody id="delivery-pnl-grid-body"></tbody>
+                    <tfoot id="delivery-pnl-grid-foot"></tfoot>
+                  </table>
+                </div>
+                <div class="d-none fos-delivery-pnl-chart-wrap fos-delivery-accounting-only" id="delivery-pnl-chart-wrap">
+                  <canvas id="delivery-pnl-chart" role="img" aria-label="Monthly Revenue, planned allocation cost, labor by role, and Expenses chart"></canvas>
+                  <p class="small mb-0 mt-2 fos-delivery-chart-hint" id="delivery-pnl-chart-hint">
+                    Bars stack labor by role + expenses per month; lines overlay revenue and planned allocation cost. Lighter bars indicate projected months. Hover for details; click a month to open its P&amp;L.
+                  </p>
+                  <p class="small mb-0 mt-2 d-none" id="delivery-pnl-allocation-note" style="color: var(--ag-text-muted)"></p>
+                  <p class="small mb-0 mt-1 d-none" id="delivery-pnl-assignments-link-wrap">
+                    <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" id="delivery-pnl-assignments-link" style="color: var(--ag-accent)">
+                      View resource assignments
+                    </button>
+                  </p>
+                </div>
+                <p class="small mb-0 mt-2 d-none" id="delivery-pnl-empty" style="color: var(--ag-text-muted)">
+                  No monthly activity for this project yet.
+                </p>
+                <p class="small mb-0 mt-2 d-none" id="delivery-pnl-error" style="color: var(--ag-danger)" role="alert"></p>
+                <p class="small mb-0 mt-2 d-none fos-delivery-reconcile" id="delivery-pnl-reconcile"></p>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <!-- Feature 043: Services Summary (active Services agreements). -->
+        <div id="panel-services-summary" class="d-none fos-agreement-root">
+          <div id="ss-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
+          <div class="fos-agreement-inner shadow-lg">
+            <div class="fos-loading-overlay d-none" id="ss-loading" role="status" aria-live="polite" aria-hidden="true">
+              <div class="fos-loading-spinner" aria-hidden="true"></div>
+              <span class="fos-loading-label">Loading Services Summary…</span>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <div class="flex-grow-1 min-w-0">
+                <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Services Summary</h1>
+                <p class="small mb-0" id="ss-subtitle" style="color: var(--ag-text-muted)">
+                  Portfolio of active Services agreements
+                </p>
+              </div>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 mb-4 pb-3 border-bottom" style="border-color: var(--ag-border) !important">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="ss-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
+                Refresh
+              </button>
+              <span class="small" id="ss-last-refresh" style="color: var(--ag-text-muted)">Last refreshed:  - </span>
+              <span class="d-none small" id="ss-stale-badge" style="color: var(--ag-warn); font-weight: 600">Stale</span>
+              <span class="small d-none text-danger" id="ss-fetch-error" role="alert"></span>
+            </div>
+
+            <section class="fos-section-card mb-3 ss-desktop-filters" aria-labelledby="ss-filters-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="ss-filters-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Filters</h2>
+                <button type="button" class="fos-util-clear-btn ms-auto" id="ss-clear-filters-btn">Clear filters</button>
+              </div>
+              <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-4">
+                  <label class="small d-block mb-1" style="color: var(--ag-text-muted)">Customer</label>
+                  <div class="fos-util-multi">
+                    <button type="button" class="multi-trigger w-100" id="ss-customer-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">All customers</button>
+                    <ul class="dropdown-menu" id="ss-customer-menu" aria-label="Customer filter"></ul>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <div class="row row-cols-1 row-cols-md-3 g-3 mb-3">
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-blue h-100" title="Count of active Services agreements after filters. Same active-state rules as PM Overview (Closed-Lost excluded).">
+                  <div class="label">Active Engagements</div>
+                  <div class="value" id="ss-kpi-active">0</div>
+                  <div class="sub" id="ss-kpi-active-sub">Services agreements</div>
+                </div>
+              </div>
+              <div class="col">
+                  <div class="fos-agreement-kpi kpi-yellow h-100" title="Count of visible Services agreements whose current margin is below Target Margin when set, otherwise below the portfolio low-margin threshold (35%).">
+                  <div class="label">Low Margin Projects</div>
+                  <div class="value" id="ss-kpi-low-margin">0</div>
+                  <div class="sub" id="ss-kpi-low-margin-sub">Below target or 35%</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-green h-100" title="This calendar month: sum of revenue-item Target Amounts whose Target Date falls in the month, versus recognized items invoiced in the month (Actual Amount if non-zero, else Target Amount).">
+                  <div class="label">Scheduled vs invoiced</div>
+                  <div class="value" id="ss-kpi-month">$0 / $0</div>
+                  <div class="sub" id="ss-kpi-month-sub">This month</div>
+                </div>
+              </div>
+            </div>
+
+            <section class="fos-section-card mb-3" aria-labelledby="ss-table-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="ss-table-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Active agreements</h2>
+                <span class="small" style="color: var(--ag-text-muted)" id="ss-table-count">0 agreements</span>
+                <div class="ms-auto fos-delivery-search-wrap">
+                  <input
+                    type="search"
+                    class="form-control form-control-sm fos-delivery-search"
+                    id="ss-search-input"
+                    aria-label="Filter agreements by title, customer, or owner"
+                    placeholder="Filter agreements…"
+                    autocomplete="off"
+                    spellcheck="false"
+                  />
+                </div>
+              </div>
+              <div class="ss-table-wrap fos-financial-scroll">
+                <table class="fos-financial-table fos-delivery-table" aria-describedby="ss-table-heading">
+                  <thead>
+                    <tr>
+                      <th scope="col" class="fos-ss-sortable" data-ss-sort="name">Agreement <span class="sort-icon">↕</span></th>
+                      <th scope="col" class="num fos-ss-sortable" data-ss-sort="contractValue">Total value <span class="sort-icon">↕</span></th>
+                      <th scope="col" class="num fos-ss-sortable" data-ss-sort="plannedRevToDate">Planned rev to date <span class="sort-icon">↕</span></th>
+                      <th scope="col" class="num fos-ss-sortable" data-ss-sort="actualRevToDate">Actual rev to date <span class="sort-icon">↕</span></th>
+                      <th scope="col" class="num fos-ss-sortable" data-ss-sort="plannedHoursToDate">Planned hours to date <span class="sort-icon">↕</span></th>
+                      <th scope="col" class="num fos-ss-sortable" data-ss-sort="actualHoursToDate">Actual hours to date <span class="sort-icon">↕</span></th>
+                      <th scope="col" class="fos-ss-sortable" data-ss-sort="assignedOwner">Owner <span class="sort-icon">↕</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="ss-tbody"></tbody>
+                </table>
+              </div>
+              <div class="ss-mobile-cards" id="ss-mobile-cards" aria-label="Active agreements"></div>
+              <p class="small mb-0 mt-2 d-none" id="ss-empty" style="color: var(--ag-text-muted)">No active Services agreements match the current filters.</p>
+            </section>
+          </div>
+        </div>
+
+        <!-- Monthly Revenue Review - agreement cache + Fibery payload (Phase A-B). -->
+        <div id="panel-revenue-review" class="d-none fos-agreement-root">
+          <div id="rr-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
+          <div class="fos-agreement-inner shadow-lg">
+            <div class="fos-loading-overlay d-none" id="rr-loading" role="status" aria-live="polite" aria-hidden="true">
+              <div class="fos-loading-spinner" aria-hidden="true"></div>
+              <span class="fos-loading-label">Loading agreement data…</span>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <div class="flex-grow-1 min-w-0">
+                <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Monthly Revenue Review</h1>
+                <p class="small mb-0" id="rr-subtitle" style="color: var(--ag-text-muted)">
+                  Review window …
+                </p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 mb-4 pb-3 border-bottom" style="border-color: var(--ag-border) !important">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="rr-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
+                Refresh
+              </button>
+              <span class="small" id="rr-last-refresh" style="color: var(--ag-text-muted)">Last refreshed:  - </span>
+              <span class="d-none small" id="rr-stale-badge" style="color: var(--ag-warn); font-weight: 600">Stale</span>
+              <label class="small d-flex align-items-center gap-1" for="rr-ttl-select" style="color: var(--ag-text-muted)">
+                Auto-refresh
+                <select id="rr-ttl-select" class="fos-ttl-select" aria-label="Agreement cache auto-refresh interval (shared with Agreement Dashboard)">
+                  <option value="5">5 min</option>
+                  <option value="10" selected>10 min</option>
+                  <option value="30">30 min</option>
+                  <option value="0">Off</option>
+                </select>
+              </label>
+              <span class="small d-none text-danger" id="rr-fetch-error" role="alert"></span>
+            </div>
+
+            <p class="small d-none mb-3" id="rr-partial-note" style="color: var(--ag-warn)" role="status"></p>
+
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 mb-3">
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-blue h-100" title="Sum of planned revenue for agreements in scope (excludes Internal and name contains test).">
+                  <div class="label">Portfolio value</div>
+                  <div class="value" id="rr-kpi-portfolio">$0</div>
+                  <div class="sub" id="rr-kpi-portfolio-sub">0 agreements in scope</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-green h-100" title="Sum of recognized revenue for agreements in scope.">
+                  <div class="label">Revenue recognized</div>
+                  <div class="value" id="rr-kpi-revrec">$0</div>
+                  <div class="sub" id="rr-kpi-revrec-sub">0% of portfolio</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-teal h-100" title="Milestones with target date in the prior calendar month (excludes Not Scheduled); invoiced or recognized.">
+                  <div class="label">Prior month close</div>
+                  <div class="value" id="rr-kpi-prior">$0</div>
+                  <div class="sub" id="rr-kpi-prior-sub">0 milestones</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-yellow h-100" title="Current calendar month milestones (excludes Not Scheduled): invoiced or recognized actuals vs sum of target amounts.">
+                  <div class="label">Current month invoiced</div>
+                  <div class="value" id="rr-kpi-curr">$0</div>
+                  <div class="sub" id="rr-kpi-curr-sub">0% of milestones · $0 target · $0 remaining</div>
+                </div>
+              </div>
+              <div class="col">
+                <div
+                  class="fos-agreement-kpi kpi-margin-low h-100 fos-rr-kpi-jump"
+                  id="rr-kpi-variance-card"
+                  tabindex="0"
+                  role="button"
+                  data-rr-scroll-to="rr-section-variance"
+                  title="Jump to variance table. Counts milestones in the prior or current target month that are past target with amount variance, or past target and not invoiced (schedule issue)."
+                >
+                  <div class="label">Variances</div>
+                  <div class="value" id="rr-kpi-variance">0</div>
+                  <div class="sub" id="rr-kpi-variance-sub">Amount or schedule</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-margin-neg h-100" title="Past-due target date, not invoiced, with positive target amount.">
+                  <div class="label">Overdue / at-risk</div>
+                  <div class="value" id="rr-kpi-overdue">0</div>
+                  <div class="sub" id="rr-kpi-overdue-sub">Milestone count</div>
+                </div>
+              </div>
+            </div>
+
+            <section id="rr-expiry-section" class="fos-section-card mb-3 d-none" aria-labelledby="rr-expiry-heading">
+              <h2 id="rr-expiry-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Agreement expiry</h2>
+              <p class="small mb-2" style="color: var(--ag-text-muted)">Active agreements (not Contract Complete) with an end date in the past or within 90 days.</p>
+              <div id="rr-expiry-list" class="small" style="color: var(--ag-text)"></div>
+            </section>
+
+            <div id="rr-prerec-banner" class="d-none mb-3 p-3 rounded-3" style="background: rgba(124, 58, 237, 0.12); border: 1px solid var(--accent4)">
+              <div class="fw-semibold mb-1" style="color: var(--ag-text)">Future revenue pre-recognition</div>
+              <p class="small mb-2" style="color: var(--ag-text-muted)">
+                Milestones marked recognized with a future target date and not yet invoiced (Fibery vs accounting timing - see PRD §8.1).
+              </p>
+              <ul id="rr-prerec-list" class="small mb-0 ps-3" style="color: var(--ag-text)"></ul>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3 pb-2 border-bottom d-print-none" style="border-color: var(--ag-border) !important">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="rr-copy-all-csv-btn" style="background: var(--ag-surface2); color: var(--ag-text); border: 1px solid var(--ag-border)">
+                Copy all CSV
+              </button>
+              <span class="small" id="rr-csv-status" style="color: var(--ag-text-muted)" aria-live="polite"></span>
+            </div>
+
+            <section class="fos-section-card mb-3" id="rr-section-prior" aria-labelledby="rr-prior-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="rr-prior-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Prior month - milestone billing</h2>
+                <span class="small" style="color: var(--ag-text-muted)" id="rr-prior-meta"></span>
+                <button type="button" class="btn btn-sm btn-link p-0 ms-auto text-decoration-none d-print-none" data-rr-csv="prior" style="color: var(--ag-accent)">Copy CSV</button>
+              </div>
+              <div class="fos-rr-table-wrap">
+                <table class="fos-util-detail-table fos-rr-table" aria-describedby="rr-prior-heading">
+                  <thead>
+                    <tr>
+                      <th class="fos-rr-sortable" data-rr-table="prior" data-rr-sort="milestone">Milestone <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="prior" data-rr-sort="agreement">Agreement <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="prior" data-rr-sort="customer">Customer <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="prior" data-rr-sort="targetDate">Target date <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="prior" data-rr-sort="targetAmount">Target <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="prior" data-rr-sort="actualAmount">Actual <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="prior" data-rr-sort="varianceAmt">Variance <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="prior" data-rr-sort="state">Status <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="prior" data-rr-sort="recognized">Recognized <span class="sort-icon">↕</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="rr-tbody-prior"></tbody>
+                </table>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="rr-empty-prior" style="color: var(--ag-text-muted)">No milestones with target in the prior month (excluding Not Scheduled).</p>
+            </section>
+
+            <section class="fos-section-card mb-3" id="rr-section-current" aria-labelledby="rr-current-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="rr-current-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Current month - milestone billing</h2>
+                <span class="small" style="color: var(--ag-text-muted)" id="rr-current-meta"></span>
+                <button type="button" class="btn btn-sm btn-link p-0 ms-auto text-decoration-none d-print-none" data-rr-csv="current" style="color: var(--ag-accent)">Copy CSV</button>
+              </div>
+              <div class="fos-rr-table-wrap">
+                <table class="fos-util-detail-table fos-rr-table" aria-describedby="rr-current-heading">
+                  <thead>
+                    <tr>
+                      <th class="fos-rr-sortable" data-rr-table="current" data-rr-sort="milestone">Milestone <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="current" data-rr-sort="agreement">Agreement <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="current" data-rr-sort="customer">Customer <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="current" data-rr-sort="targetDate">Target date <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="current" data-rr-sort="targetAmount">Target <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="current" data-rr-sort="actualAmount">Actual <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="current" data-rr-sort="varianceAmt">Variance <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="current" data-rr-sort="state">Status <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="current" data-rr-sort="recognized">Recognized <span class="sort-icon">↕</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="rr-tbody-current"></tbody>
+                </table>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="rr-empty-current" style="color: var(--ag-text-muted)">No milestones with target in the current month (excluding Not Scheduled).</p>
+            </section>
+
+            <section class="fos-section-card mb-3" id="rr-section-variance" aria-labelledby="rr-variance-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="rr-variance-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Variance &amp; schedule</h2>
+                <span class="small" style="color: var(--ag-text-muted)">Prior + current month by target date - amount mismatch or past target not invoiced</span>
+                <button type="button" class="btn btn-sm btn-link p-0 ms-auto text-decoration-none d-print-none" data-rr-csv="variance" style="color: var(--ag-accent)">Copy CSV</button>
+              </div>
+              <div class="fos-rr-table-wrap">
+                <table class="fos-util-detail-table fos-rr-table" aria-describedby="rr-variance-heading">
+                  <thead>
+                    <tr>
+                      <th class="fos-rr-sortable" data-rr-table="variance" data-rr-sort="milestone">Milestone <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="variance" data-rr-sort="agreement">Agreement <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="variance" data-rr-sort="targetDate">Target date <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="variance" data-rr-sort="varianceAmt">Amt variance <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="variance" data-rr-sort="scheduleIssue">Schedule issue <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="variance" data-rr-sort="state">Status <span class="sort-icon">↕</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="rr-tbody-variance"></tbody>
+                </table>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="rr-empty-variance" style="color: var(--ag-text-muted)">No variance rows for this window.</p>
+            </section>
+
+            <section class="fos-section-card mb-3" id="rr-section-portfolio" aria-labelledby="rr-portfolio-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="rr-portfolio-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Agreement portfolio</h2>
+                <button type="button" class="btn btn-sm btn-link p-0 ms-auto text-decoration-none d-print-none" data-rr-csv="portfolio" style="color: var(--ag-accent)">Copy CSV</button>
+              </div>
+              <div class="fos-rr-table-wrap">
+                <table class="fos-util-detail-table fos-rr-table" aria-describedby="rr-portfolio-heading">
+                  <thead>
+                    <tr>
+                      <th class="fos-rr-sortable" data-rr-table="portfolio" data-rr-sort="agreement">Agreement <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="portfolio" data-rr-sort="customer">Customer <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="portfolio" data-rr-sort="type">Type <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="portfolio" data-rr-sort="state">Status <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="portfolio" data-rr-sort="plannedRev">Planned <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="portfolio" data-rr-sort="revRec">Recognized <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="portfolio" data-rr-sort="pctRec">% rec. <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="portfolio" data-rr-sort="durEnd">End date <span class="sort-icon">↕</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="rr-tbody-portfolio"></tbody>
+                </table>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="rr-empty-portfolio" style="color: var(--ag-text-muted)">No agreements in scope.</p>
+            </section>
+
+            <section class="fos-section-card mb-3" id="rr-section-customer" aria-labelledby="rr-customer-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="rr-customer-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Revenue by customer</h2>
+                <button type="button" class="btn btn-sm btn-link p-0 ms-auto text-decoration-none d-print-none" data-rr-csv="customer" style="color: var(--ag-accent)">Copy CSV</button>
+              </div>
+              <div class="fos-rr-table-wrap">
+                <table class="fos-util-detail-table fos-rr-table" aria-describedby="rr-customer-heading">
+                  <thead>
+                    <tr>
+                      <th class="fos-rr-sortable" data-rr-table="customer" data-rr-sort="customer">Customer <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="customer" data-rr-sort="agreementCount">Agreements <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="customer" data-rr-sort="plannedRev">Planned <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="customer" data-rr-sort="revRec">Recognized <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="customer" data-rr-sort="pctRec">% rec. <span class="sort-icon">↕</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="rr-tbody-customer"></tbody>
+                </table>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="rr-empty-customer" style="color: var(--ag-text-muted)">No customer rollup.</p>
+            </section>
+
+            <section class="fos-section-card mb-3" id="rr-section-overdue" aria-labelledby="rr-overdue-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="rr-overdue-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Overdue / at-risk milestones</h2>
+                <button type="button" class="btn btn-sm btn-link p-0 ms-auto text-decoration-none d-print-none" data-rr-csv="overdue" style="color: var(--ag-accent)">Copy CSV</button>
+              </div>
+              <div class="fos-rr-table-wrap">
+                <table class="fos-util-detail-table fos-rr-table" aria-describedby="rr-overdue-heading">
+                  <thead>
+                    <tr>
+                      <th class="fos-rr-sortable" data-rr-table="overdue" data-rr-sort="milestone">Milestone <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="overdue" data-rr-sort="agreement">Agreement <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="overdue" data-rr-sort="customer">Customer <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="overdue" data-rr-sort="targetDate">Target date <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="overdue" data-rr-sort="daysLate">Days late <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable text-end" data-rr-table="overdue" data-rr-sort="targetAmount">Target <span class="sort-icon">↕</span></th>
+                      <th class="fos-rr-sortable" data-rr-table="overdue" data-rr-sort="state">Status <span class="sort-icon">↕</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="rr-tbody-overdue"></tbody>
+                </table>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="rr-empty-overdue" style="color: var(--ag-text-muted)">No overdue milestones in scope.</p>
+            </section>
+
+            <section class="fos-section-card mb-3" id="rr-section-detail" aria-labelledby="rr-detail-heading">
+              <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
+                <h2 id="rr-detail-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Milestone detail</h2>
+                <div class="d-flex flex-wrap gap-2 d-print-none">
+                  <button type="button" class="btn btn-sm btn-outline-secondary border-secondary" id="rr-expand-detail-btn">Expand all</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary border-secondary" id="rr-collapse-detail-btn">Collapse all</button>
+                </div>
+              </div>
+              <p class="small mb-2" style="color: var(--ag-text-muted)">By customer → agreement. Expand rows to see every milestone in scope.</p>
+              <div id="rr-detail-tree" class="small"></div>
+              <p class="small mb-0 mt-2 d-none" id="rr-empty-detail" style="color: var(--ag-text-muted)">No milestones to show.</p>
+            </section>
+          </div>
+        </div>
+
+        <!-- Feature 037 - Engagement Review (Delivery). -->
+        <div id="panel-engagement-review" class="d-none fos-agreement-root">
+          <div id="er-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
+          <div class="fos-agreement-inner shadow-lg">
+            <div class="fos-loading-overlay d-none" id="er-loading" role="status" aria-live="polite" aria-hidden="true">
+              <div class="fos-loading-spinner" aria-hidden="true"></div>
+              <span class="fos-loading-label">Loading engagement reviews…</span>
+            </div>
+
+            <div id="er-view-list">
+              <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+                <div class="flex-grow-1 min-w-0">
+                  <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Engagement review</h1>
+                  <p class="small mb-0" style="color: var(--ag-text-muted)">
+                    Schedule reviews, collect Engagement Updates status packs, and retain meeting notes.
+                  </p>
+                </div>
+                <button type="button" class="btn btn-sm fw-semibold px-3 d-none" id="er-new-btn" style="background: var(--ag-accent); color: #061b30; border: none; min-height: 44px;">
+                  New review
+                </button>
+              </div>
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                <label class="small" for="er-filter-select" style="color: var(--ag-text-muted)">Show</label>
+                <select id="er-filter-select" class="form-select form-select-sm" style="width: auto; min-height: 44px;">
+                  <option value="upcoming">Upcoming</option>
+                  <option value="all" selected>All</option>
+                  <option value="past">Past</option>
+                </select>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="er-refresh-btn" style="min-height: 44px;">Reload</button>
+                <span class="small d-none text-danger" id="er-list-error" role="alert"></span>
+              </div>
+              <div id="er-list-desktop" class="d-none d-md-block">
+                <div class="table-responsive fos-section-card">
+                  <table class="table table-sm align-middle mb-0" style="color: var(--ag-text)">
+                    <thead>
+                      <tr class="small" style="color: var(--ag-text-muted)">
+                        <th>Target date</th>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th class="text-end">Engagements</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="er-list-tbody"></tbody>
+                  </table>
+                </div>
+              </div>
+              <div id="er-list-mobile" class="d-md-none"></div>
+              <p class="small mt-3 d-none" id="er-list-empty" style="color: var(--ag-text-muted)">No engagement reviews yet.</p>
+            </div>
+
+            <div id="er-view-detail" class="d-none">
+              <button type="button" class="btn btn-sm btn-link px-0 mb-2" id="er-back-list-btn" style="color: var(--ag-accent); min-height: 44px;">← All reviews</button>
+              <div class="d-flex flex-wrap align-items-start gap-2 mb-3">
+                <div class="flex-grow-1 min-w-0">
+                  <h2 class="h5 mb-1 fw-bold" id="er-detail-title" style="color: var(--ag-text)">Review</h2>
+                  <p class="small mb-0" id="er-detail-sub" style="color: var(--ag-text-muted)"></p>
+                </div>
+                <div class="d-flex flex-wrap gap-2 d-none" id="er-admin-actions">
+                  <button type="button" class="btn btn-sm btn-outline-secondary" id="er-suggest-alerts-btn" style="min-height: 44px;">Suggest from alerts</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" id="er-suggest-owners-btn" style="min-height: 44px;">Suggest owners</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" id="er-calendar-btn" style="min-height: 44px;">Calendar invite</button>
+                  <button type="button" class="btn btn-sm fw-semibold" id="er-save-detail-btn" style="background: var(--ag-accent); color: #061b30; border: none; min-height: 44px;">Save</button>
+                </div>
+              </div>
+              <div class="row g-3 mb-3">
+                <div class="col-12 col-lg-4">
+                  <section class="fos-section-card h-100">
+                    <h3 class="h6 fw-bold" style="color: var(--ag-text)">Review fields</h3>
+                    <label class="small" style="color: var(--ag-text-muted)">Name</label>
+                    <input type="text" class="form-control form-control-sm mb-2" id="er-field-name" disabled />
+                    <label class="small" style="color: var(--ag-text-muted)">Target date</label>
+                    <input type="date" class="form-control form-control-sm mb-2" id="er-field-date" disabled />
+                    <label class="small" style="color: var(--ag-text-muted)">Status</label>
+                    <select class="form-select form-select-sm mb-2" id="er-field-status" disabled>
+                      <option value="draft">draft</option>
+                      <option value="scheduled">scheduled</option>
+                      <option value="in_progress">in_progress</option>
+                      <option value="completed">completed</option>
+                    </select>
+                    <label class="small" style="color: var(--ag-text-muted)">Notes</label>
+                    <textarea class="form-control form-control-sm" id="er-field-notes" rows="2" disabled></textarea>
+                  </section>
+                </div>
+                <div class="col-12 col-lg-4">
+                  <section class="fos-section-card h-100 d-flex flex-column">
+                    <h3 class="h6 fw-bold" style="color: var(--ag-text)">Meeting notes</h3>
+                    <div id="er-notes-list" class="small mb-2" style="color: var(--ag-text); max-height: 220px; overflow-y: auto;"></div>
+                    <p class="small d-none mb-2" id="er-notes-empty" style="color: var(--ag-text-muted)">No meeting notes yet.</p>
+                    <div class="d-none mt-auto" id="er-note-form-wrap">
+                      <input type="text" class="form-control form-control-sm mb-2" id="er-note-title" placeholder="Title (optional)" />
+                      <textarea class="form-control form-control-sm mb-2" id="er-note-body" rows="3" placeholder="Meeting note…"></textarea>
+                      <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-sm fw-semibold" id="er-note-save-btn" style="background: var(--ag-accent); color: #061b30; border: none; min-height: 44px;">Add note</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="er-note-cancel-edit-btn" style="min-height: 44px;">Cancel</button>
+                      </div>
+                      <span class="small d-none text-danger" id="er-note-error" role="alert"></span>
+                    </div>
+                  </section>
+                </div>
+                <div class="col-12 col-lg-4">
+                  <section class="fos-section-card h-100">
+                    <h3 class="h6 fw-bold" style="color: var(--ag-text)">Recordings</h3>
+                    <ul class="small mb-2 ps-3" id="er-recordings-list" style="color: var(--ag-text-muted)"></ul>
+                    <div class="d-none" id="er-upload-wrap">
+                      <input type="file" class="form-control form-control-sm" id="er-recording-file" accept="audio/*,video/*,.mp3,.mp4,.m4a,.wav,.webm" />
+                      <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="er-upload-btn" style="min-height: 44px;">Upload to Drive</button>
+                    </div>
+                  </section>
+                </div>
+              </div>
+              <div class="row g-3 mb-3">
+                <div class="col-12 col-lg-4">
+                  <section class="fos-section-card">
+                    <h3 class="h6 fw-bold" style="color: var(--ag-text)">Participants</h3>
+                    <ul class="small mb-2 ps-3" id="er-participants-list" style="color: var(--ag-text)"></ul>
+                    <div class="d-none input-group input-group-sm" id="er-add-participant-wrap">
+                      <input type="email" class="form-control" id="er-add-participant-email" placeholder="user@harpin.ai" />
+                      <button type="button" class="btn btn-outline-secondary" id="er-add-participant-btn">Add</button>
+                    </div>
+                  </section>
+                </div>
+                <div class="col-12 col-lg-8">
+                  <section class="fos-section-card">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                      <h3 class="h6 fw-bold mb-0" style="color: var(--ag-text)">Engagement Updates</h3>
+                      <span class="small" style="color: var(--ag-text-muted)">Status packs for this review, in agenda order</span>
+                      <button type="button" class="btn btn-sm fw-semibold d-none ms-auto" id="er-create-update-btn" style="background: var(--ag-accent); color: #061b30; border: none; min-height: 44px;">
+                        Create new Engagement Update
+                      </button>
+                    </div>
+                    <div id="er-updates-list"></div>
+                    <p class="small d-none mb-0" id="er-updates-empty" style="color: var(--ag-text-muted)">No Engagement Updates yet.</p>
+                  </section>
+                </div>
+              </div>
+              <div class="row g-3 mb-3 d-none" id="er-synopsis-wrap">
+                <div class="col-12">
+                  <section class="fos-section-card">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                      <h3 class="h6 fw-bold mb-0" style="color: var(--ag-text)">AI synopsis</h3>
+                      <span class="small" id="er-synopsis-meta" style="color: var(--ag-text-muted)"></span>
+                      <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" id="er-generate-synopsis-btn" style="min-height: 44px;">Generate AI synopsis</button>
+                    </div>
+                    <div id="er-synopsis-panel" class="small" style="color: var(--ag-text)"></div>
+                    <span class="small d-none text-danger" id="er-synopsis-error" role="alert"></span>
+                  </section>
+                </div>
+              </div>
+              <span class="small d-none text-danger" id="er-detail-error" role="alert"></span>
+            </div>
+
+            <!-- Legacy project questionnaire view - kept for deep links and the older
+                 owner-submitted update flow. Not linked from the primary Engagement
+                 Updates agenda; binoculars there opens #erViewerModal instead. -->
+            <div id="er-view-project" class="d-none">
+              <button type="button" class="btn btn-sm btn-link px-0 mb-2" id="er-back-detail-btn" style="color: var(--ag-accent); min-height: 44px;">← Back to review</button>
+              <h2 class="h5 mb-1 fw-bold" id="er-project-title" style="color: var(--ag-text)">Engagement</h2>
+              <p class="small mb-3" id="er-project-sub" style="color: var(--ag-text-muted)"></p>
+
+              <section class="fos-section-card mb-3" aria-labelledby="er-latest-heading">
+                <h3 id="er-latest-heading" class="h6 fw-bold" style="color: var(--ag-text)">Latest executive summary</h3>
+                <div id="er-latest-update" class="small" style="color: var(--ag-text)"></div>
+              </section>
+
+              <details class="fos-section-card mb-3">
+                <summary class="h6 fw-bold mb-0" style="color: var(--ag-text); cursor: pointer; min-height: 44px;">Previous updates</summary>
+                <div id="er-update-history" class="small mt-2" style="color: var(--ag-text-muted)"></div>
+              </details>
+
+              <section class="fos-section-card mb-3">
+                <h3 class="h6 fw-bold" style="color: var(--ag-text)">Project information</h3>
+                <div id="er-project-info" class="small" style="color: var(--ag-text)"></div>
+              </section>
+
+              <section class="fos-section-card mb-3 d-none" id="er-questionnaire-wrap">
+                <h3 class="h6 fw-bold" style="color: var(--ag-text)">Submit engagement update</h3>
+                <form id="er-questionnaire-form"></form>
+                <button type="button" class="btn btn-sm fw-semibold mt-2" id="er-submit-update-btn" style="background: var(--ag-accent); color: #061b30; border: none; min-height: 44px;">Submit update</button>
+                <span class="small d-none text-danger ms-2" id="er-submit-error" role="alert"></span>
+              </section>
+            </div>
+          </div>
+        </div>
+
+        <!-- Create review modal -->
+        <div class="modal fade" id="erCreateModal" tabindex="-1" aria-labelledby="erCreateModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header border-secondary">
+                <h2 class="modal-title h5" id="erCreateModalLabel">New engagement review</h2>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <label class="form-label" for="er-create-name">Name</label>
+                <input type="text" class="form-control mb-2" id="er-create-name" />
+                <label class="form-label" for="er-create-date">Target date</label>
+                <input type="date" class="form-control" id="er-create-date" />
+                <p class="small text-danger d-none mb-0 mt-2" id="er-create-error"></p>
+              </div>
+              <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn fw-semibold" id="er-create-save-btn" style="background: var(--ag-accent); color: #061b30;">Create</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Engagement Update status pack modal (feature 037). -->
+        <div class="modal fade" id="erUpdateModal" tabindex="-1" aria-labelledby="erUpdateModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-scrollable modal-xl modal-fullscreen-md-down">
+            <div class="modal-content">
+              <div class="modal-header border-secondary">
+                <h2 class="modal-title h5" id="erUpdateModalLabel">Create Engagement Update</h2>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <div class="row g-3 mb-2">
+                  <div class="col-12 col-md-6">
+                    <label class="form-label small" for="er-um-project-select">Project</label>
+                    <select class="form-select form-select-sm" id="er-um-project-select" style="min-height: 44px;">
+                      <option value="">Select a project…</option>
+                    </select>
+                    <div class="d-none" id="er-um-project-readonly-wrap">
+                      <div class="fw-semibold" id="er-um-project-readonly" style="min-height: 44px; display: flex; align-items: center;"></div>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <label class="form-label small" for="er-um-period">Reporting period</label>
+                    <input type="month" class="form-control form-control-sm" id="er-um-period" style="min-height: 44px;" />
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <label class="form-label small" for="er-um-overall-rag">Overall RAG</label>
+                    <select class="form-select form-select-sm" id="er-um-overall-rag" style="min-height: 44px;">
+                      <option value="on_track">On track</option>
+                      <option value="at_risk">At risk</option>
+                      <option value="off_track">Off track</option>
+                    </select>
+                  </div>
+                </div>
+
+                <p class="small mb-3" style="color: var(--ag-text-muted)">Owner: <span id="er-um-owner-readonly">-</span></p>
+
+                <div class="d-none" id="er-um-detail-fields">
+                  <h3 class="h6 fw-bold mt-2" style="color: var(--ag-text)">Scorecard</h3>
+                  <div class="er-scorecard-grid mb-3" id="er-um-dims-row">
+                    <div class="fos-section-card p-2">
+                      <label class="small fw-semibold d-block mb-1" style="color: var(--ag-text)">Schedule</label>
+                      <select class="form-select form-select-sm mb-1" id="er-um-dim-schedule-rag">
+                        <option value="green">Green</option>
+                        <option value="amber">Amber</option>
+                        <option value="red">Red</option>
+                      </select>
+                      <input type="text" class="form-control form-control-sm mb-1" id="er-um-dim-schedule-subtext" placeholder="Subtext" />
+                      <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" role="switch" id="er-um-dim-schedule-auto" checked />
+                        <label class="form-check-label small" for="er-um-dim-schedule-auto" style="color: var(--ag-text-muted)">Auto-refresh</label>
+                      </div>
+                    </div>
+                    <div class="fos-section-card p-2">
+                      <label class="small fw-semibold d-block mb-1" style="color: var(--ag-text)">Cost / Hours</label>
+                      <select class="form-select form-select-sm mb-1" id="er-um-dim-cost_hours-rag">
+                        <option value="green">Green</option>
+                        <option value="amber">Amber</option>
+                        <option value="red">Red</option>
+                      </select>
+                      <input type="text" class="form-control form-control-sm mb-1" id="er-um-dim-cost_hours-subtext" placeholder="Subtext" />
+                      <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" role="switch" id="er-um-dim-cost_hours-auto" checked />
+                        <label class="form-check-label small" for="er-um-dim-cost_hours-auto" style="color: var(--ag-text-muted)">Auto-refresh</label>
+                      </div>
+                    </div>
+                    <div class="fos-section-card p-2">
+                      <label class="small fw-semibold d-block mb-1" style="color: var(--ag-text)">Margin</label>
+                      <select class="form-select form-select-sm mb-1" id="er-um-dim-margin-rag">
+                        <option value="green">Green</option>
+                        <option value="amber">Amber</option>
+                        <option value="red">Red</option>
+                      </select>
+                      <input type="text" class="form-control form-control-sm mb-1" id="er-um-dim-margin-subtext" placeholder="Subtext" />
+                      <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" role="switch" id="er-um-dim-margin-auto" checked />
+                        <label class="form-check-label small" for="er-um-dim-margin-auto" style="color: var(--ag-text-muted)">Auto-refresh</label>
+                      </div>
+                    </div>
+                    <div class="fos-section-card p-2">
+                      <label class="small fw-semibold d-block mb-1" style="color: var(--ag-text)">Client sentiment</label>
+                      <select class="form-select form-select-sm mb-1" id="er-um-dim-client_sentiment-rag">
+                        <option value="green">Green</option>
+                        <option value="amber">Amber</option>
+                        <option value="red">Red</option>
+                      </select>
+                      <input type="text" class="form-control form-control-sm mb-1" id="er-um-dim-client_sentiment-subtext" placeholder="Subtext" />
+                      <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" role="switch" id="er-um-dim-client_sentiment-auto" checked />
+                        <label class="form-check-label small" for="er-um-dim-client_sentiment-auto" style="color: var(--ag-text-muted)">Auto-refresh</label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="row g-3 mb-3">
+                    <div class="col-12 col-md-6">
+                      <label class="form-label small">Key developments <span style="color: var(--ag-text-muted)">(one per line)</span></label>
+                      <textarea class="form-control form-control-sm" id="er-um-key-developments" rows="4"></textarea>
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label small">Priorities next <span style="color: var(--ag-text-muted)">(one per line)</span></label>
+                      <textarea class="form-control form-control-sm" id="er-um-priorities-next" rows="4"></textarea>
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label small">Risks <span style="color: var(--ag-text-muted)">(one per line, format: severity|description)</span></label>
+                    <textarea class="form-control form-control-sm" id="er-um-risks" rows="3" placeholder="high|Client is reconsidering scope for Q3"></textarea>
+                  </div>
+
+                  <div class="row g-3 mb-3">
+                    <div class="col-12 col-md-6">
+                      <label class="form-label small">Revenue callout</label>
+                      <textarea class="form-control form-control-sm" id="er-um-revenue-callout" rows="2" placeholder="Optional note shown on the revenue section…"></textarea>
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label small">Margin footnote</label>
+                      <textarea class="form-control form-control-sm" id="er-um-margin-footnote" rows="2" placeholder="Optional footnote shown under margin…"></textarea>
+                    </div>
+                  </div>
+
+                  <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <h3 class="h6 fw-bold mb-0" style="color: var(--ag-text)">Quantitative snapshot</h3>
+                    <span class="small" id="er-um-metrics-pulled-at" style="color: var(--ag-text-muted)"></span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" id="er-um-refresh-metrics-btn" style="min-height: 44px;">Refresh metrics</button>
+                  </div>
+                  <div id="er-um-quant-panel" class="small mb-2" style="color: var(--ag-text)"></div>
+                </div>
+
+                <span class="small d-none text-danger" id="er-um-error" role="alert"></span>
+              </div>
+              <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="er-um-cancel-btn">Cancel</button>
+                <button type="button" class="btn fw-semibold" id="er-um-save-btn" style="background: var(--ag-accent); color: #061b30; min-height: 44px;">Create</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Engagement Update viewer modal (feature 037). -->
+        <div class="modal fade" id="erViewerModal" tabindex="-1" aria-labelledby="erViewerModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-scrollable modal-xl modal-fullscreen-md-down">
+            <div class="modal-content">
+              <div class="modal-header border-secondary">
+                <h2 class="modal-title h5" id="erViewerModalLabel">Engagement Update</h2>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body p-0">
+                <span class="small d-none text-danger m-3 d-block" id="er-viewer-error" role="alert"></span>
+                <div id="er-viewer-body">
+                  <iframe id="er-viewer-frame" title="Engagement Update status pack" style="width: 100%; min-height: 65vh; height: 65vh; border: 0; background: #fff; display: block;"></iframe>
+                </div>
+              </div>
+              <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-outline-secondary" id="er-viewer-print-btn" style="min-height: 44px;">Print</button>
+                <button type="button" class="btn fw-semibold" id="er-viewer-download-btn" style="background: var(--ag-accent); color: #061b30; min-height: 44px;">Download HTML</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Portfolio P&L - Finance (feature 022). -->
+        <div id="panel-portfolio-pnl" class="d-none fos-agreement-root">
+          <div id="ppnl-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
+          <div class="fos-agreement-inner shadow-lg">
+            <div class="fos-loading-overlay d-none" id="ppnl-loading" role="status" aria-live="polite" aria-hidden="true">
+              <div class="fos-loading-spinner" aria-hidden="true"></div>
+              <span class="fos-loading-label" id="ppnl-loading-label">Loading portfolio P&amp;L…</span>
+              <div class="progress fos-portfolio-progress mt-3" id="ppnl-progress-wrap" style="height: 8px; width: min(320px, 90vw);">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" id="ppnl-progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="width: 0%; background: var(--ag-accent);"></div>
+              </div>
+              <p class="small mb-0 mt-2" id="ppnl-loading-sub" style="color: var(--ag-text-muted)">Preparing portfolio request…</p>
+              <p class="small mb-0 mt-1 d-none" id="ppnl-loading-activity" style="color: var(--ag-text-muted)"></p>
+            </div>
+
+            <div class="alert alert-info py-2 px-3 small mb-3 d-none" id="ppnl-live-only" role="status">
+              Live Fibery data is required for portfolio P&amp;L. Switch to <strong>Live data</strong> or pick a snapshot that includes delivery P&amp;L files.
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <div class="flex-grow-1 min-w-0">
+                <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Portfolio P&amp;L</h1>
+                <p class="small mb-0" id="ppnl-subtitle" style="color: var(--ag-text-muted)"> - </p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 mb-3 pb-3 border-bottom" style="border-color: var(--ag-border) !important">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="ppnl-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
+                Refresh
+              </button>
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="ppnl-export-excel-btn" disabled title="Available after Portfolio P&amp;L finishes loading" style="background: transparent; color: var(--ag-text); border: 1px solid var(--ag-border); min-height: 44px">
+                Export Excel
+              </button>
+              <div class="d-flex flex-column gap-1 flex-grow-1" style="min-width: min(220px, 100%); max-width: 360px" id="ppnl-export-progress-block">
+                <span class="small d-none" id="ppnl-export-status" role="status" style="color: var(--ag-text-muted)"></span>
+                <div class="progress d-none fos-portfolio-progress" id="ppnl-export-progress-wrap" style="height: 6px; width: 100%;">
+                  <div class="progress-bar progress-bar-striped progress-bar-animated" id="ppnl-export-progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="width: 0%; background: var(--ag-accent);"></div>
+                </div>
+              </div>
+              <div class="d-flex flex-wrap align-items-center gap-2 ms-1" id="ppnl-type-filters" aria-label="Agreement type filters">
+                <span class="small mb-0" style="color: var(--ag-text-muted)">Include</span>
+                <div class="form-check form-check-inline mb-0">
+                  <input class="form-check-input" type="checkbox" id="ppnl-type-subscription" checked />
+                  <label class="form-check-label small" for="ppnl-type-subscription" style="color: var(--ag-text-muted)">Subscription</label>
+                </div>
+                <div class="form-check form-check-inline mb-0">
+                  <input class="form-check-input" type="checkbox" id="ppnl-type-services" checked />
+                  <label class="form-check-label small" for="ppnl-type-services" style="color: var(--ag-text-muted)">Services</label>
+                </div>
+              </div>
+              <div class="form-check form-switch mb-0 ms-1">
+                <input class="form-check-input" type="checkbox" role="switch" id="ppnl-collapse-quarters" />
+                <label class="form-check-label small" for="ppnl-collapse-quarters" style="color: var(--ag-text-muted)">Group by quarter</label>
+              </div>
+              <div class="form-check form-switch mb-0 ms-1">
+                <input class="form-check-input" type="checkbox" role="switch" id="ppnl-include-projected" />
+                <label class="form-check-label small" for="ppnl-include-projected" style="color: var(--ag-text-muted)">Include projected months</label>
+              </div>
+              <span class="small" id="ppnl-last-refresh" style="color: var(--ag-text-muted)">Last refreshed:  - </span>
+              <span class="small d-none text-danger" id="ppnl-fetch-error" role="alert"></span>
+            </div>
+
+            <p class="small d-none mb-3" id="ppnl-partial-note" style="color: var(--ag-warn)" role="status"></p>
+
+            <section class="fos-section-card mb-3" id="ppnl-kpi-section" aria-labelledby="ppnl-kpi-heading">
+              <h2 id="ppnl-kpi-heading">Portfolio summary</h2>
+              <div class="ppnl-kpi-inline" id="ppnl-kpi-strip">
+                <span class="ppnl-kpi-metric">
+                  <span class="ppnl-kpi-label">FY revenue</span>
+                  <span
+                    class="ppnl-kpi-value"
+                    id="ppnl-kpi-revenue"
+                    tabindex="0"
+                    title="Sum of recognized revenue from every in-scope Subscription and Services project for the calendar year. When Include projected months is on, also includes milestone target revenue in future months."
+                  >$0</span>
+                </span>
+                <span class="ppnl-kpi-metric">
+                  <span class="ppnl-kpi-label">FY total cost</span>
+                  <span
+                    class="ppnl-kpi-value"
+                    id="ppnl-kpi-cost"
+                    tabindex="0"
+                    title="Sum of employee labor, contractor labor, and other direct costs (ODC) across all in-scope projects for the year. On projected months with Include projected months on, labor uses planned allocation cost from resource assignments instead of actual time entries."
+                  >$0</span>
+                </span>
+                <span class="ppnl-kpi-metric">
+                  <span class="ppnl-kpi-label">FY margin</span>
+                  <span
+                    class="ppnl-kpi-value"
+                    id="ppnl-kpi-margin"
+                    tabindex="0"
+                    title="Gross margin percent for the portfolio: (FY revenue minus FY total cost) divided by FY revenue. Shows a dash when FY revenue is zero."
+                  > - </span>
+                </span>
+                <span class="ppnl-kpi-metric">
+                  <span class="ppnl-kpi-label">Projects in scope</span>
+                  <span
+                    class="ppnl-kpi-value"
+                    id="ppnl-kpi-projects"
+                    tabindex="0"
+                    title="Count of active agreements included in this view after the Subscription / Services checkboxes are applied. Internal and other agreement types are always excluded."
+                  >0</span>
+                </span>
+              </div>
+            </section>
+
+            <div class="fos-portfolio-grid-wrap">
+              <table class="fos-portfolio-grid fos-financial-table mb-0" id="ppnl-grid-table" aria-label="Portfolio P and L grid">
+                <thead id="ppnl-grid-head"></thead>
+                <tbody id="ppnl-grid-body"></tbody>
+              </table>
+            </div>
+            <p class="small mb-0 mt-2 d-none" id="ppnl-empty" style="color: var(--ag-text-muted)">No Subscription or Services projects in scope.</p>
+          </div>
+        </div>
+
+        <!-- Expenses - spreadsheet tab (feature 015, PRD FR-109). -->
+        <div id="panel-expenses" class="d-none fos-agreement-root">
+          <div id="exp-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
+          <div class="fos-agreement-inner shadow-lg">
+            <div class="fos-loading-overlay d-none" id="exp-loading" role="status" aria-live="polite" aria-hidden="true">
+              <div class="fos-loading-spinner" aria-hidden="true"></div>
+              <span class="fos-loading-label">Loading expenses…</span>
+            </div>
+
+            <div class="alert alert-info py-2 px-3 small mb-3 d-none" id="exp-live-only" role="status">
+              This snapshot does not include expense lines. Switch to <strong>Live data</strong> in the sidebar for current data.
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <div class="flex-grow-1 min-w-0">
+                <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Expenses</h1>
+                <p class="small mb-0" id="exp-subtitle" style="color: var(--ag-text-muted)"> - </p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 mb-3 pb-3 border-bottom" style="border-color: var(--ag-border) !important">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="exp-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
+                Refresh
+              </button>
+              <span class="small" id="exp-last-refresh" style="color: var(--ag-text-muted)">Last refreshed:  - </span>
+              <span class="small d-none text-danger" id="exp-fetch-error" role="alert"></span>
+            </div>
+
+            <p class="small d-none mb-3" id="exp-partial-note" style="color: var(--ag-warn)" role="status"></p>
+
+            <section class="fos-section-card mb-3" aria-labelledby="exp-filters-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="exp-filters-heading" class="h6 mb-0 fw-bold" style="color: var(--ag-text)">Filters</h2>
+                <button type="button" class="fos-util-clear-btn ms-auto" id="exp-clear-filters-btn">Clear all filters</button>
+              </div>
+              <p class="small mb-2" id="exp-filter-summary" style="color: var(--ag-text-muted)" aria-live="polite"> - </p>
+              <div class="fos-util-chip-row mb-3" id="exp-filter-chips" aria-label="Active filters"></div>
+              <div class="row g-2 align-items-end">
+                <div class="col-6 col-md-3">
+                  <label class="small" for="exp-date-start" style="color: var(--ag-text-muted)">From</label>
+                  <input type="date" id="exp-date-start" class="form-control form-control-sm" />
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="small" for="exp-date-end" style="color: var(--ag-text-muted)">Through</label>
+                  <input type="date" id="exp-date-end" class="form-control form-control-sm" />
+                </div>
+                <div class="col-12 col-md-6 col-lg-4">
+                  <label class="small d-block mb-1" style="color: var(--ag-text-muted)">Departments</label>
+                  <div class="fos-util-multi">
+                    <button type="button" class="multi-trigger w-100" id="exp-dept-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">All departments</button>
+                    <ul class="dropdown-menu" id="exp-dept-menu" aria-label="Department filter"></ul>
+                  </div>
+                </div>
+                <div class="col-12 col-md-6 col-lg-4">
+                  <label class="small d-block mb-1" style="color: var(--ag-text-muted)">Employees</label>
+                  <div class="fos-util-multi">
+                    <button type="button" class="multi-trigger w-100" id="exp-employee-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">All employees</button>
+                    <ul class="dropdown-menu" id="exp-employee-menu" aria-label="Employee filter"></ul>
+                  </div>
+                </div>
+                <div class="col-12 col-md-6 col-lg-4">
+                  <label class="small d-block mb-1" style="color: var(--ag-text-muted)">Customers</label>
+                  <div class="fos-util-multi">
+                    <button type="button" class="multi-trigger w-100" id="exp-customer-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">All customers</button>
+                    <ul class="dropdown-menu" id="exp-customer-menu" aria-label="Customer filter"></ul>
+                  </div>
+                </div>
+                <div class="col-12">
+                  <label class="small" for="exp-search" style="color: var(--ag-text-muted)">Search</label>
+                  <input type="search" id="exp-search" class="form-control form-control-sm" placeholder="Vendor, memo, transaction id (all tokens must match)" autocomplete="off" />
+                </div>
+              </div>
+            </section>
+
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 mb-3">
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-blue h-100">
+                  <div class="label">Total spend</div>
+                  <div class="value" id="exp-kpi-total">$0</div>
+                  <div class="sub" id="exp-kpi-total-sub">0 lines</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-green h-100">
+                  <div class="label">Customer-attributed</div>
+                  <div class="value" id="exp-kpi-attr">$0</div>
+                  <div class="sub" id="exp-kpi-attr-sub">0% of total</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-teal h-100">
+                  <div class="label">Unattributed</div>
+                  <div class="value" id="exp-kpi-unattr">$0</div>
+                  <div class="sub" id="exp-kpi-unattr-sub">0% of total</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-yellow h-100">
+                  <div class="label">Departments</div>
+                  <div class="value" id="exp-kpi-depts">0</div>
+                  <div class="sub" id="exp-kpi-depts-sub">Distinct in filter</div>
+                </div>
+              </div>
+            </div>
+
+            <section class="fos-section-card mb-3" aria-labelledby="exp-sankey-heading">
+              <h2 id="exp-sankey-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Expense flow - department · attribution · customer</h2>
+              <p class="small mb-2" style="color: var(--ag-text-muted)">Flows reflect the current filters. Department totals split into attributed vs unattributed spend; attributed amounts continue to GL customer.</p>
+              <div id="exp-sankey-wrap" class="fos-sankey-wrap" role="img" aria-label="Expense flow Sankey diagram"></div>
+            </section>
+
+            <section class="fos-section-card mb-3" aria-labelledby="exp-chart-submission-cycle-h">
+              <h2 id="exp-chart-submission-cycle-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Average expense submission time by employee</h2>
+              <p class="small mb-2" style="color: var(--ag-text-muted)">
+                Cycle time = days from <strong>Purchase date</strong> to <strong>Submission Date</strong> (filtered rows only; employees need both dates on at least one line).
+                Sorted highest average first.
+              </p>
+              <div class="exp-chart-canvas-wrap exp-chart-canvas-wrap--cycle">
+                <canvas id="exp-chart-submission-cycle" role="img" aria-label="Average expense submission cycle time by employee"></canvas>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="exp-submission-cycle-empty" style="color: var(--ag-text-muted)">
+                No lines with both purchase and submission dates in the current filter.
+              </p>
+            </section>
+
+            <section class="fos-section-card mb-3" aria-labelledby="exp-cust-h">
+              <h2 id="exp-cust-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Customer attribution</h2>
+              <div class="table-responsive">
+                <table class="fos-util-detail-table" aria-describedby="exp-cust-h">
+                  <thead>
+                    <tr>
+                      <th scope="col">Customer</th>
+                      <th class="text-end" scope="col">Spend</th>
+                      <th class="text-end" scope="col">% of attributed</th>
+                      <th class="text-end" scope="col">% of total</th>
+                    </tr>
+                  </thead>
+                  <tbody id="exp-cust-tbody"></tbody>
+                </table>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="exp-cust-empty" style="color: var(--ag-text-muted)">No attributed spend in the current filter.</p>
+            </section>
+
+            <div class="row g-3 mb-3">
+              <div class="col-12 col-xl-6">
+                <section class="fos-section-card h-100" aria-labelledby="exp-chart-dept-h">
+                  <h2 id="exp-chart-dept-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Spend by department by month</h2>
+                  <p class="small mb-2" style="color: var(--ag-text-muted)">Click a segment to open matching lines in the drawer.</p>
+                  <div class="exp-chart-canvas-wrap">
+                    <canvas id="exp-chart-dept" role="img" aria-label="Spend by department chart"></canvas>
+                  </div>
+                </section>
+              </div>
+              <div class="col-12 col-xl-6">
+                <section class="fos-section-card h-100" aria-labelledby="exp-chart-cat-h">
+                  <h2 id="exp-chart-cat-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Spend by category by month</h2>
+                  <p class="small mb-2" style="color: var(--ag-text-muted)">Blank categories appear as Uncategorized. Long tail rolls into Other.</p>
+                  <div class="exp-chart-canvas-wrap">
+                    <canvas id="exp-chart-category" role="img" aria-label="Spend by category chart"></canvas>
+                  </div>
+                </section>
+              </div>
+            </div>
+
+            <section class="fos-section-card mb-3" aria-labelledby="exp-chart-software-h">
+              <h2 id="exp-chart-software-h" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Software spend by vendor by month</h2>
+              <p class="small mb-2" style="color: var(--ag-text-muted)">
+                <span id="exp-software-cat-label">Software</span> category only; vendors outside the top N roll into Other. Click a segment for line detail.
+              </p>
+              <div class="exp-chart-canvas-wrap">
+                <canvas id="exp-chart-software" role="img" aria-label="Software spend by vendor chart"></canvas>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="exp-software-empty" style="color: var(--ag-text-muted)">No software-category spend in the current filter.</p>
+            </section>
+
+            <section class="fos-section-card mb-3" aria-labelledby="exp-risk-heading">
+              <h2 id="exp-risk-heading" class="h6 mb-2 fw-bold" style="color: var(--ag-text)">Software vendor risk map</h2>
+              <p class="small mb-2" style="color: var(--ag-text-muted)">
+                <span id="exp-risk-cat-label">Software</span> category only. Each bubble is one <strong>vendor</strong> for the focus month you select below. X = month-over-month growth vs the prior month in view; Y = calendar year-to-date spend through that month; size = transaction count in the focus month. Color = vendor. Dashed lines mark the median on each axis.
+              </p>
+              <div class="exp-risk-month-control mb-3 d-none" id="exp-risk-month-control">
+                <label class="small d-flex flex-wrap align-items-center gap-2 mb-0" for="exp-risk-month-slider" style="color: var(--ag-text-muted)">
+                  <span class="text-nowrap">Focus month</span>
+                  <input
+                    type="range"
+                    class="form-range flex-grow-1"
+                    id="exp-risk-month-slider"
+                    min="0"
+                    max="0"
+                    value="0"
+                    step="1"
+                    style="max-width: 28rem"
+                    aria-valuemin="0"
+                    aria-valuemax="0"
+                    aria-valuenow="0"
+                    aria-describedby="exp-risk-month-label"
+                  />
+                  <strong id="exp-risk-month-label" class="text-nowrap" style="color: var(--ag-text); min-width: 5.5rem"> - </strong>
+                </label>
+              </div>
+              <ul class="exp-risk-interpret list-unstyled small mb-3" aria-label="Risk map interpretation">
+                <li><strong>Top-right</strong> - dangerous growth + high spend</li>
+                <li><strong>Bottom-right</strong> - fast growth but still small</li>
+                <li><strong>Top-left</strong> - expensive but stable</li>
+                <li><strong>Bottom-left</strong> - low spend and stable or declining</li>
+              </ul>
+              <div class="exp-risk-map-wrap">
+                <canvas id="exp-chart-risk" role="img" aria-label="Software vendor risk bubble chart"></canvas>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="exp-risk-empty" style="color: var(--ag-text-muted)">No software-category spend in the current filter for the selected month.</p>
+            </section>
+
+          </div>
+        </div>
+
+        <!-- AI Usage - Fibery Claude API Costs (feature 023). -->
+        <div id="panel-ai-usage" class="d-none fos-agreement-root">
+          <div id="aiu-warn" class="alert alert-warning py-2 px-3 small d-none mb-3" role="status"></div>
+          <div class="fos-agreement-inner shadow-lg">
+            <div class="fos-loading-overlay d-none" id="aiu-loading" role="status" aria-live="polite" aria-hidden="true">
+              <div class="fos-loading-spinner" aria-hidden="true"></div>
+              <span class="fos-loading-label">Loading AI usage…</span>
+            </div>
+
+            <div class="alert alert-info py-2 px-3 small mb-3 d-none" id="aiu-live-only" role="status">
+              AI Usage is available under <strong>Live data</strong> only. Switch the sidebar data source to load current usage.
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <div class="flex-grow-1 min-w-0">
+                <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">AI Usage</h1>
+                <p class="small mb-0" id="aiu-subtitle" style="color: var(--ag-text-muted)"> - </p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 gap-md-3 mb-3 pb-3 border-bottom" style="border-color: var(--ag-border) !important">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="aiu-refresh-btn" style="background: var(--ag-accent); color: #061b30; border: none">
+                Refresh
+              </button>
+              <span class="small" id="aiu-last-refresh" style="color: var(--ag-text-muted)">Last refreshed:  - </span>
+              <span class="d-none small" id="aiu-stale-badge" style="color: var(--ag-warn); font-weight: 600">Stale</span>
+              <label class="small d-flex align-items-center gap-1" for="aiu-ttl-select" style="color: var(--ag-text-muted)">
+                Auto-refresh
+                <select id="aiu-ttl-select" class="fos-ttl-select" aria-label="Auto-refresh interval">
+                  <option value="5">5 min</option>
+                  <option value="10" selected>10 min</option>
+                  <option value="30">30 min</option>
+                  <option value="0">Off</option>
+                </select>
+              </label>
+              <span class="small d-none text-danger" id="aiu-fetch-error" role="alert"></span>
+            </div>
+
+            <section class="fos-util-filter-bar mb-3" aria-label="AI usage filters">
+              <div class="d-flex flex-wrap align-items-end gap-3">
+                <div>
+                  <label class="field-label" for="aiu-range-preset">Date range</label>
+                  <select id="aiu-range-preset" aria-label="Date range preset">
+                    <option value="30">Last 30 days</option>
+                    <option value="60">Last 60 days</option>
+                    <option value="90" selected>Last 90 days</option>
+                    <option value="180">Last 6 months</option>
+                    <option value="ytd">Year to date</option>
+                    <option value="custom">Custom…</option>
+                  </select>
+                </div>
+                <div id="aiu-custom-range" class="d-none d-flex gap-2 align-items-end">
+                  <div>
+                    <label class="field-label" for="aiu-range-start">Start</label>
+                    <input type="date" id="aiu-range-start" />
+                  </div>
+                  <div>
+                    <label class="field-label" for="aiu-range-end">End</label>
+                    <input type="date" id="aiu-range-end" />
+                  </div>
+                  <button type="button" class="btn btn-sm" id="aiu-range-apply" style="background: var(--ag-accent); color: #061b30; border: none; align-self: end">
+                    Apply
+                  </button>
+                </div>
+                <div class="fos-util-multi">
+                  <label class="field-label">Persons</label>
+                  <button type="button" class="multi-trigger" id="aiu-person-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    All persons
+                  </button>
+                  <ul class="dropdown-menu" id="aiu-person-menu" aria-label="Person filter"></ul>
+                </div>
+                <div class="fos-util-multi">
+                  <label class="field-label">Roles</label>
+                  <button type="button" class="multi-trigger" id="aiu-role-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    All roles
+                  </button>
+                  <ul class="dropdown-menu" id="aiu-role-menu" aria-label="Role filter"></ul>
+                </div>
+                <button type="button" class="fos-util-clear-btn ms-auto" id="aiu-clear-btn">Clear filters</button>
+              </div>
+              <div class="fos-util-chip-row mt-2" id="aiu-chip-row" aria-live="polite"></div>
+            </section>
+
+            <p class="small mb-3 d-none" id="aiu-empty" style="color: var(--ag-text-muted)">
+              No Claude API cost rows in this date range. Confirm data exists in Fibery <strong>Claude API Costs</strong>.
+            </p>
+
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 mb-3" id="aiu-kpi-row">
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-blue h-100">
+                  <div class="label">Total spend</div>
+                  <div class="value" id="aiu-kpi-total">$0</div>
+                  <div class="sub" id="aiu-kpi-total-sub">0 rows</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-teal h-100">
+                  <div class="label">Developers</div>
+                  <div class="value" id="aiu-kpi-developer">$0</div>
+                  <div class="sub" id="aiu-kpi-developer-sub">People (non-product)</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-green h-100">
+                  <div class="label">Products / programs</div>
+                  <div class="value" id="aiu-kpi-product">$0</div>
+                  <div class="sub" id="aiu-kpi-product-sub">AI Usage Tracker keys</div>
+                </div>
+              </div>
+              <div class="col">
+                <div class="fos-agreement-kpi kpi-yellow h-100">
+                  <div class="label">Unmatched</div>
+                  <div class="value" id="aiu-kpi-unmatched">$0</div>
+                  <div class="sub" id="aiu-kpi-unmatched-sub">No Clockify User</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-lg-6">
+                <section class="fos-section-card h-100" aria-labelledby="aiu-dev-chart-heading">
+                  <h2 id="aiu-dev-chart-heading" class="h6 fw-bold mb-2" style="color: var(--ag-text)">Developer spend by person</h2>
+                  <div class="aiu-bar-chart-scroll" id="aiu-dev-chart-scroll">
+                    <div class="aiu-bar-chart-inner" id="aiu-dev-chart-inner">
+                      <canvas id="aiu-dev-chart" role="img" aria-label="Developer spend by Clockify user"></canvas>
+                    </div>
+                  </div>
+                </section>
+              </div>
+              <div class="col-lg-6">
+                <section class="fos-section-card h-100" aria-labelledby="aiu-prod-chart-heading">
+                  <h2 id="aiu-prod-chart-heading" class="h6 fw-bold mb-2" style="color: var(--ag-text)">Product / program spend</h2>
+                  <div class="aiu-bar-chart-scroll" id="aiu-prod-chart-scroll">
+                    <div class="aiu-bar-chart-inner" id="aiu-prod-chart-inner">
+                      <canvas id="aiu-prod-chart" role="img" aria-label="Product spend by Clockify user"></canvas>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </div>
+
+            <section class="fos-section-card mb-3" aria-labelledby="aiu-trend-heading">
+              <h2 id="aiu-trend-heading" class="h6 fw-bold mb-2" style="color: var(--ag-text)">Monthly spend trend</h2>
+              <div class="exp-chart-canvas-wrap exp-chart-canvas-wrap--cycle">
+                <canvas id="aiu-trend-chart" role="img" aria-label="Monthly AI spend trend"></canvas>
+              </div>
+            </section>
+
+            <section class="fos-section-card mb-0" aria-labelledby="aiu-table-heading">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 id="aiu-table-heading" class="h6 fw-bold mb-0" style="color: var(--ag-text)">Detail</h2>
+                <button type="button" class="btn btn-outline-secondary btn-sm ms-auto" id="aiu-export-btn">Export CSV</button>
+              </div>
+              <div class="fos-financial-scroll">
+                <table class="fos-util-detail-table fos-financial-table mb-0" aria-describedby="aiu-table-heading">
+                  <thead>
+                    <tr>
+                      <th scope="col" data-aiu-sort="usageDate">Date</th>
+                      <th scope="col" data-aiu-sort="personName">Person</th>
+                      <th scope="col" data-aiu-sort="roleName">Role</th>
+                      <th scope="col" data-aiu-sort="bucket">Type</th>
+                      <th scope="col" data-aiu-sort="model">Model</th>
+                      <th scope="col" data-aiu-sort="costUsd" class="num">Cost USD</th>
+                    </tr>
+                  </thead>
+                  <tbody id="aiu-table-body"></tbody>
+                </table>
+              </div>
+              <p class="small mb-0 mt-2 d-none" id="aiu-table-empty" style="color: var(--ag-text-muted)">No rows match the current filters.</p>
+              <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="aiu-page-prev" disabled>Previous</button>
+                <span class="small" id="aiu-page-label" style="color: var(--ag-text-muted)">Page 1</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="aiu-page-next" disabled>Next</button>
+              </div>
+            </section>
+          </div>
+        </div>
+      <div id="fos-ask-pane-backdrop" class="fos-ask-pane-backdrop d-none" aria-hidden="true"></div>
+      <aside
+        id="fos-ask-pane"
+        class="fos-ask-pane d-none"
+        aria-label="Ask AI"
+        aria-hidden="true"
+      >
+        <div class="fos-ask-pane-header">
+          <h2 class="h6 mb-0 fw-bold text-white flex-grow-1">Ask AI</h2>
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            id="fos-ask-clear-btn"
+            style="min-height: 44px"
+          >
+            Clear
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            id="fos-ask-close-btn"
+            aria-label="Close Ask AI"
+            style="min-height: 44px; min-width: 44px"
+          >
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div id="fos-ask-context" class="fos-ask-context">Select a dashboard, then ask a question.</div>
+        <div id="fos-ask-transcript" class="fos-ask-transcript" aria-live="polite"></div>
+        <div class="fos-ask-composer">
+          <label for="fos-ask-input" class="visually-hidden">Ask a question</label>
+          <textarea
+            id="fos-ask-input"
+            class="form-control mb-2"
+            rows="2"
+            maxlength="500"
+            placeholder="Ask about the data on this dashboard…"
+          ></textarea>
+          <div class="d-flex gap-2 align-items-center">
+            <button type="button" class="btn btn-fos-primary flex-grow-1" id="fos-ask-send-btn" style="min-height: 44px">
+              Send
+            </button>
+            <span id="fos-ask-quota" class="small text-secondary"></span>
+          </div>
+          <p id="fos-ask-status" class="small text-secondary mb-0 mt-2 d-none" role="status"></p>
+        </div>
+      </aside>
