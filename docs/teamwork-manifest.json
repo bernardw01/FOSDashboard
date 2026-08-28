@@ -502,6 +502,16 @@
       "publishedAt": "2026-08-25",
       "lastSyncedAt": "2026-08-25",
       "gitMirror": "docs/features/048-sow-coverage-gaps-and-unplanned-time.md"
+    },
+    "feature_050": {
+      "id": 313573,
+      "title": "Feature 050 - PM Overview perf allocation info on Project Performance drill-down",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/313573",
+      "featureId": "050",
+      "intakeTaskId": 40880310,
+      "publishedAt": "2026-08-28",
+      "lastSyncedAt": "2026-08-28",
+      "gitMirror": "docs/features/050-pm-overview-perf-allocation-drilldown.md"
     }
   },
   "tasks": {
@@ -1877,6 +1887,23 @@
       "workflowStage": "In-progress",
       "createdAt": "2026-08-25",
       "renameAtShip": "v{FOS_PRD_VERSION} - SOW coverage gaps and unplanned time"
+    },
+    "Feature 050 - PM Overview perf allocation drill-down": {
+      "id": 40926974,
+      "url": "https://win.godeap.io/app/tasks/40926974",
+      "featureId": "050",
+      "releaseType": "Enhancement",
+      "releaseTitle": "PM Overview perf allocation drill-down",
+      "provisionalTaskName": true,
+      "shippedVersion": null,
+      "tasklist": "Delivery",
+      "tasklistId": 4174283,
+      "notebookKey": "feature_050",
+      "intakeTaskId": 40880310,
+      "inboxTaskUrl": "https://win.godeap.io/app/tasks/40880310",
+      "workflowStage": "Spec Approved",
+      "createdAt": "2026-08-28",
+      "renameAtShip": "v{FOS_PRD_VERSION} - PM Overview perf allocation drill-down"
     }
   },
   "supersededDuplicates": {
