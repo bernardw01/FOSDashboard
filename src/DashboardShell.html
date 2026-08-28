@@ -1796,6 +1796,35 @@
       margin-bottom: 12px;
       font-size: 0.9rem;
     }
+    .fos-delivery-perf-time-alloc {
+      margin-bottom: 12px;
+    }
+    .fos-delivery-perf-time-alloc h6 {
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+      margin-bottom: 6px;
+      color: var(--ag-text-muted);
+    }
+    .fos-delivery-perf-time-alloc-empty {
+      font-size: 0.875rem;
+      color: var(--ag-text-muted);
+      margin: 0;
+    }
+    .fos-delivery-perf-time-alloc table {
+      font-size: 0.875rem;
+    }
+    .fos-delivery-perf-time-alloc .fos-alloc-billable-yes {
+      color: var(--ag-text);
+    }
+    .fos-delivery-perf-time-alloc .fos-alloc-billable-no {
+      color: var(--ag-text-muted);
+    }
+    .fos-delivery-perf-time-days-heading {
+      font-size: 0.75rem;
+      letter-spacing: 0.04em;
+      margin: 12px 0 6px;
+      color: var(--ag-text-muted);
+    }
     @media (max-width: 767.98px) {
       .fos-delivery-perf-desktop-table {
         display: none !important;
@@ -5550,8 +5579,30 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="min-height:44px;min-width:44px"></button>
         </div>
         <div class="modal-body">
+          <div class="fos-delivery-perf-time-alloc" id="deliveryPnlPerfTimeAllocSection">
+            <h6 class="text-uppercase fw-semibold">Resource allocation</h6>
+            <div class="fos-financial-scroll" id="deliveryPnlPerfTimeAllocWrap">
+              <table
+                class="fos-financial-table"
+                id="deliveryPnlPerfTimeAllocTable"
+                aria-label="Resource allocation for this person"
+              >
+                <thead>
+                  <tr>
+                    <th scope="col">Duration</th>
+                    <th scope="col">Allocated &amp; Billable</th>
+                    <th scope="col" class="num">% allocation</th>
+                    <th scope="col">Role on SOW</th>
+                  </tr>
+                </thead>
+                <tbody id="deliveryPnlPerfTimeAllocBody"></tbody>
+              </table>
+            </div>
+            <p class="fos-delivery-perf-time-alloc-empty d-none" id="deliveryPnlPerfTimeAllocEmpty"></p>
+          </div>
           <div class="d-none fos-delivery-perf-time-banner" id="deliveryPnlPerfTimeOrange" role="status"></div>
           <p class="small mb-2 d-none" id="deliveryPnlPerfTimeStatus" style="color: var(--ag-text-muted)"></p>
+          <h6 class="text-uppercase fw-semibold fos-delivery-perf-time-days-heading">Logged time by day</h6>
           <div class="fos-financial-scroll">
             <table class="fos-financial-table" aria-describedby="deliveryPnlPerfTimeModalTitle">
               <thead>
@@ -5766,7 +5817,7 @@
       // the user upgrades.
       var DELIVERY_PNL_KEY_PREFIX = 'fos_delivery_pnl_';
       var DELIVERY_PNL_KEY_SUFFIX = '_v16';
-      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 16;
+      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 17;
       var DELIVERY_STATUS_CLIENT_META_ = {
         on_track: { enumName: 'Agreement On Track', trafficLight: 'green' },
         at_risk: { enumName: 'Agreement At Risk', trafficLight: 'yellow' },
@@ -6316,6 +6367,11 @@
           deliveryPnlPerfTimeModal: document.getElementById('deliveryPnlPerfTimeModal'),
           deliveryPnlPerfTimeModalTitle: document.getElementById('deliveryPnlPerfTimeModalTitle'),
           deliveryPnlPerfTimeModalSubtitle: document.getElementById('deliveryPnlPerfTimeModalSubtitle'),
+          deliveryPnlPerfTimeAllocSection: document.getElementById('deliveryPnlPerfTimeAllocSection'),
+          deliveryPnlPerfTimeAllocWrap: document.getElementById('deliveryPnlPerfTimeAllocWrap'),
+          deliveryPnlPerfTimeAllocTable: document.getElementById('deliveryPnlPerfTimeAllocTable'),
+          deliveryPnlPerfTimeAllocBody: document.getElementById('deliveryPnlPerfTimeAllocBody'),
+          deliveryPnlPerfTimeAllocEmpty: document.getElementById('deliveryPnlPerfTimeAllocEmpty'),
           deliveryPnlPerfTimeOrange: document.getElementById('deliveryPnlPerfTimeOrange'),
           deliveryPnlPerfTimeStatus: document.getElementById('deliveryPnlPerfTimeStatus'),
           deliveryPnlPerfTimeBody: document.getElementById('deliveryPnlPerfTimeBody'),
@@ -30059,6 +30115,76 @@
         }
       }
 
+      function formatPerfAllocationBillable_(billable) {
+        if (billable === true) {
+          return '<span class="fos-alloc-billable-yes" aria-label="Allocated and Billable: Yes">Yes</span>';
+        }
+        if (billable === false) {
+          return '<span class="fos-alloc-billable-no" aria-label="Allocated and Billable: No">No</span>';
+        }
+        return ' - ';
+      }
+
+      function formatPerfAllocationRoleOnSow_(row) {
+        if (!row || row.allocatedAndBillable !== true) return 'N/A';
+        var role = row.roleOnSow;
+        if (role == null || String(role).trim() === '') return 'N/A';
+        return String(role).trim();
+      }
+
+      function filterPerfAllocationsForPerson_(personName) {
+        var payload = deliveryState.lastPnlPayload || {};
+        var alloc = payload.resourceAllocations || {};
+        var rows = alloc.assignments || [];
+        if (!rows.length || !personName) return [];
+        var out = [];
+        for (var i = 0; i < rows.length; i++) {
+          if (deliveryPerfPersonNamesMatch_(personName, rows[i].name)) out.push(rows[i]);
+        }
+        return out;
+      }
+
+      function renderDeliveryPerfTimeAllocations_(personName) {
+        var section = els.deliveryPnlPerfTimeAllocSection;
+        var wrap = els.deliveryPnlPerfTimeAllocWrap;
+        var tbody = els.deliveryPnlPerfTimeAllocBody;
+        var emptyEl = els.deliveryPnlPerfTimeAllocEmpty;
+        var table = els.deliveryPnlPerfTimeAllocTable;
+        if (!section) return false;
+        var rows = filterPerfAllocationsForPerson_(personName);
+        if (emptyEl) {
+          emptyEl.classList.add('d-none');
+          emptyEl.textContent = '';
+        }
+        if (!rows.length) {
+          if (wrap) wrap.classList.add('d-none');
+          if (table) table.classList.add('d-none');
+          if (emptyEl) {
+            emptyEl.textContent =
+              'No resource allocation found for this person on this project.';
+            emptyEl.classList.remove('d-none');
+          }
+          return false;
+        }
+        if (wrap) wrap.classList.remove('d-none');
+        if (table) table.classList.remove('d-none');
+        if (tbody) {
+          var html = '';
+          for (var i = 0; i < rows.length; i++) {
+            var r = rows[i];
+            html +=
+              '<tr>' +
+                '<td>' + escapeHtml(r.durationLabel || ' - ') + '</td>' +
+                '<td>' + formatPerfAllocationBillable_(r.allocatedAndBillable) + '</td>' +
+                '<td class="num">' + escapeHtml(formatAllocationPercent_(r.percentAllocated)) + '</td>' +
+                '<td>' + escapeHtml(formatPerfAllocationRoleOnSow_(r)) + '</td>' +
+              '</tr>';
+          }
+          tbody.innerHTML = html;
+        }
+        return true;
+      }
+
       function openDeliveryPerfTimeModal_(row) {
         var modalEl = els.deliveryPnlPerfTimeModal;
         if (!modalEl || !row) return;
@@ -30084,6 +30210,7 @@
             orangeEl.textContent = '';
           }
         }
+        var hasAllocations = renderDeliveryPerfTimeAllocations_(name);
         if (els.deliveryPnlPerfTimeBody) {
           els.deliveryPnlPerfTimeBody.innerHTML =
             '<tr><td colspan="3" class="text-secondary">Loading time entries…</td></tr>';
@@ -30096,7 +30223,8 @@
         logActivity_(
           'delivery_pnl_perf_time_drill',
           'pm-overview',
-          (row.name || '') + '|' + (deliveryState.selectedId || '')
+          (row.name || '') + '|' + (deliveryState.selectedId || '') +
+            '|hasAllocations=' + (hasAllocations ? 'true' : 'false')
         );
         try {
           if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {

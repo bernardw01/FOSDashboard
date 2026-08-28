@@ -303,6 +303,7 @@ var AM_MIRROR_ENTITY_STEPS_ = [
       allocatedCost: 'Agreement Management/Allocated Cost',
       allocatedHours: 'Agreement Management/Allocated Hours',
       percentAllocated: 'Agreement Management/Percent Allocated',
+      roleOnSow: 'Agreement Management/Role on SOW',
       workDays: 'Agreement Management/Work Days',
       notes: 'Agreement Management/Notes',
       duration: 'Agreement Management/Duration',

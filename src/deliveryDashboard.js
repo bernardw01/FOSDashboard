@@ -106,7 +106,7 @@ var DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_ = 2;
  *   v16 - v3.7.6 / feature 040 R5: laborByPerson.allocatedCost (month-prorated).
  * @const {number}
  */
-var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 16;
+var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 17;
 
 /** @const {number} Default TTL (minutes) for the client-side cache. */
 var DELIVERY_DEFAULT_CACHE_TTL_MIN_ = 10;
@@ -1439,6 +1439,7 @@ function fetchResourceAllocationsForAgreement_(agreementId) {
           'Agreement Management/Clockify User Team Member Role',
           'Agreement Management/Name',
         ],
+        roleOnSow: 'Agreement Management/Role on SOW',
       },
       'q/where': ['=', ['Agreement Management/Agreement', 'fibery/id'], '$agreementId'],
       'q/limit': DELIVERY_QUERY_LIMIT_,
@@ -1463,6 +1464,7 @@ function fetchResourceAllocationsForAgreement_(agreementId) {
         ? numberOr_(page[i].percentAllocated, 0) : null,
       allocatedAndBillable: billableRaw === true ? true : billableRaw === false ? false : null,
       roleName: stringOrNull_(page[i].roleName) || '(No role)',
+      roleOnSow: stringOrNull_(page[i].roleOnSow),
       durStart: dur ? stringOrNull_(dur.start) : null,
       durEnd: dur ? stringOrNull_(dur.end) : null,
     });
@@ -1533,6 +1535,7 @@ function buildResourceAllocationAssignmentsList_(rows) {
         : row.allocatedAndBillable === false
           ? false
           : null,
+      roleOnSow: stringOrNull_(row.roleOnSow),
     });
   }
   out.sort(function (a, b) {

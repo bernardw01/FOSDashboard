@@ -1309,6 +1309,19 @@ function fetchRevenueItemsForAgreementFromSupabase_(agreementId) {
 }
 
 /**
+ * Role on SOW from mirrored `raw` json (populated after AM mirror sync).
+ * @param {*} raw
+ * @return {?string}
+ * @private
+ */
+function roleOnSowFromSupabaseAllocationRaw_(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  var v = raw.roleOnSow;
+  if (v == null || v === '') return null;
+  return stringOrNull_(v);
+}
+
+/**
  * @param {string} agreementId
  * @return {!{ ok: true, rows: !Array<!Object> }|!{ ok: false, reason: string, message: string }}
  * @private
@@ -1318,7 +1331,7 @@ function fetchResourceAllocationsForAgreementFromSupabase_(agreementId) {
     'fos_resource_allocations',
     { agreement_id: 'eq.' + agreementId },
     'fibery_id,allocation_name,clockify_user_id,clockify_user_role_id,allocated_cost,' +
-      'allocated_hours,percent_allocated,allocated_billable,duration_start,duration_end'
+      'allocated_hours,percent_allocated,allocated_billable,duration_start,duration_end,raw'
   );
   if (!res.ok) {
     return {
@@ -1345,6 +1358,7 @@ function fetchResourceAllocationsForAgreementFromSupabase_(agreementId) {
         r.percent_allocated != null && r.percent_allocated !== '' ? numberOr_(r.percent_allocated, 0) : null,
       allocatedAndBillable: billableRaw === true ? true : billableRaw === false ? false : null,
       roleName: (role ? stringOrNull_(role.name) : null) || '(No role)',
+      roleOnSow: roleOnSowFromSupabaseAllocationRaw_(r.raw),
       durStart: stringOrNull_(r.duration_start),
       durEnd: stringOrNull_(r.duration_end),
     });

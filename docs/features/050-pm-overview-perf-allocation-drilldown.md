@@ -151,7 +151,7 @@ On **PM Overview → Project Performance**, when a PM opens the **person time-en
 
 - [x] Jess review (decisions 1, 5, 6, 7 locked 2026-08-28)
 - [x] Teamwork notebook + `Feature 050 - …` release task → Spec Draft
-- [ ] Implement `roleOnSow` on Fibery fetch + `assignments[]` + modal UI
+- [x] Implement `roleOnSow` on Fibery fetch + `assignments[]` + modal UI
 - [ ] Update `docs/FOS-Dashboard-PRD.md` FR/AC at ship
 - [ ] Mobile in the same release as desktop
 - [ ] Activity metadata + smoke
