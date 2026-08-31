@@ -1,7 +1,10 @@
 /**
- * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.14 - sync with docs/FOS-Dashboard-PRD.md
  *
- * Agreement Management Fibery → Supabase relational mirror (Pull / nightly).
+ * Agreement Management Fibery â†’ Supabase relational mirror (Pull / nightly).
+ * Full-scan steps reconcile ghosts: fibery_ids seen during the step are stored
+ * in fos_reconcile_snapshot, then rows missing from that snapshot are deleted
+ * (migration 054; AM_MIRROR_RECONCILE_GHOSTS default on).
  * Panel aggregation builders read the typed tables this mirror hydrates
  * (see `supabasePanelBuilders.js`).
  *
@@ -42,6 +45,9 @@ var AM_MIRROR_UPSERT_PARALLEL_ = 5;
 
 /** @const {number} Fibery fetch retries with backoff before failing the step (C4). */
 var AM_MIRROR_FETCH_RETRIES_ = 3;
+
+/** @const {string} Script property: delete Supabase rows missing from full Fibery scans. */
+var AM_MIRROR_RECONCILE_GHOSTS_PROP_ = 'AM_MIRROR_RECONCILE_GHOSTS';
 
 /** @const {number} Collection subquery caps (Fibery discourages q/no-limit in subqueries). */
 var AM_MIRROR_SEGMENTS_SUBQUERY_LIMIT_ = 50;
@@ -141,6 +147,12 @@ var AM_MIRROR_ENTITY_STEPS_ = [
     },
     mapRow: amMirrorMapCompany_,
     afterPage: amMirrorAfterCompanies_,
+    reconcileJunction: {
+      table: 'fos_company_segments',
+      parentColumn: 'company_fibery_id',
+      childColumn: 'segment_fibery_id',
+      collectPairs: amMirrorJunctionPairsCompanies_,
+    },
   },
   {
     key: 'clockify_users',
@@ -284,6 +296,12 @@ var AM_MIRROR_ENTITY_STEPS_ = [
     },
     mapRow: amMirrorMapAgreement_,
     afterPage: amMirrorAfterAgreements_,
+    reconcileJunction: {
+      table: 'fos_agreement_assigned_resources',
+      parentColumn: 'agreement_fibery_id',
+      childColumn: 'clockify_user_fibery_id',
+      collectPairs: amMirrorJunctionPairsAgreements_,
+    },
   },
   {
     key: 'resource_allocations',
@@ -469,6 +487,12 @@ var AM_MIRROR_ENTITY_STEPS_ = [
     },
     mapRow: amMirrorMapAgreementPnlItem_,
     afterPage: amMirrorAfterPnlItems_,
+    reconcileJunction: {
+      table: 'fos_pnl_revenue_items',
+      parentColumn: 'pnl_fibery_id',
+      childColumn: 'revenue_item_fibery_id',
+      collectPairs: amMirrorJunctionPairsPnlItems_,
+    },
   },
 ];
 
@@ -512,6 +536,8 @@ function hydrateSupabaseAmMirror_(syncState) {
     resetAmMirrorCursor_(syncState);
   }
 
+  var reconcileRunId = amMirrorReconcileRunId_(syncState);
+  var reconcileEnabled = amMirrorReconcileEnabled_();
   var cursor = syncState.amMirror;
   if (cursor.stepIndex < 0 || cursor.stepIndex >= AM_MIRROR_STEPS_.length) {
     syncState.amMirror = null;
@@ -531,6 +557,7 @@ function hydrateSupabaseAmMirror_(syncState) {
   if (incremental && !fullReconcile && step.kind !== 'enum') {
     sinceIso = amMirrorReadWatermarkSince_(step.key);
   }
+  var fullScan = !sinceIso;
 
   var page = amMirrorFetchPageWithRetry_(step.from, select, pageSize, cursor.offset, {
     sinceIso: sinceIso,
@@ -549,8 +576,26 @@ function hydrateSupabaseAmMirror_(syncState) {
 
   var rows = page.rows || [];
   if (!rows.length) {
+    var emptyDetail =
+      'step complete: ' +
+      step.key +
+      ' (0 rows on final page)' +
+      (sinceIso ? ' Â· incremental' : fullReconcile && incremental ? ' Â· sunday-full' : '');
     if (incremental && step.kind !== 'enum') {
       amMirrorAdvanceWatermark_(step.key, cursor.maxModifiedAt || sinceIso || new Date().toISOString());
+    }
+    if (reconcileEnabled && fullScan && reconcileRunId) {
+      var emptyRec = amMirrorReconcileFullScanStep_(step, reconcileRunId);
+      if (!emptyRec.ok) {
+        return { ok: false, message: emptyRec.message || 'AM mirror reconcile failed.' };
+      }
+      if (emptyRec.deleted > 0 || emptyRec.junctionDeleted > 0) {
+        emptyDetail +=
+          ' Â· reconciled ' +
+          emptyRec.deleted +
+          ' ghost row(s)' +
+          (emptyRec.junctionDeleted ? ', ' + emptyRec.junctionDeleted + ' junction(s)' : '');
+      }
     }
     cursor.stepIndex++;
     cursor.offset = 0;
@@ -562,11 +607,7 @@ function hydrateSupabaseAmMirror_(syncState) {
     return {
       ok: true,
       continue: !doneAfterEmpty,
-      detail:
-        'step complete: ' +
-        step.key +
-        ' (0 rows on final page)' +
-        (sinceIso ? ' · incremental' : fullReconcile && incremental ? ' · sunday-full' : ''),
+      detail: emptyDetail,
     };
   }
 
@@ -590,14 +631,42 @@ function hydrateSupabaseAmMirror_(syncState) {
     return { ok: false, message: processed.message || ('AM mirror step "' + step.key + '" upsert failed.') };
   }
 
+  if (reconcileEnabled && fullScan && reconcileRunId) {
+    var snap = amMirrorRecordReconcileSnapshot_(reconcileRunId, step, rows);
+    if (!snap.ok) {
+      return { ok: false, message: snap.message || 'AM mirror reconcile snapshot failed.' };
+    }
+  }
+
   cursor.offset += rows.length;
   var pageWasShort = rows.length < pageSize;
+  var detail =
+    step.key +
+    ': ' +
+    rows.length +
+    ' row(s)' +
+    (pageWasShort ? ' (step complete)' : '') +
+    (sinceIso ? ' Â· incremental' : fullReconcile && incremental ? ' Â· sunday-full' : '');
+
   if (pageWasShort) {
     if (incremental && step.kind !== 'enum') {
       amMirrorAdvanceWatermark_(
         step.key,
         cursor.maxModifiedAt || sinceIso || new Date().toISOString()
       );
+    }
+    if (reconcileEnabled && fullScan && reconcileRunId) {
+      var stepRec = amMirrorReconcileFullScanStep_(step, reconcileRunId);
+      if (!stepRec.ok) {
+        return { ok: false, message: stepRec.message || 'AM mirror reconcile failed.' };
+      }
+      if (stepRec.deleted > 0 || stepRec.junctionDeleted > 0) {
+        detail +=
+          ' Â· reconciled ' +
+          stepRec.deleted +
+          ' ghost row(s)' +
+          (stepRec.junctionDeleted ? ', ' + stepRec.junctionDeleted + ' junction(s)' : '');
+      }
     }
     cursor.stepIndex++;
     cursor.offset = 0;
@@ -610,13 +679,7 @@ function hydrateSupabaseAmMirror_(syncState) {
   return {
     ok: true,
     continue: !allDone,
-    detail:
-      step.key +
-      ': ' +
-      rows.length +
-      ' row(s)' +
-      (pageWasShort ? ' (step complete)' : '') +
-      (sinceIso ? ' · incremental' : fullReconcile && incremental ? ' · sunday-full' : ''),
+    detail: detail,
   };
 }
 
@@ -627,6 +690,138 @@ function hydrateSupabaseAmMirror_(syncState) {
 function resetAmMirrorCursor_(syncState) {
   if (syncState && typeof syncState === 'object') {
     syncState.amMirror = { stepIndex: 0, offset: 0, maxModifiedAt: null };
+  }
+}
+
+/**
+ * @return {boolean}
+ * @private
+ */
+function amMirrorReconcileEnabled_() {
+  var raw = PropertiesService.getScriptProperties().getProperty(AM_MIRROR_RECONCILE_GHOSTS_PROP_);
+  if (raw === null || raw === undefined || String(raw).trim() === '') {
+    return true;
+  }
+  var v = String(raw).trim().toLowerCase();
+  return !(v === 'false' || v === 'no' || v === '0');
+}
+
+/**
+ * Stable run id for reconcile snapshot rows across continuation batches.
+ *
+ * @param {!Object} syncState
+ * @return {?string}
+ * @private
+ */
+function amMirrorReconcileRunId_(syncState) {
+  if (!syncState || typeof syncState !== 'object') return null;
+  if (syncState.reconcileRunId) {
+    return String(syncState.reconcileRunId);
+  }
+  if (syncState.runId) {
+    return String(syncState.runId);
+  }
+  return null;
+}
+
+/**
+ * @param {string} runId
+ * @param {!Object} step
+ * @param {!Array<!Object>} fiberyRows
+ * @return {!{ ok: true }|!{ ok: false, message: string }}
+ * @private
+ */
+function amMirrorRecordReconcileSnapshot_(runId, step, fiberyRows) {
+  var idRows = [];
+  for (var i = 0; i < (fiberyRows || []).length; i++) {
+    var row = fiberyRows[i];
+    if (!row || !row.id) continue;
+    idRows.push({
+      run_id: runId,
+      step_key: step.key,
+      fibery_id: String(row.id),
+    });
+  }
+  if (idRows.length) {
+    var up = amMirrorUpsertChunks_('fos_reconcile_snapshot', idRows, 'run_id,step_key,fibery_id');
+    if (!up.ok) {
+      return up;
+    }
+  }
+  if (step.reconcileJunction && typeof step.reconcileJunction.collectPairs === 'function') {
+    var junc = step.reconcileJunction;
+    var pairRows = [];
+    for (var j = 0; j < (fiberyRows || []).length; j++) {
+      var pairs = junc.collectPairs(fiberyRows[j]);
+      for (var k = 0; k < (pairs || []).length; k++) {
+        var p = pairs[k];
+        if (!p || !p.parent || !p.child) continue;
+        pairRows.push({
+          run_id: runId,
+          step_key: step.key,
+          parent_fibery_id: String(p.parent),
+          child_fibery_id: String(p.child),
+        });
+      }
+    }
+    if (pairRows.length) {
+      var jUp = amMirrorUpsertChunks_(
+        'fos_reconcile_junction_snapshot',
+        pairRows,
+        'run_id,step_key,parent_fibery_id,child_fibery_id'
+      );
+      if (!jUp.ok) {
+        return jUp;
+      }
+    }
+  }
+  return { ok: true };
+}
+
+/**
+ * @param {!Object} step
+ * @param {string} runId
+ * @return {!{ ok: true, deleted: number, junctionDeleted: number }|!{ ok: false, message: string }}
+ * @private
+ */
+function amMirrorReconcileFullScanStep_(step, runId) {
+  var tableName = step.kind === 'enum' ? 'fos_am_enums' : step.table;
+  var enumType = step.kind === 'enum' ? step.enumType : null;
+  var rec = supabaseReconcileMirrorStepRpc_(runId, step.key, tableName, enumType);
+  if (!rec.ok) {
+    return rec;
+  }
+  var junctionDeleted = 0;
+  if (step.reconcileJunction) {
+    var j = step.reconcileJunction;
+    var jRec = supabaseReconcileMirrorJunctionRpc_(
+      runId,
+      step.key,
+      j.table,
+      j.parentColumn,
+      j.childColumn
+    );
+    if (!jRec.ok) {
+      return jRec;
+    }
+    junctionDeleted = jRec.deleted || 0;
+  }
+  return {
+    ok: true,
+    deleted: rec.deleted || 0,
+    junctionDeleted: junctionDeleted,
+  };
+}
+
+/**
+ * @param {?string=} runId
+ * @private
+ */
+function amMirrorGcReconcileSnapshots_(runId) {
+  try {
+    supabaseReconcileSnapshotGcRpc_(runId || null);
+  } catch (e) {
+    supabaseWarn_('amMirrorGcReconcileSnapshots_', e);
   }
 }
 
@@ -822,6 +1017,55 @@ function amMirrorProcessEntityStep_(step, rows) {
     }
   }
   return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Junction pair collectors (reconcile snapshot)
+// ---------------------------------------------------------------------------
+
+/**
+ * @param {!Object} row
+ * @return {!Array<!{ parent: string, child: string }>}
+ * @private
+ */
+function amMirrorJunctionPairsCompanies_(row) {
+  var pairs = [];
+  if (!row || !row.id) return pairs;
+  var ids = Array.isArray(row.segmentIds) ? row.segmentIds : [];
+  for (var j = 0; j < ids.length; j++) {
+    if (ids[j]) pairs.push({ parent: row.id, child: ids[j] });
+  }
+  return pairs;
+}
+
+/**
+ * @param {!Object} row
+ * @return {!Array<!{ parent: string, child: string }>}
+ * @private
+ */
+function amMirrorJunctionPairsAgreements_(row) {
+  var pairs = [];
+  if (!row || !row.id) return pairs;
+  var ids = Array.isArray(row.assignedResourceIds) ? row.assignedResourceIds : [];
+  for (var j = 0; j < ids.length; j++) {
+    if (ids[j]) pairs.push({ parent: row.id, child: ids[j] });
+  }
+  return pairs;
+}
+
+/**
+ * @param {!Object} row
+ * @return {!Array<!{ parent: string, child: string }>}
+ * @private
+ */
+function amMirrorJunctionPairsPnlItems_(row) {
+  var pairs = [];
+  if (!row || !row.id) return pairs;
+  var ids = Array.isArray(row.revenueItemIds) ? row.revenueItemIds : [];
+  for (var k = 0; k < ids.length; k++) {
+    if (ids[k]) pairs.push({ parent: row.id, child: ids[k] });
+  }
+  return pairs;
 }
 
 // ---------------------------------------------------------------------------

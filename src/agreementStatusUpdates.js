@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.14 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement status updates on Delivery P&L (feature 018).
  * Reads and creates rows in Fibery `Agreement Management/Status Updates`.
@@ -21,7 +21,7 @@ var STATUS_UPDATES_DB_ = 'Agreement Management/Status Updates';
 /** @const {string} Fibery enum type behind Agreement Status on Status Updates. */
 var STATUS_ENUM_DB_ = 'Agreement Management/Agreement Status_Agreement Management/Status Updates';
 
-/** @const {string} CacheService key for enum/name → fibery/id map. */
+/** @const {string} CacheService key for enum/name â†’ fibery/id map. */
 var STATUS_ENUM_IDS_CACHE_KEY_ = 'FOS_AGREEMENT_STATUS_ENUM_IDS';
 
 /** @const {string} */
@@ -36,14 +36,14 @@ var STATUS_UPDATES_DEFAULT_MAX_ROWS_ = 20;
 /** @const {number} */
 var STATUS_UPDATE_DEFAULT_MAX_CHARS_ = 8000;
 
-/** @const {!Object<string, string>} statusKey → Fibery enum/name */
+/** @const {!Object<string, string>} statusKey â†’ Fibery enum/name */
 var STATUS_KEY_TO_ENUM_NAME_ = {
   on_track: 'Agreement On Track',
   at_risk: 'Agreement At Risk',
   off_trajectory: 'Agreement Off Trajectory',
 };
 
-/** @const {!Object<string, string>} Fibery enum/name → traffic light */
+/** @const {!Object<string, string>} Fibery enum/name â†’ traffic light */
 var STATUS_ENUM_TO_TRAFFIC_LIGHT_ = {
   'Agreement On Track': 'green',
   'Agreement At Risk': 'yellow',
@@ -379,7 +379,7 @@ function statusEnumIdForKey_(statusKey) {
 }
 
 /**
- * @return {?Object<string, string>} enum/name → fibery/id
+ * @return {?Object<string, string>} enum/name â†’ fibery/id
  * @private
  */
 function resolveStatusEnumIds_() {

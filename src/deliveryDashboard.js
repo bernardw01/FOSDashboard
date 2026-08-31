@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.14 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `pm-overview`, panel
  * `#panel-pm-overview`). Public endpoints, all authorized via
@@ -67,7 +67,7 @@
  *   DELIVERY_CACHE_TTL_MINUTES            default 10
  *   DELIVERY_ACTIVE_STATES                comma-separated whitelist; empty
  *                                         = use the default rule
- *                                         (state â‰  Closed-Lost)
+ *                                         (state Ã¢â€°Â  Closed-Lost)
  *   DELIVERY_EXCLUDE_INTERNAL             boolean (default true) - drop
  *                                         Agreement Type = Internal rows
  *   DELIVERY_PNL_INCLUDE_PROJECTED_ODC    boolean (default true in
@@ -495,6 +495,334 @@ function getDeliveryProjectPersonTimeEntries(opts) {
   if (laborFetch.partial) {
     empty.message = 'Labor fetch was truncated; some days may be missing.';
   }
+  return empty;
+}
+
+/**
+ * True when a labor day falls in the Project Performance date range.
+ *
+ * @param {string} dayYmd `YYYY-MM-DD`
+ * @param {string} startYmd
+ * @param {string} endYmd
+ * @param {string} startMonth `YYYY-MM`
+ * @param {string} endMonth `YYYY-MM`
+ * @return {boolean}
+ * @private
+ */
+function perfLaborDayInRange_(dayYmd, startYmd, endYmd, startMonth, endMonth) {
+  var day = String(dayYmd || '').slice(0, 10);
+  if (!day || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return false;
+  if (startYmd && day < startYmd) return false;
+  if (endYmd && day > endYmd) return false;
+  var mk = day.slice(0, 7);
+  if (!startYmd && startMonth && mk < startMonth) return false;
+  if (!endYmd && endMonth && mk > endMonth) return false;
+  return true;
+}
+
+/**
+ * Aggregates logged hours/cost by person + role from labor rows for a range.
+ *
+ * @param {!Array<!Object>} laborRows
+ * @param {string} startYmd
+ * @param {string} endYmd
+ * @param {string} startMonth
+ * @param {string} endMonth
+ * @return {!Object<string, !Object>}
+ * @private
+ */
+function buildPerfLoggedTotalsByPersonRole_(laborRows, startYmd, endYmd, startMonth, endMonth) {
+  var byKey = {};
+  for (var i = 0; i < (laborRows || []).length; i++) {
+    var row = laborRows[i] || {};
+    var iso = String(row.startDateTime || '');
+    var day = iso.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(iso) ? iso.slice(0, 10) : '';
+    if (!perfLaborDayInRange_(day, startYmd, endYmd, startMonth, endMonth)) continue;
+    var hours = Number(row.hours);
+    if (!isFinite(hours) || hours <= 0) continue;
+    var cost = Number(row.cost);
+    if (!isFinite(cost)) cost = 0;
+    var name = String(row.userName || row.timeEntryUserName || '').trim() || '(Unknown user)';
+    var role = String(row.userRole || row.clockifyUserRole || '(No role)').trim() || '(No role)';
+    var key = name + '\0' + role;
+    if (!byKey[key]) {
+      byKey[key] = {
+        name: name,
+        role: role,
+        loggedHoursLife: 0,
+        loggedCostLife: 0,
+      };
+    }
+    byKey[key].loggedHoursLife += hours;
+    byKey[key].loggedCostLife += cost;
+  }
+  var keys = Object.keys(byKey);
+  for (var k = 0; k < keys.length; k++) {
+    var agg = byKey[keys[k]];
+    agg.loggedHoursLife = Math.round(agg.loggedHoursLife * 100) / 100;
+    agg.loggedCostLife = Math.round(agg.loggedCostLife * 100) / 100;
+  }
+  return byKey;
+}
+
+/**
+ * Replaces logged hours/cost on performance resource rows from labor totals.
+ *
+ * @param {!Array<!Object>} rows
+ * @param {!Object<string, !Object>} loggedByKey
+ * @param {string=} customerName
+ * @return {!Array<!Object>}
+ * @private
+ */
+function overlayPerfResourceLoggedTotals_(rows, loggedByKey, customerName) {
+  rows = rows || [];
+  loggedByKey = loggedByKey || {};
+  var nameMatch = typeof ppPersonNamesMatch_ === 'function'
+    ? ppPersonNamesMatch_
+    : function (a, b) {
+      return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+    };
+  var skipOrange = typeof isNoAllocationOrangeExemptCustomer_ === 'function'
+    ? isNoAllocationOrangeExemptCustomer_(customerName)
+    : false;
+  var loggedKeys = Object.keys(loggedByKey);
+  function findLoggedForRow_(row) {
+    var roleNorm = String(row.role || '(No role)').trim().toLowerCase();
+    for (var i = 0; i < loggedKeys.length; i++) {
+      var src = loggedByKey[loggedKeys[i]];
+      if (String(src.role || '').trim().toLowerCase() !== roleNorm) continue;
+      if (nameMatch(row.name, src.name)) return src;
+    }
+    for (var j = 0; j < loggedKeys.length; j++) {
+      var src2 = loggedByKey[loggedKeys[j]];
+      if (nameMatch(row.name, src2.name)) return src2;
+    }
+    return null;
+  }
+  var out = [];
+  var used = {};
+  for (var r = 0; r < rows.length; r++) {
+    var row = rows[r];
+    var copy = {
+      name: row.name,
+      role: row.role,
+      allocatedHoursLife: Number(row.allocatedHoursLife || 0),
+      allocatedCostLife: Number(row.allocatedCostLife || 0),
+      loggedHoursLife: 0,
+      loggedCostLife: 0,
+      highlightOrange: !!row.highlightOrange,
+    };
+    var logged = findLoggedForRow_(row);
+    if (logged) {
+      copy.loggedHoursLife = Number(logged.loggedHoursLife || 0);
+      copy.loggedCostLife = Number(logged.loggedCostLife || 0);
+      for (var uk = 0; uk < loggedKeys.length; uk++) {
+        if (loggedByKey[loggedKeys[uk]] === logged) {
+          used[loggedKeys[uk]] = true;
+          break;
+        }
+      }
+    }
+    if (!skipOrange && copy.loggedHoursLife > 0 && copy.allocatedHoursLife <= 0) {
+      copy.highlightOrange = true;
+    }
+    out.push(copy);
+  }
+  for (var lk = 0; lk < loggedKeys.length; lk++) {
+    if (used[loggedKeys[lk]]) continue;
+    var only = loggedByKey[loggedKeys[lk]];
+    if (!(only.loggedHoursLife > 0) && !(only.loggedCostLife > 0)) continue;
+    out.push({
+      name: only.name,
+      role: only.role,
+      allocatedHoursLife: 0,
+      allocatedCostLife: 0,
+      loggedHoursLife: Number(only.loggedHoursLife || 0),
+      loggedCostLife: Number(only.loggedCostLife || 0),
+      highlightOrange: !skipOrange,
+    });
+  }
+  out.sort(function (a, b) {
+    return String(a.name).localeCompare(String(b.name));
+  });
+  return out;
+}
+
+/**
+ * Fetches labor rows for performance range filtering (Datastore first).
+ *
+ * @param {string} agreementId
+ * @return {!{ ok: boolean, rows: !Array<!Object>, partial: boolean, message: string, customerName: string }}
+ * @private
+ */
+function fetchPerfLaborRowsForAgreement_(agreementId) {
+  var fail = {
+    ok: false,
+    rows: [],
+    partial: false,
+    message: '',
+    customerName: '',
+  };
+  if (typeof fetchAgreementContextForPnlFromSupabase_ === 'function' &&
+      typeof fetchLaborCostsForAgreementFromSupabase_ === 'function') {
+    var ctx = fetchAgreementContextForPnlFromSupabase_(agreementId);
+    if (!ctx.ok) {
+      fail.message = ctx.message || 'Could not load agreement.';
+      return fail;
+    }
+    if (!ctx.agreement.clockifyProjectId) {
+      fail.message = 'No Clockify project is linked to this agreement.';
+      return fail;
+    }
+    var maxLaborRows = typeof resolveMaxLaborRows_ === 'function' ? resolveMaxLaborRows_() : 10000;
+    var laborFetch = fetchLaborCostsForAgreementFromSupabase_(
+      agreementId,
+      ctx.agreement.clockifyProjectId,
+      maxLaborRows,
+      ctx.agreement.name
+    );
+    if (!laborFetch.ok) {
+      fail.message = laborFetch.message || 'Could not load time entries.';
+      fail.partial = true;
+      return fail;
+    }
+    return {
+      ok: true,
+      rows: laborFetch.rows || [],
+      partial: !!laborFetch.partial,
+      message: laborFetch.partial ? 'Labor fetch was truncated; some hours may be missing.' : '',
+      customerName: String(ctx.agreement.customer || ''),
+    };
+  }
+  var maxRows = typeof resolveMaxLaborRows_ === 'function' ? resolveMaxLaborRows_() : 10000;
+  var fiberyFetch = fetchLaborCostsForAgreement_(agreementId, maxRows);
+  if (!fiberyFetch.ok) {
+    fail.message = fiberyFetch.message || 'Could not load time entries.';
+    fail.partial = true;
+    return fail;
+  }
+  var ctx2 = fetchAgreementContextForPnl_(agreementId);
+  return {
+    ok: true,
+    rows: fiberyFetch.rows || [],
+    partial: !!fiberyFetch.partial,
+    message: fiberyFetch.partial ? 'Labor fetch was truncated; some hours may be missing.' : '',
+    customerName: ctx2.ok ? String(ctx2.agreement.customer || '') : '',
+  };
+}
+
+/**
+ * Project Performance resource rows for a date range (logged from labor rows).
+ *
+ * @param {!Object} opts
+ * @param {string} opts.agreementId
+ * @param {string=} opts.startYmd `YYYY-MM-DD`
+ * @param {string=} opts.endYmd `YYYY-MM-DD`
+ * @param {string=} opts.startMonth `YYYY-MM`
+ * @param {string=} opts.endMonth `YYYY-MM`
+ * @return {!Object}
+ */
+function getDeliveryPerfResourceRowsForRange(opts) {
+  requireAuthForApi_();
+  opts = opts || {};
+  var agreementId = String(opts.agreementId || '').trim();
+  var startYmd = String(opts.startYmd || '').slice(0, 10);
+  var endYmd = String(opts.endYmd || '').slice(0, 10);
+  var startMonth = String(opts.startMonth || '').slice(0, 7);
+  var endMonth = String(opts.endMonth || '').slice(0, 7);
+  if (startYmd && !/^\d{4}-\d{2}-\d{2}$/.test(startYmd)) startYmd = '';
+  if (endYmd && !/^\d{4}-\d{2}-\d{2}$/.test(endYmd)) endYmd = '';
+  if (startMonth && !/^\d{4}-\d{2}$/.test(startMonth)) startMonth = '';
+  if (endMonth && !/^\d{4}-\d{2}$/.test(endMonth)) endMonth = '';
+  if (!startMonth && startYmd) startMonth = startYmd.slice(0, 7);
+  if (!endMonth && endYmd) endMonth = endYmd.slice(0, 7);
+  if (startMonth && endMonth && startMonth > endMonth) {
+    var tmpM = startMonth;
+    startMonth = endMonth;
+    endMonth = tmpM;
+    var tmpD = startYmd;
+    startYmd = endYmd;
+    endYmd = tmpD;
+  }
+  var isAllTime = !startMonth && !endMonth;
+  var empty = {
+    ok: true,
+    agreementId: agreementId,
+    rows: [],
+    isAllTime: isAllTime,
+    truncated: false,
+    message: '',
+  };
+  if (!agreementId) {
+    empty.ok = false;
+    empty.message = 'Missing agreementId.';
+    return empty;
+  }
+  var pnl = getDeliveryProjectMonthlyPnL(agreementId);
+  if (!pnl || pnl.ok === false) {
+    return {
+      ok: false,
+      agreementId: agreementId,
+      message: (pnl && pnl.message) || 'Could not load project P&L.',
+      rows: [],
+      isAllTime: isAllTime,
+      truncated: false,
+    };
+  }
+  var months = pnl.months || [];
+  var monthsFiltered = months;
+  if (!isAllTime) {
+    monthsFiltered = [];
+    for (var mi = 0; mi < months.length; mi++) {
+      var m = months[mi];
+      if (!m || !m.key) continue;
+      var mk = String(m.key).slice(0, 7);
+      if (startMonth && mk < startMonth) continue;
+      if (endMonth && mk > endMonth) continue;
+      monthsFiltered.push(m);
+    }
+  }
+  var assignments = (pnl.resourceAllocations && pnl.resourceAllocations.assignments) || [];
+  var customerName = '';
+  var laborCtx = fetchPerfLaborRowsForAgreement_(agreementId);
+  if (laborCtx.ok) customerName = laborCtx.customerName || '';
+  if (typeof ppBuildResourcesLifetime_ !== 'function') {
+    return {
+      ok: false,
+      agreementId: agreementId,
+      message: 'Performance builder unavailable.',
+      rows: [],
+      isAllTime: isAllTime,
+    };
+  }
+  var rows = ppBuildResourcesLifetime_(
+    isAllTime ? months : monthsFiltered,
+    isAllTime ? assignments : [],
+    customerName
+  );
+  if (!isAllTime) {
+    if (!laborCtx.ok) {
+      return {
+        ok: false,
+        agreementId: agreementId,
+        message: laborCtx.message || 'Could not load labor for date range.',
+        rows: [],
+        isAllTime: false,
+        truncated: !!laborCtx.partial,
+      };
+    }
+    var loggedByKey = buildPerfLoggedTotalsByPersonRole_(
+      laborCtx.rows,
+      startYmd,
+      endYmd,
+      startMonth,
+      endMonth
+    );
+    rows = overlayPerfResourceLoggedTotals_(rows, loggedByKey, customerName);
+    empty.truncated = !!laborCtx.partial;
+    empty.message = laborCtx.message || '';
+  }
+  empty.rows = rows;
   return empty;
 }
 

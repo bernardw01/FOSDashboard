@@ -1,7 +1,8 @@
 # Feature: SOW coverage gaps and unplanned time
 
-> **Status:** In development (**v3.18.0**)  
-> **PRD version:** **3.19.1** (**FR-154**, **AC-116**; daily Assigned workday spread extends **FR-139**)  
+> **Status:** Shipped (**v3.18.0**; daily Assigned workday spread **v3.19.1**)  
+> **PRD version:** **3.19.1** (**FR-154**, **AC-116**; daily Assigned workday spread extends **FR-139**, **AC-100**)  
+> **Release task:** [v3.18.0 - SOW coverage gaps and unplanned time](https://win.godeap.io/app/tasks/40898277)  
 > **Feature ID:** **048**  
 > **Release type:** Enhancement  
 > **Task list:** Operations  
@@ -9,7 +10,6 @@
 > **Extends:** [027](027-resource-assignment-dashboard.md), [028](028-resource-assignments-plan-vs-actual.md), [042](042-resource-assignments-by-person-variances.md)  
 > **Related (not this release):** [040](040-project-performance-layer.md) orange rows on one project; [045](045-pm-overview-resource-time-entries.md) daily drill-down; Inbox [Add SOW margin data and SOW role mappings](https://win.godeap.io/app/tasks/40876280)  
 > **Teamwork notebook:** [Feature 048 - SOW coverage gaps and unplanned time](https://win.godeap.io/app/projects/1615262/notebooks/313508)  
-> **Release task:** [Feature 048 - SOW coverage gaps and unplanned time](https://win.godeap.io/app/tasks/40898277)  
 > **Template reference:** `docs/FEATURE_TEMPLATE.md`
 
 ---

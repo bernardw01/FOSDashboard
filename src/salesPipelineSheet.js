@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.14 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Sales opportunity tracker spreadsheet reader (feature 030). Reads the sales
  * team's Opportunity Tracker tab and optional Stage Definitions tab.
@@ -62,7 +62,7 @@ function salesPipelineParseMoney_(cell) {
     return cell < 0 ? 0 : cell;
   }
   var s = String(cell).trim();
-  if (!s || s === '-' || s === '—') {
+  if (!s || s === '-' || s === 'â€”') {
     return 0;
   }
   s = s.replace(/\$/g, '').replace(/,/g, '').trim();

@@ -1,14 +1,14 @@
 # Feature: Supabase dashboard data layer
 
-> **Status:** Shipped (**v3.0.0**; Live Datastore-only **v3.0.11**; labor mirror + nightly auto-install **v3.0.12**).  
-> **PRD version:** 3.7.4  
+> **Status:** Shipped (**v3.0.0**; patches through **v3.20.3** ghost reconcile)  
+> **PRD version:** **3.20.3**  
 > **Feature id:** 036 | **Task list:** Data platform  
 > **Release type:** Enhancement  
 > **Extends:** [003 - Agreement client cache](003-agreement-dashboard-fibery-client-cache.md), [005 - Utilization](005-utilization-management-dashboard.md), [006 - Delivery P&L](006-delivery-project-pnl.md), [009 - Historical snapshots](009-dashboard-historical-snapshots.md), [010 - Historical data source](010-dashboard-historical-data-source.md), [016 / 030 - Pipeline](030-sales-os-pipeline.md), [017 / 023 - AI usage](023-ai-usage-dashboard.md), [022 / 025 - Portfolio](025-portfolio-pnl-performance-and-load-source-ux.md), [027 / 028 - Resource assignments](027-resource-assignment-dashboard.md), [034 - Live Drive warm cache](034-live-dashboard-warm-cache-and-portfolio-batching.md) (live Drive path superseded by this feature).  
 > **Implementation plan:** [036-supabase-dashboard-data-layer-implementation-plan.md](036-supabase-dashboard-data-layer-implementation-plan.md)
 > **Teamwork notebook:** [Feature 036 - Supabase dashboard data layer](https://win.godeap.io/app/projects/1615262/notebooks/312758)  
 > **Implementation plan notebook:** [Feature 036 - Implementation plan (Supabase data layer)](https://win.godeap.io/app/projects/1615262/notebooks/312759)  
-> **Release task:** [v3.0.0 - Supabase dashboard data layer](https://win.godeap.io/app/tasks/40552222)
+> **Release task:** [v3.0.0 - Supabase dashboard data layer](https://win.godeap.io/app/tasks/40552222) · [v3.20.3 ghost reconcile](https://win.godeap.io/app/tasks/40925938)
 
 ## Goal
 
@@ -117,7 +117,7 @@ Logical domains (exact DDL: [`docs/supabase-data-model.md`](../supabase-data-mod
 - Upsert by stable `fibery_id` (or documented natural key).
 - Btree indexes on join/filter keys (`fibery_id`, dates, status, project/agreement id, email).
 - Prefer fewer GAS round-trips via PostgREST filters and/or Postgres **RPC / views** shaped for panel builders.
-- Soft-delete or tombstone rows removed in Fibery so Live does not keep ghosts.
+- Soft-delete or tombstone rows removed in Fibery so Live does not keep ghosts. **Shipped 3.20.3:** full-scan mirror steps delete Supabase rows whose `fibery_id` was not in the Fibery fetch (`fos_reconcile_mirror_step` RPC; **`AM_MIRROR_RECONCILE_GHOSTS`** default on).
 
 **Out of schema for 036:** Historical snapshot date partitions / as-of fact storage in Postgres (follow-on).
 

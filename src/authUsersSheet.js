@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.14 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Spreadsheet-backed user authorization (Users tab).
  * Script Properties: AUTH_SPREADSHEET_ID (required), AUTH_USERS_SHEET_NAME (default Users),
@@ -276,7 +276,7 @@ function canAccessExpensesDashboard_(auth) {
 }
 
 /**
- * Agreement Dashboard panel (Operations → Agreements) - ADMIN only.
+ * Agreement Dashboard panel (Operations â†’ Agreements) - ADMIN only.
  * Delivery / Revenue review / Services Summary still load agreement data
  * through their own APIs.
  * @param {{ role?: string, email?: string }} auth

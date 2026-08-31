@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.14 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Portfolio P&L Excel export (feature 031).
  * Builds a temporary Spreadsheet from a client-supplied outline tree
@@ -245,7 +245,7 @@ function writePortfolioPnlExcelMainSheet_(sheet, columns, rows, meta) {
   var titleNote =
     'Calendar year ' +
     (meta.calendarYear || '') +
-    ' · generated from FOS Portfolio P&L panel data';
+    ' Â· generated from FOS Portfolio P&L panel data';
   sheet.getRange(1, 1).setNote(titleNote);
 }
 
@@ -292,7 +292,7 @@ function writePortfolioPnlExcelNotesSheet_(ss, meta, failedDetails) {
     ['Cost rows', 'Parentheses / red (expense presentation)'],
     ['Negative margin', 'Red font'],
     ['Blank cells', 'Zero or missing amounts'],
-    ['Outline', 'Use Excel row group +/- controls (Customer → Project → Revenue/Costs)'],
+    ['Outline', 'Use Excel row group +/- controls (Customer â†’ Project â†’ Revenue/Costs)'],
     [''],
     ['Primary acceptance', 'Microsoft Excel desktop'],
   ];

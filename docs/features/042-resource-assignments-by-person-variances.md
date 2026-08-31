@@ -9,7 +9,7 @@
 > **Inbox source:** [Feature request - Resource assignments by person variances](https://win.godeap.io/app/tasks/40793086)  
 > **Extends:** [Feature 028](028-resource-assignments-plan-vs-actual.md), [Feature 027](027-resource-assignment-dashboard.md)  
 > **Implementation plan:** [042-resource-assignments-by-person-variances-implementation-plan.md](042-resource-assignments-by-person-variances-implementation-plan.md)  
-> **Teamwork:** [Release task](https://win.godeap.io/app/tasks/40793089) · [Notebook](https://win.godeap.io/app/projects/1615262/notebooks/313284)  
+> **Teamwork:** [v3.7.0 release](https://win.godeap.io/app/tasks/40793089) · [v3.19.1 workday spread](https://win.godeap.io/app/tasks/40925932) · [Notebook](https://win.godeap.io/app/projects/1615262/notebooks/313284)  
 > **Template reference:** `docs/FEATURE_TEMPLATE.md`
 
 ---

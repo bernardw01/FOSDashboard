@@ -1,8 +1,10 @@
 # Feature: Agreement Bid / Program fields in Datastore
 
-> **Teamwork:** Create this spec first as a notebook in [FOS Dashboard Development](https://win.godeap.io/app/projects/1615262) using these sections. Sync to `docs/features/0NN-<slug>.md` at approval and again at ship. See `docs/teamwork-workflow.md`.
-
-> **PRD version 3.19.0** - see `docs/FOS-Dashboard-PRD.md` (**FR-155**, **AC-117**).
+> **Status:** Shipped (**v3.19.0**)  
+> **PRD version 3.19.0** - see `docs/FOS-Dashboard-PRD.md` (**FR-155**, **AC-117**).  
+> **Feature ID:** **049** | **Release type:** Enhancement | **Task list:** Data platform  
+> **Git spec:** `docs/features/049-agreement-bid-program-fields.md`  
+> **Release task:** [v3.19.0 - Agreement Bid/Program fields mirrored to Datastore](https://win.godeap.io/app/tasks/40925930)
 
 ## Goal
 

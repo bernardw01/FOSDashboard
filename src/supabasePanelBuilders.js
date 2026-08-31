@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.14 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: panel hydrate builders that read Supabase typed
  * tables (Agreement Management mirror from `supabaseAmMirror.js`, labor
@@ -498,6 +498,7 @@ function mirrorHubspotDealsToSupabase_() {
   }
   var rows = fetched.rows || [];
   var upserted = 0;
+  var snapshotIds = {};
   var batchSize = 200;
   var nowIso = new Date().toISOString();
   for (var i = 0; i < rows.length; i += batchSize) {
@@ -506,6 +507,7 @@ function mirrorHubspotDealsToSupabase_() {
     for (var j = 0; j < batch.length; j++) {
       var d = batch[j];
       if (!d || !d.id) continue;
+      snapshotIds[String(d.id)] = true;
       var hubspotLink =
         d.hubspotLink !== null && d.hubspotLink !== undefined ? String(d.hubspotLink).trim() : '';
       mapped.push({
@@ -525,6 +527,12 @@ function mirrorHubspotDealsToSupabase_() {
       return { ok: false, message: up.message || 'fos_hubspot_deals upsert failed.' };
     }
     upserted += mapped.length;
+  }
+  if (amMirrorReconcileEnabled_()) {
+    var hubRec = supabaseReconcileNotInSnapshot_('fos_hubspot_deals', 'fibery_id', snapshotIds, null);
+    if (!hubRec.ok) {
+      return { ok: false, message: hubRec.message || 'HubSpot deal reconcile failed.' };
+    }
   }
   return { ok: true, count: upserted, truncated: !!fetched.truncated };
 }
@@ -1045,6 +1053,7 @@ function mirrorAiUsageRowsFromFibery_() {
   }
   var rows = fetched.rows || [];
   var upserted = 0;
+  var snapshotIds = {};
   var batchSize = 200;
   var nowIso = now.toISOString();
   for (var i = 0; i < rows.length; i += batchSize) {
@@ -1053,6 +1062,7 @@ function mirrorAiUsageRowsFromFibery_() {
     for (var j = 0; j < batch.length; j++) {
       var d = batch[j];
       if (!d || !d.id) continue;
+      snapshotIds[String(d.id)] = true;
       mapped.push({
         fibery_id: String(d.id),
         usage_date: aiUsageCoerceYmd_(d.usageDate),
@@ -1069,6 +1079,15 @@ function mirrorAiUsageRowsFromFibery_() {
       return { ok: false, message: up.message || 'fos_ai_usage_rows upsert failed.' };
     }
     upserted += mapped.length;
+  }
+  if (amMirrorReconcileEnabled_()) {
+    var scope = {
+      and: '(usage_date.gte."' + range.startYmd + '",usage_date.lte."' + range.endYmd + '")',
+    };
+    var aiRec = supabaseReconcileNotInSnapshot_('fos_ai_usage_rows', 'fibery_id', snapshotIds, scope);
+    if (!aiRec.ok) {
+      return { ok: false, message: aiRec.message || 'AI usage reconcile failed.' };
+    }
   }
   return { ok: true, count: upserted, truncated: !!fetched.truncated };
 }
@@ -1501,7 +1520,7 @@ function mapFosLaborCostRowToDeliveryPnlRaw_(row, usersByClockifyId, rolesMap) {
  * when `fos_agreements.clockify_project_id` is empty (recently imported
  * Clockify projects often land on an agreement before the ID is filled in).
  * Strips Order Form / SOW prefixes and parentheticals, and abbreviates
- * Development → Dev so "Customer IP Development Support" matches
+ * Development â†’ Dev so "Customer IP Development Support" matches
  * Clockify "Customer IP Dev Support".
  *
  * @param {?string} agreementName

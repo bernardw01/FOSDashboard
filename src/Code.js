@@ -1,11 +1,11 @@
 /**
- * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.14 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.20.0';
+var FOS_PRD_VERSION = '3.20.14';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.20.0';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.20.0 Resource assignments range payload cache + slim personVariances on by default.';
+  'v3.20.14 PM Overview contract duration in subtitle and Project Performance chips.';
 
 /**
  * @return {string}
@@ -52,6 +52,14 @@ function applyWebAppHtmlChrome_(output, title) {
 function doGet(e) {
   if (e && e.parameter && String(e.parameter.favicon) === '1') {
     return getFaviconPngBlob_();
+  }
+
+  var assetParam = e && e.parameter && e.parameter.asset ? String(e.parameter.asset).trim() : '';
+  if (assetParam) {
+    var assetBlob = getShellAssetBlobForDoGet_(assetParam);
+    if (assetBlob) {
+      return assetBlob;
+    }
   }
 
   var auth = getAuthorizationForActiveUser_();

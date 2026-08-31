@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.14 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement-dashboard constants per agreement-dashboard-prd-v2.md Section 8:
  *   - Section 8.1 Alert thresholds (with optional Script Property overrides).
@@ -76,9 +76,9 @@ var INTERNAL_COMPANY_NAMES_DEFAULT_ = ['harpin.ai'];
 /**
  * Section D.11 Delivery Dashboard completion-percent buckets. Drives the
  * Active Projects table's `% Complete` progress-bar fill color.
- *   under     0% â‰¤ pct < 25%   blue
- *   building  25% â‰¤ pct < 75%  teal
- *   on-track  75% â‰¤ pct â‰¤ 100% green
+ *   under     0% Ã¢â€°Â¤ pct < 25%   blue
+ *   building  25% Ã¢â€°Â¤ pct < 75%  teal
+ *   on-track  75% Ã¢â€°Â¤ pct Ã¢â€°Â¤ 100% green
  *   over      pct > 100%       orange
  * @const {!Object}
  */
@@ -244,9 +244,9 @@ function completionBucket_(pct, cfg) {
  * Margin column dot and the per-month Margin % cell coloring in the
  * Delivery P&L grid.
  *
- *   variance â‰¥ 0                           ->  green
- *   âˆ’amberPts â‰¤ variance < 0               ->  amber
- *   variance < âˆ’amberPts                   ->  red
+ *   variance Ã¢â€°Â¥ 0                           ->  green
+ *   Ã¢Ë†â€™amberPts Ã¢â€°Â¤ variance < 0               ->  amber
+ *   variance < Ã¢Ë†â€™amberPts                   ->  red
  *   null margin / null target / NaN        ->  neutral
  *
  * @param {?number} actualPct    Actual margin (0-100, may be negative).
@@ -270,9 +270,9 @@ function marginVarianceBucket_(actualPct, targetPct, cfg) {
 /**
  * Section 8.4 margin-bucket color for a numeric current-margin percent.
  *   margin < 0                      ->  danger
- *   0 â‰¤ margin < lowMargin          ->  caution (medium teal)
- *   lowMargin â‰¤ margin < 60         ->  acceptable (teal action)
- *   margin â‰¥ 60                     ->  healthy (green-teal)
+ *   0 Ã¢â€°Â¤ margin < lowMargin          ->  caution (medium teal)
+ *   lowMargin Ã¢â€°Â¤ margin < 60         ->  acceptable (teal action)
+ *   margin Ã¢â€°Â¥ 60                     ->  healthy (green-teal)
  *   null / NaN / Internal           ->  dim
  *
  * @param {?number} margin

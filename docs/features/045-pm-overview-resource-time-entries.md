@@ -1,7 +1,8 @@
 # Feature: PM Overview — resource time-entry drill-down
 
-> **Status:** In development (**v3.9.0**)  
+> **Status:** Shipped (**v3.9.0**)  
 > **PRD version:** **3.9.0** (**FR-142**, **AC-103**)  
+> **Release task:** [v3.9.0 - PM Overview resource time-entry drill-down](https://win.godeap.io/app/tasks/40857619)  
 > **Feature ID:** **045**  
 > **Release type:** Enhancement  
 > **Task list:** Delivery  

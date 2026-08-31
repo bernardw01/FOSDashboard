@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.14 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Home hero background image as a data URL (embedded in doGet HtmlService template).
  * Source file: src/assets/home-hero-deap.png
@@ -25,22 +25,23 @@ function getHomeHeroImageDataUrl() {
   return getHomeHeroImageDataUrl_();
 }
 
-/** @const {string} */
-var HOME_HERO_DRIVE_FILE_ID_PROP_ = 'FOS_HOME_HERO_DRIVE_FILE_ID';
-
-/** @const {string} */
-var HOME_HERO_CONTENT_HASH_PROP_ = 'FOS_HOME_HERO_CONTENT_HASH';
+/**
+ * @return {GoogleAppsScript.Base.Blob}
+ */
+function getHomeHeroImageBlob_() {
+  var parsed = parseShellImageDataUrl_(HOME_HERO_IMAGE_DATA_URL_);
+  return Utilities.newBlob(
+    Utilities.base64Decode(parsed.base64),
+    parsed.mime,
+    'home-hero-deap.jpg'
+  );
+}
 
 /**
- * HTTPS Drive URL for the Home hero image (feature 047 D1).
+ * Data URL for the Home hero image (feature 047 D1). See getBrandLogoUrlForWebApp_.
  *
  * @return {string}
  */
 function getHomeHeroImageUrlForWebApp_() {
-  return getShellImageUrlForWebApp_(
-    HOME_HERO_IMAGE_DATA_URL_,
-    'home-hero-deap.jpg',
-    HOME_HERO_DRIVE_FILE_ID_PROP_,
-    HOME_HERO_CONTENT_HASH_PROP_
-  );
+  return HOME_HERO_IMAGE_DATA_URL_;
 }

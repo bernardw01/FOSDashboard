@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.14 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 032 - FinOps Ask AI (panel-scoped Q&A).
  */
@@ -142,7 +142,7 @@ function finopsAskSanitizeContextSummary_(summary) {
     'laborHours',
     'pnlById',
     'rawRows',
-    // Resource assignments: projects view duplicates person×week grids (+ actuals).
+    // Resource assignments: projects view duplicates personÃ—week grids (+ actuals).
     'projects',
   ];
 
@@ -440,7 +440,7 @@ function askFinOpsQuestion(request) {
   var contextSummary = finopsAskSanitizeContextSummary_(request.contextSummary);
   var contextLabel =
     String(panelId) +
-    ' · ' +
+    ' Â· ' +
     (dataSource.mode === 'snapshot'
       ? 'Snapshot' + (dataSource.snapshotDate ? ' ' + dataSource.snapshotDate : '')
       : 'Live');

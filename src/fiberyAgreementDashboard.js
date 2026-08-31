@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.14 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement Dashboard orchestrator (route id `agreement-dashboard`, panel
  * `#panel-agreement-dashboard`). Live loads use same-day Drive warm cache
@@ -350,7 +350,7 @@ function _diag_sampleAgreementPayload() {
 /* ------------------------------------------------------------------------- */
 
 /**
- * Section 4.1 Agreements query. WHERE workflow/state â‰  "Closed-Lost".
+ * Section 4.1 Agreements query. WHERE workflow/state Ã¢â€°Â  "Closed-Lost".
  * @return {!Object}
  * @private
  */

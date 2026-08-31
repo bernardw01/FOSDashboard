@@ -1,7 +1,8 @@
 # Feature: Hide planned margins when there is no resource plan
 
-> **Status:** In development (**v3.9.0**)  
+> **Status:** Shipped (**v3.9.0**)  
 > **PRD version:** **3.9.0** (**FR-143**, **AC-104**)  
+> **Release task:** [v3.9.0 - Hide planned margins without a resource plan](https://win.godeap.io/app/tasks/40857620)  
 > **Feature ID:** **046**  
 > **Release type:** Enhancement (tightens **040** R6 empty-plan behavior)  
 > **Task list:** Delivery  

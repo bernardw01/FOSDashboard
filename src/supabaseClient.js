@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.14 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Supabase (PostgREST) client for Feature 036.
  * Secrets stay in Script Properties; never returned to the client.
@@ -222,6 +222,164 @@ function supabaseRpc_(fnName, args) {
  * @param {string=} onConflict comma-separated columns
  * @return {!Object}
  */
+/**
+ * PostgREST DELETE with filter query params.
+ * @param {string} table
+ * @param {?Object<string, string>} query
+ * @return {!Object}
+ */
+function supabaseDelete_(table, query) {
+  return supabaseRest_('delete', '/rest/v1/' + encodeURIComponent(table), query || null, null, {
+    Prefer: 'return=minimal',
+  });
+}
+
+/**
+ * Deletes rows where column is in the given id list (batched).
+ * @param {string} table
+ * @param {string} column
+ * @param {!Array<string>} ids
+ * @param {?Object<string, string>=} extraFilters
+ * @return {!{ ok: true, deleted: number }|!{ ok: false, message: string }}
+ */
+function supabaseDeleteByColumnIn_(table, column, ids, extraFilters) {
+  var unique = {};
+  var list = ids || [];
+  for (var i = 0; i < list.length; i++) {
+    var id = String(list[i] || '').trim();
+    if (id) unique[id] = true;
+  }
+  var ghostIds = Object.keys(unique);
+  if (!ghostIds.length) {
+    return { ok: true, deleted: 0 };
+  }
+  var batchSize = 80;
+  var deleted = 0;
+  for (var b = 0; b < ghostIds.length; b += batchSize) {
+    var batch = ghostIds.slice(b, b + batchSize);
+    var inList =
+      '(' +
+      batch
+        .map(function (id) {
+          return '"' + String(id).replace(/"/g, '\\"') + '"';
+        })
+        .join(',') +
+      ')';
+    var query = {};
+    if (extraFilters) {
+      for (var k in extraFilters) {
+        if (Object.prototype.hasOwnProperty.call(extraFilters, k)) {
+          query[k] = extraFilters[k];
+        }
+      }
+    }
+    query[column + '.in'] = inList;
+    var res = supabaseDelete_(table, query);
+    if (!res.ok) {
+      return {
+        ok: false,
+        message: res.message || ('Delete failed on ' + table),
+      };
+    }
+    deleted += batch.length;
+  }
+  return { ok: true, deleted: deleted };
+}
+
+/**
+ * Deletes rows in table whose column value is not in snapshotIds (full replace).
+ * @param {string} table
+ * @param {string} column
+ * @param {!Object<string, boolean>} snapshotIdMap
+ * @param {?Object<string, string>=} scopeFilters PostgREST filters limiting scope
+ * @return {!{ ok: true, deleted: number }|!{ ok: false, message: string }}
+ */
+function supabaseReconcileNotInSnapshot_(table, column, snapshotIdMap, scopeFilters) {
+  var fetched = supabaseSelectAll_(table, scopeFilters || null, column);
+  if (!fetched.ok) {
+    return { ok: false, message: fetched.message || ('Could not read ' + table) };
+  }
+  var ghostIds = [];
+  var rows = fetched.rows || [];
+  for (var i = 0; i < rows.length; i++) {
+    var id = rows[i] && rows[i][column] != null ? String(rows[i][column]) : '';
+    if (id && !snapshotIdMap[id]) {
+      ghostIds.push(id);
+    }
+  }
+  if (!ghostIds.length) {
+    return { ok: true, deleted: 0 };
+  }
+  return supabaseDeleteByColumnIn_(table, column, ghostIds, scopeFilters || null);
+}
+
+/**
+ * @param {string} runId
+ * @param {string} stepKey
+ * @param {string} tableName
+ * @param {?string=} enumType
+ * @return {!{ ok: true, deleted: number, detail: ?Object }|!{ ok: false, message: string }}
+ */
+function supabaseReconcileMirrorStepRpc_(runId, stepKey, tableName, enumType) {
+  var args = {
+    p_run_id: runId,
+    p_step_key: stepKey,
+    p_table_name: tableName,
+  };
+  if (enumType) {
+    args.p_enum_type = enumType;
+  }
+  var res = supabaseRpc_('fos_reconcile_mirror_step', args);
+  if (!res.ok) {
+    return { ok: false, message: res.message || 'fos_reconcile_mirror_step failed.' };
+  }
+  var json = res.json || {};
+  var deleted = json.deleted != null ? Number(json.deleted) : 0;
+  return { ok: true, deleted: isNaN(deleted) ? 0 : deleted, detail: json };
+}
+
+/**
+ * @param {string} runId
+ * @param {string} stepKey
+ * @param {string} tableName
+ * @param {string} parentColumn
+ * @param {string} childColumn
+ * @return {!{ ok: true, deleted: number }|!{ ok: false, message: string }}
+ */
+function supabaseReconcileMirrorJunctionRpc_(
+  runId,
+  stepKey,
+  tableName,
+  parentColumn,
+  childColumn
+) {
+  var res = supabaseRpc_('fos_reconcile_mirror_junction_step', {
+    p_run_id: runId,
+    p_step_key: stepKey,
+    p_table_name: tableName,
+    p_parent_column: parentColumn,
+    p_child_column: childColumn,
+  });
+  if (!res.ok) {
+    return { ok: false, message: res.message || 'fos_reconcile_mirror_junction_step failed.' };
+  }
+  var json = res.json || {};
+  var deleted = json.deleted != null ? Number(json.deleted) : 0;
+  return { ok: true, deleted: isNaN(deleted) ? 0 : deleted };
+}
+
+/**
+ * @param {?string=} runId
+ * @return {!Object}
+ */
+function supabaseReconcileSnapshotGcRpc_(runId) {
+  var args = {};
+  if (runId) {
+    args.p_run_id = runId;
+  }
+  return supabaseRpc_('fos_reconcile_snapshot_gc', args);
+}
+
 function supabaseUpsert_(table, rows, onConflict) {
   var headers = {
     Prefer: 'resolution=merge-duplicates,return=minimal',

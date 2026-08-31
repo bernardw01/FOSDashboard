@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.14 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Hourly / Daily / Weekly alert email notification jobs (Feature 033).
  * Evaluates live Fibery via existing dashboard builders. No Immediate frequency.
@@ -303,7 +303,7 @@ function composeNotificationEmail_(matched, frequency, deepLink) {
     lines.join('') +
     '</ul>' +
     linkHtml +
-    '<p style="margin-top:24px;font-size:11px;color:#999;">You receive this because you opted in under Profile → Notifications in FinOps Performance Hub.</p>' +
+    '<p style="margin-top:24px;font-size:11px;color:#999;">You receive this because you opted in under Profile â†’ Notifications in FinOps Performance Hub.</p>' +
     '</div>';
 
   var text =
@@ -317,7 +317,7 @@ function composeNotificationEmail_(matched, frequency, deepLink) {
     subject: subject,
     html: html,
     text: text,
-    summary: summaryParts.slice(0, 3).join(' · '),
+    summary: summaryParts.slice(0, 3).join(' Â· '),
   };
 }
 

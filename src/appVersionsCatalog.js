@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.14 - sync with docs/FOS-Dashboard-PRD.md
  *
  * App Versions tab in the auth spreadsheet - tracks PRD releases and deployment URLs.
  * Feature 013.
@@ -65,6 +65,9 @@ function getAppVersionsSheetOrNull_() {
  */
 function parseSemverParts_(raw) {
   var s = String(raw == null ? '' : raw).trim();
+  if (s.charAt(0) === 'v' || s.charAt(0) === 'V') {
+    s = s.slice(1).trim();
+  }
   var m = s.match(/^(\d+)\.(\d+)\.(\d+)/);
   if (!m) {
     return null;

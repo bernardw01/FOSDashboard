@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.14 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -81,7 +81,7 @@ function getAdminSettingsCatalog_() {
       'AUTH_COL_PROFILE',
       'platform-auth',
       'Profile JSON column header',
-      'Users-tab column that stores each user’s Profile JSON (Feature 033). Default Profile.',
+      'Users-tab column that stores each userâ€™s Profile JSON (Feature 033). Default Profile.',
       'string',
       'Profile'
     ),
@@ -89,7 +89,7 @@ function getAdminSettingsCatalog_() {
       'AUTH_COL_AI_QUERY_COUNT',
       'platform-auth',
       'Ask AI query count column',
-      'Users-tab column for today’s FinOps Ask question count (Feature 032). Default ai_query_count.',
+      'Users-tab column for todayâ€™s FinOps Ask question count (Feature 032). Default ai_query_count.',
       'string',
       'ai_query_count'
     ),
@@ -113,7 +113,7 @@ function getAdminSettingsCatalog_() {
       'FINOPS_ASK_ANTHROPIC_API_KEY',
       'finops-ask',
       'Anthropic Messages API key',
-      'Standard API key (sk-ant-api…) for Messages API. Not the Admin usage key.',
+      'Standard API key (sk-ant-apiâ€¦) for Messages API. Not the Admin usage key.',
       'secret',
       null,
       { sensitive: true }
@@ -727,7 +727,7 @@ function getAdminSettingsCatalog_() {
       'PORTFOLIO_PNL_LIVE_BUILD_BATCH_SIZE',
       'delivery',
       'Portfolio live cache batch size',
-      'Projects processed per continuation execution while building today’s Portfolio P&L Drive cache (feature 034).',
+      'Projects processed per continuation execution while building todayâ€™s Portfolio P&L Drive cache (feature 034).',
       'number',
       8,
       { min: 1, max: 25 }
@@ -1010,7 +1010,7 @@ function getAdminSettingsCatalog_() {
     adminSettingEntry_(
       'SUPABASE_SYNC_ENABLED',
       'supabase-data',
-      'Fibery → Supabase sync enabled',
+      'Fibery â†’ Supabase sync enabled',
       'Kill switch for nightly and on-demand hydrate jobs.',
       'boolean',
       true
@@ -1032,6 +1032,14 @@ function getAdminSettingsCatalog_() {
       'number',
       4,
       { min: 0, max: 23 }
+    ),
+    adminSettingEntry_(
+      'AM_MIRROR_RECONCILE_GHOSTS',
+      'supabase-data',
+      'Delete Fibery mirror ghosts on full scan',
+      'When on (default), each full-scan AM mirror step (and HubSpot / AI usage mirrors) deletes Supabase rows whose fibery_id was not in the Fibery fetch. Incremental weekday entity steps skip reconcile; Sunday full reconcile and pulls with PERF_INCREMENTAL_AM_MIRROR off run it. Turn off only to debug a bad delete.',
+      'boolean',
+      true
     ),
     adminSettingEntry_(
       'ENGAGEMENT_REVIEW_DRIVE_FOLDER_ID',

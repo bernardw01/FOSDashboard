@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.14 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: Fibery -> Supabase hydrate (nightly + ADMIN Pull).
  * Dataset am-mirror (supabaseAmMirror.js) hydrates Agreement Management typed
@@ -226,6 +226,9 @@ function startSupabaseSync_(triggerKind) {
     if (resume) {
       state = existing;
       state.runId = runId;
+      if (!state.reconcileRunId) {
+        state.reconcileRunId = existing.runId || runId;
+      }
       state.trigger = triggerKind || 'manual';
       state.status = 'running';
       state.scriptVersion = typeof FOS_PRD_VERSION !== 'undefined' ? FOS_PRD_VERSION : null;
@@ -238,12 +241,13 @@ function startSupabaseSync_(triggerKind) {
         'resuming from dataset ' +
           (state.datasets[state.datasetIndex] || '?') +
           (state.amMirror
-            ? ' · am-mirror step ' + state.amMirror.stepIndex + ' offset ' + state.amMirror.offset
+            ? ' Â· am-mirror step ' + state.amMirror.stepIndex + ' offset ' + state.amMirror.offset
             : '')
       );
     } else {
       state = {
         runId: runId,
+        reconcileRunId: runId,
         trigger: triggerKind || 'manual',
         status: 'running',
         scriptVersion: typeof FOS_PRD_VERSION !== 'undefined' ? FOS_PRD_VERSION : null,
@@ -696,6 +700,13 @@ function finishSupabaseSync_(status, note) {
   writeSupabaseSyncState_(state);
   insertSupabaseSyncRunRow_(state, status);
   deleteSupabaseSyncContinuationTriggers_();
+  if (status === 'complete' || status === 'cancelled') {
+    try {
+      amMirrorGcReconcileSnapshots_(state.reconcileRunId || state.runId || null);
+    } catch (e) {
+      supabaseWarn_('finishSupabaseSync_ reconcile gc', e);
+    }
+  }
   if (status === 'failed') {
     try {
       notifyAdminsHydrateFailed_(state, note || state.lastError || 'Hydrate failed.');
@@ -734,20 +745,20 @@ function notifyAdminsHydrateFailed_(state, note) {
   var summary =
     'runId=' +
     (state.runId || '') +
-    ' · scriptVersion=' +
+    ' Â· scriptVersion=' +
     (state.scriptVersion || '') +
-    ' · datasets=' +
+    ' Â· datasets=' +
     (state.datasetsDone != null ? state.datasetsDone : '?') +
     '/' +
     (state.datasetsTotal != null ? state.datasetsTotal : '?') +
-    ' · duration=' +
+    ' Â· duration=' +
     durationLabel +
-    ' · error=' +
+    ' Â· error=' +
     String(note || '').slice(0, 400);
   var body =
-    'The Fibery → Datastore hydrate ended in failure.\n\n' +
+    'The Fibery â†’ Datastore hydrate ended in failure.\n\n' +
     summary +
-    '\n\nOpen ADMIN Settings → Datastore hydrate for status, then Pull from Fibery to resume from the failed step (or set SUPABASE_SYNC_FORCE_FULL=true for a full restart).\n';
+    '\n\nOpen ADMIN Settings â†’ Datastore hydrate for status, then Pull from Fibery to resume from the failed step (or set SUPABASE_SYNC_FORCE_FULL=true for a full restart).\n';
   var fromName = 'FinOps Performance Hub';
   for (var i = 0; i < emails.length; i++) {
     var email = emails[i];

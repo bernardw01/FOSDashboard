@@ -1,7 +1,7 @@
 # Feature: Engagement Review (Delivery)
 
-> **Status:** Shipped (**v3.5.2**; foundation **v3.2.0**)  
-> **PRD version:** **3.5.2** (`FR-135`, `FR-136`, `AC-97`, `AC-98`) (extends prior **v3.2.x** Engagement Review foundation in `src/`)  
+> **Status:** Shipped (**v3.5.2**; detail UX patch **v3.20.4**)  
+> **PRD version:** **3.20.9** (detail UX patch **v3.20.4**) (`FR-135`, `FR-136`, `AC-97`, `AC-98`; extends prior **v3.2.x** foundation)  
 > **Feature ID:** **037**  
 > **Release type:** Enhancement  
 > **Task list:** Delivery  
@@ -10,7 +10,7 @@
 > **Inbox source:** [Idea - View for Monthly Financial Health Check](https://win.godeap.io/app/tasks/40478571) (Jess Williams)  
 > **Teamwork notebook:** [Feature 037 - Engagement Review](https://win.godeap.io/app/projects/1615262/notebooks/312850)  
 > **Implementation plan notebook:** [Feature 037 - Implementation plan (Engagement Review)](https://win.godeap.io/app/projects/1615262/notebooks/312851)  
-> **Release task:** [v3.5.2 - Engagement Review](https://win.godeap.io/app/tasks/40579193)  
+> **Release task:** [v3.5.2 - Engagement Review](https://win.godeap.io/app/tasks/40579193) · [v3.20.4 detail UX patch](https://win.godeap.io/app/tasks/40925939)  
 > **Teamwork workflow:** See `docs/teamwork-workflow.md`.  
 > **Template reference:** DEAP Monthly Project Status Report (`deap-monthly-status-template.html`)
 
@@ -454,3 +454,4 @@ Frozen at create/refresh from Supabase builders:
 | 2026-08-04 | **v3.5.0 client implementation:** `src/DashboardShell.html` `#panel-engagement-review` rebuilt with the Engagement Updates agenda (`#er-updates-list`, drag-drop + mobile up/down reorder), `#erUpdateModal` (create/edit status pack: RAGs, qualitative fields, read-only quantitative snapshot + Refresh metrics), `#erViewerModal` (interactive report, Download HTML, Print), Meeting notes list (`#er-notes-list`) replacing the single call summary, and `#er-synopsis-panel` (Admin, completed reviews). See **FR-136** / **AC-98**. |
 | 2026-08-04 | **v3.5.1:** Engagement Update / create / viewer modals use opaque `--surface` (fix undefined transparent `--ag-card`) plus form control contrast. |
 | 2026-08-04 | **v3.5.2:** Create and edit Engagement Update modal (`#erUpdateModal`) forced to solid opaque hex surfaces, form/select/option contrast, and darker backdrop. |
+| 2026-08-26 | **v3.20.4:** Review detail UX: read-only fields until Admin pencil; meeting notes side drawer; status pack viewer RAG borders and formatted KPI numbers. |

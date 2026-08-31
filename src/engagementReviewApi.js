@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.14 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 037: google.script.run surface for Engagement Reviews + status packs.
  */
@@ -491,6 +491,79 @@ function erEscHtml_(s) {
 }
 
 /**
+ * @param {*} v
+ * @return {?number}
+ */
+function erParseNum_(v) {
+  if (v === null || v === undefined || v === '') return null;
+  var n = Number(v);
+  return isNaN(n) ? null : n;
+}
+
+/**
+ * @param {*} v
+ * @param {number=} decimals
+ * @return {string}
+ */
+function erFmtNumPlain_(v, decimals) {
+  var n = erParseNum_(v);
+  if (n === null) return v === null || v === undefined || v === '' ? '-' : String(v);
+  var d = decimals == null ? (Math.abs(n % 1) < 0.001 ? 0 : 1) : decimals;
+  return n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+
+/**
+ * @param {*} v
+ * @return {string}
+ */
+function erFmtHoursPlain_(v) {
+  var n = erParseNum_(v);
+  if (n === null) return '-';
+  var d = Math.abs(n % 1) < 0.001 ? 0 : 1;
+  return erFmtNumPlain_(n, d) + ' hrs';
+}
+
+/**
+ * @param {*} v
+ * @return {string}
+ */
+function erFmtMoneyPlain_(v) {
+  var n = erParseNum_(v);
+  if (n === null) return '-';
+  var d = Math.abs(n % 1) < 0.005 ? 0 : 2;
+  return (
+    '$' +
+    n.toLocaleString('en-US', {
+      minimumFractionDigits: d,
+      maximumFractionDigits: d,
+    })
+  );
+}
+
+/**
+ * @param {?string} rag
+ * @return {string}
+ */
+function erRagBorderColor_(rag) {
+  var r = String(rag || '').toLowerCase();
+  if (r === 'red') return '#dc3545';
+  if (r === 'amber' || r === 'yellow') return '#f0ad4e';
+  return '#28a745';
+}
+
+/**
+ * @param {?string} rag
+ * @return {string}
+ */
+function erRagDisplayLabel_(rag) {
+  var r = String(rag || '').toLowerCase();
+  if (r === 'red') return 'Red';
+  if (r === 'amber' || r === 'yellow') return 'Yellow';
+  if (r === 'green') return 'Green';
+  return rag ? String(rag) : '-';
+}
+
+/**
  * @param {!Object} update
  * @return {string}
  */
@@ -505,13 +578,15 @@ function erBuildStatusPackExportHtml_(update) {
 
   function dim(key, label) {
     var d = qual[key] || {};
+    var border = erRagBorderColor_(d.rag);
+    var subtitle = d.subtext || erRagDisplayLabel_(d.rag);
     return (
-      '<div class="score-tile"><div class="rag">' +
-      erEscHtml_(d.rag || '') +
-      '</div><div class="dim-name">' +
+      '<div class="kpi-card" style="border:4px solid ' +
+      border +
+      '"><div class="kpi-head">' +
       erEscHtml_(label) +
-      '</div><div class="dim-sub">' +
-      erEscHtml_(d.subtext || '') +
+      '</div><div class="kpi-value">' +
+      erEscHtml_(subtitle) +
       '</div></div>'
     );
   }
@@ -535,19 +610,23 @@ function erBuildStatusPackExportHtml_(update) {
   var resRows = '';
   for (var r = 0; r < resources.length; r++) {
     var row = resources[r];
+    var pct =
+      row.pctAllocated != null && row.pctAllocated !== ''
+        ? erFmtNumPlain_(row.pctAllocated, 1) + '%'
+        : '-';
     resRows +=
       '<tr><td>' +
       erEscHtml_(row.name) +
       '</td><td>' +
       erEscHtml_(row.role) +
       '</td><td class="num">' +
-      erEscHtml_(row.allocatedHrsMo) +
+      erEscHtml_(erFmtHoursPlain_(row.allocatedHrsMo)) +
       '</td><td class="num">' +
-      erEscHtml_(row.loggedHrsMo) +
+      erEscHtml_(erFmtHoursPlain_(row.loggedHrsMo)) +
       '</td><td class="num">' +
-      erEscHtml_(row.pctAllocated) +
+      erEscHtml_(pct) +
       '</td><td class="num">' +
-      erEscHtml_(row.costMo) +
+      erEscHtml_(erFmtMoneyPlain_(row.costMo)) +
       '</td><td>' +
       erEscHtml_(row.billable === false ? 'No' : 'Yes') +
       '</td></tr>';
@@ -564,81 +643,7 @@ function erBuildStatusPackExportHtml_(update) {
       '</div>';
   }
 
-  return (
-    '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' +
-    erEscHtml_(u.agreementName || 'Engagement Update') +
-    '</title><style>' +
-    'body{font-family:system-ui,sans-serif;background:#f9f9f7;color:#0b0b0b;margin:0;padding:24px}' +
-    '.report{max-width:980px;margin:0 auto;background:#fcfcfb;border:1px solid rgba(11,11,11,.1);border-radius:12px;padding:28px}' +
-    '.head{display:flex;justify-content:space-between;border-bottom:1px solid #e1e0d9;padding-bottom:16px;margin-bottom:18px}' +
-    '.pill{padding:7px 16px;border-radius:20px;background:rgba(12,163,12,.12);font-weight:700;font-size:13px}' +
-    '.scorecard{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}' +
-    '.score-tile{border:1px solid #e1e0d9;border-radius:9px;padding:12px;text-align:center}' +
-    '.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}' +
-    '.stat{border:1px solid #e1e0d9;border-radius:8px;padding:12px}.label{font-size:11px;color:#898781;text-transform:uppercase}' +
-    '.value{font-size:20px;font-weight:700}h2{font-size:13px;text-transform:uppercase;color:#898781;border-top:1px solid #e1e0d9;padding-top:18px}' +
-    'table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px;border-bottom:1px solid #e1e0d9;text-align:left}' +
-    'td.num{text-align:right}.muted{color:#898781;font-size:12px}.callout{background:rgba(235,104,52,.08);border-left:3px solid #eb6834;padding:12px;margin:8px 0}' +
-    '@media print{body{background:#fff;padding:0}.report{border:none;box-shadow:none}}' +
-    '</style></head><body><div class="report">' +
-    '<div class="head"><div><div style="font-size:19px;font-weight:700">' +
-    erEscHtml_(u.companyName || u.agreementName || 'Engagement') +
-    ' - Monthly Status Report</div><div class="muted">Reporting period: <b>' +
-    erEscHtml_(period) +
-    '</b> · Assigned Owner: ' +
-    erEscHtml_(owner) +
-    ' · Metrics pulled: ' +
-    erEscHtml_(pulled) +
-    '</div></div><div class="pill">' +
-    erEscHtml_(rag) +
-    '</div></div>' +
-    '<div class="scorecard">' +
-    dim('schedule', 'Schedule') +
-    dim('cost_hours', 'Cost / Hours') +
-    dim('margin', 'Margin') +
-    dim('client_sentiment', 'Client Sentiment') +
-    '</div>' +
-    '<h2>Performance to Plan - Hours &amp; Cost</h2><div class="stat-row">' +
-    '<div class="stat"><div class="label">Hours Logged (MTD)</div><div class="value">' +
-    erEscHtml_(hours.actual) +
-    '</div><div class="muted">vs ' +
-    erEscHtml_(hours.planned) +
-    ' planned</div></div>' +
-    '<div class="stat"><div class="label">Cost Actual (MTD)</div><div class="value">' +
-    erEscHtml_(cost.actual) +
-    '</div><div class="muted">vs ' +
-    erEscHtml_(cost.planned) +
-    ' planned</div></div>' +
-    '<div class="stat"><div class="label">EAC (Hours)</div><div class="value">' +
-    erEscHtml_(eacH.value) +
-    '</div><div class="muted">of ' +
-    erEscHtml_(eacH.budgeted) +
-    ' budgeted</div></div>' +
-    '<div class="stat"><div class="label">EAC (Dollars)</div><div class="value">' +
-    erEscHtml_(eacD.value) +
-    '</div><div class="muted">vs budget ' +
-    erEscHtml_(eacD.budgeted) +
-    '</div></div></div>' +
-    '<h2>Revenue Status</h2><div class="stat-row" style="grid-template-columns:repeat(3,1fr)">' +
-    '<div class="stat"><div class="label">Revenue Invoiced (MTD)</div><div class="value">' +
-    erEscHtml_(rev.invoicedMtd) +
-    '</div><div class="muted">vs ' +
-    erEscHtml_(rev.plannedMtd) +
-    ' planned</div></div>' +
-    '<div class="stat"><div class="label">Revenue Invoiced (FYTD)</div><div class="value">' +
-    erEscHtml_(rev.invoicedFytd) +
-    '</div></div>' +
-    '<div class="stat"><div class="label">Next Invoice Milestone</div><div class="value">' +
-    erEscHtml_(rev.nextMilestoneDate) +
-    '</div><div class="muted">' +
-    erEscHtml_(rev.nextMilestoneAmount) +
-    '</div></div></div>' +
-    (qual.revenue_callout_html
-      ? '<div class="callout">' + String(qual.revenue_callout_html) + '</div>'
-      : '') +
-    '<h2>Resource Detail</h2><table><thead><tr><th>Name</th><th>Role</th><th class="num">Allocated</th><th class="num">Logged</th><th class="num">%</th><th class="num">Cost</th><th>Billable</th></tr></thead><tbody>' +
-    (resRows || '<tr><td colspan="7" class="muted">No resource rows</td></tr>') +
-    '</tbody></table>' +
+  var monthSection =
     '<h2>This Month / Next Month</h2><div style="display:grid;grid-template-columns:1.2fr 1fr;gap:22px">' +
     '<div><h3 style="font-size:12px;color:#898781;text-transform:uppercase">Key Developments</h3>' +
     bullets(qual.key_developments) +
@@ -649,7 +654,87 @@ function erBuildStatusPackExportHtml_(update) {
     (qual.margin_footnote
       ? '<p class="muted" style="margin-top:12px">' + erEscHtml_(qual.margin_footnote) + '</p>'
       : '') +
-    '</div></div></div></body></html>'
+    '</div></div>';
+
+  return (
+    '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' +
+    erEscHtml_(u.agreementName || 'Engagement Update') +
+    '</title><style>' +
+    'body{font-family:system-ui,sans-serif;background:#f9f9f7;color:#0b0b0b;margin:0;padding:24px}' +
+    '.report{max-width:980px;margin:0 auto;background:#fcfcfb;border:1px solid rgba(11,11,11,.1);border-radius:12px;padding:28px}' +
+    '.head{display:flex;justify-content:space-between;border-bottom:1px solid #e1e0d9;padding-bottom:16px;margin-bottom:18px}' +
+    '.pill{padding:7px 16px;border-radius:20px;background:rgba(12,163,12,.12);font-weight:700;font-size:13px}' +
+    '.scorecard{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}' +
+    '.kpi-card{border-radius:10px;padding:14px 12px;text-align:center;background:#fff}' +
+    '.kpi-head{font-size:11px;color:#898781;text-transform:uppercase;font-weight:700;letter-spacing:.04em;margin-bottom:6px}' +
+    '.kpi-value{font-size:15px;font-weight:700;line-height:1.35;color:#0b0b0b}' +
+    '.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}' +
+    '.stat{border:1px solid #e1e0d9;border-radius:8px;padding:12px}.label{font-size:11px;color:#898781;text-transform:uppercase}' +
+    '.value{font-size:20px;font-weight:700}h2{font-size:13px;text-transform:uppercase;color:#898781;border-top:1px solid #e1e0d9;padding-top:18px}' +
+    'table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px;border-bottom:1px solid #e1e0d9;text-align:left}' +
+    'td.num{text-align:right}.muted{color:#898781;font-size:12px}.callout{background:rgba(235,104,52,.08);border-left:3px solid #eb6834;padding:12px;margin:8px 0}' +
+    '@media print{body{background:#fff;padding:0}.report{border:none;box-shadow:none}}' +
+    '@media (max-width:720px){.scorecard,.stat-row{grid-template-columns:repeat(2,1fr)}}' +
+    '</style></head><body><div class="report">' +
+    '<div class="head"><div><div style="font-size:19px;font-weight:700">' +
+    erEscHtml_(u.companyName || u.agreementName || 'Engagement') +
+    ' - Monthly Status Report</div><div class="muted">Reporting period: <b>' +
+    erEscHtml_(period) +
+    '</b> Â· Assigned Owner: ' +
+    erEscHtml_(owner) +
+    ' Â· Metrics pulled: ' +
+    erEscHtml_(pulled) +
+    '</div></div><div class="pill">' +
+    erEscHtml_(rag) +
+    '</div></div>' +
+    '<div class="scorecard">' +
+    dim('schedule', 'Schedule') +
+    dim('cost_hours', 'Costs') +
+    dim('margin', 'Margin') +
+    dim('client_sentiment', 'Sentiment') +
+    '</div>' +
+    '<h2>Performance to Plan - Hours &amp; Cost</h2><div class="stat-row">' +
+    '<div class="stat"><div class="label">Hours Logged (MTD)</div><div class="value">' +
+    erEscHtml_(erFmtHoursPlain_(hours.actual)) +
+    '</div><div class="muted">vs ' +
+    erEscHtml_(hours.planned != null ? erFmtHoursPlain_(hours.planned) : '-') +
+    ' planned</div></div>' +
+    '<div class="stat"><div class="label">Cost Actual (MTD)</div><div class="value">' +
+    erEscHtml_(erFmtMoneyPlain_(cost.actual)) +
+    '</div><div class="muted">vs ' +
+    erEscHtml_(cost.planned != null ? erFmtMoneyPlain_(cost.planned) : '-') +
+    ' planned</div></div>' +
+    '<div class="stat"><div class="label">EAC (Hours)</div><div class="value">' +
+    erEscHtml_(erFmtHoursPlain_(eacH.value)) +
+    '</div><div class="muted">of ' +
+    erEscHtml_(eacH.budgeted != null ? erFmtHoursPlain_(eacH.budgeted) : '-') +
+    ' budgeted</div></div>' +
+    '<div class="stat"><div class="label">EAC (Dollars)</div><div class="value">' +
+    erEscHtml_(erFmtMoneyPlain_(eacD.value)) +
+    '</div><div class="muted">vs budget ' +
+    erEscHtml_(eacD.budgeted != null ? erFmtMoneyPlain_(eacD.budgeted) : '-') +
+    '</div></div></div>' +
+    '<h2>Revenue Status</h2><div class="stat-row" style="grid-template-columns:repeat(3,1fr)">' +
+    '<div class="stat"><div class="label">Revenue Invoiced (MTD)</div><div class="value">' +
+    erEscHtml_(erFmtMoneyPlain_(rev.invoicedMtd)) +
+    '</div><div class="muted">vs ' +
+    erEscHtml_(rev.plannedMtd != null ? erFmtMoneyPlain_(rev.plannedMtd) : '-') +
+    ' planned</div></div>' +
+    '<div class="stat"><div class="label">Revenue Invoiced (FYTD)</div><div class="value">' +
+    erEscHtml_(erFmtMoneyPlain_(rev.invoicedFytd)) +
+    '</div></div>' +
+    '<div class="stat"><div class="label">Next Invoice Milestone</div><div class="value">' +
+    erEscHtml_(rev.nextMilestoneDate || '-') +
+    '</div><div class="muted">' +
+    erEscHtml_(rev.nextMilestoneAmount != null ? erFmtMoneyPlain_(rev.nextMilestoneAmount) : '-') +
+    '</div></div></div>' +
+    (qual.revenue_callout_html
+      ? '<div class="callout">' + String(qual.revenue_callout_html) + '</div>'
+      : '') +
+    monthSection +
+    '<h2>Resource Detail</h2><table><thead><tr><th>Name</th><th>Role</th><th class="num">Allocated</th><th class="num">Logged</th><th class="num">%</th><th class="num">Cost</th><th>Billable</th></tr></thead><tbody>' +
+    (resRows || '<tr><td colspan="7" class="muted">No resource rows</td></tr>') +
+    '</tbody></table></div></body></html>'
   );
 }
 

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.19.0 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.20.14 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -1410,6 +1410,27 @@
     .fos-delivery-pnl-kpi-chip.is-negative .value {
       color: var(--ag-danger);
     }
+    .fos-delivery-duration-subtitle {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--ag-text);
+      white-space: nowrap;
+    }
+    .fos-delivery-pnl-kpi-chip.fos-delivery-duration-chip {
+      min-width: 118px;
+    }
+    @media (max-width: 767.98px) {
+      .fos-delivery-duration-subtitle {
+        display: block;
+        margin-top: 2px;
+        font-size: 0.9rem;
+        white-space: normal;
+      }
+      .fos-delivery-pnl-kpi-chip.fos-delivery-duration-chip {
+        min-width: 0;
+        flex: 1 1 calc(50% - 8px);
+      }
+    }
     .fos-delivery-status-chip {
       min-width: 200px;
       max-width: 280px;
@@ -1693,9 +1714,36 @@
     .fos-delivery-perf-kpi-strip {
       display: contents;
     }
-    .fos-delivery-perf-date-range {
-      min-width: 220px;
-      max-width: 360px;
+    .fos-delivery-perf-date-trigger {
+      min-width: 148px;
+      max-width: 220px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+    }
+    .fos-delivery-perf-date-label {
+      font-size: 0.95rem;
+      font-weight: 600;
+      line-height: 1.2;
+      color: var(--ag-text);
+      word-break: break-word;
+    }
+    .fos-delivery-perf-date-btn {
+      min-height: 44px;
+      padding: 4px 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--ag-accent);
+      background: transparent;
+      border: 1px solid var(--ag-border);
+      border-radius: 6px;
+      width: 100%;
+    }
+    .fos-delivery-perf-date-btn:hover,
+    .fos-delivery-perf-date-btn:focus {
+      border-color: var(--ag-accent);
+      outline: none;
     }
     .fos-delivery-perf-date-fields {
       display: flex;
@@ -1832,7 +1880,7 @@
       .fos-delivery-perf-mobile-cards.fos-mobile-only {
         display: block !important;
       }
-      .fos-delivery-perf-date-range {
+      .fos-delivery-perf-date-trigger {
         flex: 1 1 100%;
         max-width: none;
       }
@@ -2952,12 +3000,16 @@
       display: flex;
       flex-direction: row;
       align-items: stretch;
+      overflow: hidden;
     }
 
     .fos-ask-pane {
       flex: 0 0 min(400px, 42vw);
       width: min(400px, 42vw);
       max-width: 100%;
+      flex-shrink: 0;
+      align-self: stretch;
+      max-height: 100%;
       border-left: 1px solid var(--border);
       background: var(--surface, #12181f);
       display: flex;
@@ -3272,8 +3324,11 @@
 
     /* Settings sits in the sidebar footer area but uses the same .fos-nav-btn
        chrome as Home/Agreement Dashboard/Operations/Delivery - FR-10b "plain nav-style link". */
-    .fos-nav-btn[role='button'] {
+    .fos-nav-btn[role='button'],
+    button.fos-nav-btn {
       text-decoration: none;
+      background: transparent;
+      color: inherit;
     }
 
     .fos-data-source-label {
@@ -5004,29 +5059,27 @@
             style="border-color: var(--border) !important"
           >
             <div id="user-chip" class="small text-secondary text-break">Loading…</div>
-            <a
-              href="#"
-              role="button"
+            <button
+              type="button"
               id="profile-link"
               class="btn fos-nav-btn w-100 border-0 rounded-3 py-2 d-flex align-items-center gap-2 text-start mt-1"
             >
               <i class="bi bi-person-circle" aria-hidden="true"></i>
               <span class="flex-grow-1">Profile</span>
-            </a>
+            </button>
           </div>
           <div
             id="settings-link-wrap"
             class="px-2 pt-1 pb-2 d-none"
           >
-            <a
-              href="#"
-              role="button"
+            <button
+              type="button"
               id="settings-link"
               class="btn fos-nav-btn w-100 border-0 rounded-3 py-2 d-flex align-items-center gap-2 text-start"
             >
               <i class="bi bi-gear-fill" aria-hidden="true"></i>
               <span class="flex-grow-1">Settings</span>
-            </a>
+            </button>
           </div>
           <p id="sidebar-version-line" class="small px-3 pb-2 mb-0" style="font-size: 0.65rem; color: var(--text-muted); opacity: 0.85">
             PRD v<?!= prdVersion ?>
@@ -5116,7 +5169,7 @@
       </div>
       <div id="error-banner" class="alert alert-danger flex-shrink-0 mx-3 mt-2 mb-0 d-none" role="alert"></div>
 
-      <div class="fos-main-body flex-grow-1 min-h-0">
+      <div class="fos-main-body d-flex flex-row flex-grow-1 min-h-0 overflow-hidden">
       <div class="fos-main-scroll flex-grow-1 min-h-0 overflow-y-auto">
       <main id="main-panel" class="px-3 px-lg-4 py-4" aria-live="polite">
         <div id="panel-home-root">
@@ -5166,8 +5219,67 @@
           </section>
         </div>
 
+        <!-- Settings + Profile always inline (account chrome must not wait on deferred panels). -->
+        <div id="panel-settings" class="d-none fos-settings-root">
+          <div class="card fos-card rounded-4 mb-3">
+            <div class="card-body p-4">
+              <h1 class="h4 mb-2 fw-bold text-white">Settings</h1>
+              <p class="text-muted small mb-0">
+                Environment configuration for this deployment. Changes apply to all users after dashboards refresh.
+                Script properties with a built-in default can be reset with <strong>Use default</strong>.
+              </p>
+            </div>
+          </div>
+          <div id="settings-fetch-error" class="alert alert-danger d-none mb-3" role="alert"></div>
+          <div id="settings-save-status" class="alert alert-success d-none mb-3" role="status"></div>
+          <div id="settings-loading" class="text-secondary small py-4 text-center d-none">Loading settings…</div>
+          <div id="settings-versions-host"></div>
+          <div id="settings-usage-host"></div>
+          <div id="settings-groups"></div>
+          <div class="fos-settings-footer sticky-bottom border-top border-secondary border-opacity-25 py-3 mt-3 d-flex flex-wrap align-items-center gap-2">
+            <button type="button" class="btn btn-fos-primary" id="settings-save-btn" disabled>Save changes</button>
+            <button type="button" class="btn btn-outline-secondary" id="settings-discard-btn" disabled>Discard</button>
+            <span id="settings-dirty-hint" class="small text-secondary ms-auto d-none">Unsaved changes</span>
+          </div>
+        </div>
 
-
+        <div id="panel-profile" class="d-none fos-profile-root">
+          <div class="card fos-card rounded-4 mb-3">
+            <div class="card-body p-4">
+              <h1 class="h4 mb-2 fw-bold text-white">Profile</h1>
+              <p class="text-muted small mb-0">
+                Opt in to email digests for existing Agreement and Utilization alerts. Emails are off until you enable them.
+              </p>
+            </div>
+          </div>
+          <div id="profile-fetch-error" class="alert alert-danger d-none mb-3" role="alert"></div>
+          <div id="profile-save-status" class="alert alert-success d-none mb-3" role="status"></div>
+          <div id="profile-loading" class="text-secondary small py-4 text-center">Loading profile…</div>
+          <div id="profile-form" class="d-none">
+            <div class="card fos-card rounded-4 mb-3">
+              <div class="card-body p-4">
+                <h2 class="h6 fw-semibold text-white mb-3">Email notifications</h2>
+                <div class="form-check form-switch mb-3">
+                  <input class="form-check-input" type="checkbox" role="switch" id="profile-email-enabled" />
+                  <label class="form-check-label" for="profile-email-enabled">Enable alert email digests</label>
+                </div>
+                <label for="profile-timezone" class="form-label small text-secondary">Timezone</label>
+                <input
+                  type="text"
+                  id="profile-timezone"
+                  class="form-control form-control-sm mb-3"
+                  placeholder="America/Chicago"
+                  autocomplete="off"
+                />
+                <div id="profile-subscriptions" class="fos-profile-subscriptions"></div>
+              </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2 pb-4">
+              <button type="button" class="btn btn-fos-primary" id="profile-save-btn" style="min-height: 44px">Save</button>
+              <button type="button" class="btn btn-outline-secondary" id="profile-discard-btn" style="min-height: 44px">Discard</button>
+            </div>
+          </div>
+        </div>
 
         <? if (lazyPanelMarkup) { ?>
         <div id="fos-deferred-panels-host" class="d-none" aria-hidden="true"></div>
@@ -5619,6 +5731,41 @@
         </div>
         <div class="modal-footer border-0 pt-0">
           <button type="button" class="btn btn-fos-primary px-4" data-bs-dismiss="modal" style="min-height:44px">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Project Performance date range (feature 040). -->
+  <div
+    class="modal fade fos-modal"
+    id="deliveryPnlPerfDateModal"
+    tabindex="-1"
+    aria-labelledby="deliveryPnlPerfDateModalTitle"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title fw-semibold" id="deliveryPnlPerfDateModalTitle">Date range</h5>
+            <div class="small text-secondary">Filters resource rows and actual margin by calendar month.</div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="fos-delivery-perf-date-fields">
+            <label for="delivery-pnl-perf-date-start">Start
+              <input type="date" id="delivery-pnl-perf-date-start" aria-label="Project performance start date" />
+            </label>
+            <label for="delivery-pnl-perf-date-end">End
+              <input type="date" id="delivery-pnl-perf-date-end" aria-label="Project performance end date" />
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer d-flex flex-wrap gap-2 justify-content-between">
+          <button type="button" class="btn btn-outline-secondary" id="delivery-pnl-perf-date-clear" style="min-height:44px">All time</button>
+          <button type="button" class="btn btn-fos-primary" id="delivery-pnl-perf-date-apply" style="min-height:44px">Apply</button>
         </div>
       </div>
     </div>
@@ -6121,7 +6268,24 @@
         navHint: document.getElementById('nav-hint'),
         errorBanner: document.getElementById('error-banner'),
         panelHome: document.getElementById('panel-home-root'),
+        settingsLinkWrap: document.getElementById('settings-link-wrap'),
+        settingsLink: document.getElementById('settings-link'),
+        panelSettings: document.getElementById('panel-settings'),
+        settingsVersionsHost: document.getElementById('settings-versions-host'),
+        settingsUsageHost: document.getElementById('settings-usage-host'),
+        settingsGroups: document.getElementById('settings-groups'),
+        settingsLoading: document.getElementById('settings-loading'),
+        settingsFetchError: document.getElementById('settings-fetch-error'),
+        settingsSaveStatus: document.getElementById('settings-save-status'),
+        settingsSaveBtn: document.getElementById('settings-save-btn'),
+        settingsDiscardBtn: document.getElementById('settings-discard-btn'),
+        settingsDirtyHint: document.getElementById('settings-dirty-hint'),
+        fosAppVersionBanner: document.getElementById('fos-app-version-banner'),
+        fosAppVersionBannerText: document.getElementById('fos-app-version-banner-text'),
+        fosAppVersionBannerLink: document.getElementById('fos-app-version-banner-link'),
+        sidebarVersionLine: document.getElementById('sidebar-version-line'),
       };
+      var appVersionState_ = { status: null };
       function bindDashboardPanelElements_() {
         Object.assign(els, {
           panelAgreementDashboard: document.getElementById('panel-agreement-dashboard'),
@@ -6357,7 +6521,10 @@
           deliveryPnlPerfDateStart: document.getElementById('delivery-pnl-perf-date-start'),
           deliveryPnlPerfDateEnd: document.getElementById('delivery-pnl-perf-date-end'),
           deliveryPnlPerfDateClear: document.getElementById('delivery-pnl-perf-date-clear'),
-          deliveryPnlPerfDateSub: document.getElementById('delivery-pnl-perf-date-sub'),
+          deliveryPnlPerfDateApply: document.getElementById('delivery-pnl-perf-date-apply'),
+          deliveryPnlPerfDateBtn: document.getElementById('delivery-pnl-perf-date-btn'),
+          deliveryPnlPerfDateLabel: document.getElementById('delivery-pnl-perf-date-label'),
+          deliveryPnlPerfDateModal: document.getElementById('deliveryPnlPerfDateModal'),
           deliveryPnlPerfBody: document.getElementById('delivery-pnl-perf-body'),
           deliveryPnlPerfCards: document.getElementById('delivery-pnl-perf-cards'),
           deliveryPnlPerfEmpty: document.getElementById('delivery-pnl-perf-empty'),
@@ -6612,10 +6779,40 @@
           pipelineMobileChartsBtn: document.getElementById('pipeline-mobile-charts-btn'),
         });
         wireDeferredPanelControlsOnce_();
+        if (appVersionState_.status) {
+          renderAppVersionChrome_();
+        }
       }
 
       var deferredPanelMarkupPromise_ = null;
       var deferredPanelMarkupReady_ = !lazyPanelMarkup;
+      var wireSettingsNavDone_ = false;
+
+      function wireSettingsNavOnce_() {
+        if (wireSettingsNavDone_) return;
+        els.settingsLink = document.getElementById('settings-link') || els.settingsLink;
+        els.settingsLinkWrap = document.getElementById('settings-link-wrap') || els.settingsLinkWrap;
+        if (!els.settingsLink) return;
+        wireSettingsNavDone_ = true;
+        els.settingsLink.addEventListener('click', function (event) {
+          if (event.preventDefault) event.preventDefault();
+          if (event.stopPropagation) event.stopPropagation();
+          if (!isLargeViewport()) hideMobileSidebar();
+          logActivity_('settings_panel_open', 'settings', '');
+          try {
+            showSettingsPanel();
+          } catch (panelErr) {
+            console.warn('showSettingsPanel failed', panelErr);
+            showError('Could not open Settings. Reload the page.');
+            return;
+          }
+          try {
+            setActiveSettingsNav_();
+          } catch (navErr) {
+            console.warn('setActiveSettingsNav_ failed', navErr);
+          }
+        });
+      }
 
       function ensureDeferredPanelMarkup_(callback) {
         if (deferredPanelMarkupReady_) {
@@ -6656,6 +6853,7 @@
       if (!lazyPanelMarkup) {
         bindDashboardPanelElements_();
       }
+      wireSettingsNavOnce_();
 
       /* Historical data source (v2.1.0 - FR-105) */
       var FOS_DATA_SOURCE_STORAGE_KEY = 'fos_data_source_v1';
@@ -7195,8 +7393,12 @@
           id = 'pm-overview';
         }
         if (id === 'settings') {
-          if (typeof showSettingsPanel === 'function') {
+          try {
             showSettingsPanel();
+            setActiveSettingsNav_();
+          } catch (e) {
+            console.warn('navigateToNavId_ settings failed', e);
+            showError('Could not open Settings. Reload the page.');
           }
           return;
         }
@@ -7660,7 +7862,6 @@
       };
       var settingsUsageChart_ = null;
       var settingsUsageChartRendered_ = false;
-      var appVersionState_ = { status: null };
       var SETTINGS_USAGE_CHART_COLORS_ = [
         '#4a9eff',
         '#3dd68c',
@@ -7699,12 +7900,30 @@
         if (els.panelServicesSummary) els.panelServicesSummary.classList.add('d-none');
       }
 
+      function hideAllDashboardPanels_() {
+        if (els.panelHome) els.panelHome.classList.add('d-none');
+        if (els.panelAgreementDashboard) els.panelAgreementDashboard.classList.add('d-none');
+        if (els.panelOperations) els.panelOperations.classList.add('d-none');
+        if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
+        if (els.panelLaborHours) els.panelLaborHours.classList.add('d-none');
+        if (els.panelResourceAssignments) els.panelResourceAssignments.classList.add('d-none');
+        if (els.panelRevenueReview) els.panelRevenueReview.classList.add('d-none');
+        if (els.panelEngagementReview) els.panelEngagementReview.classList.add('d-none');
+        if (els.panelExpenses) els.panelExpenses.classList.add('d-none');
+        if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
+        if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
+        if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
+        hideAccountChromePanels_();
+      }
+
       function setActiveProfileNav_() {
         navState.activeNavId = 'profile';
-        var buttons = els.navList.querySelectorAll('.fos-nav-btn');
-        for (var i = 0; i < buttons.length; i++) {
-          buttons[i].classList.remove('active');
-          buttons[i].removeAttribute('aria-current');
+        if (els.navList) {
+          var buttons = els.navList.querySelectorAll('.fos-nav-btn');
+          for (var i = 0; i < buttons.length; i++) {
+            buttons[i].classList.remove('active');
+            buttons[i].removeAttribute('aria-current');
+          }
         }
         if (els.settingsLink) {
           els.settingsLink.classList.remove('active');
@@ -7719,10 +7938,12 @@
 
       function setActiveSettingsNav_() {
         navState.activeNavId = 'settings';
-        var buttons = els.navList.querySelectorAll('.fos-nav-btn');
-        for (var i = 0; i < buttons.length; i++) {
-          buttons[i].classList.remove('active');
-          buttons[i].removeAttribute('aria-current');
+        if (els.navList) {
+          var buttons = els.navList.querySelectorAll('.fos-nav-btn');
+          for (var i = 0; i < buttons.length; i++) {
+            buttons[i].classList.remove('active');
+            buttons[i].removeAttribute('aria-current');
+          }
         }
         if (els.profileLink) {
           els.profileLink.classList.remove('active');
@@ -9308,13 +9529,12 @@
       }
 
       function showSettingsPanel() {
-        if (lazyPanelMarkup && !deferredPanelMarkupReady_) {
-          ensureDeferredPanelMarkup_(function (ok) {
-            if (ok) showSettingsPanel();
-          });
+        els.panelSettings = document.getElementById('panel-settings') || els.panelSettings;
+        if (!els.panelSettings) {
+          showError('Settings panel is unavailable. Reload the page.');
           return;
         }
-        els.panelHome.classList.add('d-none');
+        if (els.panelHome) els.panelHome.classList.add('d-none');
         if (els.panelAgreementDashboard) els.panelAgreementDashboard.classList.add('d-none');
         if (els.panelOperations) els.panelOperations.classList.add('d-none');
         if (els.panelDelivery) els.panelDelivery.classList.add('d-none');
@@ -9328,8 +9548,8 @@
         if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
         hidePanelProfile_();
-        if (els.panelSettings) els.panelSettings.classList.remove('d-none');
-        els.topbarTitle.textContent = 'Settings';
+        els.panelSettings.classList.remove('d-none');
+        if (els.topbarTitle) els.topbarTitle.textContent = 'Settings';
         loadAdminSettingsPanel_();
       }
 
@@ -9490,10 +9710,11 @@
       }
 
       function showProfilePanel() {
-        if (lazyPanelMarkup && !deferredPanelMarkupReady_) {
-          ensureDeferredPanelMarkup_(function (ok) {
-            if (ok) showProfilePanel();
-          });
+        if (!els.panelProfile) {
+          els.panelProfile = document.getElementById('panel-profile');
+        }
+        if (!els.panelProfile) {
+          showError('Profile panel is unavailable. Reload the page.');
           return;
         }
         els.panelHome.classList.add('d-none');
@@ -10342,6 +10563,7 @@
         askAiState_.open = true;
         a.pane.classList.remove('d-none');
         a.pane.classList.add('is-open');
+        a.pane.style.display = '';
         a.pane.setAttribute('aria-hidden', 'false');
         if (a.link) {
           a.link.classList.add('active');
@@ -10363,6 +10585,7 @@
         if (a.pane) {
           a.pane.classList.add('d-none');
           a.pane.classList.remove('is-open');
+          a.pane.style.display = '';
           a.pane.setAttribute('aria-hidden', 'true');
         }
         if (a.link) {
@@ -10611,17 +10834,6 @@
         }
       }
       wireSettingsControlsOnce_();
-
-      if (els.settingsLink) {
-        els.settingsLink.addEventListener('click', function (event) {
-          event.preventDefault();
-          if (!navState.isAdmin) return;
-          if (!isLargeViewport()) hideMobileSidebar();
-          logActivity_('settings_panel_open', 'settings', '');
-          setActiveSettingsNav_();
-          showSettingsPanel();
-        });
-      }
 
 
       function readAgreementCache() {
@@ -12160,31 +12372,8 @@
       wireAgreementPanelControlsOnce_();
 
       function showHome() {
-        els.panelHome.classList.remove('d-none');
-        if (els.panelAgreementDashboard) {
-          els.panelAgreementDashboard.classList.add('d-none');
-        }
-        if (els.panelOperations) {
-          els.panelOperations.classList.add('d-none');
-        }
-        if (els.panelDelivery) {
-          els.panelDelivery.classList.add('d-none');
-        }
-        if (els.panelLaborHours) {
-          els.panelLaborHours.classList.add('d-none');
-        }
-        if (els.panelRevenueReview) {
-          els.panelRevenueReview.classList.add('d-none');
-        }
-        if (els.panelExpenses) {
-          els.panelExpenses.classList.add('d-none');
-          if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
-          if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
-        }
-        if (els.panelPipeline) {
-          els.panelPipeline.classList.add('d-none');
-        }
-        hideAccountChromePanels_();
+        hideAllDashboardPanels_();
+        if (els.panelHome) els.panelHome.classList.remove('d-none');
         els.topbarTitle.textContent = 'Home';
         refreshHomeMobileGlance_();
       }
@@ -12195,28 +12384,7 @@
           showHome();
           return;
         }
-        els.panelHome.classList.add('d-none');
-        if (els.panelOperations) {
-          els.panelOperations.classList.add('d-none');
-        }
-        if (els.panelDelivery) {
-          els.panelDelivery.classList.add('d-none');
-        }
-        if (els.panelLaborHours) {
-          els.panelLaborHours.classList.add('d-none');
-        }
-        if (els.panelRevenueReview) {
-          els.panelRevenueReview.classList.add('d-none');
-        }
-        if (els.panelExpenses) {
-          els.panelExpenses.classList.add('d-none');
-          if (els.panelAiUsage) els.panelAiUsage.classList.add('d-none');
-          if (els.panelPortfolioPnl) els.panelPortfolioPnl.classList.add('d-none');
-        }
-        if (els.panelPipeline) {
-          els.panelPipeline.classList.add('d-none');
-        }
-        hideAccountChromePanels_();
+        hideAllDashboardPanels_();
         if (els.panelAgreementDashboard) {
           els.panelAgreementDashboard.classList.remove('d-none');
           els.panelAgreementDashboard.classList.remove('fos-agreement-charts-open');
@@ -18935,6 +19103,7 @@
         pnlChart: null,
         csvStatusTimer: null,
         lastPerfRows: [],
+        durationPerfChipHtml: '',
         statusUpdateRollback: null,
         statusHistoryDrawerOpen: false,
         monthModal: {
@@ -19275,13 +19444,137 @@
         if (!src) return base;
         return base + ' · ' + src.replace(/^Source: /, '');
       }
+      function formatAgreeDateFriendly_(isoOrDate) {
+        var d = parseAgreeDateLocal_(isoOrDate);
+        if (!d) return '';
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      }
+      function resolveProjectDurationStart_(p) {
+        if (!p) return null;
+        return parseAgreeDateLocal_(p.durStart || p.executionDate);
+      }
+      function resolveProjectDurationEnd_(p) {
+        if (!p) return null;
+        return parseAgreeDateLocal_(p.durEnd);
+      }
+      function formatProjectDurationRangeText_(p) {
+        var start = resolveProjectDurationStart_(p);
+        var end = resolveProjectDurationEnd_(p);
+        if (start && end) {
+          return formatAgreeDateFriendly_(start) + ' \u2013 ' + formatAgreeDateFriendly_(end);
+        }
+        if (start) return 'From ' + formatAgreeDateFriendly_(start);
+        if (end) return 'Through ' + formatAgreeDateFriendly_(end);
+        return 'Not set';
+      }
+      function buildProjectDurationTiming_(p) {
+        var start = resolveProjectDurationStart_(p);
+        var end = resolveProjectDurationEnd_(p);
+        if (!start && !end) {
+          return {
+            hasDuration: false,
+            partial: false,
+            invalid: false,
+            daysRemaining: null,
+            elapsedPct: null,
+          };
+        }
+        if (!start || !end) {
+          return {
+            hasDuration: true,
+            partial: true,
+            invalid: false,
+            daysRemaining: end ? deliveryDaysUntilDurEnd_(p.durEnd) : null,
+            elapsedPct: null,
+          };
+        }
+        if (end.getTime() <= start.getTime()) {
+          return {
+            hasDuration: true,
+            partial: false,
+            invalid: true,
+            daysRemaining: null,
+            elapsedPct: null,
+          };
+        }
+        var frac = deliveryDurationElapsedFrac_(p);
+        return {
+          hasDuration: true,
+          partial: false,
+          invalid: false,
+          daysRemaining: deliveryDaysUntilDurEnd_(p.durEnd),
+          elapsedPct: frac === null ? null : Math.round(frac * 100),
+        };
+      }
+      function buildDeliveryDurationPerfChipsHtml_(project) {
+        var timing = buildProjectDurationTiming_(project);
+        if (!timing.hasDuration) {
+          return deliveryKpiChipHtml_({
+            tipId: 'delivery-perf-kpi-duration-missing',
+            title: DELIVERY_KPI_TIPS_.durationMissing,
+            label: 'Contract duration',
+            valueHtml: 'Not set',
+            subHtml: 'Set Duration in Fibery',
+            chipClass: ' fos-delivery-duration-chip',
+          });
+        }
+        if (timing.invalid) {
+          return deliveryKpiChipHtml_({
+            tipId: 'delivery-perf-kpi-duration-invalid',
+            title: 'Fibery Duration end must be after the start date.',
+            label: 'Contract duration',
+            valueHtml: 'Invalid range',
+            subHtml: 'Check Fibery dates',
+            chipClass: ' fos-delivery-duration-chip',
+          });
+        }
+        if (timing.partial) {
+          var partialSub = !resolveProjectDurationStart_(project)
+            ? 'Start date not set'
+            : 'End date not set';
+          return deliveryKpiChipHtml_({
+            tipId: 'delivery-perf-kpi-duration-partial',
+            title: DELIVERY_KPI_TIPS_.durationMissing,
+            label: 'Contract duration',
+            valueHtml: escapeHtml(formatProjectDurationRangeText_(project)),
+            subHtml: escapeHtml(partialSub),
+            chipClass: ' fos-delivery-duration-chip',
+          });
+        }
+        var daysValue = 'Ended';
+        var daysSub = '';
+        if (timing.daysRemaining === 0) {
+          daysValue = '0';
+          daysSub = 'Last day today';
+        } else if (timing.daysRemaining > 0) {
+          daysValue = String(Math.round(timing.daysRemaining));
+          daysSub = Math.round(timing.daysRemaining) + ' days remaining';
+        } else if (timing.daysRemaining < 0) {
+          daysSub = 'Ended ' + Math.abs(Math.round(timing.daysRemaining)) + ' days ago';
+        }
+        return (
+          deliveryKpiChipHtml_({
+            tipId: 'delivery-perf-kpi-days-remaining',
+            title: DELIVERY_KPI_TIPS_.daysRemaining,
+            label: 'Days remaining',
+            valueHtml: escapeHtml(daysValue),
+            subHtml: escapeHtml(daysSub || 'Through duration end'),
+            chipClass: ' fos-delivery-duration-chip',
+          }) +
+          deliveryKpiChipHtml_({
+            tipId: 'delivery-perf-kpi-elapsed',
+            title: DELIVERY_KPI_TIPS_.elapsed,
+            label: '% elapsed',
+            valueHtml: escapeHtml(
+              timing.elapsedPct === null ? ' - ' : String(timing.elapsedPct) + '%'
+            ),
+            subHtml: 'Of contract window',
+            chipClass: ' fos-delivery-duration-chip',
+          })
+        );
+      }
       function formatProjectDuration_(p) {
-        var start = p.durStart ? String(p.durStart).slice(0, 10) : (p.executionDate ? String(p.executionDate).slice(0, 10) : '');
-        var end = p.durEnd ? String(p.durEnd).slice(0, 10) : '';
-        if (start && end) return start + ' → ' + end;
-        if (start) return start + ' →';
-        if (end) return '→ ' + end;
-        return 'No duration';
+        return formatProjectDurationRangeText_(p);
       }
       function parseAgreeDateLocal_(isoOrDate) {
         if (!isoOrDate) {
@@ -19548,7 +19841,9 @@
         var name = project.name || '';
         var truncatedName = name.length > 80 ? name.slice(0, 77) + '…' : name;
         var src = opts.source || 'table';
-        var detail = 'agreementId=' + agreementId + ' · name=' + truncatedName + ' · source=' + src;
+        var durTiming = buildProjectDurationTiming_(project);
+        var detail = 'agreementId=' + agreementId + ' · name=' + truncatedName + ' · source=' + src
+          + ' · hasDuration=' + (durTiming.hasDuration ? 'true' : 'false');
         logActivity_('delivery_project_select', 'pm-overview', detail);
         writeDeliveryFiltersStored();
         renderDeliveryPnlHeader(project);
@@ -19578,10 +19873,28 @@
         return '(' + formatMoneyCompact(Math.abs(x)) + ')';
       }
 
+      function formatPerfTableNumber_(n) {
+        var x = Number(n);
+        if (!isFinite(x) || x === 0) return '0';
+        return x.toLocaleString(undefined, { maximumFractionDigits: 10 });
+      }
+
+      function formatPerfTableMoneyAbs_(n) {
+        var x = Math.abs(Number(n));
+        if (!isFinite(x) || x === 0) return '$0';
+        return '$' + x.toLocaleString(undefined, { maximumFractionDigits: 10 });
+      }
+
+      function formatPerfTableExpense_(n) {
+        var x = Number(n);
+        if (!isFinite(x) || x === 0) return '$0';
+        return '(' + formatPerfTableMoneyAbs_(x) + ')';
+      }
+
       function formatPerfSignedHours_(n) {
         var x = Number(n);
         if (!isFinite(x) || x === 0) return '0';
-        var body = formatHours(Math.abs(x));
+        var body = formatPerfTableNumber_(Math.abs(x));
         if (x > 0) return '+' + body;
         return '-' + body;
       }
@@ -19589,8 +19902,8 @@
       function formatPerfSignedMoney_(n) {
         var x = Number(n);
         if (!isFinite(x) || x === 0) return '$0';
-        if (x < 0) return '(' + formatMoneyCompact(Math.abs(x)) + ')';
-        return '+' + formatMoneyCompact(x);
+        if (x < 0) return '(' + formatPerfTableMoneyAbs_(x) + ')';
+        return '+' + formatPerfTableMoneyAbs_(x);
       }
 
       function deliveryKpiChipHtml_(opts) {
@@ -19644,6 +19957,12 @@
           'Labor plus expenses/ODC actuals to date plus remaining planned allocation cost (and remaining planned ODC when on the P&L). Not labor-only.',
         actualMargin:
           '(Revenue - labor - expenses) divided by revenue for months in the selected date range (all time = through as-of). Planned, projected, and EAC stay project-level.',
+        durationMissing:
+          'Fibery Agreement Management/Duration (start and end). Execution date is used as start fallback when duration start is empty.',
+        daysRemaining:
+          'Calendar days until the agreement Duration end date (negative means the end date has passed).',
+        elapsed:
+          'Elapsed share of the agreement Duration window by calendar time.',
       };
 
       function perfHoursVariance_(row) {
@@ -28780,14 +29099,25 @@
 
       function renderDeliveryPnlHeader(project) {
         if (!project) return;
-        // Subtitle line: "<customer> · <type> · <state> · <duration>"
+        // Subtitle: name · customer · type · status · friendly contract duration (larger type).
         var parts = [];
         if (project.customer) parts.push(project.customer);
         if (project.type) parts.push(project.type);
         if (project.state) parts.push(project.state);
-        parts.push(formatProjectDuration_(project));
         if (els.deliveryPnlSubtitle) {
-          els.deliveryPnlSubtitle.textContent = (project.name || ' - ') + ' - ' + parts.join(' · ');
+          var subtitleHtml = escapeHtml(project.name || ' - ');
+          if (parts.length) subtitleHtml += ' - ' + escapeHtml(parts.join(' \u00b7 '));
+          subtitleHtml +=
+            ' \u00b7 <span class="fos-delivery-duration-subtitle" title="Contract duration (Fibery Agreement Management/Duration)">' +
+            escapeHtml(formatProjectDurationRangeText_(project)) +
+            '</span>';
+          els.deliveryPnlSubtitle.innerHTML = subtitleHtml;
+        }
+        deliveryState.durationPerfChipHtml = buildDeliveryDurationPerfChipsHtml_(project);
+        if (deliveryState.lastPnlPayload && deliveryState.cardMode === 'performance') {
+          renderDeliveryPerformance_(deliveryState.lastPnlPayload);
+        } else if (els.deliveryPnlPerfKpis && deliveryState.cardMode === 'performance') {
+          els.deliveryPnlPerfKpis.innerHTML = deliveryState.durationPerfChipHtml;
         }
         if (!els.deliveryPnlKpiStrip) return;
         // KPI strip: render synchronously from the agreement payload so the
@@ -29591,9 +29921,18 @@
         return names[m - 1] + ' ' + y;
       }
 
+      function readDeliveryPerfDateInput_(which) {
+        var el = which === 'start' ? els.deliveryPnlPerfDateStart : els.deliveryPnlPerfDateEnd;
+        if (!el) return '';
+        var v = String(el.value || '').slice(0, 10);
+        return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : '';
+      }
+
       function getDeliveryPerfDateRange_() {
         var startYmd = String(deliveryState.perfDateStart || '').slice(0, 10);
         var endYmd = String(deliveryState.perfDateEnd || '').slice(0, 10);
+        if (startYmd && !/^\d{4}-\d{2}-\d{2}$/.test(startYmd)) startYmd = '';
+        if (endYmd && !/^\d{4}-\d{2}-\d{2}$/.test(endYmd)) endYmd = '';
         var startMonth = ymdToMonthKey_(startYmd);
         var endMonth = ymdToMonthKey_(endYmd);
         if (startMonth && endMonth && startMonth > endMonth) {
@@ -29747,6 +30086,84 @@
         return out;
       }
 
+      function mergeDeliveryPerfAssignmentLifetime_(rows, payload) {
+        var alloc = (payload && payload.resourceAllocations) || {};
+        var assignments = alloc.assignments || [];
+        if (!assignments.length) return rows || [];
+        var byKey = {};
+        var skipOrange = deliverySkipNoAllocationOrange_();
+        for (var i = 0; i < (rows || []).length; i++) {
+          var r = rows[i];
+          if (!r) continue;
+          var key = String(r.name || '(Unknown user)') + '\0' + String(r.role || '(No role)');
+          byKey[key] = {
+            name: r.name,
+            role: r.role,
+            allocatedHoursLife: Number(r.allocatedHoursLife || 0),
+            loggedHoursLife: Number(r.loggedHoursLife || 0),
+            allocatedCostLife: Number(r.allocatedCostLife || 0),
+            loggedCostLife: Number(r.loggedCostLife || 0),
+            highlightOrange: !!r.highlightOrange,
+          };
+        }
+        for (var a = 0; a < assignments.length; a++) {
+          var asg = assignments[a];
+          var aRow = ensureDeliveryPerfResourceRow_(
+            byKey,
+            asg.name || '(Unknown user)',
+            asg.roleName || '(No role)'
+          );
+          var asgHours = Number(asg.allocatedHours || 0);
+          var asgCost = Number(asg.allocatedCost || 0);
+          if (asgHours > aRow.allocatedHoursLife) aRow.allocatedHoursLife = asgHours;
+          if (asgCost > aRow.allocatedCostLife) aRow.allocatedCostLife = asgCost;
+          if (!skipOrange && asg.allocatedAndBillable === false) aRow.highlightOrange = true;
+        }
+        var out = [];
+        var keys = Object.keys(byKey);
+        for (var k = 0; k < keys.length; k++) {
+          var row = byKey[keys[k]];
+          if (
+            row.loggedHoursLife <= 0 &&
+            row.allocatedHoursLife <= 0 &&
+            row.loggedCostLife <= 0 &&
+            !(row.allocatedCostLife > 0)
+          ) {
+            continue;
+          }
+          if (!skipOrange && row.loggedHoursLife > 0 && row.allocatedHoursLife <= 0) {
+            row.highlightOrange = true;
+          }
+          out.push(row);
+        }
+        out.sort(function (a, b) {
+          return String(a.name).localeCompare(String(b.name));
+        });
+        return out;
+      }
+
+      function formatPerfDisplayDate_(ymd) {
+        var s = String(ymd || '').slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return '';
+        var p = s.split('-');
+        return p[1] + '/' + p[2] + '/' + p[0];
+      }
+
+      function formatPerfDateRangeLabel_(range) {
+        if (!range || range.isAllTime) return 'All Time';
+        var start = formatPerfDisplayDate_(range.startYmd);
+        var end = formatPerfDisplayDate_(range.endYmd);
+        if (start && end) return start + ' - ' + end;
+        if (start) return 'From ' + start;
+        if (end) return 'Through ' + end;
+        if (range.startMonth && range.endMonth) {
+          return formatPerfMonthLabel_(range.startMonth) + ' - ' + formatPerfMonthLabel_(range.endMonth);
+        }
+        if (range.startMonth) return 'From ' + formatPerfMonthLabel_(range.startMonth);
+        if (range.endMonth) return 'Through ' + formatPerfMonthLabel_(range.endMonth);
+        return 'All Time';
+      }
+
       function syncDeliveryPerfDateControls_(payload) {
         var months = (payload && payload.months) || [];
         var first = '';
@@ -29774,25 +30191,57 @@
           }
         }
         var range = getDeliveryPerfDateRange_();
-        if (els.deliveryPnlPerfDateClear) {
-          if (range.isAllTime) els.deliveryPnlPerfDateClear.classList.add('d-none');
-          else els.deliveryPnlPerfDateClear.classList.remove('d-none');
+        if (els.deliveryPnlPerfDateLabel) {
+          els.deliveryPnlPerfDateLabel.textContent = formatPerfDateRangeLabel_(range);
         }
-        if (els.deliveryPnlPerfDateSub) {
-          if (range.isAllTime) {
-            els.deliveryPnlPerfDateSub.textContent = 'All time · filters by calendar month';
-          } else if (range.startMonth && range.endMonth) {
-            els.deliveryPnlPerfDateSub.textContent =
-              formatPerfMonthLabel_(range.startMonth) + ' - ' + formatPerfMonthLabel_(range.endMonth) +
-              ' · by calendar month';
-          } else if (range.startMonth) {
-            els.deliveryPnlPerfDateSub.textContent =
-              'From ' + formatPerfMonthLabel_(range.startMonth) + ' · by calendar month';
-          } else {
-            els.deliveryPnlPerfDateSub.textContent =
-              'Through ' + formatPerfMonthLabel_(range.endMonth) + ' · by calendar month';
-          }
+      }
+
+      function buildDeliveryPerfResourceRowsLocal_(payload, range) {
+        var monthsInRange = range.isAllTime
+          ? ((payload && payload.months) || [])
+          : filterDeliveryPerfMonths_((payload && payload.months) || [], range);
+        var rows = buildDeliveryPerfResourcesFromMonths_(monthsInRange);
+        if (range.isAllTime) {
+          rows = mergeDeliveryPerfAssignmentLifetime_(rows, payload);
         }
+        return rows;
+      }
+
+      function fetchDeliveryPerfResourceRows_(payload, range, onDone) {
+        onDone = onDone || function () {};
+        if (!range || range.isAllTime) {
+          onDone(buildDeliveryPerfResourceRowsLocal_(payload, range), null);
+          return;
+        }
+        var agreementId = deliveryState.selectedId || '';
+        if (!agreementId || typeof google === 'undefined' || !google.script || !google.script.run) {
+          onDone(buildDeliveryPerfResourceRowsLocal_(payload, range), 'Server is unavailable.');
+          return;
+        }
+        var token = (deliveryState.perfRowsFetchToken || 0) + 1;
+        deliveryState.perfRowsFetchToken = token;
+        google.script.run
+          .withSuccessHandler(function (res) {
+            if (deliveryState.perfRowsFetchToken !== token) return;
+            if (!res || res.ok === false) {
+              onDone(buildDeliveryPerfResourceRowsLocal_(payload, range),
+                (res && res.message) || 'Could not load filtered resource rows.');
+              return;
+            }
+            onDone(res.rows || [], res.message || null);
+          })
+          .withFailureHandler(function (err) {
+            if (deliveryState.perfRowsFetchToken !== token) return;
+            onDone(buildDeliveryPerfResourceRowsLocal_(payload, range),
+              (err && err.message) || 'Could not load filtered resource rows.');
+          })
+          .getDeliveryPerfResourceRowsForRange({
+            agreementId: agreementId,
+            startYmd: range.startYmd || '',
+            endYmd: range.endYmd || '',
+            startMonth: range.startMonth || '',
+            endMonth: range.endMonth || '',
+          });
       }
 
       function setDeliveryPerfDateRange_(startYmd, endYmd, opts) {
@@ -29816,6 +30265,95 @@
             (start || 'all') + '..' + (end || 'all'));
         }
         renderDeliveryPerformance_(deliveryState.lastPnlPayload);
+      }
+
+      function renderDeliveryPerfResourceTable_(payload, range, rows, statusMsg) {
+        var noPlanEl = els.deliveryPnlPerfNoPlan;
+        var tableWrap = els.deliveryPnlPerfTableWrap;
+        var legendEl = els.deliveryPnlPerfOrangeLegend;
+        var tbody = els.deliveryPnlPerfBody;
+        var cards = els.deliveryPnlPerfCards;
+        var empty = els.deliveryPnlPerfEmpty;
+
+        if (deliverySkipNoAllocationOrange_() && rows && rows.length) {
+          rows = rows.map(function (row) {
+            if (!row || !row.highlightOrange) return row;
+            var copy = {};
+            for (var rk in row) {
+              if (Object.prototype.hasOwnProperty.call(row, rk)) copy[rk] = row[rk];
+            }
+            copy.highlightOrange = false;
+            return copy;
+          });
+        }
+        if (!rows.length) {
+          deliveryState.lastPerfRows = [];
+          if (tbody) tbody.innerHTML = '';
+          if (cards) {
+            cards.innerHTML = '';
+            cards.classList.add('d-none');
+          }
+          if (tableWrap) tableWrap.classList.add('d-none');
+          if (legendEl) legendEl.classList.add('d-none');
+          if (empty) {
+            empty.textContent = statusMsg ||
+              'No resource performance rows for this date range.';
+            empty.classList.remove('d-none');
+          }
+          return;
+        }
+        if (empty) {
+          empty.textContent = 'No resource performance rows for this project yet.';
+          empty.classList.add('d-none');
+        }
+        deliveryState.lastPerfRows = rows;
+        var html = '';
+        var cardsHtml = '';
+        for (var i = 0; i < rows.length; i++) {
+          var r = rows[i];
+          var orange = r.highlightOrange ? ' fos-delivery-pnl-person-orange' : '';
+          var orangeTitle = r.highlightOrange ? ' title="' + escapeHtml(PERF_ORANGE_TITLE_) + '"' : '';
+          var hVar = perfHoursVariance_(r);
+          var cVar = perfCostVariance_(r);
+          html +=
+            '<tr class="' + orange.trim() + ' fos-delivery-perf-row"' + orangeTitle +
+              ' data-perf-row="' + i + '" role="button" tabindex="0">' +
+              '<td>' + escapeHtml(r.name || ' - ') + '</td>' +
+              '<td>' + escapeHtml(r.role || ' - ') + '</td>' +
+              '<td class="num">' + escapeHtml(formatPerfTableNumber_(r.allocatedHoursLife || 0)) + '</td>' +
+              '<td class="num">' + escapeHtml(formatPerfTableNumber_(r.loggedHoursLife || 0)) + '</td>' +
+              '<td class="num">' + escapeHtml(formatPerfSignedHours_(hVar)) + '</td>' +
+              '<td class="num">' + formatPerfTableExpense_(r.allocatedCostLife || 0) + '</td>' +
+              '<td class="num">' + formatPerfTableExpense_(r.loggedCostLife || 0) + '</td>' +
+              '<td class="num">' + formatPerfSignedMoney_(cVar) + '</td>' +
+            '</tr>';
+          cardsHtml +=
+            '<div class="fos-delivery-perf-resource-card' + (r.highlightOrange ? ' is-orange' : '') + '"' +
+              orangeTitle + ' data-perf-row="' + i + '" role="button" tabindex="0">' +
+              '<div class="fw-semibold">' + escapeHtml(r.name || ' - ') + '</div>' +
+              '<div class="small" style="color:var(--ag-text-muted)">' + escapeHtml(r.role || '') + '</div>' +
+              '<div class="small mt-2">Allocated: ' + escapeHtml(formatPerfTableNumber_(r.allocatedHoursLife || 0)) +
+                ' · Logged: ' + escapeHtml(formatPerfTableNumber_(r.loggedHoursLife || 0)) +
+                ' · Hours var: ' + escapeHtml(formatPerfSignedHours_(hVar)) + '</div>' +
+              '<div class="small">Allocated cost: ' + formatPerfTableExpense_(r.allocatedCostLife || 0) +
+                ' · Logged cost: ' + formatPerfTableExpense_(r.loggedCostLife || 0) +
+                ' · Cost var: ' + formatPerfSignedMoney_(cVar) + '</div>' +
+            '</div>';
+        }
+        if (tbody) tbody.innerHTML = html;
+        if (cards) {
+          cards.innerHTML = cardsHtml;
+          cards.classList.remove('d-none');
+        }
+        if (statusMsg && legendEl) {
+          legendEl.setAttribute('data-perf-range-note', statusMsg);
+        } else if (legendEl) {
+          legendEl.removeAttribute('data-perf-range-note');
+        }
+        if (noPlanEl) noPlanEl.classList.add('d-none');
+        if (legendEl) legendEl.classList.remove('d-none');
+        if (tableWrap) tableWrap.classList.remove('d-none');
+        bindDeliveryPerfTimeDrill_(tbody, cards);
       }
 
       function renderDeliveryPerformance_(payload) {
@@ -29844,8 +30382,14 @@
         var noPlanTip = 'No resource plan is available to use. Planned margin, projected margin, and EAC are hidden until allocations exist.';
 
         if (els.deliveryPnlPerfKpis) {
+          var selectedProject = deliveryState.selectedId
+            ? deliveryState.projectsByIndex[deliveryState.selectedId]
+            : null;
+          var durationChipHtml = deliveryState.durationPerfChipHtml
+            || (selectedProject ? buildDeliveryDurationPerfChipsHtml_(selectedProject) : '');
           if (!perf) {
             els.deliveryPnlPerfKpis.innerHTML =
+              durationChipHtml +
               '<div class="fos-delivery-pnl-kpi-chip"><div class="label">Performance</div>' +
               '<div class="value">Unavailable</div><div class="sub">Refresh or upgrade snapshot schema</div></div>';
           } else {
@@ -29853,6 +30397,7 @@
             var eacD = perf.eacDollars || {};
             var hidePlanKpis = !hasResourcePlan;
             els.deliveryPnlPerfKpis.innerHTML =
+              durationChipHtml +
               deliveryKpiChipHtml_({
                 tipId: 'delivery-perf-kpi-planned',
                 title: hidePlanKpis ? noPlanTip : DELIVERY_KPI_TIPS_.planned,
@@ -29958,73 +30503,16 @@
         if (legendEl) legendEl.classList.remove('d-none');
         if (tableWrap) tableWrap.classList.remove('d-none');
 
-        var rows = range.isAllTime
-          ? ((perf && perf.resourcesLifetime) || [])
-          : buildDeliveryPerfResourcesFromMonths_(monthsInRange);
-        if (deliverySkipNoAllocationOrange_() && rows && rows.length) {
-          rows = rows.map(function (row) {
-            if (!row || !row.highlightOrange) return row;
-            var copy = {};
-            for (var rk in row) {
-              if (Object.prototype.hasOwnProperty.call(row, rk)) copy[rk] = row[rk];
-            }
-            copy.highlightOrange = false;
-            return copy;
-          });
+        if (!range.isAllTime && tbody) {
+          tbody.innerHTML =
+            '<tr><td colspan="8" class="text-secondary">Loading resource rows for date range…</td></tr>';
         }
-        if (!rows.length) {
-          deliveryState.lastPerfRows = [];
-          if (tbody) tbody.innerHTML = '';
-          if (cards) {
-            cards.innerHTML = '';
-            cards.classList.add('d-none');
-          }
-          if (tableWrap) tableWrap.classList.add('d-none');
-          if (legendEl) legendEl.classList.add('d-none');
-          if (empty) empty.classList.remove('d-none');
-          return;
-        }
-        if (empty) empty.classList.add('d-none');
-        deliveryState.lastPerfRows = rows;
-        var html = '';
-        var cardsHtml = '';
-        for (var i = 0; i < rows.length; i++) {
-          var r = rows[i];
-          var orange = r.highlightOrange ? ' fos-delivery-pnl-person-orange' : '';
-          var orangeTitle = r.highlightOrange ? ' title="' + escapeHtml(PERF_ORANGE_TITLE_) + '"' : '';
-          var hVar = perfHoursVariance_(r);
-          var cVar = perfCostVariance_(r);
-          html +=
-            '<tr class="' + orange.trim() + ' fos-delivery-perf-row"' + orangeTitle +
-              ' data-perf-row="' + i + '" role="button" tabindex="0">' +
-              '<td>' + escapeHtml(r.name || ' - ') + '</td>' +
-              '<td>' + escapeHtml(r.role || ' - ') + '</td>' +
-              '<td class="num">' + escapeHtml(formatHours(r.allocatedHoursLife || 0)) + '</td>' +
-              '<td class="num">' + escapeHtml(formatHours(r.loggedHoursLife || 0)) + '</td>' +
-              '<td class="num">' + escapeHtml(formatPerfSignedHours_(hVar)) + '</td>' +
-              '<td class="num">' + formatExpense_(r.allocatedCostLife || 0) + '</td>' +
-              '<td class="num">' + formatExpense_(r.loggedCostLife || 0) + '</td>' +
-              '<td class="num">' + formatPerfSignedMoney_(cVar) + '</td>' +
-            '</tr>';
-          cardsHtml +=
-            '<div class="fos-delivery-perf-resource-card' + (r.highlightOrange ? ' is-orange' : '') + '"' +
-              orangeTitle + ' data-perf-row="' + i + '" role="button" tabindex="0">' +
-              '<div class="fw-semibold">' + escapeHtml(r.name || ' - ') + '</div>' +
-              '<div class="small" style="color:var(--ag-text-muted)">' + escapeHtml(r.role || '') + '</div>' +
-              '<div class="small mt-2">Allocated: ' + escapeHtml(formatHours(r.allocatedHoursLife || 0)) +
-                ' · Logged: ' + escapeHtml(formatHours(r.loggedHoursLife || 0)) +
-                ' · Hours var: ' + escapeHtml(formatPerfSignedHours_(hVar)) + '</div>' +
-              '<div class="small">Allocated cost: ' + formatExpense_(r.allocatedCostLife || 0) +
-                ' · Logged cost: ' + formatExpense_(r.loggedCostLife || 0) +
-                ' · Cost var: ' + formatPerfSignedMoney_(cVar) + '</div>' +
-            '</div>';
-        }
-        if (tbody) tbody.innerHTML = html;
-        if (cards) {
-          cards.innerHTML = cardsHtml;
-          cards.classList.remove('d-none');
-        }
-        bindDeliveryPerfTimeDrill_(tbody, cards);
+        fetchDeliveryPerfResourceRows_(payload, range, function (rows, statusMsg) {
+          if (deliveryState.lastPnlPayload !== payload) return;
+          var latestRange = getDeliveryPerfDateRange_();
+          if (latestRange.startYmd !== range.startYmd || latestRange.endYmd !== range.endYmd) return;
+          renderDeliveryPerfResourceTable_(payload, range, rows || [], statusMsg);
+        });
       }
 
       function bindDeliveryPerfTimeDrill_(tbody, cards) {
@@ -31265,19 +31753,49 @@
             })(viewBtns[dvi]);
           }
         }
-        if (els.deliveryPnlPerfDateStart) {
-          els.deliveryPnlPerfDateStart.addEventListener('change', function () {
-            setDeliveryPerfDateRange_(els.deliveryPnlPerfDateStart.value, deliveryState.perfDateEnd);
-          });
+        function openDeliveryPerfDateModal_() {
+          var modalEl = els.deliveryPnlPerfDateModal;
+          if (!modalEl) return;
+          syncDeliveryPerfDateControls_(deliveryState.lastPnlPayload);
+          try {
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+              bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            } else {
+              modalEl.classList.add('show');
+              modalEl.style.display = 'block';
+            }
+          } catch (e) {
+            modalEl.classList.add('show');
+            modalEl.style.display = 'block';
+          }
         }
-        if (els.deliveryPnlPerfDateEnd) {
-          els.deliveryPnlPerfDateEnd.addEventListener('change', function () {
-            setDeliveryPerfDateRange_(deliveryState.perfDateStart, els.deliveryPnlPerfDateEnd.value);
-          });
+        function applyDeliveryPerfDateModal_() {
+          var start = readDeliveryPerfDateInput_('start');
+          var end = readDeliveryPerfDateInput_('end');
+          setDeliveryPerfDateRange_(start, end);
+          var modalEl = els.deliveryPnlPerfDateModal;
+          if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+          } else if (modalEl) {
+            modalEl.classList.remove('show');
+            modalEl.style.display = 'none';
+          }
+        }
+        if (els.deliveryPnlPerfDateBtn) {
+          els.deliveryPnlPerfDateBtn.addEventListener('click', openDeliveryPerfDateModal_);
+        }
+        if (els.deliveryPnlPerfDateApply) {
+          els.deliveryPnlPerfDateApply.addEventListener('click', applyDeliveryPerfDateModal_);
         }
         if (els.deliveryPnlPerfDateClear) {
           els.deliveryPnlPerfDateClear.addEventListener('click', function () {
+            if (els.deliveryPnlPerfDateStart) els.deliveryPnlPerfDateStart.value = '';
+            if (els.deliveryPnlPerfDateEnd) els.deliveryPnlPerfDateEnd.value = '';
             setDeliveryPerfDateRange_('', '');
+            var modalEl = els.deliveryPnlPerfDateModal;
+            if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+              bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+            }
           });
         }
         if (els.deliveryPnlCsvBtn) {
@@ -31361,6 +31879,9 @@
       function wireDeferredPanelControlsOnce_() {
         wireProfileControlsOnce_();
         wireSettingsControlsOnce_();
+        if (typeof wireSettingsNavOnce_ === 'function') {
+          wireSettingsNavOnce_();
+        }
         wireAgreementPanelControlsOnce_();
         wireUtilPanelControlsOnce_();
         wireDeliveryPanelControlsOnce_();

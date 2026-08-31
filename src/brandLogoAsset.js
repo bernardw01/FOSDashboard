@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.14 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub sidebar logo as a data URL (HtmlService template).
  * Source: src/assets/finops-performance-hub-icon-source.png (128px display width)
@@ -16,23 +16,25 @@ function getBrandLogoDataUrl_() {
   return BRAND_LOGO_DATA_URL_;
 }
 
-/** @const {string} */
-var BRAND_LOGO_DRIVE_FILE_ID_PROP_ = 'FOS_BRAND_LOGO_DRIVE_FILE_ID';
-
-/** @const {string} */
-var BRAND_LOGO_CONTENT_HASH_PROP_ = 'FOS_BRAND_LOGO_CONTENT_HASH';
+/**
+ * @return {GoogleAppsScript.Base.Blob}
+ */
+function getBrandLogoBlob_() {
+  var parsed = parseShellImageDataUrl_(BRAND_LOGO_DATA_URL_);
+  return Utilities.newBlob(
+    Utilities.base64Decode(parsed.base64),
+    parsed.mime,
+    'finops-performance-hub-logo.png'
+  );
+}
 
 /**
- * HTTPS Drive URL for the sidebar logo (feature 047 D1). Falls back to the
- * data URL when the mirror is unavailable.
+ * Data URL for the sidebar logo (feature 047 D1). Inline data URLs are required
+ * for HtmlService img tags: Drive /uc links 403 cross-site, and ?asset= doGet
+ * routes fail when executeAs is USER_ACCESSING (img requests carry no session).
  *
  * @return {string}
  */
 function getBrandLogoUrlForWebApp_() {
-  return getShellImageUrlForWebApp_(
-    BRAND_LOGO_DATA_URL_,
-    'finops-performance-hub-logo.png',
-    BRAND_LOGO_DRIVE_FILE_ID_PROP_,
-    BRAND_LOGO_CONTENT_HASH_PROP_
-  );
+  return BRAND_LOGO_DATA_URL_;
 }
