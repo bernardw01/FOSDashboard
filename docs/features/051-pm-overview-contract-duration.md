@@ -9,7 +9,7 @@
 > **Extends:** [041 - PM Overview rebrand](041-pm-overview-rebrand.md), [006 - Delivery project P&L](006-delivery-project-pnl.md) (duration fields on agreement rows)  
 > **Depends on:** PM Overview ([041](041-pm-overview-rebrand.md)), Mobile shell ([029](029-mobile-shell-phase-ab.md))  
 > **Teamwork notebook:** [Feature 051 - PM Overview contract duration on project select](https://win.godeap.io/app/projects/1615262/notebooks/313602)  
-> **Release task:** [Feature 051 - PM Overview contract duration on project select](https://win.godeap.io/app/tasks/40940299)  
+> **Release task:** [v3.20.14 - PM Overview contract duration on project select](https://win.godeap.io/app/tasks/40940299)  
 > **Template reference:** `docs/FEATURE_TEMPLATE.md`
 
 ---

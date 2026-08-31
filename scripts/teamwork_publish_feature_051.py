@@ -116,6 +116,15 @@ Workflow: {how_we_work_url}
 """
 
 
+def find_release_task_for_feature_(manifest: dict, feature_id: str) -> dict | None:
+    """Return manifest task entry for feature_id (provisional or shipped name)."""
+    fid = str(feature_id).zfill(3)
+    for entry in manifest.get("tasks", {}).values():
+        if str(entry.get("featureId", "")).zfill(3) == fid:
+            return entry
+    return None
+
+
 def ensure_release_task(
     manifest: dict, *, notebook_url: str, inbox_url: str, how_we_work_url: str
 ) -> tuple[int, str]:
@@ -124,7 +133,9 @@ def ensure_release_task(
         inbox_url=inbox_url,
         how_we_work_url=how_we_work_url,
     )
-    existing = manifest.get("tasks", {}).get(TASK_NAME)
+    existing = manifest.get("tasks", {}).get(TASK_NAME) or find_release_task_for_feature_(
+        manifest, FEATURE_ID
+    )
     if existing:
         task_id = int(existing["id"])
         api("PUT", f"/tasks/{task_id}.json", {"todo-item": {"description": desc}})

@@ -2201,6 +2201,19 @@
         313280,
         313281
       ]
+    },
+    "feature_051": {
+      "resolvedAt": "2026-08-31",
+      "note": "Accidental duplicate release task created when publish script re-ran after ship. Archived with supersede note; manifest tracks v3.20.14 release task only.",
+      "archivedTasks": [
+        {
+          "id": 40943856,
+          "name": "Feature 051 - PM Overview contract duration on project select",
+          "tasklist": "Delivery",
+          "previousStage": "Spec Draft",
+          "supersededByTaskId": 40940299
+        }
+      ]
     }
   },
   "lastBootstrappedAt": "2026-06-10"
