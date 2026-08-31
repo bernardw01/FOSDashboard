@@ -2174,6 +2174,35 @@
         "Total (rounded to nearest 0.5h): 20.5h"
       ],
       "estDevHoursGitBase": "32a650cf7c9682ce8515613087af9417a3acd20d"
+    },
+    "v3.20.15 - PM Overview default Project Performance tab on project select": {
+      "id": 40944072,
+      "featureId": "052",
+      "releaseType": "Enhancement",
+      "shippedVersion": "v3.20.15",
+      "provisionalTaskName": false,
+      "releaseTitle": "PM Overview default Project Performance tab on project select",
+      "url": "https://win.godeap.io/app/tasks/40944072",
+      "shippedAt": "2026-08-31",
+      "estDevHours": 20,
+      "estDevHoursRationale": [
+        "Git range: 32a650cf..HEAD (93 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +852 lines): +4.5h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +334 lines): +4.5h",
+        "Apps Script module `src/engagementReviewApi.js`: +1.4h",
+        "Apps Script module `src/shellImageMirror.js`: +0.9h",
+        "Apps Script module `src/supabaseAmMirror.js`: +2.0h",
+        "Apps Script module `src/supabaseClient.js`: +1.5h",
+        "Apps Script module `src/supabasePanelBuilders.js`: +0.9h",
+        "Feature spec / docs (+315 lines): +1.8h",
+        "Teamwork / automation scripts (+925 lines): +2.0h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 20.5h"
+      ],
+      "estDevHoursGitBase": "32a650cf7c9682ce8515613087af9417a3acd20d",
+      "workflowStage": "Shipped"
     }
   },
   "supersededDuplicates": {

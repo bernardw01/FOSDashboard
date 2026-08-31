@@ -24,6 +24,13 @@ NOTE_MARKER = "**Delivered (archived from backlog cleanup).**"
 
 DELIVERED_INBOX = [
     {
+        "task_id": 40926670,
+        "release_task_id": 40944072,
+        "release_name": "v3.20.15 - PM Overview default Project Performance tab on project select",
+        "version": "3.20.15",
+        "feature_id": "052",
+    },
+    {
         "task_id": 40880310,
         "release_task_id": 40926974,
         "release_name": "v3.20.14 - PM Overview perf allocation drill-down",

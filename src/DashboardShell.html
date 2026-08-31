@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.20.14 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.20.15 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -19091,7 +19091,7 @@
           owners: {},
         },
         pnlView: 'table',
-        cardMode: 'accounting',
+        cardMode: 'performance',
         perfDateStart: '',
         perfDateEnd: '',
         projectsByIndex: {},
@@ -19846,6 +19846,7 @@
           + ' · hasDuration=' + (durTiming.hasDuration ? 'true' : 'false');
         logActivity_('delivery_project_select', 'pm-overview', detail);
         writeDeliveryFiltersStored();
+        setDeliveryCardMode_(resolveDefaultDeliveryCardMode_(), { silent: true });
         renderDeliveryPnlHeader(project);
         loadDeliveryPnLForProject_(project, { source: src });
         if (opts.scrollIntoView) {
@@ -29832,8 +29833,8 @@
           if (stored === 'performance' || stored === 'accounting') return stored;
         } catch (e) { /* ignore */ }
         var team = String((navState && navState.team) || '').toUpperCase();
-        if (team === 'CLIENT-ENGAGEMENT') return 'performance';
-        return 'accounting';
+        if (team === 'FINANCE') return 'accounting';
+        return 'performance';
       }
 
       function writeDeliveryCardMode_(mode) {
