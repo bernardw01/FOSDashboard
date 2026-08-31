@@ -510,7 +510,7 @@
       "featureId": "050",
       "intakeTaskId": 40880310,
       "publishedAt": "2026-08-28",
-      "lastSyncedAt": "2026-08-28",
+      "lastSyncedAt": "2026-08-31",
       "gitMirror": "docs/features/050-pm-overview-perf-allocation-drilldown.md"
     },
     "feature_051": {
@@ -1881,23 +1881,6 @@
       "estDevHoursGitBase": "8c0f5c04bfb18898f7c5b80f4d8e8ace6a2e3c79",
       "workflowStage": "Shipped"
     },
-    "Feature 050 - PM Overview perf allocation drill-down": {
-      "id": 40926974,
-      "url": "https://win.godeap.io/app/tasks/40926974",
-      "featureId": "050",
-      "releaseType": "Enhancement",
-      "releaseTitle": "PM Overview perf allocation drill-down",
-      "provisionalTaskName": true,
-      "shippedVersion": null,
-      "tasklist": "Delivery",
-      "tasklistId": 4174283,
-      "notebookKey": "feature_050",
-      "intakeTaskId": 40880310,
-      "inboxTaskUrl": "https://win.godeap.io/app/tasks/40880310",
-      "workflowStage": "Spec Approved",
-      "createdAt": "2026-08-28",
-      "renameAtShip": "v{FOS_PRD_VERSION} - PM Overview perf allocation drill-down"
-    },
     "v3.20.10 - Home nav panel hide and Ask AI layout": {
       "id": 40939475,
       "featureId": "047",
@@ -2155,6 +2138,42 @@
         "Total (rounded to nearest 0.5h): 19.0h"
       ],
       "estDevHoursGitBase": "173fbf5f939bfaab0cef77ed90ca31c20dc4c195"
+    },
+    "v3.20.14 - PM Overview perf allocation drill-down": {
+      "id": 40926974,
+      "url": "https://win.godeap.io/app/tasks/40926974",
+      "featureId": "050",
+      "releaseType": "Enhancement",
+      "releaseTitle": "PM Overview perf allocation drill-down",
+      "provisionalTaskName": false,
+      "shippedVersion": "v3.20.14",
+      "tasklist": "Delivery",
+      "tasklistId": 4174283,
+      "notebookKey": "feature_050",
+      "intakeTaskId": 40880310,
+      "inboxTaskUrl": "https://win.godeap.io/app/tasks/40880310",
+      "workflowStage": "Shipped",
+      "createdAt": "2026-08-28",
+      "renameAtShip": "v{FOS_PRD_VERSION} - PM Overview perf allocation drill-down",
+      "shippedAt": "2026-08-31",
+      "estDevHours": 20,
+      "estDevHoursRationale": [
+        "Git range: 32a650cf..HEAD (91 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +852 lines): +4.5h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +334 lines): +4.5h",
+        "Apps Script module `src/engagementReviewApi.js`: +1.4h",
+        "Apps Script module `src/shellImageMirror.js`: +0.9h",
+        "Apps Script module `src/supabaseAmMirror.js`: +2.0h",
+        "Apps Script module `src/supabaseClient.js`: +1.5h",
+        "Apps Script module `src/supabasePanelBuilders.js`: +0.9h",
+        "Feature spec / docs (+312 lines): +1.8h",
+        "Teamwork / automation scripts (+809 lines): +2.0h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 20.5h"
+      ],
+      "estDevHoursGitBase": "32a650cf7c9682ce8515613087af9417a3acd20d"
     }
   },
   "supersededDuplicates": {
@@ -2212,6 +2231,19 @@
           "tasklist": "Delivery",
           "previousStage": "Spec Draft",
           "supersededByTaskId": 40940299
+        }
+      ]
+    },
+    "feature_050": {
+      "resolvedAt": "2026-08-31",
+      "note": "Duplicate release task from early publish; authoritative task is the manifest-tracked release (shipped as v3.20.14).",
+      "archivedTasks": [
+        {
+          "id": 40928860,
+          "name": "Feature 050 - PM Overview perf allocation drill-down",
+          "tasklist": "Delivery",
+          "previousStage": "Shipped",
+          "supersededByTaskId": 40926974
         }
       ]
     }

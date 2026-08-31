@@ -1,7 +1,7 @@
 # Feature: PM Overview - resource allocation info on Project Performance drill-down
 
-> **Status:** Spec Approved (Jess review 2026-08-28)  
-> **PRD version:** TBD at ship  
+> **Status:** Shipped **v3.20.14**  
+> **PRD version:** 3.20.14  
 > **Feature ID:** **050**  
 > **Release type:** Enhancement  
 > **Task list:** Delivery  
@@ -10,7 +10,7 @@
 > **Depends on:** PM Overview ([041](041-pm-overview-rebrand.md)), Mobile shell ([029](029-mobile-shell-phase-ab.md))  
 > **Related (not this release):** Hub-wide swap of Clockify user role for SOW role on other surfaces ([40876280](https://win.godeap.io/app/tasks/40876280)); orange daily rows outside allocation duration (nice-to-have below)  
 > **Teamwork notebook:** [Feature 050 - PM Overview perf allocation info on Project Performance drill-down](https://win.godeap.io/app/projects/1615262/notebooks/313573)  
-> **Release task:** [Feature 050 - PM Overview perf allocation drill-down](https://win.godeap.io/app/tasks/40926974)  
+> **Release task:** [v3.20.14 - PM Overview perf allocation drill-down](https://win.godeap.io/app/tasks/40926974)  
 > **Template reference:** `docs/FEATURE_TEMPLATE.md`
 
 ---
@@ -92,16 +92,16 @@ On **PM Overview → Project Performance**, when a PM opens the **person time-en
 
 ## Acceptance criteria (testable)
 
-- [ ] **Given** Project Performance shows a resource row, **when** the user opens the time-entry drill-down, **then** a **Resource allocation** summary appears in the modal header area (under the subtitle).
-- [ ] **Given** the person has one or more matching allocation rows, **when** the modal opens, **then** each row shows **Duration**, **Allocated & Billable**, **% allocation**, and **Role on SOW** (or **N/A** per decision 5).
-- [ ] **Given** the person has **no** matching allocation rows, **when** the modal opens, **then** the summary shows **No resource allocation found for this person on this project** and the daily time table still loads per **045**.
-- [ ] **Given** an **orange** row, **when** the modal opens, **then** the orange banner remains and allocation rows (if any) explain the flag.
-- [ ] **Given** a custom Project Performance Start/End range, **when** the modal opens, **then** **only daily logged time** is filtered by that range; allocation rows still show all matches for the person on the agreement.
-- [ ] **Given** logged time on days with no allocation, **when** the modal opens, **then** those days **remain in the daily table** (not filtered out).
-- [ ] **Given** **No Resource Plan Found** (feature **046**), **when** the empty plan panel is showing, **then** drill-down is N/A (no resource rows).
-- [ ] **Given** a historical snapshot with `assignments[]` including `roleOnSow`, **when** the user drills in, **then** allocation rows render without a Live Fibery fetch.
-- [ ] **Given** viewport **&lt; 768px**, **when** the user taps a resource card, **then** allocation summary and daily list are usable (scroll, close, 44px targets).
-- [ ] Activity `delivery_pnl_perf_time_drill` metadata includes allocation flag. Tests / smoke named `AC-105` at ship (FR TBD).
+- [x] **Given** Project Performance shows a resource row, **when** the user opens the time-entry drill-down, **then** a **Resource allocation** summary appears in the modal header area (under the subtitle).
+- [x] **Given** the person has one or more matching allocation rows, **when** the modal opens, **then** each row shows **Duration**, **Allocated & Billable**, **% allocation**, and **Role on SOW** (or **N/A** per decision 5).
+- [x] **Given** the person has **no** matching allocation rows, **when** the modal opens, **then** the summary shows **No resource allocation found for this person on this project** and the daily time table still loads per **045**.
+- [x] **Given** an **orange** row, **when** the modal opens, **then** the orange banner remains and allocation rows (if any) explain the flag.
+- [x] **Given** a custom Project Performance Start/End range, **when** the modal opens, **then** **only daily logged time** is filtered by that range; allocation rows still show all matches for the person on the agreement.
+- [x] **Given** logged time on days with no allocation, **when** the modal opens, **then** those days **remain in the daily table** (not filtered out).
+- [x] **Given** **No Resource Plan Found** (feature **046**), **when** the empty plan panel is showing, **then** drill-down is N/A (no resource rows).
+- [x] **Given** a historical snapshot with `assignments[]` including `roleOnSow`, **when** the user drills in, **then** allocation rows render without a Live Fibery fetch.
+- [x] **Given** viewport **&lt; 768px**, **when** the user taps a resource card, **then** allocation summary and daily list are usable (scroll, close, 44px targets).
+- [x] Activity `delivery_pnl_perf_time_drill` metadata includes allocation flag (**AC-120** / **FR-158**).
 
 ---
 
@@ -110,10 +110,9 @@ On **PM Overview → Project Performance**, when a PM opens the **person time-en
 - **Desktop:** Extend `#deliveryPnlPerfTimeModal`:
   1. Title: `{Person} - time on this project` (unchanged)
   2. Subtitle: role label + date range (unchanged for now; Clockify role may be revisited under **40876280**)
-  3. **Resource allocation** compact table or definition list in the **header area** (Jess: under name or beside title)
+  3. **Resource allocation** compact table in the **header area**
   4. Orange banner (unchanged)
   5. **Logged time by day** table (unchanged **045** columns: Date, Hours, Cost $)
-- Alternative layout (Jess OK either way): add an **Allocated** indicator column on the daily table instead of a header block. **v1 ships header-area summary** unless implementation prefers the column; both satisfy AC.
 - **Mobile:** stack allocation summary above the daily list.
 - Do not add a new sidebar route.
 
@@ -122,18 +121,16 @@ On **PM Overview → Project Performance**, when a PM opens the **person time-en
 ## Data model
 
 - Read-only. Extend `resourceAllocations.assignments[]`:
-  - Existing: `name`, `roleName` (Clockify team member role; keep for matching, not shown as SOW role), `durationLabel`, `percentAllocated`, `allocatedAndBillable`, `allocatedHours`, `allocatedCost`
+  - Existing: `name`, `roleName`, `durationLabel`, `percentAllocated`, `allocatedAndBillable`, `allocatedHours`, `allocatedCost`
   - **New:** `roleOnSow` from Fibery `Agreement Management/Role on SOW`
-- Fibery select: add `roleOnSow: 'Agreement Management/Role on SOW'` in `fetchResourceAllocationsForAgreement_` (`deliveryDashboard.js`).
 - Client filters assignments by person key (same matching as **045** / **040**).
-- Optional: `durStart` / `durEnd` ISO on assignment rows for future orange-day highlighting (nice-to-have).
 - Bump Delivery P&L `cacheSchemaVersion` when `roleOnSow` is added.
 
 ## Edge cases
 
 - Person matches multiple allocation names (aliases): show all rows that match any alias.
 - Allocation exists with **0 allocated hours** but non-zero cost: still show the row.
-- Allocated & Billable checked but Role on SOW blank in Fibery: show **N/A** or em dash for role (not Clockify `roleName`).
+- Allocated & Billable checked but Role on SOW blank in Fibery: show **N/A** for role (not Clockify `roleName`).
 - Person has allocation but **0 logged time** in range: modal opens per **045**; allocation summary still lists rows.
 - Truncated / missing `assignments[]` on stale snapshot: inline warning; daily time may still load.
 
@@ -150,11 +147,17 @@ On **PM Overview → Project Performance**, when a PM opens the **person time-en
 ## Implementation checklist
 
 - [x] Jess review (decisions 1, 5, 6, 7 locked 2026-08-28)
-- [x] Teamwork notebook + `Feature 050 - …` release task → Spec Draft
+- [x] Teamwork notebook + release task
 - [x] Implement `roleOnSow` on Fibery fetch + `assignments[]` + modal UI
-- [ ] Update `docs/FOS-Dashboard-PRD.md` FR/AC at ship
-- [ ] Mobile in the same release as desktop
-- [ ] Activity metadata + smoke
+- [x] Update `docs/FOS-Dashboard-PRD.md` FR-158 / AC-120 at ship
+- [x] Mobile in the same release as desktop
+- [x] Activity metadata + smoke
+
+## Changelog
+
+| Version | Date | Notes |
+| --- | --- | --- |
+| 3.20.14 | 2026-08-31 | Shipped with feature 051 deploy; Teamwork release task backfilled same day. |
 
 ## Change requests
 
@@ -165,6 +168,6 @@ On **PM Overview → Project Performance**, when a PM opens the **person time-en
 | 2026-08-28 | **Decision 5:** Role on SOW = Fibery Role on SOW field; N/A when no allocation or not Allocated & Billable | Merged into locked decisions |
 | 2026-08-28 | **Topic 1:** Allocation info in modal header (under name / beside title) | Merged into decision 1 |
 | 2026-08-28 | **Topic 3:** Do not filter logged time by allocation; show allocation for date comparison | Merged into decisions 6-7 |
-| 2026-08-28 | Optional: allocated column on daily table OR header summary | Header summary for v1; column acceptable alternative |
+| 2026-08-28 | Optional: allocated column on daily table OR header summary | Header summary for v1 |
 | 2026-08-28 | Nice-to-have: orange days outside allocation range | Deferred (decision 14) |
 | 2026-08-28 | Audit Hub Clockify role vs SOW role elsewhere | Out of scope; track under **40876280** |
