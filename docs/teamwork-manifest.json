@@ -2214,22 +2214,37 @@
       "estDevHoursGitBase": "32a650cf7c9682ce8515613087af9417a3acd20d",
       "workflowStage": "Shipped"
     },
-    "Feature 053 - PM Overview SOW role and SOW-based planned margin": {
+    "v3.20.16 - PM Overview SOW role and SOW-based planned margin": {
       "id": 40944436,
       "url": "https://win.godeap.io/app/tasks/40944436",
       "featureId": "053",
       "releaseType": "Enhancement",
       "releaseTitle": "PM Overview SOW role and SOW-based planned margin",
-      "provisionalTaskName": true,
-      "shippedVersion": null,
+      "provisionalTaskName": false,
+      "shippedVersion": "v3.20.16",
       "tasklist": "Delivery",
       "tasklistId": 4174283,
       "notebookKey": "feature_053",
       "intakeTaskId": 40876280,
       "inboxTaskUrl": "https://win.godeap.io/app/tasks/40876280",
-      "workflowStage": "Spec Draft",
+      "workflowStage": "Shipped",
       "createdAt": "2026-08-31",
-      "renameAtShip": "v{FOS_PRD_VERSION} - PM Overview SOW role and SOW-based planned margin"
+      "renameAtShip": "v{FOS_PRD_VERSION} - PM Overview SOW role and SOW-based planned margin",
+      "shippedAt": "2026-09-01",
+      "estDevHours": 9,
+      "estDevHoursRationale": [
+        "Git range: 20b213e6..HEAD (79 files)",
+        "Ship overhead (PRD version, src headers, manifest sync): 0.5h",
+        "Client chart/UI (`src/DashboardShell.html`, +71 lines): +1.9h",
+        "Server P&L / Fibery logic (`src/deliveryDashboard.js`, +28 lines): +2.2h",
+        "Apps Script module `src/projectPerformanceMetrics.js`: +1.6h",
+        "Feature spec / docs (+122 lines): +1.3h",
+        "Teamwork / automation scripts (+253 lines): +1.0h",
+        "PRD FR/AC + changelog row: +0.25h",
+        "Snapshot schema alignment: +0.25h",
+        "Total (rounded to nearest 0.5h): 9.0h"
+      ],
+      "estDevHoursGitBase": "20b213e6f1af8ce252c7a4b72b63bc527201c55f"
     }
   },
   "supersededDuplicates": {

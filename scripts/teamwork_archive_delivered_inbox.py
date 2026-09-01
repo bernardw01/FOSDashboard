@@ -24,6 +24,13 @@ NOTE_MARKER = "**Delivered (archived from backlog cleanup).**"
 
 DELIVERED_INBOX = [
     {
+        "task_id": 40876280,
+        "release_task_id": 40944436,
+        "release_name": "v3.20.16 - PM Overview SOW role and SOW-based planned margin",
+        "version": "3.20.16",
+        "feature_id": "053",
+    },
+    {
         "task_id": 40926670,
         "release_task_id": 40944072,
         "release_name": "v3.20.15 - PM Overview default Project Performance tab on project select",
