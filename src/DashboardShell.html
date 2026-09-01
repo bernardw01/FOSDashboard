@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.20.15 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.20.16 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -5964,7 +5964,7 @@
       // the user upgrades.
       var DELIVERY_PNL_KEY_PREFIX = 'fos_delivery_pnl_';
       var DELIVERY_PNL_KEY_SUFFIX = '_v16';
-      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 17;
+      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 18;
       var DELIVERY_STATUS_CLIENT_META_ = {
         on_track: { enumName: 'Agreement On Track', trafficLight: 'green' },
         at_risk: { enumName: 'Agreement At Risk', trafficLight: 'yellow' },
@@ -19949,9 +19949,9 @@
         margin:
           'Gross profit divided by revenue recognized, as a percent. Subtext shows agreement Target Margin when present.',
         planned:
-          'Agreement Target Margin. Fixed plan for the engagement; not the current month accounting margin.',
+          'Margin from SOW bill and cost rates on every billable allocation (rates used when the SOW was written). Requires 100% rate coverage.',
         projected:
-          'Project-level: (revenue to date + remaining planned revenue - cost to date - remaining planned cost) divided by (revenue to date + remaining planned revenue). Smooths lumpy invoice timing.',
+          'Margin from current Team Member Role bill and cost rates (cost cards) on every billable allocation. Requires 100% rate coverage.',
         eacHours:
           'Actual hours through the as-of month plus remaining planned allocation hours. Budget is total allocated hours when allocations exist.',
         eacDollars:
@@ -29875,6 +29875,47 @@
         return formatMarginPct(Number(v));
       }
 
+      function perfSowRoleDisplay_(row, payload) {
+        if (!row) return '-';
+        if (row.sowRoleDisplay != null && String(row.sowRoleDisplay).trim() !== '') {
+          return String(row.sowRoleDisplay);
+        }
+        if (row.allocatedAndBillable === false || row.highlightOrange) return '-';
+        var assignments = ((payload && payload.resourceAllocations) || {}).assignments || [];
+        var range = getDeliveryPerfDateRange_();
+        var roles = [];
+        var sawBillable = false;
+        for (var i = 0; i < assignments.length; i++) {
+          var a = assignments[i];
+          if (!deliveryPerfPersonNamesMatch_(row.name, a.name)) continue;
+          if (!range.isAllTime) {
+            var aStart = String(a.durStart || a.durEnd || '').slice(0, 10);
+            var aEnd = String(a.durEnd || a.durStart || '').slice(0, 10);
+            var rs = range.startYmd || '';
+            var re = range.endYmd || range.startYmd || '';
+            if (rs && aEnd && aEnd < rs) continue;
+            if (re && aStart && aStart > re) continue;
+          }
+          if (a.allocatedAndBillable !== true) continue;
+          sawBillable = true;
+          var role = a.roleOnSow;
+          if (role == null || String(role).trim() === '') continue;
+          role = String(role).trim();
+          if (roles.indexOf(role) < 0) roles.push(role);
+        }
+        if (!sawBillable && row.allocatedAndBillable !== true) return '-';
+        return roles.length ? roles.join(', ') : '-';
+      }
+
+      function perfMarginKpiTip_(baseTip, reason) {
+        if (!reason) return baseTip;
+        return baseTip + ' ' + reason;
+      }
+
+      function perfMarginKpiSub_(reason, fallback) {
+        return reason ? 'See tooltip' : fallback;
+      }
+
       var PERF_ORANGE_TITLE_ =
         'Logged time without a Fibery allocation, or allocation not marked Allocated & Billable (not on the SOW).';
 
@@ -30105,6 +30146,8 @@
             allocatedCostLife: Number(r.allocatedCostLife || 0),
             loggedCostLife: Number(r.loggedCostLife || 0),
             highlightOrange: !!r.highlightOrange,
+            allocatedAndBillable: r.allocatedAndBillable,
+            sowRoleDisplay: r.sowRoleDisplay || null,
           };
         }
         for (var a = 0; a < assignments.length; a++) {
@@ -30119,6 +30162,9 @@
           if (asgHours > aRow.allocatedHoursLife) aRow.allocatedHoursLife = asgHours;
           if (asgCost > aRow.allocatedCostLife) aRow.allocatedCostLife = asgCost;
           if (!skipOrange && asg.allocatedAndBillable === false) aRow.highlightOrange = true;
+          else if (asg.allocatedAndBillable === true && aRow.allocatedAndBillable !== false) {
+            aRow.allocatedAndBillable = true;
+          }
         }
         var out = [];
         var keys = Object.keys(byKey);
@@ -30316,11 +30362,12 @@
           var orangeTitle = r.highlightOrange ? ' title="' + escapeHtml(PERF_ORANGE_TITLE_) + '"' : '';
           var hVar = perfHoursVariance_(r);
           var cVar = perfCostVariance_(r);
+          var sowRole = perfSowRoleDisplay_(r, payload);
           html +=
             '<tr class="' + orange.trim() + ' fos-delivery-perf-row"' + orangeTitle +
               ' data-perf-row="' + i + '" role="button" tabindex="0">' +
               '<td>' + escapeHtml(r.name || ' - ') + '</td>' +
-              '<td>' + escapeHtml(r.role || ' - ') + '</td>' +
+              '<td>' + escapeHtml(sowRole) + '</td>' +
               '<td class="num">' + escapeHtml(formatPerfTableNumber_(r.allocatedHoursLife || 0)) + '</td>' +
               '<td class="num">' + escapeHtml(formatPerfTableNumber_(r.loggedHoursLife || 0)) + '</td>' +
               '<td class="num">' + escapeHtml(formatPerfSignedHours_(hVar)) + '</td>' +
@@ -30332,7 +30379,7 @@
             '<div class="fos-delivery-perf-resource-card' + (r.highlightOrange ? ' is-orange' : '') + '"' +
               orangeTitle + ' data-perf-row="' + i + '" role="button" tabindex="0">' +
               '<div class="fw-semibold">' + escapeHtml(r.name || ' - ') + '</div>' +
-              '<div class="small" style="color:var(--ag-text-muted)">' + escapeHtml(r.role || '') + '</div>' +
+              '<div class="small" style="color:var(--ag-text-muted)">' + escapeHtml(sowRole) + '</div>' +
               '<div class="small mt-2">Allocated: ' + escapeHtml(formatPerfTableNumber_(r.allocatedHoursLife || 0)) +
                 ' · Logged: ' + escapeHtml(formatPerfTableNumber_(r.loggedHoursLife || 0)) +
                 ' · Hours var: ' + escapeHtml(formatPerfSignedHours_(hVar)) + '</div>' +
@@ -30397,21 +30444,31 @@
             var eacH = perf.eacHours || {};
             var eacD = perf.eacDollars || {};
             var hidePlanKpis = !hasResourcePlan;
+            var plannedReason = perf && perf.plannedMarginReason ? String(perf.plannedMarginReason) : '';
+            var projectedReason = perf && perf.projectedMarginReason ? String(perf.projectedMarginReason) : '';
             els.deliveryPnlPerfKpis.innerHTML =
               durationChipHtml +
               deliveryKpiChipHtml_({
                 tipId: 'delivery-perf-kpi-planned',
-                title: hidePlanKpis ? noPlanTip : DELIVERY_KPI_TIPS_.planned,
+                title: hidePlanKpis
+                  ? noPlanTip
+                  : perfMarginKpiTip_(DELIVERY_KPI_TIPS_.planned, plannedReason),
                 label: 'Planned margin',
                 valueHtml: escapeHtml(hidePlanKpis ? 'N/A' : formatPerfPct_(perf.plannedMarginPct)),
-                subHtml: hidePlanKpis ? 'No plan available' : 'Target margin',
+                subHtml: hidePlanKpis
+                  ? 'No plan available'
+                  : perfMarginKpiSub_(plannedReason, 'From SOW rates'),
               }) +
               deliveryKpiChipHtml_({
                 tipId: 'delivery-perf-kpi-projected',
-                title: hidePlanKpis ? noPlanTip : DELIVERY_KPI_TIPS_.projected,
+                title: hidePlanKpis
+                  ? noPlanTip
+                  : perfMarginKpiTip_(DELIVERY_KPI_TIPS_.projected, projectedReason),
                 label: 'Projected margin',
                 valueHtml: escapeHtml(hidePlanKpis ? 'N/A' : formatPerfPct_(perf.projectedMarginPct)),
-                subHtml: hidePlanKpis ? 'No plan available' : 'Project-level (smoothed)',
+                subHtml: hidePlanKpis
+                  ? 'No plan available'
+                  : perfMarginKpiSub_(projectedReason, 'Cost card rates'),
               }) +
               deliveryKpiChipHtml_({
                 tipId: 'delivery-perf-kpi-eac-h',
@@ -30615,9 +30672,9 @@
       }
 
       function formatPerfAllocationRoleOnSow_(row) {
-        if (!row || row.allocatedAndBillable !== true) return 'N/A';
+        if (!row || row.allocatedAndBillable !== true) return '-';
         var role = row.roleOnSow;
-        if (role == null || String(role).trim() === '') return 'N/A';
+        if (role == null || String(role).trim() === '') return '-';
         return String(role).trim();
       }
 
@@ -30686,8 +30743,9 @@
           var rangeLabel = range.isAllTime
             ? 'All time'
             : ((range.startMonth || '') + ' to ' + (range.endMonth || ''));
+          var sowRoleSub = perfSowRoleDisplay_(row, deliveryState.lastPnlPayload || {});
           els.deliveryPnlPerfTimeModalSubtitle.textContent =
-            (row.role || '') + (row.role ? ' · ' : '') + rangeLabel;
+            (sowRoleSub && sowRoleSub !== '-' ? sowRoleSub + ' · ' : '') + rangeLabel;
         }
         var orangeEl = els.deliveryPnlPerfTimeOrange;
         if (orangeEl) {

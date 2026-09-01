@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.15 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.16 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: panel hydrate builders that read Supabase typed
  * tables (Agreement Management mirror from `supabaseAmMirror.js`, labor
@@ -1341,6 +1341,18 @@ function roleOnSowFromSupabaseAllocationRaw_(raw) {
 }
 
 /**
+ * @param {*} raw
+ * @return {?number}
+ * @private
+ */
+function sowRateFromSupabaseAllocationRaw_(raw, key) {
+  if (!raw || typeof raw !== 'object') return null;
+  var v = raw[key];
+  if (v == null || v === '') return null;
+  return numberOrNull_(v);
+}
+
+/**
  * @param {string} agreementId
  * @return {!{ ok: true, rows: !Array<!Object> }|!{ ok: false, reason: string, message: string }}
  * @private
@@ -1378,6 +1390,10 @@ function fetchResourceAllocationsForAgreementFromSupabase_(agreementId) {
       allocatedAndBillable: billableRaw === true ? true : billableRaw === false ? false : null,
       roleName: (role ? stringOrNull_(role.name) : null) || '(No role)',
       roleOnSow: roleOnSowFromSupabaseAllocationRaw_(r.raw),
+      sowBillRate: sowRateFromSupabaseAllocationRaw_(r.raw, 'sowBillRate'),
+      sowCostRate: sowRateFromSupabaseAllocationRaw_(r.raw, 'sowCostRate'),
+      currentBillRate: role ? numberOrNull_(role.bill_rate) : null,
+      currentCostRate: role ? numberOrNull_(role.cost_rate) : null,
       durStart: stringOrNull_(r.duration_start),
       durEnd: stringOrNull_(r.duration_end),
     });

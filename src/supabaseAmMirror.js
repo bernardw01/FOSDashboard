@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.15 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.16 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement Management Fibery â†’ Supabase relational mirror (Pull / nightly).
  * Full-scan steps reconcile ghosts: fibery_ids seen during the step are stored
@@ -322,6 +322,8 @@ var AM_MIRROR_ENTITY_STEPS_ = [
       allocatedHours: 'Agreement Management/Allocated Hours',
       percentAllocated: 'Agreement Management/Percent Allocated',
       roleOnSow: 'Agreement Management/Role on SOW',
+      sowBillRate: 'Agreement Management/SOW Bill Rate',
+      sowCostRate: 'Agreement Management/SOW Cost Rate',
       workDays: 'Agreement Management/Work Days',
       notes: 'Agreement Management/Notes',
       duration: 'Agreement Management/Duration',

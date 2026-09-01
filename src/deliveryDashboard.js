@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.15 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.16 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `pm-overview`, panel
  * `#panel-pm-overview`). Public endpoints, all authorized via
@@ -106,7 +106,7 @@ var DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_ = 2;
  *   v16 - v3.7.6 / feature 040 R5: laborByPerson.allocatedCost (month-prorated).
  * @const {number}
  */
-var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 17;
+var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 18;
 
 /** @const {number} Default TTL (minutes) for the client-side cache. */
 var DELIVERY_DEFAULT_CACHE_TTL_MIN_ = 10;
@@ -823,6 +823,12 @@ function getDeliveryPerfResourceRowsForRange(opts) {
     empty.message = laborCtx.message || '';
   }
   empty.rows = rows;
+  if (rows.length && typeof ppAttachSowRoleDisplay_ === 'function') {
+    ppAttachSowRoleDisplay_(rows, assignments, {
+      startYmd: startYmd,
+      endYmd: endYmd,
+    });
+  }
   return empty;
 }
 
@@ -1768,6 +1774,16 @@ function fetchResourceAllocationsForAgreement_(agreementId) {
           'Agreement Management/Name',
         ],
         roleOnSow: 'Agreement Management/Role on SOW',
+        sowBillRate: 'Agreement Management/SOW Bill Rate',
+        sowCostRate: 'Agreement Management/SOW Cost Rate',
+        currentBillRate: [
+          'Agreement Management/Clockify User Team Member Role',
+          'Agreement Management/Bill Rate',
+        ],
+        currentCostRate: [
+          'Agreement Management/Clockify User Team Member Role',
+          'Agreement Management/Cost Rate',
+        ],
       },
       'q/where': ['=', ['Agreement Management/Agreement', 'fibery/id'], '$agreementId'],
       'q/limit': DELIVERY_QUERY_LIMIT_,
@@ -1793,6 +1809,10 @@ function fetchResourceAllocationsForAgreement_(agreementId) {
       allocatedAndBillable: billableRaw === true ? true : billableRaw === false ? false : null,
       roleName: stringOrNull_(page[i].roleName) || '(No role)',
       roleOnSow: stringOrNull_(page[i].roleOnSow),
+      sowBillRate: numberOrNull_(page[i].sowBillRate),
+      sowCostRate: numberOrNull_(page[i].sowCostRate),
+      currentBillRate: numberOrNull_(page[i].currentBillRate),
+      currentCostRate: numberOrNull_(page[i].currentCostRate),
       durStart: dur ? stringOrNull_(dur.start) : null,
       durEnd: dur ? stringOrNull_(dur.end) : null,
     });
@@ -1854,6 +1874,8 @@ function buildResourceAllocationAssignmentsList_(rows) {
       name: name,
       roleName: stringOrNull_(row.roleName) || '(No role)',
       durationLabel: formatResourceAllocationDurationLabel_(row.durStart, row.durEnd),
+      durStart: row.durStart || null,
+      durEnd: row.durEnd || null,
       percentAllocated: (pctNum !== null && isFinite(pctNum))
         ? deliveryPnlNormalizePercent_(pctNum) : null,
       allocatedHours: Number(row.allocatedHours || 0),
@@ -1864,6 +1886,10 @@ function buildResourceAllocationAssignmentsList_(rows) {
           ? false
           : null,
       roleOnSow: stringOrNull_(row.roleOnSow),
+      sowBillRate: row.sowBillRate == null ? null : Number(row.sowBillRate),
+      sowCostRate: row.sowCostRate == null ? null : Number(row.sowCostRate),
+      currentBillRate: row.currentBillRate == null ? null : Number(row.currentBillRate),
+      currentCostRate: row.currentCostRate == null ? null : Number(row.currentCostRate),
     });
   }
   out.sort(function (a, b) {

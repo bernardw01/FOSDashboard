@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.15 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.20.16 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 040: shared project performance metrics (planned / projected margin,
  * EAC hours and dollars, timing-review flag, lifetime resources). Consumed by
@@ -168,6 +168,150 @@ function ppPersonNamesMatch_(aName, bName) {
  * @return {!Object}
  * @private
  */
+/**
+ * @param {*} raw
+ * @return {?number}
+ * @private
+ */
+function ppNormalizeRate_(raw) {
+  if (raw === null || raw === undefined || raw === '') return null;
+  var n = Number(raw);
+  return isFinite(n) && n >= 0 ? n : null;
+}
+
+/**
+ * @param {?string} durStart `YYYY-MM-DD`
+ * @param {?string} durEnd `YYYY-MM-DD`
+ * @param {?string} startYmd
+ * @param {?string} endYmd
+ * @return {boolean}
+ * @private
+ */
+function ppAllocationOverlapsYmdRange_(durStart, durEnd, startYmd, endYmd) {
+  if (!startYmd && !endYmd) return true;
+  var aStart = String(durStart || durEnd || '').slice(0, 10);
+  var aEnd = String(durEnd || durStart || '').slice(0, 10);
+  if (!aStart && !aEnd) return true;
+  if (!aEnd) aEnd = aStart;
+  if (!aStart) aStart = aEnd;
+  var rangeStart = String(startYmd || '').slice(0, 10);
+  var rangeEnd = String(endYmd || startYmd || '').slice(0, 10);
+  if (!rangeStart && rangeEnd) rangeStart = rangeEnd;
+  if (rangeStart && !rangeEnd) rangeEnd = rangeStart;
+  if (rangeStart && aEnd < rangeStart) return false;
+  if (rangeEnd && aStart > rangeEnd) return false;
+  return true;
+}
+
+/**
+ * @param {!Array<!Object>} assignments
+ * @param {'sow'|'current'} rateMode
+ * @return {!{ pct: ?number, ok: boolean, reason: ?string }}
+ * @private
+ */
+function ppComputeAllocationLaborMargin_(assignments, rateMode) {
+  var billable = [];
+  for (var i = 0; i < (assignments || []).length; i++) {
+    var a = assignments[i];
+    if (a.allocatedAndBillable !== true) continue;
+    var hours = Number(a.allocatedHours || 0);
+    if (!isFinite(hours) || hours <= 0) continue;
+    billable.push(a);
+  }
+  if (!billable.length) {
+    return {
+      pct: null,
+      ok: false,
+      reason: 'No billable allocations with hours on this SOW.',
+    };
+  }
+  var totalRev = 0;
+  var totalCost = 0;
+  var missingBill = 0;
+  var missingCost = 0;
+  var rateLabel = rateMode === 'sow' ? 'SOW' : 'cost card';
+  for (var j = 0; j < billable.length; j++) {
+    var row = billable[j];
+    var h = Number(row.allocatedHours || 0);
+    var billRate = rateMode === 'sow'
+      ? ppNormalizeRate_(row.sowBillRate)
+      : ppNormalizeRate_(row.currentBillRate);
+    var costRate = rateMode === 'sow'
+      ? ppNormalizeRate_(row.sowCostRate)
+      : ppNormalizeRate_(row.currentCostRate);
+    if (billRate == null) missingBill++;
+    if (costRate == null) missingCost++;
+    if (billRate == null || costRate == null) continue;
+    totalRev += h * billRate;
+    totalCost += h * costRate;
+  }
+  if (missingBill > 0 || missingCost > 0 || totalRev <= 0) {
+    var reason = 'Margin requires ' + rateLabel + ' bill and cost rates on every billable allocation.';
+    if (missingBill > 0 && missingCost > 0) {
+      reason = rateLabel + ' bill and cost rates missing on one or more billable allocations.';
+    } else if (missingCost > 0) {
+      reason = 'No ' + rateLabel + ' cost rate on one or more billable allocations.';
+    } else if (missingBill > 0) {
+      reason = 'No ' + rateLabel + ' bill rate on one or more billable allocations.';
+    }
+    return { pct: null, ok: false, reason: reason };
+  }
+  return {
+    pct: ppRound1_(((totalRev - totalCost) / totalRev) * 100),
+    ok: true,
+    reason: null,
+  };
+}
+
+/**
+ * @param {?string} personName
+ * @param {!Array<!Object>} assignments
+ * @param {?boolean=} rowBillable
+ * @param {?Object=} rangeYmd `{ startYmd?, endYmd? }`
+ * @return {string}
+ * @private
+ */
+function ppFormatSowRoleDisplayForPerson_(personName, assignments, rowBillable, rangeYmd) {
+  if (rowBillable === false) return '-';
+  var roles = [];
+  var sawBillable = false;
+  var startYmd = rangeYmd && rangeYmd.startYmd ? String(rangeYmd.startYmd).slice(0, 10) : '';
+  var endYmd = rangeYmd && rangeYmd.endYmd ? String(rangeYmd.endYmd).slice(0, 10) : '';
+  for (var i = 0; i < (assignments || []).length; i++) {
+    var a = assignments[i];
+    if (!ppPersonNamesMatch_(personName, a.name)) continue;
+    if (!ppAllocationOverlapsYmdRange_(a.durStart, a.durEnd, startYmd, endYmd)) continue;
+    if (a.allocatedAndBillable !== true) continue;
+    sawBillable = true;
+    var role = a.roleOnSow;
+    if (role == null || String(role).trim() === '') continue;
+    role = String(role).trim();
+    if (roles.indexOf(role) < 0) roles.push(role);
+  }
+  if (!sawBillable && rowBillable !== true) return '-';
+  if (!roles.length) return '-';
+  return roles.join(', ');
+}
+
+/**
+ * @param {!Array<!Object>} rows
+ * @param {!Array<!Object>} assignments
+ * @param {?Object=} rangeYmd
+ * @return {!Array<!Object>}
+ * @private
+ */
+function ppAttachSowRoleDisplay_(rows, assignments, rangeYmd) {
+  for (var i = 0; i < (rows || []).length; i++) {
+    rows[i].sowRoleDisplay = ppFormatSowRoleDisplayForPerson_(
+      rows[i].name,
+      assignments,
+      rows[i].allocatedAndBillable,
+      rangeYmd
+    );
+  }
+  return rows;
+}
+
 function ppEnsureResourcesLifetimeRow_(byKey, name, role) {
   var roleNorm = String(role || '(No role)').trim().toLowerCase();
   var keys = Object.keys(byKey);
@@ -213,10 +357,11 @@ function buildProjectPerformanceBlock_(args) {
   var months = args.months || [];
   var resourceAllocations = args.resourceAllocations || null;
   var asOfMonthKey = String(args.asOfMonthKey || ppCurrentMonthKey_()).slice(0, 7);
-  var plannedMarginPct =
-    args.targetMarginPct === null || args.targetMarginPct === undefined
-      ? null
-      : ppRound1_(Number(args.targetMarginPct));
+  var assignments = args.assignments || (resourceAllocations && resourceAllocations.assignments) || [];
+  var planned = ppComputeAllocationLaborMargin_(assignments, 'sow');
+  var projectedLabor = ppComputeAllocationLaborMargin_(assignments, 'current');
+  var plannedMarginPct = planned.ok ? planned.pct : null;
+  var plannedMarginReason = planned.ok ? null : planned.reason;
   var hasAllocationData =
     !!(resourceAllocations && resourceAllocations.hasAllocations === true) ||
     !!(resourceAllocations && resourceAllocations.months && resourceAllocations.months.length);
@@ -258,7 +403,6 @@ function buildProjectPerformanceBlock_(args) {
     }
   }
 
-  var assignments = args.assignments || (resourceAllocations && resourceAllocations.assignments) || [];
   var totalAllocatedHours = 0;
   var totalAllocatedCost = 0;
   for (var ai = 0; ai < assignments.length; ai++) {
@@ -303,8 +447,8 @@ function buildProjectPerformanceBlock_(args) {
   var projectedRev = revToDate + remainingPlannedRevenue;
   var projectedCost = actualCostToDate + remainingPlanCost;
   var projectedGp = projectedRev - projectedCost;
-  var projectedMarginPct =
-    projectedRev > 0 ? ppRound1_((projectedGp / projectedRev) * 100) : null;
+  var projectedMarginPct = projectedLabor.ok ? projectedLabor.pct : null;
+  var projectedMarginReason = projectedLabor.ok ? null : projectedLabor.reason;
   var actualMarginPctToDate =
     revToDate > 0 ? ppRound1_(((revToDate - actualCostToDate) / revToDate) * 100) : null;
 
@@ -324,16 +468,21 @@ function buildProjectPerformanceBlock_(args) {
     periodRevenue: ppRound2_(periodRevenue),
   };
 
+  var resourcesLifetime = ppBuildResourcesLifetime_(months, assignments, args.customerName);
+  ppAttachSowRoleDisplay_(resourcesLifetime, assignments, null);
+
   return {
     asOfMonthKey: asOfMonthKey,
     plannedMarginPct: plannedMarginPct,
+    plannedMarginReason: plannedMarginReason,
     projectedMarginPct: projectedMarginPct,
+    projectedMarginReason: projectedMarginReason,
     projectedGrossProfit: projectedRev > 0 || projectedCost > 0 ? ppRound2_(projectedGp) : null,
     actualMarginPctToDate: actualMarginPctToDate,
     eacHours: eacHours,
     eacDollars: eacDollars,
     timingReview: timingReview,
-    resourcesLifetime: ppBuildResourcesLifetime_(months, assignments, args.customerName),
+    resourcesLifetime: resourcesLifetime,
   };
 }
 
@@ -409,6 +558,8 @@ function ppBuildResourcesLifetime_(months, assignments, customerName) {
     if (!skipOrange && asg.allocatedAndBillable === false) {
       aRow.allocatedAndBillable = false;
       aRow.highlightOrange = true;
+    } else if (asg.allocatedAndBillable === true && aRow.allocatedAndBillable !== false) {
+      aRow.allocatedAndBillable = true;
     }
   }
 
@@ -432,6 +583,7 @@ function ppBuildResourcesLifetime_(months, assignments, customerName) {
       loggedCostLife: ppRound2_(r.loggedCostLife),
       allocatedAndBillable: r.allocatedAndBillable,
       highlightOrange: !!r.highlightOrange,
+      sowRoleDisplay: null,
     });
   }
   out.sort(function (a, b) {

@@ -522,6 +522,16 @@
       "publishedAt": "2026-08-31",
       "lastSyncedAt": "2026-08-31",
       "gitMirror": "docs/features/051-pm-overview-contract-duration.md"
+    },
+    "feature_053": {
+      "id": 313609,
+      "title": "Feature 053 - PM Overview SOW role and SOW-based planned margin",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/313609",
+      "featureId": "053",
+      "intakeTaskId": 40876280,
+      "publishedAt": "2026-08-31",
+      "lastSyncedAt": "2026-08-31",
+      "gitMirror": "docs/features/053-pm-overview-sow-margin-and-role.md"
     }
   },
   "tasks": {
@@ -2203,6 +2213,23 @@
       ],
       "estDevHoursGitBase": "32a650cf7c9682ce8515613087af9417a3acd20d",
       "workflowStage": "Shipped"
+    },
+    "Feature 053 - PM Overview SOW role and SOW-based planned margin": {
+      "id": 40944436,
+      "url": "https://win.godeap.io/app/tasks/40944436",
+      "featureId": "053",
+      "releaseType": "Enhancement",
+      "releaseTitle": "PM Overview SOW role and SOW-based planned margin",
+      "provisionalTaskName": true,
+      "shippedVersion": null,
+      "tasklist": "Delivery",
+      "tasklistId": 4174283,
+      "notebookKey": "feature_053",
+      "intakeTaskId": 40876280,
+      "inboxTaskUrl": "https://win.godeap.io/app/tasks/40876280",
+      "workflowStage": "Spec Draft",
+      "createdAt": "2026-08-31",
+      "renameAtShip": "v{FOS_PRD_VERSION} - PM Overview SOW role and SOW-based planned margin"
     }
   },
   "supersededDuplicates": {
