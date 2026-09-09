@@ -1,5 +1,5 @@
 /**
- * PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 056: Supabase CRUD for Lookback months, projects, evidence.
  */
@@ -132,6 +132,7 @@ function lbMapProject_(row) {
     narrative: row.narrative || {},
     narrativeStatus: row.narrative_status || 'not_started',
     metrics: row.metrics || {},
+    sortOrder: row.sort_order != null ? Number(row.sort_order) : 0,
     updatedAt: row.updated_at,
   };
 }

@@ -1,5 +1,5 @@
 /**
- * PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 037: google.script.run surface for Engagement Reviews + status packs.
  */
@@ -102,7 +102,21 @@ function updateEngagementReview(reviewId, fields) {
 function deleteEngagementReview(reviewId) {
   try {
     requireEngagementReviewAdminForApi_();
-    return erDeleteReview_(reviewId);
+    var id = String(reviewId || '').trim();
+    if (!id) return { ok: false, message: 'Review id is required.' };
+    var bundle = erGetReviewBundle_(id);
+    if (bundle && bundle.ok && bundle.recordings && bundle.recordings.length) {
+      for (var i = 0; i < bundle.recordings.length; i++) {
+        var fid = bundle.recordings[i] && bundle.recordings[i].drive_file_id;
+        if (!fid) continue;
+        try {
+          DriveApp.getFileById(String(fid)).setTrashed(true);
+        } catch (e) {
+          /* best-effort */
+        }
+      }
+    }
+    return erDeleteReview_(id);
   } catch (e) {
     return erApiFail_(e);
   }
@@ -357,10 +371,123 @@ function updateEngagementStatusPack(updateId, fields) {
 function getEngagementStatusPack(updateId) {
   try {
     requireEngagementReviewAccessForApi_();
-    return erGetStatusPackUpdate_(updateId);
+    var loaded = erGetStatusPackUpdate_(updateId);
+    if (!loaded.ok) return loaded;
+    // BUG-037-01 option (a): display-only live owner; do not rewrite assigned_owner_*.
+    return erEnrichStatusPackUpdateForEditDisplay_(loaded);
   } catch (e) {
     return erApiFail_(e);
   }
+}
+
+/**
+ * Adds currentOwner* from the linked agreement for Edit modal display.
+ * Leaves assignedOwnerEmail / assignedOwnerName unchanged (permission + list).
+ *
+ * @param {!{ ok: boolean, update?: !Object, message?: string }} loaded
+ * @return {!{ ok: boolean, update?: !Object, message?: string }}
+ */
+function erEnrichStatusPackUpdateForEditDisplay_(loaded) {
+  if (!loaded || !loaded.ok || !loaded.update) return loaded;
+  var update = loaded.update;
+  var live = lookupFosAgreementCurrentOwner_(update.agreementFiberyId);
+  update.currentOwnerEmail = live.ownerEmail || '';
+  update.currentOwnerName = live.ownerName || '';
+  return { ok: true, update: update };
+}
+
+/**
+ * BUG-037-01 adapted TDD: load a Project Update and assert Edit modal fields
+ * (Lookback period + live Owner) are present without rewriting stored owner.
+ *
+ * Run from the Apps Script editor. Optional updateId; defaults to a known
+ * RCI Acuity update that historically showed blank Lookback / "-" Owner.
+ *
+ * @param {string=} updateId
+ * @return {!Object}
+ */
+function test_erFillUpdateModalEditOwnerAndPeriod_(updateId) {
+  var id = String(updateId || '2d694680-6ca9-44a3-b370-f6afad497a55').trim();
+  var auth;
+  try {
+    auth = requireEngagementReviewAccessForApi_();
+  } catch (e) {
+    return { ok: false, pass: false, message: erApiFail_(e).message, updateId: id };
+  }
+
+  var raw = erGetStatusPackUpdate_(id);
+  if (!raw.ok) {
+    return { ok: false, pass: false, message: raw.message || 'Update not found.', updateId: id };
+  }
+  var enriched = erEnrichStatusPackUpdateForEditDisplay_(raw);
+  var u = enriched.update || {};
+  var periodYm = String(u.reportingPeriod || '').slice(0, 7);
+  var periodOk = /^\d{4}-\d{2}$/.test(periodYm);
+  var periodLabel = erTestPeriodLabel_(u.reportingPeriod);
+  var liveOwner = String(u.currentOwnerName || u.currentOwnerEmail || '').trim();
+  var frozenOwner = String(u.assignedOwnerName || u.assignedOwnerEmail || '').trim();
+  var liveLookup = lookupFosAgreementCurrentOwner_(u.agreementFiberyId);
+  var expectLiveOwner = !!(liveLookup.ownerName || liveLookup.ownerEmail);
+  var ownerDisplayOk = expectLiveOwner
+    ? !!liveOwner
+    : true; /* AC3: empty live owner is ok; UI shows Unassigned */
+  var notRewritten =
+    String(u.assignedOwnerEmail || '') === String((raw.update && raw.update.assignedOwnerEmail) || '') &&
+    String(u.assignedOwnerName || '') === String((raw.update && raw.update.assignedOwnerName) || '');
+
+  var canEdit = erCanEditStatusPack_(auth, u);
+  var pass = periodOk && !!periodLabel && ownerDisplayOk && notRewritten;
+
+  return {
+    ok: true,
+    pass: pass,
+    updateId: id,
+    agreementFiberyId: u.agreementFiberyId || '',
+    agreementName: u.agreementName || '',
+    reportingPeriod: u.reportingPeriod || null,
+    lookbackPeriodLabel: periodLabel,
+    currentOwnerName: u.currentOwnerName || '',
+    currentOwnerEmail: u.currentOwnerEmail || '',
+    assignedOwnerName: u.assignedOwnerName || '',
+    assignedOwnerEmail: u.assignedOwnerEmail || '',
+    frozenOwnerUnchanged: notRewritten,
+    erCanEditStatusPack: canEdit,
+    checks: {
+      lookbackPeriodNonEmpty: periodOk && !!periodLabel,
+      liveOwnerWhenAgreementHasOwner: ownerDisplayOk,
+      storedOwnerNotRewritten: notRewritten,
+    },
+    message: pass
+      ? 'PASS: Edit payload has Lookback period label and live Owner fields; stored assigned_owner_* unchanged.'
+      : 'FAIL: Lookback period and/or live Owner display fields missing (BUG-037-01 still open).',
+  };
+}
+
+/**
+ * @param {string=} period
+ * @return {string}
+ */
+function erTestPeriodLabel_(period) {
+  var raw = String(period || '');
+  var s = raw.slice(0, 7);
+  var y = s.slice(0, 4);
+  var m = Number(raw.slice(5, 7));
+  var names = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  if (!y || !m) return s || '';
+  return (names[m - 1] || s) + ' ' + y;
 }
 
 /**
@@ -544,10 +671,25 @@ function erFmtMoneyPlain_(v) {
  * @param {?string} rag
  * @return {string}
  */
+function erOverallRagPillStyle_(overallRag) {
+  var r = String(overallRag || 'on_track').toLowerCase();
+  if (r === 'off_track') {
+    return 'background:rgba(240,113,120,.16);color:#b00020';
+  }
+  if (r === 'at_risk') {
+    return 'background:rgba(245,197,66,.18);color:#8a6d00';
+  }
+  return 'background:rgba(12,163,12,.12);color:#0c7a0c';
+}
+
+/**
+ * @param {?string} rag
+ * @return {string}
+ */
 function erRagBorderColor_(rag) {
   var r = String(rag || '').toLowerCase();
-  if (r === 'red') return '#dc3545';
-  if (r === 'amber' || r === 'yellow') return '#f0ad4e';
+  if (r === 'red' || r === 'off_track') return '#dc3545';
+  if (r === 'amber' || r === 'yellow' || r === 'at_risk') return '#f0ad4e';
   return '#28a745';
 }
 
@@ -571,10 +713,12 @@ function erBuildStatusPackExportHtml_(update) {
   var u = update || {};
   var q = u.quantitativeSnapshot || {};
   var qual = u.qualitative || {};
-  var rag = String(u.overallRag || 'on_track').replace(/_/g, ' ').toUpperCase();
+  var overallKey = String(u.overallRag || 'on_track').toLowerCase();
+  var rag = overallKey.replace(/_/g, ' ').toUpperCase();
   var owner = u.assignedOwnerName || u.assignedOwnerEmail || '';
   var period = String(u.reportingPeriod || '').slice(0, 7);
   var pulled = u.metricsPulledAt || '';
+  var pillStyle = erOverallRagPillStyle_(overallKey);
 
   function dim(key, label) {
     var d = qual[key] || {};
@@ -658,12 +802,12 @@ function erBuildStatusPackExportHtml_(update) {
 
   return (
     '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' +
-    erEscHtml_(u.agreementName || 'Engagement Update') +
+    erEscHtml_(u.agreementName || 'Project Update') +
     '</title><style>' +
     'body{font-family:system-ui,sans-serif;background:#f9f9f7;color:#0b0b0b;margin:0;padding:24px}' +
     '.report{max-width:980px;margin:0 auto;background:#fcfcfb;border:1px solid rgba(11,11,11,.1);border-radius:12px;padding:28px}' +
     '.head{display:flex;justify-content:space-between;border-bottom:1px solid #e1e0d9;padding-bottom:16px;margin-bottom:18px}' +
-    '.pill{padding:7px 16px;border-radius:20px;background:rgba(12,163,12,.12);font-weight:700;font-size:13px}' +
+    '.pill{padding:7px 16px;border-radius:20px;font-weight:700;font-size:13px}' +
     '.scorecard{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}' +
     '.kpi-card{border-radius:10px;padding:14px 12px;text-align:center;background:#fff}' +
     '.kpi-head{font-size:11px;color:#898781;text-transform:uppercase;font-weight:700;letter-spacing:.04em;margin-bottom:6px}' +
@@ -678,13 +822,15 @@ function erBuildStatusPackExportHtml_(update) {
     '</style></head><body><div class="report">' +
     '<div class="head"><div><div style="font-size:19px;font-weight:700">' +
     erEscHtml_(u.companyName || u.agreementName || 'Engagement') +
-    ' - Monthly Status Report</div><div class="muted">Reporting period: <b>' +
+    ' - Project Update</div><div class="muted">Reporting period: <b>' +
     erEscHtml_(period) +
-    '</b> Â· Assigned Owner: ' +
+    '</b> · Assigned Owner: ' +
     erEscHtml_(owner) +
-    ' Â· Metrics pulled: ' +
+    ' · Metrics pulled: ' +
     erEscHtml_(pulled) +
-    '</div></div><div class="pill">' +
+    '</div></div><div class="pill" style="' +
+    pillStyle +
+    '">' +
     erEscHtml_(rag) +
     '</div></div>' +
     '<div class="scorecard">' +

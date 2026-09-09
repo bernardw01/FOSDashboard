@@ -1,5 +1,5 @@
 /**
- * PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `pm-overview`, panel
  * `#panel-pm-overview`). Public endpoints, all authorized via
@@ -104,7 +104,7 @@ var DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_ = 2;
  *        EAC hours/$, timing review, resourcesLifetime).
  *   v15 - v3.7.3: resourcesLifetime merges alias / first-name duplicates.
  *   v16 - v3.7.6 / feature 040 R5: laborByPerson.allocatedCost (month-prorated).
- *   v19 - v3.21.1: laborByPerson.allocatedCost uses hours * user cost rate
+ *   v19 - v3.26.0: laborByPerson.allocatedCost uses hours * user cost rate
  *        when Fibery Allocated Cost is empty.
  * @const {number}
  */

@@ -1,7 +1,7 @@
 # Feature: Engagement Review (Delivery)
 
 > **Status:** Shipped (**v3.5.2**; detail UX patch **v3.20.4**)  
-> **PRD version:** **3.20.9** (detail UX patch **v3.20.4**) (`FR-135`, `FR-136`, `AC-97`, `AC-98`; extends prior **v3.2.x** foundation)  
+> **PRD version:** **3.22.1** (`FR-135`, `FR-136`, `AC-97`, `AC-98`; Project Update create + collapsible chrome **v3.22.0**; Edit Lookback/Owner **BUG-037-01** **v3.22.1**; route rename **v3.21.3**)  
 > **Feature ID:** **037**  
 > **Release type:** Enhancement  
 > **Task list:** Delivery  
@@ -65,7 +65,7 @@ Give **Client Engagement**, **Execs**, and **Admins** a Delivery-module workspac
 | --- | --- | --- |
 | 1 | Feature scope | **Extend Feature 037** (same feature id, notebooks, release task). Do not split into 038/039 for this work. |
 | 2 | Naming | Use **Engagement Update** (not "Monthly Status Report") for the status pack entity and UI. |
-| 3 | Nav placement | Delivery child route **`engagement-review`**, label **Engagement review**, panel `#panel-engagement-review`. |
+| 3 | Nav placement | Delivery child route **`project-performance-review`**, label **Project performance review**, panel `#panel-engagement-review`. Legacy deep links `#engagement-review/...` and `panel=engagement-review` still open the panel. |
 | 4 | Access (view module) | Visible when **team = `CLIENT-ENGAGEMENT`**, **role = `EXEC`**, or **role = `ADMIN`** (case-insensitive). |
 | 5 | Create reviews / updates | **ADMIN, EXEC, and CLIENT-ENGAGEMENT** MAY create Engagement Reviews and create/edit Engagement Updates (subject to project picker rules). |
 | 6 | Reorder agenda | **ADMIN only** MAY drag-and-drop reorder Engagement Update line items. |
@@ -118,9 +118,10 @@ Give **Client Engagement**, **Execs**, and **Admins** a Delivery-module workspac
 
 ### Navigation and access
 
-- [ ] **Given** a user with team `CLIENT-ENGAGEMENT` or role `EXEC` or role `ADMIN`, **when** the shell loads, **then** Delivery includes **Engagement review** and `#panel-engagement-review` is reachable.
+- [ ] **Given** a user with team `CLIENT-ENGAGEMENT` or role `EXEC` or role `ADMIN`, **when** the shell loads, **then** Delivery includes **Project performance review** (`project-performance-review`) and `#panel-engagement-review` is reachable.
 - [ ] **Given** a user without that access, **when** the nav model is built, **then** the route is omitted and APIs return a safe **FORBIDDEN** message.
-- [ ] **Given** mobile width **&lt; 768px**, **when** the user opens Engagement review, **then** the panel is usable with ≥ 44px targets.
+- [ ] **Given** mobile width **&lt; 768px**, **when** the user opens Project performance review, **then** the panel is usable with ≥ 44px targets.
+- [ ] **Given** a legacy hash `#engagement-review/{reviewId}` or `panel=engagement-review`, **when** the shell loads, **then** the same panel opens as `project-performance-review`.
 
 ### Engagement Reviews (create / status / logistics)
 
@@ -174,7 +175,7 @@ Give **Client Engagement**, **Execs**, and **Admins** a Delivery-module workspac
 
 | Surface | Change |
 | --- | --- |
-| `src/Code.js` `buildNavigationModel_` | Delivery child **Engagement review** + access flags (`engagementReviewAccess`, create vs admin-reorder) |
+| `src/Code.js` `buildNavigationModel_` | Delivery child **Project performance review** (`project-performance-review`) + access flags (`engagementReviewAccess`, create vs admin-reorder) |
 | `src/DashboardShell.html` | Review list; review detail with reorderable Engagement Update agenda; large create/edit modal; interactive viewer; notes list; AI synopsis panel; HTML/print export; mobile |
 | Server modules | Auth, store, metrics builders (Supabase), suggest, calendar, Drive, AI synopsis, APIs |
 | `src/userActivityLog.js` | Whitelist |
@@ -183,7 +184,7 @@ Give **Client Engagement**, **Execs**, and **Admins** a Delivery-module workspac
 ### Desktop (≥ 768px)
 
 ```text
-Delivery > Engagement review
+Delivery > Project performance review
 ┌─ Reviews list ─────────────────────────────────────────────────────────────┐
 │ [New review] (CE / EXEC / ADMIN)   filters: upcoming / past / all            │
 │ Target date | Name | #Updates | Status | Updated                           │
@@ -436,6 +437,45 @@ Frozen at create/refresh from Supabase builders:
 
 ---
 
+## Bug fixes (engineering-tracked)
+
+*(Technical appendix; not synced to the Teamwork notebook per `docs/teamwork-workflow.md` "Bug-fix releases." Authored by Claude Code from code review + user screenshot; implementation belongs to Cursor.)*
+
+### BUG-037-01: Edit Project Update - Lookback period and Owner do not populate
+
+**Reported:** 2026-09-09, screenshot of the Edit Project Update modal (`#erUpdateModal`) for "SOW 16 - RCI (T+L) - Phase 2 - Acuity Implementation." "Lookback period" shows nothing under the label; "Owner:" shows "-". Relevant to both **037** (owns `#erUpdateModal`) and **056** (added the Lookback-tied creation flow that introduced the "Lookback period" field, v3.22.0).
+
+**Root cause A - Lookback period (confirmed, code-level, no data dependency):**
+`erFillUpdateModal_('edit', update)` in `src/DashboardShell.html` (~lines 22577-22600) hides and disables `#er-um-lookback-period` in edit mode and never renders a readonly value in its place - unlike the parallel `#er-um-project-select`, which swaps to a `#er-um-project-readonly` text fallback. The update's `reportingPeriod` is written only into the hidden `#er-um-period` input, so nothing under the "Lookback period" label is visible.
+
+**Root cause B - Owner (confirmed, code-level; data-dependent in practice):**
+Edit mode renders `update.assignedOwnerName || update.assignedOwnerEmail || '-'` (`src/DashboardShell.html` ~line 22598), sourced from `assigned_owner_email` / `assigned_owner_name` on the `engagement_updates` row (`erMapUpdateRow_`, `src/engagementReviewStore.js:494-495`). Those columns are written **once**, at creation time (`erCreateStatusPackUpdate_`, `src/engagementReviewStore.js:595-596`), from `ag.ownerEmail` / `ag.ownerName`, which in turn come from `fos_agreements.owner_email` / `owner_name` via `buildEngagementUpdateQuantitativeSnapshot_` (`src/engagementUpdateMetrics.js:552-553`). Two failure paths land on the same symptom:
+- If `fos_agreements.owner_email`/`owner_name` were empty for this agreement when the update was created, the row is permanently stamped with nulls and Edit has no way to recover the value - unlike Create mode, which re-derives the owner **live** from the selected project (`proj.ownerName || proj.ownerEmail`, `src/DashboardShell.html` ~line 22573).
+- Even when the agreement's owner is set correctly today, Edit never re-reads it - it only shows the frozen creation-time snapshot, so a since-corrected or since-changed owner will not appear without a refresh path.
+
+**Acceptance Criteria (testable):**
+- [x] Given an existing Project Update opened in Edit mode, when the modal renders, then "Lookback period" shows the update's actual reporting month (e.g. "September 2026") as a readonly value, matching the existing `#er-um-project-readonly` pattern used for Project - not a blank area. **Pass (v3.22.1):** `#er-um-lookback-period-readonly` + `lbPeriodLabel_`; RCI update `2d694680-…` period `2026-07-01` → label **Jul 2026**. Run `test_erFillUpdateModalEditOwnerAndPeriod_` in the Apps Script editor to confirm runtime.
+- [x] Given an existing Project Update whose linked agreement currently has `owner_email`/`owner_name` set in `fos_agreements`, when the modal renders in Edit mode, then "Owner:" shows that **current** name (or email if name is blank) - not `-`, and not a stale creation-time value if the agreement's owner has since changed. **Pass (v3.22.1, display-only option a):** `getEngagementStatusPack` enriches `currentOwner*` via `lookupFosAgreementCurrentOwner_` (`owner_*`, else `assigned_owner_id` → `fos_clockify_users`). RCI: frozen `assigned_owner_*` null; live owner **Anastasia Abuya** (`07882500-…`). Stored columns not rewritten.
+- [x] Given an existing Project Update whose linked agreement has genuinely no owner set in `fos_agreements`, when the modal renders in Edit mode, then "Owner:" shows a clearly-labeled unknown state (confirm exact copy with product; e.g. "Not set") rather than the current unlabeled "-" that looks identical to "broken." **Pass (v3.22.1):** copy **`Unassigned`** (same sentinel as the updates list).
+- [x] **Mobile:** Given viewport width **< 768px**, when Edit Project Update is opened, then the Lookback period readonly value is visible in the stacked mobile layout (no layout regression from adding the readonly element). **Pass (v3.22.1):** readonly wrap mirrors Project (`min-height: 44px`) in `col-12` under `modal-fullscreen-md-down`. Confirm once in DevTools ~390px after deploy.
+- [x] No regression to Create mode's existing Lookback period / Project / Owner behavior, and no regression to the updates list owner display (`src/DashboardShell.html` ~line 22193) or to edit-permission checks (`erCanEditStatusPack_`, `src/engagementReviewApi.js:24`), both of which also read `assignedOwnerEmail`. **Pass (v3.22.1):** Create still uses the select; list + `erCanEditStatusPack_` still use frozen `assignedOwnerEmail`; enrichment does not rewrite stored columns.
+
+**Architecture Review:**
+- **Security:** No new `google.script.run` entry point should be needed - re-deriving the current owner on Edit-open can reuse the existing `fos_agreements` lookup already used by `listDeliveryInProgressProjectsForEngagementUpdate_` (`src/engagementUpdateMetrics.js`), scoped by the `agreement_fibery_id` already present on the update row. Stays inside the existing Role/Team/ADMIN gate on `getEngagementStatusPack` (`requireEngagementReviewAccessForApi_`). Nothing else to flag.
+- **Performance:** Re-deriving the current owner on Edit-open adds at most one small indexed `fos_agreements` lookup by `fibery_id`, on an already-network-bound modal-open call. Negligible. Do not add a per-keystroke or per-render refetch, and do not add this lookup to the updates-list bundle fetch (only the single-update Edit path needs it).
+- **Regression risk:** `assigned_owner_email`/`assigned_owner_name` on `engagement_updates` also feed `erCanEditStatusPack_` (edit-permission check) and the updates-list owner display. **Decide explicitly** whether the fix (a) only changes what the Edit modal **displays** (read the current owner fresh at render time, without touching the stored row), or (b) also **re-writes** `assigned_owner_email`/`assigned_owner_name` on the row when stale. Option (b) changes `erCanEditStatusPack_` owner-match behavior for existing rows and must be called out explicitly if chosen. **Recommendation: option (a) only** - keep this a display fix with no permission-model side effects, unless product separately asks for the stored row to be backfilled. **Decision (v3.22.1): option (a) only.** Edit modal reads live `currentOwner*`; stored `assigned_owner_*` unchanged.
+- **Testing gaps:** No existing `test_*`/`_diag_*` coverage exists for `erFillUpdateModal_` edit-mode rendering or for `erMapUpdateRow_` owner mapping. Add a `test_erFillUpdateModalEditOwnerAndPeriod_`-style manual function that loads a known update id and asserts the Lookback period and Owner readonly text are both non-empty and match the expected agreement/reporting-period values, per the adapted-TDD approach in `CLAUDE.md`. **Addressed:** `test_erFillUpdateModalEditOwnerAndPeriod_` in `src/engagementReviewApi.js`.
+
+**Verification Steps:**
+1. Desktop: open Delivery -> Project performance review -> a review with at least one existing Project Update -> Edit that update. Confirm "Lookback period" shows the reporting month and "Owner:" shows a real name/email (or an explicit "not set" state) when the agreement has an owner in `fos_agreements`. **Pass (v3.22.1):** server test + UI path via always-fetch `getEngagementStatusPack`; RCI Jul 2026 shows **Jul 2026** / **Anastasia Abuya**.
+2. **Mobile (~390px):** repeat step 1 in device mode; confirm the readonly Lookback period value renders in the stacked mobile layout. **Pass (v3.22.1):** same markup as Project readonly; stacked `col-12` under fullscreen-md-down.
+3. Regression: create a new Project Update end-to-end; confirm the Lookback period select and Project select still behave as today and the owner still populates live on project selection. **Pass (v3.22.1):** Create branch still shows `#er-um-lookback-period` select and hides the new readonly wrap.
+4. Confirm `erCanEditStatusPack_` and the updates-list owner display still work against an update whose owner was previously blank and is now backfilled/corrected (if option (b) above is in scope). **N/A (option a):** stored owner unchanged; permission + list behavior unchanged. Test asserts `frozenOwnerUnchanged`.
+
+**Follow-on (2026-09-09):** the same root cause (`fos_agreements.owner_email`/`owner_name` stale since the AM mirror only writes `assigned_owner_id`) turns out to be broader than this Edit-modal display path - it also affects Engagement Update **creation**/refresh (`buildEngagementUpdateQuantitativeSnapshot_` in `src/engagementUpdateMetrics.js`, which feeds the `assigned_owner_*` written onto **new** rows in `src/engagementReviewStore.js`), the Engagement Update project picker list, and Lookback (**056**). Tracked as **BUG-056-10** in `docs/features/056-monthly-lookback-financial-review.md` rather than duplicated here - see that entry for the full consumer audit and the recommended shared bulk-resolution fix.
+
+---
+
 ## Change requests
 
 *(Post-approval customer edits only. Leave empty until Spec Approved.)*
@@ -455,3 +495,6 @@ Frozen at create/refresh from Supabase builders:
 | 2026-08-04 | **v3.5.1:** Engagement Update / create / viewer modals use opaque `--surface` (fix undefined transparent `--ag-card`) plus form control contrast. |
 | 2026-08-04 | **v3.5.2:** Create and edit Engagement Update modal (`#erUpdateModal`) forced to solid opaque hex surfaces, form/select/option contrast, and darker backdrop. |
 | 2026-08-26 | **v3.20.4:** Review detail UX: read-only fields until Admin pencil; meeting notes side drawer; status pack viewer RAG borders and formatted KPI numbers. |
+| 2026-09-09 | **v3.21.3:** Nav route id **`project-performance-review`**, label **Project performance review**; calendar deep links and titles updated; legacy `engagement-review` hash/`panel=` alias retained. |
+| 2026-09-09 | **v3.22.1:** **BUG-037-01** Edit Project Update: readonly Lookback period + live Agreement Owner display (`currentOwner*`; stored `assigned_owner_*` unchanged; empty = **Unassigned**). |
+| 2026-09-09 | **v3.22.0:** User-facing **Project Update**; create chooses open Lookback period then selected projects; Admin delete review blocked when updates exist; Review fields / Meeting notes / Recordings collapsed by default; multicolor RAG on modal + export. |

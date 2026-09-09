@@ -1,5 +1,5 @@
 /**
- * PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 037: Supabase CRUD for Engagement Reviews + Engagement Update status packs.
  */
@@ -271,11 +271,32 @@ function erUpdateReview_(reviewId, fields, email) {
 function erDeleteReview_(reviewId) {
   var id = String(reviewId || '').trim();
   if (!id) return { ok: false, message: 'Review id is required.' };
+  var updCount = erCountUpdatesForReview_(id);
+  if (!updCount.ok) return updCount;
+  if (updCount.count > 0) {
+    return {
+      ok: false,
+      message:
+        'Cannot delete a performance review that has Project Updates. Remove the updates first, or keep the review.',
+    };
+  }
   var res = erDelete_(ER_TABLE_REVIEWS_, { id: 'eq.' + id });
   if (!res.ok) {
     return { ok: false, message: res.message || 'Could not delete review.' };
   }
   return { ok: true };
+}
+
+/**
+ * @param {string} reviewId
+ * @return {!{ ok: boolean, message?: string, count?: number }}
+ */
+function erCountUpdatesForReview_(reviewId) {
+  var id = String(reviewId || '').trim();
+  if (!id) return { ok: false, message: 'Review id is required.' };
+  var res = supabaseSelect_(ER_TABLE_UPDATES_, { review_id: 'eq.' + id }, 'id', 500);
+  if (!res.ok) return { ok: false, message: res.message || 'Could not check Project Updates.' };
+  return { ok: true, count: erRows_(res.json).length };
 }
 
 /**
@@ -289,13 +310,23 @@ function erUpsertAgreementLink_(reviewId, agreement) {
   if (!id || !aid) {
     return { ok: false, message: 'Review and agreement id are required.' };
   }
+  var ownerEmail = agreement.ownerEmail || null;
+  var ownerName = agreement.ownerName || null;
+  // BUG-056-10: callers may still pass stale blank owners; resolve from fos_agreements.
+  if ((!ownerEmail && !ownerName) && typeof lookupFosAgreementCurrentOwner_ === 'function') {
+    var liveOwner = lookupFosAgreementCurrentOwner_(aid);
+    if (liveOwner && liveOwner.agreementFound) {
+      ownerEmail = liveOwner.ownerEmail || null;
+      ownerName = liveOwner.ownerName || null;
+    }
+  }
   var row = {
     review_id: id,
     agreement_fibery_id: aid,
     agreement_name: agreement.agreementName || null,
     company_name: agreement.companyName || null,
-    owner_email: agreement.ownerEmail || null,
-    owner_name: agreement.ownerName || null,
+    owner_email: ownerEmail,
+    owner_name: ownerName,
     suggested_from_alert: !!agreement.suggestedFromAlert,
     alert_snapshot: agreement.alertSnapshot || null,
     sort_order: agreement.sortOrder != null ? Number(agreement.sortOrder) : 0,

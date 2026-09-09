@@ -1,0 +1,25 @@
+---
+description: Apps Script src files must be UTF-8 without BOM (blank Hub PRD version)
+globs: src/**/*
+alwaysApply: false
+---
+
+# Apps Script UTF-8 without BOM
+
+HtmlService templates and clasp-pushed `src/*` files MUST be **UTF-8 without a byte-order mark**.
+
+A leading UTF-8 BOM (`EF BB BF` / U+FEFF) before `<!DOCTYPE>` or script headers can break Apps Script template evaluation (for example a blank **PRD v** in the Hub sidebar when `<?!= prdVersion ?>` fails to bind).
+
+## Rules
+
+- When writing or rewriting any file under `src/`, encode as UTF-8 **without BOM**. Prefer `path.write_bytes(text.encode("utf-8"))` over editors/APIs that insert a BOM on Windows.
+- After bulk header sweeps (PRD version bumps), verify no file starts with `EF BB BF`.
+- Do not reintroduce BOM when patching HTML or JS.
+
+## Quick check
+
+```bash
+python -c "from pathlib import Path; bad=[p for p in Path('src').rglob('*') if p.suffix in {'.js','.html'} and p.read_bytes().startswith(b'\\xef\\xbb\\xbf')]; print(bad or 'ok')"
+```
+
+Exit non-zero / list paths if any BOM remains before `clasp push`.

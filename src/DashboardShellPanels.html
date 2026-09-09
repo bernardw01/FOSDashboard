@@ -1,4 +1,4 @@
-<!-- PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md -->
 <!-- Feature 047 D2: deferred dashboard panel markup. -->
 <!-- Settings (#panel-settings) and Profile (#panel-profile) live in DashboardShell.html (always inline). -->
 
@@ -1708,7 +1708,7 @@
           <div class="fos-agreement-inner shadow-lg">
             <div class="fos-loading-overlay d-none" id="er-loading" role="status" aria-live="polite" aria-hidden="true">
               <div class="fos-loading-spinner" aria-hidden="true"></div>
-              <span class="fos-loading-label">Loading engagement reviews…</span>
+              <span class="fos-loading-label">Loading performance reviews…</span>
             </div>
 
             <div id="er-mode-tabs" class="d-flex flex-wrap gap-2 mb-3">
@@ -1719,9 +1719,9 @@
             <div id="er-view-list">
               <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
                 <div class="flex-grow-1 min-w-0">
-                  <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Engagement review</h1>
+                  <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Project performance review</h1>
                   <p class="small mb-0" style="color: var(--ag-text-muted)">
-                    Schedule reviews, collect Engagement Updates status packs, and retain meeting notes.
+                    Schedule performance reviews, collect Project Updates status packs, and retain meeting notes.
                   </p>
                 </div>
                 <button type="button" class="btn btn-sm fw-semibold px-3 d-none" id="er-new-btn" style="background: var(--ag-accent); color: #061b30; border: none; min-height: 44px;">
@@ -1755,7 +1755,7 @@
                 </div>
               </div>
               <div id="er-list-mobile" class="d-md-none"></div>
-              <p class="small mt-3 d-none" id="er-list-empty" style="color: var(--ag-text-muted)">No engagement reviews yet.</p>
+              <p class="small mt-3 d-none" id="er-list-empty" style="color: var(--ag-text-muted)">No performance reviews yet.</p>
             </div>
 
             <div id="er-view-lookback" class="d-none">
@@ -1773,12 +1773,16 @@
                     <button type="button" class="btn btn-sm btn-outline-secondary fos-mobile-only" id="lb-month-sheet-btn" style="min-height: 44px;">Choose month</button>
                   </div>
                   <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="lb-archive-btn" style="min-height: 44px;">Close cycle</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="lb-redo-btn" style="min-height: 44px;">Re-run recommended list</button>
+                  <button type="button" class="btn btn-sm btn-outline-danger d-none" id="lb-delete-btn" style="min-height: 44px;">Delete Lookback</button>
                 </div>
               </div>
-              <div class="d-none d-md-flex flex-wrap align-items-end gap-2 mb-3" id="lb-admin-lock-wrap">
-                <label class="small" for="lb-lock-period" style="color: var(--ag-text-muted)">Admin lock</label>
-                <input type="month" id="lb-lock-period" class="form-control form-control-sm" style="width: auto; min-height: 44px;" />
-                <button type="button" class="btn btn-sm fw-semibold" id="lb-lock-btn" style="background: var(--ag-accent); color: #061b30; border: none; min-height: 44px;">Lock month now</button>
+              <div class="d-none" id="lb-admin-lock-wrap">
+                <div class="d-none d-md-flex flex-wrap align-items-end gap-2 mb-3">
+                  <label class="small" for="lb-lock-period" style="color: var(--ag-text-muted)">Admin lock</label>
+                  <input type="month" id="lb-lock-period" class="form-control form-control-sm" style="width: auto; min-height: 44px;" />
+                  <button type="button" class="btn btn-sm fw-semibold" id="lb-lock-btn" style="background: var(--ag-accent); color: #061b30; border: none; min-height: 44px;">Lock month now</button>
+                </div>
               </div>
               <p class="small d-none text-danger" id="lb-error" role="alert"></p>
               <p class="small d-none" id="lb-empty" style="color: var(--ag-text-muted)">No Lookback months yet. An Admin can lock a reporting month after time close.</p>
@@ -1786,7 +1790,17 @@
               <h2 class="h6 fw-bold" style="color: var(--ag-text)">Ready for Review</h2>
               <div id="lb-ready-desktop" class="d-none d-md-block mb-3"></div>
               <div id="lb-ready-mobile" class="d-md-none mb-3"></div>
-              <h2 class="h6 fw-bold" style="color: var(--ag-text)">Action Required</h2>
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                <h2 class="h6 fw-bold mb-0" style="color: var(--ag-text)">Action Required</h2>
+                <div class="d-flex flex-wrap gap-2 align-items-center" id="lb-action-filter-bar">
+                  <label class="small mb-0 d-none d-md-inline" for="lb-action-filter-status" style="color: var(--ag-text-muted)">Status</label>
+                  <select id="lb-action-filter-status" class="form-select form-select-sm d-none d-md-block" style="width: auto; min-width: 8rem; min-height: 44px;" multiple title="Status filter"></select>
+                  <label class="small mb-0 d-none d-md-inline" for="lb-action-filter-owner" style="color: var(--ag-text-muted)">Owner</label>
+                  <select id="lb-action-filter-owner" class="form-select form-select-sm d-none d-md-block" style="width: auto; min-width: 8rem; min-height: 44px;" multiple title="Owner filter"></select>
+                  <button type="button" class="btn btn-sm btn-outline-secondary d-none d-md-inline-flex" id="lb-action-filter-clear" style="min-height: 44px;">Clear filters</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary fos-mobile-only" id="lb-action-filter-mobile-btn" style="min-height: 44px;">Filters</button>
+                </div>
+              </div>
               <div id="lb-action-desktop" class="d-none d-md-block mb-3"></div>
               <div id="lb-action-mobile" class="d-md-none mb-3"></div>
               <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
@@ -1798,6 +1812,7 @@
               <div class="d-none fos-section-card mt-3" id="lb-optin-form">
                 <label class="small" for="lb-optin-project" style="color: var(--ag-text-muted)">Project</label>
                 <select id="lb-optin-project" class="form-select form-select-sm mb-2" style="min-height: 44px;"></select>
+                <p class="small d-none mb-2" id="lb-optin-empty" style="color: var(--ag-text-muted)"></p>
                 <label class="small" for="lb-optin-reason" style="color: var(--ag-text-muted)">Reason (required)</label>
                 <textarea id="lb-optin-reason" class="form-control form-control-sm mb-2" rows="2"></textarea>
                 <button type="button" class="btn btn-sm fw-semibold" id="lb-optin-save-btn" style="background: var(--ag-accent); color: #061b30; border: none; min-height: 44px;">Opt in</button>
@@ -1809,7 +1824,7 @@
               <button type="button" class="btn btn-sm btn-link px-0 mb-2" id="lb-back-btn" style="min-height: 44px; color: var(--ag-accent);">← Lookback month</button>
               <h2 class="h5 mb-1 fw-bold" id="lb-proj-title" style="color: var(--ag-text)">Project</h2>
               <p class="small mb-3" id="lb-proj-sub" style="color: var(--ag-text-muted)"></p>
-              <div id="lb-proj-metrics" class="row g-2 mb-3"></div>
+              <div id="lb-proj-metrics" class="d-flex flex-wrap gap-2 mb-3" style="align-items: stretch;"></div>
               <p class="small mb-3" id="lb-proj-trigger" style="color: var(--ag-text-muted)"></p>
               <section class="fos-section-card mb-3">
                 <h3 class="h6 fw-bold" style="color: var(--ag-text)">Narrative</h3>
@@ -1854,12 +1869,14 @@
                   <button type="button" class="btn btn-sm btn-outline-secondary" id="er-suggest-owners-btn" style="min-height: 44px;">Suggest owners</button>
                   <button type="button" class="btn btn-sm btn-outline-secondary" id="er-calendar-btn" style="min-height: 44px;">Calendar invite</button>
                   <button type="button" class="btn btn-sm fw-semibold" id="er-save-detail-btn" style="background: var(--ag-accent); color: #061b30; border: none; min-height: 44px;">Save</button>
+                  <button type="button" class="btn btn-sm btn-outline-danger" id="er-delete-review-btn" style="min-height: 44px;" title="">Delete review</button>
                 </div>
               </div>
               <div class="row g-3 mb-3">
                 <div class="col-12 col-lg-4">
-                  <section class="fos-section-card h-100">
-                    <h3 class="h6 fw-bold" style="color: var(--ag-text)">Review fields</h3>
+                  <details class="fos-section-card h-100">
+                    <summary class="h6 fw-bold mb-0" style="color: var(--ag-text); cursor: pointer; min-height: 44px; display: flex; align-items: center;">Review fields</summary>
+                    <div class="mt-2">
                     <label class="small" style="color: var(--ag-text-muted)">Name</label>
                     <input type="text" class="form-control form-control-sm mb-2" id="er-field-name" disabled />
                     <label class="small" style="color: var(--ag-text-muted)">Target date</label>
@@ -1873,11 +1890,13 @@
                     </select>
                     <label class="small" style="color: var(--ag-text-muted)">Notes</label>
                     <textarea class="form-control form-control-sm" id="er-field-notes" rows="2" disabled></textarea>
-                  </section>
+                    </div>
+                  </details>
                 </div>
                 <div class="col-12 col-lg-4">
-                  <section class="fos-section-card h-100 d-flex flex-column">
-                    <h3 class="h6 fw-bold" style="color: var(--ag-text)">Meeting notes</h3>
+                  <details class="fos-section-card h-100 d-flex flex-column">
+                    <summary class="h6 fw-bold mb-0" style="color: var(--ag-text); cursor: pointer; min-height: 44px; display: flex; align-items: center;">Meeting notes</summary>
+                    <div class="mt-2 d-flex flex-column flex-grow-1">
                     <div id="er-notes-list" class="small mb-2" style="color: var(--ag-text); max-height: 220px; overflow-y: auto;"></div>
                     <p class="small d-none mb-2" id="er-notes-empty" style="color: var(--ag-text-muted)">No meeting notes yet.</p>
                     <div class="d-none mt-auto" id="er-note-form-wrap">
@@ -1889,17 +1908,20 @@
                       </div>
                       <span class="small d-none text-danger" id="er-note-error" role="alert"></span>
                     </div>
-                  </section>
+                    </div>
+                  </details>
                 </div>
                 <div class="col-12 col-lg-4">
-                  <section class="fos-section-card h-100">
-                    <h3 class="h6 fw-bold" style="color: var(--ag-text)">Recordings</h3>
+                  <details class="fos-section-card h-100">
+                    <summary class="h6 fw-bold mb-0" style="color: var(--ag-text); cursor: pointer; min-height: 44px; display: flex; align-items: center;">Recordings</summary>
+                    <div class="mt-2">
                     <ul class="small mb-2 ps-3" id="er-recordings-list" style="color: var(--ag-text-muted)"></ul>
                     <div class="d-none" id="er-upload-wrap">
                       <input type="file" class="form-control form-control-sm" id="er-recording-file" accept="audio/*,video/*,.mp3,.mp4,.m4a,.wav,.webm" />
                       <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="er-upload-btn" style="min-height: 44px;">Upload to Drive</button>
                     </div>
-                  </section>
+                    </div>
+                  </details>
                 </div>
               </div>
               <div class="row g-3 mb-3">
@@ -1916,14 +1938,14 @@
                 <div class="col-12 col-lg-8">
                   <section class="fos-section-card">
                     <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                      <h3 class="h6 fw-bold mb-0" style="color: var(--ag-text)">Engagement Updates</h3>
+                      <h3 class="h6 fw-bold mb-0" style="color: var(--ag-text)">Project Updates</h3>
                       <span class="small" style="color: var(--ag-text-muted)">Status packs for this review, in agenda order</span>
                       <button type="button" class="btn btn-sm fw-semibold d-none ms-auto" id="er-create-update-btn" style="background: var(--ag-accent); color: #061b30; border: none; min-height: 44px;">
-                        Create new Engagement Update
+                        Create new Project Update
                       </button>
                     </div>
                     <div id="er-updates-list"></div>
-                    <p class="small d-none mb-0" id="er-updates-empty" style="color: var(--ag-text-muted)">No Engagement Updates yet.</p>
+                    <p class="small d-none mb-0" id="er-updates-empty" style="color: var(--ag-text-muted)">No Project Updates yet.</p>
                   </section>
                 </div>
               </div>
@@ -1981,7 +2003,7 @@
           <div class="modal-dialog">
             <div class="modal-content">
               <div class="modal-header border-secondary">
-                <h2 class="modal-title h5" id="erCreateModalLabel">New engagement review</h2>
+                <h2 class="modal-title h5" id="erCreateModalLabel">New performance review</h2>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
               <div class="modal-body">
@@ -1999,38 +2021,45 @@
           </div>
         </div>
 
-        <!-- Engagement Update status pack modal (feature 037). -->
+        <!-- Project Update status pack modal (feature 037). -->
         <div class="modal fade" id="erUpdateModal" tabindex="-1" aria-labelledby="erUpdateModalLabel" aria-hidden="true">
           <div class="modal-dialog modal-dialog-scrollable modal-xl modal-fullscreen-md-down">
             <div class="modal-content">
               <div class="modal-header border-secondary">
-                <h2 class="modal-title h5" id="erUpdateModalLabel">Create Engagement Update</h2>
+                <h2 class="modal-title h5" id="erUpdateModalLabel">Create Project Update</h2>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
               <div class="modal-body">
                 <div class="row g-3 mb-2">
-                  <div class="col-12 col-md-6">
+                  <div class="col-12 col-md-4">
+                    <label class="form-label small" for="er-um-lookback-period">Lookback period</label>
+                    <select class="form-select form-select-sm" id="er-um-lookback-period" style="min-height: 44px;">
+                      <option value="">Select a Lookback month…</option>
+                    </select>
+                    <div class="d-none" id="er-um-lookback-period-readonly-wrap">
+                      <div class="fw-semibold" id="er-um-lookback-period-readonly" style="min-height: 44px; display: flex; align-items: center;"></div>
+                    </div>
+                    <p class="small d-none mb-0 mt-1" id="er-um-lookback-empty" style="color: var(--ag-text-muted)">Lock a Lookback month first.</p>
+                  </div>
+                  <div class="col-12 col-md-5">
                     <label class="form-label small" for="er-um-project-select">Project</label>
-                    <select class="form-select form-select-sm" id="er-um-project-select" style="min-height: 44px;">
-                      <option value="">Select a project…</option>
+                    <select class="form-select form-select-sm" id="er-um-project-select" style="min-height: 44px;" disabled>
+                      <option value="">Select a Lookback period first…</option>
                     </select>
                     <div class="d-none" id="er-um-project-readonly-wrap">
                       <div class="fw-semibold" id="er-um-project-readonly" style="min-height: 44px; display: flex; align-items: center;"></div>
                     </div>
                   </div>
-                  <div class="col-6 col-md-3">
-                    <label class="form-label small" for="er-um-period">Reporting period</label>
-                    <input type="month" class="form-control form-control-sm" id="er-um-period" style="min-height: 44px;" />
-                  </div>
-                  <div class="col-6 col-md-3">
+                  <div class="col-12 col-md-3">
                     <label class="form-label small" for="er-um-overall-rag">Overall RAG</label>
-                    <select class="form-select form-select-sm" id="er-um-overall-rag" style="min-height: 44px;">
+                    <select class="form-select form-select-sm er-rag-select" id="er-um-overall-rag" style="min-height: 44px;">
                       <option value="on_track">On track</option>
                       <option value="at_risk">At risk</option>
                       <option value="off_track">Off track</option>
                     </select>
                   </div>
                 </div>
+                <input type="hidden" id="er-um-period" value="" />
 
                 <p class="small mb-3" style="color: var(--ag-text-muted)">Owner: <span id="er-um-owner-readonly">-</span></p>
 
@@ -2039,7 +2068,7 @@
                   <div class="er-scorecard-grid mb-3" id="er-um-dims-row">
                     <div class="fos-section-card p-2">
                       <label class="small fw-semibold d-block mb-1" style="color: var(--ag-text)">Schedule</label>
-                      <select class="form-select form-select-sm mb-1" id="er-um-dim-schedule-rag">
+                      <select class="form-select form-select-sm mb-1 er-rag-select er-dim-rag" id="er-um-dim-schedule-rag">
                         <option value="green">Green</option>
                         <option value="amber">Amber</option>
                         <option value="red">Red</option>
@@ -2052,7 +2081,7 @@
                     </div>
                     <div class="fos-section-card p-2">
                       <label class="small fw-semibold d-block mb-1" style="color: var(--ag-text)">Cost / Hours</label>
-                      <select class="form-select form-select-sm mb-1" id="er-um-dim-cost_hours-rag">
+                      <select class="form-select form-select-sm mb-1 er-rag-select er-dim-rag" id="er-um-dim-cost_hours-rag">
                         <option value="green">Green</option>
                         <option value="amber">Amber</option>
                         <option value="red">Red</option>
@@ -2065,7 +2094,7 @@
                     </div>
                     <div class="fos-section-card p-2">
                       <label class="small fw-semibold d-block mb-1" style="color: var(--ag-text)">Margin</label>
-                      <select class="form-select form-select-sm mb-1" id="er-um-dim-margin-rag">
+                      <select class="form-select form-select-sm mb-1 er-rag-select er-dim-rag" id="er-um-dim-margin-rag">
                         <option value="green">Green</option>
                         <option value="amber">Amber</option>
                         <option value="red">Red</option>
@@ -2078,7 +2107,7 @@
                     </div>
                     <div class="fos-section-card p-2">
                       <label class="small fw-semibold d-block mb-1" style="color: var(--ag-text)">Client sentiment</label>
-                      <select class="form-select form-select-sm mb-1" id="er-um-dim-client_sentiment-rag">
+                      <select class="form-select form-select-sm mb-1 er-rag-select er-dim-rag" id="er-um-dim-client_sentiment-rag">
                         <option value="green">Green</option>
                         <option value="amber">Amber</option>
                         <option value="red">Red</option>
@@ -2141,13 +2170,13 @@
           <div class="modal-dialog modal-dialog-scrollable modal-xl modal-fullscreen-md-down">
             <div class="modal-content">
               <div class="modal-header border-secondary">
-                <h2 class="modal-title h5" id="erViewerModalLabel">Engagement Update</h2>
+                <h2 class="modal-title h5" id="erViewerModalLabel">Project Update</h2>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
               <div class="modal-body p-0">
                 <span class="small d-none text-danger m-3 d-block" id="er-viewer-error" role="alert"></span>
                 <div id="er-viewer-body">
-                  <iframe id="er-viewer-frame" title="Engagement Update status pack" style="width: 100%; min-height: 65vh; height: 65vh; border: 0; background: #fff; display: block;"></iframe>
+                  <iframe id="er-viewer-frame" title="Project Update status pack" style="width: 100%; min-height: 65vh; height: 65vh; border: 0; background: #fff; display: block;"></iframe>
                 </div>
               </div>
               <div class="modal-footer border-secondary">

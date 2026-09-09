@@ -1,0 +1,41 @@
+---
+description: Two-agent SDLC split - Claude Code (architecture/specs) vs Cursor (implementation)
+alwaysApply: true
+---
+
+# Architect / implementer split (FOS Dashboard)
+
+This repo runs a two-agent SDLC. **Claude Code** is the architect: it authors and maintains
+specs under `docs/features/0NN-*.md` (per `docs/FEATURE_TEMPLATE.md`) and never edits `src/`,
+`scripts/`, or `supabase/migrations/`. **Cursor** (you) is the implementer. Full mirror of this
+rule, written for Claude Code: `CLAUDE.md` at repo root.
+
+## Before implementing
+
+1. Confirm an approved spec exists at `docs/features/0NN-<slug>.md` with a filled-in
+   **Architecture Review** section (Security / Performance / Regression risk / Testing gaps -
+   added to `docs/FEATURE_TEMPLATE.md`). If the section is missing or says nothing beyond the
+   placeholder text, that spec is not ready - do not improvise scope; ask for it to be
+   completed first, same as any other spec ambiguity.
+2. Per `.cursor/rules/teamwork-product-workflow.mdc`: for customer-facing work, confirm the
+   git spec reflects the last **approved** Teamwork notebook sync, not a stale git-only draft.
+
+## Implementing
+
+- Everything in `.cursor/rules/google-apps-script-core.mdc`, `dashboard-snapshot-cache-sync.mdc`,
+  `mobile-ui-shell.mdc`, `fibery-api-fields.mdc`, `apps-script-utf8-no-bom.mdc`,
+  `documentation-style.mdc`, and `docs/cursor-apps-script-rules.md` applies as already written -
+  this rule does not replace or restate those.
+- **TDD, adapted** (no JS test runner exists in this repo): before implementing, add or update
+  a `test_`-prefixed manual Apps Script function or a `_diag_*` diagnostic named after the
+  acceptance criterion it covers, confirm it shows the gap, implement, confirm it passes, and
+  record that evidence in the spec's Verification Steps / Implementation Checklist. Do not
+  create a permanent one-off script for a single verification - same anti-pattern already
+  called out for backfill scripts in `teamwork-product-workflow.mdc`.
+- Run the **real** verification gate, not a generic one: manual Verification Steps at desktop
+  and ~390px mobile width, relevant `_diag_*` functions, `clasp push`, then
+  `python3 scripts/check_deployed_matches_git.py` (must exit 0) before calling anything shipped.
+- You own commit, push, merge, and deploy - only when explicitly asked - using this repo's
+  actual ritual (PRD version bump, then the Teamwork ship command per `docs/teamwork-workflow.md`
+  for customer-facing releases).
+- If the spec is ambiguous or missing a needed decision, stop and ask rather than guessing scope.

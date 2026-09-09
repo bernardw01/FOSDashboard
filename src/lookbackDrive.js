@@ -1,5 +1,5 @@
 /**
- * PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 056: Drive uploads for Lookback narrative screenshots.
  */
@@ -104,4 +104,25 @@ function lbDeleteEvidence_(evidenceId) {
   var del = supabaseDelete_(LB_TABLE_EVIDENCE_, { id: 'eq.' + id });
   if (!del.ok) return { ok: false, message: del.message || 'Could not delete evidence.' };
   return { ok: true };
+}
+
+/**
+ * Best-effort trash of all evidence Drive files for a month bundle (before cascade delete).
+ * @param {!Object} bundle
+ */
+function lbTrashEvidenceForMonth_(bundle) {
+  var map = (bundle && bundle.evidenceByProject) || {};
+  var keys = Object.keys(map);
+  for (var i = 0; i < keys.length; i++) {
+    var list = map[keys[i]] || [];
+    for (var j = 0; j < list.length; j++) {
+      var fid = list[j] && list[j].drive_file_id;
+      if (!fid) continue;
+      try {
+        DriveApp.getFileById(String(fid)).setTrashed(true);
+      } catch (e) {
+        /* best-effort */
+      }
+    }
+  }
 }

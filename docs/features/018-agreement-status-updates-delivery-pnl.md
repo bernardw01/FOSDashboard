@@ -218,9 +218,55 @@ See [018-agreement-status-updates-delivery-pnl-implementation-plan.md](018-agree
 
 ---
 
+## Bug fixes (engineering-tracked)
+
+*(Technical appendix; not synced to any Teamwork notebook per `docs/teamwork-workflow.md` "Bug-fix releases." Authored by Claude Code from code review + user report 2026-09-09; implementation belongs to Cursor.)*
+
+### BUG-018-01: PM Overview only shows the last status update after saving a new one
+
+**Reported:** 2026-09-09 - "When doing a status update on a project on the PM overview page we are only showing the last status update. Once the Fibery record is saved, we [should] pull the current status updates for that record and update the current blob."
+
+**Root cause - confirmed, precise, small blast radius.** `createAgreementStatusUpdate` (`src/agreementStatusUpdates.js` line 196) returns:
+
+```js
+statusUpdates: buildStatusUpdatesBlock_([createdRow], true),
+```
+
+- built from an array containing **only the just-created row** - not a fresh pull of the agreement's actual current history. `fetchStatusUpdatesForAgreement_(agreementId, limit)` (same file, defined immediately below at line 208) exists specifically to fetch the full current list and is used correctly everywhere else the Delivery P&L payload is built fresh - it is simply not called here after the write succeeds.
+
+Client-side, `mergeServerStatusUpdateIntoPayload_` (`src/DashboardShell.html` lines 30723-30750) actually has **two** competing code paths:
+1. Lines 30730-30733: if `result.statusUpdates` is present, **wholesale replace** `next.statusUpdates` with it and return immediately.
+2. Lines 30734-30749: otherwise, merge the single new row into the prior in-memory `history` array (correct, preserves everything already loaded).
+
+Because `createAgreementStatusUpdate` **always** populates `result.statusUpdates` (path 1 above), path 2's correct merge logic is **dead code** - it never runs. Path 1 wins every time, so the client overwrites its in-memory payload's `statusUpdates.history` with the server's 1-item block. That truncated block is then written straight into the client cache (`writeDeliveryPnlCache(agreementId, optimisticPayload)` / the equivalent post-save write) - matching "update the current blob" exactly: the cached blob for that project now only contains 1 history entry until something else fully rebuilds it from scratch (a fresh load once the cache TTL expires, a snapshot rebuild, etc.).
+
+This is isolated to the **save response path** - fresh builds of the Delivery P&L payload elsewhere (initial load, snapshot job) already call `fetchStatusUpdatesForAgreement_` correctly and are not affected.
+
+**Acceptance Criteria (testable):**
+- [ ] Given an agreement with 3 existing status updates, when a user submits a 4th, then the "View updates" drawer and the client cache both show all 4, newest first - not just the 4th.
+- [ ] `createAgreementStatusUpdate` re-fetches the agreement's current status updates from Fibery (via `fetchStatusUpdatesForAgreement_`) **after** the Fibery create + document write (and after the non-blocking Supabase dual-write attempt) succeed, and builds `buildStatusUpdatesBlock_` from that full, current row set - not from `[createdRow]`.
+- [ ] The now-genuinely-reachable client merge path (`mergeServerStatusUpdateIntoPayload_` lines 30734-30749) is either removed as redundant (since the server now always returns the true full history) or kept only as an explicit fallback for a `fetchStatusUpdatesForAgreement_` failure after a successful write - decide and state which, don't leave dead code silently sitting alongside a now-correct server response.
+- [ ] If the post-write re-fetch itself fails (Fibery read error right after a successful write), the user still sees their own just-submitted update (don't regress to showing nothing / an error where today at least the 1 item shows) - degrade to the single new row plus a stale-history indicator rather than losing the update from view entirely.
+- [ ] No regression to the optimistic-pending display (the temporary "Saving to Fibery…" row shown before the server responds, per `applyOptimisticStatusUpdateToPayload_` / `rollbackOptimisticStatusUpdate_`).
+
+**Architecture Review:**
+- **Security:** None - read-only re-fetch of already-authorized data using the same agreement id just written.
+- **Performance:** One additional Fibery read per status-update submission (a low-frequency, user-initiated write, not a hot path) - re-fetching `DELIVERY_STATUS_UPDATES_MAX_ROWS` (default 20) rows is the same cost `fetchStatusUpdatesForAgreement_` already incurs on every fresh page load, just moved to also run once after a save. Negligible.
+- **Regression risk:** `createAgreementStatusUpdate`'s return shape (`statusUpdates: {latest, history, statusOptions, fetchOk}`) must stay the same shape client code expects - only the **contents** of `history` change (full vs. single-row), not the schema. Double-check the Supabase dual-write (`upsertSupabaseStatusUpdate_`) and its retry queue (`enqueueSupabaseStatusRetry_`) aren't affected - they operate on `createdRow` alone today and should keep doing so; only the **returned block for client display** needs the fresh pull.
+- **Testing gaps:** No existing coverage caught that the client's own correct merge logic was unreachable dead code. Add a manual test that creates 3 status updates in sequence for a test agreement and asserts the 3rd response's `statusUpdates.history` has all 3, not 1.
+
+**Verification Steps:**
+1. Pick (or create) an agreement with at least 2 existing status updates; submit a new one; confirm the "View updates" drawer shows all of them, newest first, immediately after save (no manual refresh needed).
+2. Reload the page (cold cache) for the same agreement; confirm the full history still shows (proves the fix isn't purely a client-side illusion papering over a still-truncated cached blob).
+3. Confirm the optimistic "Saving to Fibery…" pending row still appears and resolves correctly once the real response lands.
+4. Confirm the Supabase dual-write and its retry-on-failure path are unaffected (still keyed off `createdRow` alone).
+
+---
+
 ## Changelog (feature doc)
 
 | Date | Change |
 | --- | --- |
+| 2026-09-09 | Spec update: added **BUG-018-01** (PM Overview status update save returns only the just-created row instead of the agreement's full current history; confirmed root cause in `createAgreementStatusUpdate` / `mergeServerStatusUpdateIntoPayload_`). Not yet implemented. |
 | 2026-05-28 | **Planned.** Enum canonical name **`Agreement Off Trajectory`** (Fibery rename from `Agreement of Trajectory`). Snapshot inclusion via P&L schema **5** (not a separate artifact). Implementation plan added. |
 | 2026-05-28 | **Draft** for stakeholder review. |

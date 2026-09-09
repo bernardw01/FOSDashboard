@@ -1,5 +1,5 @@
 /**
- * PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 056: google.script.run surface for monthly Lookback.
  */
@@ -97,17 +97,24 @@ function lbMapBundleForClient_(bundle, auth) {
       kpis.green++;
     }
   }
-  function rank(p) {
-    var ready = mappedStatusRank_(p.narrativeStatus);
+  function rankAction(p) {
     var auto = p.reviewType === 'automatic' ? 0 : 1;
-    return [ready, auto, String(p.agreementName || '').toLowerCase()];
+    return [auto, String(p.agreementName || '').toLowerCase()];
   }
-  function mappedStatusRank_(st) {
-    return st === 'complete' ? 0 : 1;
-  }
+  // FEATURE-056-07: Ready (complete) order is sort_order only (replaces rank).
+  // Action Required keeps auto-then-name. Green stays alpha.
   selected.sort(function (a, b) {
-    var ra = rank(a);
-    var rb = rank(b);
+    var aReady = a.narrativeStatus === 'complete' ? 0 : 1;
+    var bReady = b.narrativeStatus === 'complete' ? 0 : 1;
+    if (aReady !== bReady) return aReady - bReady;
+    if (aReady === 0) {
+      var sa = a.sortOrder != null ? Number(a.sortOrder) : 0;
+      var sb = b.sortOrder != null ? Number(b.sortOrder) : 0;
+      if (sa !== sb) return sa - sb;
+      return String(a.agreementName || '').localeCompare(String(b.agreementName || ''));
+    }
+    var ra = rankAction(a);
+    var rb = rankAction(b);
     for (var k = 0; k < ra.length; k++) {
       if (ra[k] < rb[k]) return -1;
       if (ra[k] > rb[k]) return 1;
@@ -141,6 +148,9 @@ function lbMapBundleForClient_(bundle, auth) {
     ownerWindowEnd: lookbackOwnerWindowEnd_(lockYmd),
     canLock: isAdminUser_(auth),
     canArchive: isAdminUser_(auth) && lookbackMonthWritable_(bundle.month),
+    canRedo: isAdminUser_(auth) && lookbackMonthWritable_(bundle.month),
+    canDeleteMonth: isAdminUser_(auth) && String(bundle.month.status || '') !== 'locking',
+    canReorderReady: isAdminUser_(auth) && lookbackMonthWritable_(bundle.month),
     canOptInAny: lookbackCanOptIn_(auth, null),
     canOverride: lookbackIsOverride_(auth),
     lookbackOnly: canAccessLookback_(auth) && !canAccessEngagementReview_(auth),
@@ -230,6 +240,104 @@ function archiveLookbackMonth(monthId) {
 }
 
 /**
+ * Admin: re-run automatic selection for an open Lookback month (keeps Manual + narratives).
+ * @param {string} monthId
+ * @return {!Object}
+ */
+function redoLookbackSelection(monthId) {
+  try {
+    var auth = requireAuthForApi_();
+    requireAdminRole_(auth);
+    return lookbackRedoSelection_(monthId, auth.email);
+  } catch (e) {
+    return lbApiFail_(e);
+  }
+}
+
+/**
+ * Admin: delete a Lookback month (cascade projects/evidence; Drive trash best-effort).
+ * @param {string} monthId
+ * @return {!Object}
+ */
+function deleteLookbackMonth(monthId) {
+  try {
+    var auth = requireAuthForApi_();
+    requireAdminRole_(auth);
+    return lookbackDeleteMonth_(monthId);
+  } catch (e) {
+    return lbApiFail_(e);
+  }
+}
+
+/**
+ * Admin: reorder Ready for Review projects (FEATURE-056-07).
+ * @param {string} monthId
+ * @param {!Array<string>} orderedProjectIds
+ * @return {!Object}
+ */
+function reorderLookbackReadyProjects(monthId, orderedProjectIds) {
+  try {
+    var auth = requireAuthForApi_();
+    requireAdminRole_(auth);
+    return lookbackReorderReadyProjects_(monthId, orderedProjectIds || []);
+  } catch (e) {
+    return lbApiFail_(e);
+  }
+}
+
+/**
+ * Selected Lookback projects (Automatic + Manual) for a reporting period.
+ * Used by Project Update create (feature 037 / 056).
+ * @param {string} period YYYY-MM or YYYY-MM-01
+ * @return {!Object}
+ */
+function listLookbackSelectedProjects(period) {
+  try {
+    var auth = requireLookbackAccessForApi_();
+    var p = euNormalizeReportingPeriod_(period);
+    if (!p) return { ok: false, message: 'Lookback period is required.' };
+    var byPeriod = lbGetMonthByPeriod_(p);
+    if (!byPeriod.ok) return byPeriod;
+    if (!byPeriod.month) {
+      return { ok: false, message: 'No Lookback exists for that month yet.' };
+    }
+    if (!lookbackMonthWritable_(byPeriod.month)) {
+      return {
+        ok: false,
+        message: 'That Lookback month is archived. Open a month that is still open for narratives.',
+      };
+    }
+    var bundle = lbGetMonthBundle_(byPeriod.month.id);
+    if (!bundle.ok) return bundle;
+    var projects = [];
+    var rows = bundle.projects || [];
+    for (var i = 0; i < rows.length; i++) {
+      if (!rows[i].selected) continue;
+      projects.push({
+        fiberyId: rows[i].agreement_fibery_id,
+        name: rows[i].agreement_name,
+        companyName: rows[i].company_name,
+        ownerEmail: rows[i].assigned_owner_email,
+        ownerName: rows[i].assigned_owner_name,
+        reviewType: rows[i].review_type,
+      });
+    }
+    projects.sort(function (a, b) {
+      return String(a.name || '').localeCompare(String(b.name || ''));
+    });
+    return {
+      ok: true,
+      period: p,
+      monthId: byPeriod.month.id,
+      projects: projects,
+      userEmail: auth.email,
+    };
+  } catch (e) {
+    return lbApiFail_(e);
+  }
+}
+
+/**
  * @param {string} monthId
  * @param {string} agreementFiberyId
  * @param {string} reason
@@ -269,6 +377,7 @@ function optInLookbackProject(monthId, agreementFiberyId, reason) {
         reason: why,
         selected_by_email: auth.email,
         updated_by_email: auth.email,
+        criteria: [],
       });
     }
     return lbPatchProject_(row.id, {
@@ -276,6 +385,57 @@ function optInLookbackProject(monthId, agreementFiberyId, reason) {
       review_type: 'manual',
       reason: why,
       selected_by_email: auth.email,
+      updated_by_email: auth.email,
+      criteria: [],
+    });
+  } catch (e) {
+    return lbApiFail_(e);
+  }
+}
+
+/**
+ * Soft-remove a selected Lookback project (Manual or Automatic) back to Green.
+ * FEATURE-056-04 (product 2026-09-09: Automatic rows removable too).
+ * Marks criteria with user_removed so re-run does not re-auto-select.
+ *
+ * @param {string} monthId
+ * @param {string} agreementFiberyId
+ * @return {!Object}
+ */
+function removeLookbackSelectedProject(monthId, agreementFiberyId) {
+  try {
+    var auth = requireLookbackAccessForApi_();
+    var bundle = lbGetMonthBundle_(monthId);
+    if (!bundle.ok) return bundle;
+    if (!lookbackMonthWritable_(bundle.month)) {
+      return { ok: false, message: 'This Lookback month is read-only.' };
+    }
+    var aid = String(agreementFiberyId || '').trim();
+    if (!aid) return { ok: false, message: 'Project is required.' };
+    var row = null;
+    var projects = bundle.projects || [];
+    for (var i = 0; i < projects.length; i++) {
+      if (String(projects[i].agreement_fibery_id) === aid) {
+        row = projects[i];
+        break;
+      }
+    }
+    if (!row) return { ok: false, message: 'That project is not in this Lookback month.' };
+    if (!row.selected) {
+      return { ok: false, message: 'That project is not selected for Lookback review.' };
+    }
+    if (!lookbackCanOptIn_(auth, row)) {
+      return {
+        ok: false,
+        message: 'You can only remove projects you own, unless you are on the Lookback allowlist.',
+      };
+    }
+    return lbPatchProject_(row.id, {
+      selected: false,
+      review_type: null,
+      reason: 'Removed by user',
+      selected_by_email: auth.email,
+      criteria: [LOOKBACK_USER_REMOVED_CRITERION_],
       updated_by_email: auth.email,
     });
   } catch (e) {
@@ -387,4 +547,42 @@ function deleteLookbackEvidence(evidenceId, projectId) {
   } catch (e) {
     return lbApiFail_(e);
   }
+}
+
+/**
+ * BUG-056-03: lock/delete require Admin server-side (belt-and-suspenders).
+ * @return {!Object}
+ */
+function test_lookbackAdminLockDeleteGates_() {
+  var lockSrc = String(lockLookbackMonth);
+  var delSrc = String(deleteLookbackMonth);
+  var lockHasAdmin = /requireAdminRole_/.test(lockSrc);
+  var delHasAdmin = /requireAdminRole_/.test(delSrc);
+  var pass = lockHasAdmin && delHasAdmin;
+  return {
+    ok: true,
+    pass: pass,
+    lockRequiresAdmin: lockHasAdmin,
+    deleteRequiresAdmin: delHasAdmin,
+    message: pass
+      ? 'PASS: lockLookbackMonth and deleteLookbackMonth both call requireAdminRole_.'
+      : 'FAIL: Admin gate missing on lock and/or delete API.',
+  };
+}
+
+/**
+ * FEATURE-056-04: soft-remove marker helper.
+ * @return {!Object}
+ */
+function test_lookbackUserRemovedMarker_() {
+  var marked = { selected: false, reason: 'Removed by user', criteria: [LOOKBACK_USER_REMOVED_CRITERION_] };
+  var plain = { selected: false, reason: null, criteria: [] };
+  var pass = lookbackIsUserRemoved_(marked) && !lookbackIsUserRemoved_(plain);
+  return {
+    ok: true,
+    pass: pass,
+    message: pass
+      ? 'PASS: lookbackIsUserRemoved_ detects soft-remove marker.'
+      : 'FAIL: user_removed marker helper incorrect.',
+  };
 }

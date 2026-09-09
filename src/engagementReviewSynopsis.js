@@ -1,5 +1,5 @@
 /**
- * PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 037: AI synopsis for completed Engagement Reviews (locked decision
  * #25). Assembles review metadata + meeting notes + Engagement Update
@@ -202,7 +202,7 @@ function erBuildSynopsisContext_(bundle, updates) {
   var review = (bundle && bundle.review) || {};
   var notes = (bundle && bundle.notes) || [];
   var lines = [];
-  lines.push('Engagement Review: ' + (review.name || '(untitled)'));
+  lines.push('Project Performance Review: ' + (review.name || '(untitled)'));
   lines.push('Target date: ' + (review.target_date || 'n/a'));
   lines.push('Status: ' + (review.status || 'n/a'));
   lines.push('');
@@ -336,7 +336,7 @@ function erParseSynopsisJson_(text) {
   }
   return {
     version: 1,
-    headline: String(parsed.headline || '').trim() || 'Engagement review synopsis',
+    headline: String(parsed.headline || '').trim() || 'Project performance review synopsis',
     themes: erToStringArray_(parsed.themes),
     decisions: erToStringArray_(parsed.decisions),
     risks: erToStringArray_(parsed.risks),
@@ -355,7 +355,7 @@ function erParseSynopsisJson_(text) {
  */
 function erSynopsisSystemPrompt_() {
   return (
-    'You are an assistant that writes a synthesis for a Delivery engagement review call. ' +
+    'You are an assistant that writes a synthesis for a Delivery performance review call. ' +
     'You will be given the review metadata, meeting notes, and one or more Engagement Updates ' +
     '(status packs) with qualitative RAG assessments and quantitative KPIs. ' +
     'Respond with ONLY a single JSON object (no markdown code fences, no commentary before or ' +

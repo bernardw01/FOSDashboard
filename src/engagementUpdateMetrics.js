@@ -1,5 +1,5 @@
 /**
- * PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 037: Engagement Update quantitative snapshot builders. Supabase
  * only - no Fibery HTTP calls at read/render time (locked decision #7, #31).
@@ -388,7 +388,7 @@ function buildEngagementUpdateQuantitativeSnapshot_(agreementFiberyId, reporting
   var metaRes = supabaseSelect_(
     'fos_agreements',
     { fibery_id: 'eq.' + agreementId },
-    'fibery_id,name,customer_id,owner_email,owner_name,state_name,status',
+    'fibery_id,name,customer_id,owner_email,owner_name,assigned_owner_id,raw,state_name,status',
     1
   );
   var meta = null;
@@ -403,6 +403,7 @@ function buildEngagementUpdateQuantitativeSnapshot_(agreementFiberyId, reporting
     var company = companiesMap[meta.customer_id];
     companyName = company ? stringOrNull_(company.name) : null;
   }
+  var resolvedOwner = resolveFosAgreementOwnerFromRow_(meta);
 
   var allocFetch = fetchResourceAllocationsForAgreementFromSupabase_(agreementId);
   var allocRows = allocFetch.ok ? allocFetch.rows || [] : [];
@@ -549,8 +550,8 @@ function buildEngagementUpdateQuantitativeSnapshot_(agreementFiberyId, reporting
     fiberyId: agreementId,
     name: ctx.agreement.name,
     companyName: companyName,
-    ownerEmail: meta ? stringOrNull_(meta.owner_email) : null,
-    ownerName: meta ? stringOrNull_(meta.owner_name) : null,
+    ownerEmail: resolvedOwner.ownerEmail,
+    ownerName: resolvedOwner.ownerName,
     state: meta ? stringOrNull_(meta.state_name) || stringOrNull_(meta.status) : null,
   };
 
@@ -565,14 +566,79 @@ function buildEngagementUpdateQuantitativeSnapshot_(agreementFiberyId, reporting
 }
 
 /* ------------------------------------------------------------------------- */
-/* Engagement Update project picker.                                         */
+/* Agreement Assigned Owner resolution (BUG-037-01 / BUG-056-10).             */
 /* ------------------------------------------------------------------------- */
+
+/**
+ * Resolve owner from a fos_agreements-shaped row. Prefers owner_email /
+ * owner_name (and raw jsonb via erOwnerFromAgreementRow_), then falls back to
+ * assigned_owner_id -> fos_clockify_users. Pass a preloaded usersMap for bulk.
+ *
+ * @param {?Object} row
+ * @param {Object=} usersMap fibery_id -> fos_clockify_users row
+ * @return {!{ ownerEmail: ?string, ownerName: ?string }}
+ */
+function resolveFosAgreementOwnerFromRow_(row, usersMap) {
+  if (!row) return { ownerEmail: null, ownerName: null };
+  var fromCols =
+    typeof erOwnerFromAgreementRow_ === 'function'
+      ? erOwnerFromAgreementRow_(row)
+      : {
+          email: row.owner_email ? String(row.owner_email).trim() : null,
+          name: row.owner_name ? String(row.owner_name).trim() : null,
+        };
+  if (fromCols.email || fromCols.name) {
+    return { ownerEmail: fromCols.email || null, ownerName: fromCols.name || null };
+  }
+  var ownerId = row.assigned_owner_id ? String(row.assigned_owner_id).trim() : '';
+  if (!ownerId) return { ownerEmail: null, ownerName: null };
+  var map =
+    usersMap ||
+    (typeof loadFosClockifyUsersMap_ === 'function' ? loadFosClockifyUsersMap_() : null) ||
+    {};
+  var user = map[ownerId] || null;
+  if (!user) return { ownerEmail: null, ownerName: null };
+  return {
+    ownerName: user.name ? String(user.name).trim() || null : null,
+    ownerEmail: user.clockify_user_email
+      ? String(user.clockify_user_email).trim() || null
+      : null,
+  };
+}
+
+/**
+ * Live Assigned Owner for one agreement (BUG-037-01 Edit modal display path).
+ * Uses resolveFosAgreementOwnerFromRow_ after a single fos_agreements fetch.
+ *
+ * @param {string} agreementFiberyId
+ * @return {!{ ownerEmail: ?string, ownerName: ?string, agreementFound: boolean }}
+ */
+function lookupFosAgreementCurrentOwner_(agreementFiberyId) {
+  var out = { ownerEmail: null, ownerName: null, agreementFound: false };
+  var aid = String(agreementFiberyId || '').trim();
+  if (!aid || !isSupabaseConfigured_()) return out;
+
+  var metaRes = supabaseSelect_(
+    'fos_agreements',
+    { fibery_id: 'eq.' + aid },
+    'fibery_id,owner_email,owner_name,assigned_owner_id,raw',
+    1
+  );
+  if (!metaRes.ok) return out;
+  var meta = euRowsFromJson_(metaRes.json)[0] || null;
+  if (!meta) return out;
+  out.agreementFound = true;
+  var resolved = resolveFosAgreementOwnerFromRow_(meta);
+  out.ownerEmail = resolved.ownerEmail;
+  out.ownerName = resolved.ownerName;
+  return out;
+}
 
 /**
  * Lists agreements eligible for the Engagement Update project picker
  * (locked decisions #12 / #13): Admins see every `Delivery In Progress`
- * agreement; everyone else is limited to agreements where `owner_email`
- * matches their signed-in email. Supabase only.
+ * agreement; everyone else is limited to agreements they own (resolved
+ * owner email, including assigned_owner_id fallback). Supabase only.
  *
  * @param {{ email?: string, role?: string, team?: string }} auth
  * @return {!{ ok: boolean, message?: string, projects?: !Array<!Object> }}
@@ -582,41 +648,52 @@ function listDeliveryInProgressProjectsForEngagementUpdate_(auth) {
     return { ok: false, message: 'Datastore is not configured.' };
   }
   var isAdmin = isAdminUser_(auth);
-  var filters = {
-    or: '(state_name.eq."Delivery In Progress",status.eq."Delivery In Progress")',
-  };
-  if (!isAdmin) {
-    var email =
-      typeof normalizeEmail_ === 'function'
-        ? normalizeEmail_((auth && auth.email) || '')
-        : String((auth && auth.email) || '').trim().toLowerCase();
-    if (!email) {
-      return { ok: true, projects: [] };
-    }
-    filters.owner_email = 'eq.' + email;
+  var myEmail =
+    typeof normalizeEmail_ === 'function'
+      ? normalizeEmail_((auth && auth.email) || '')
+      : String((auth && auth.email) || '')
+          .trim()
+          .toLowerCase();
+  if (!isAdmin && !myEmail) {
+    return { ok: true, projects: [] };
   }
+  // Load all Delivery In Progress rows, then resolve owners in bulk and
+  // filter non-Admins in memory (owner_email column is often null under AM mirror).
   var res = supabaseSelectAll_(
     'fos_agreements',
-    filters,
-    'fibery_id,name,customer_id,owner_email,owner_name,state_name,status',
+    {
+      or: '(state_name.eq."Delivery In Progress",status.eq."Delivery In Progress")',
+    },
+    'fibery_id,name,customer_id,owner_email,owner_name,assigned_owner_id,raw,state_name,status',
     'name.asc'
   );
   if (!res.ok) {
     return { ok: false, message: res.message || 'Could not load Delivery In Progress agreements.' };
   }
   var companiesMap = loadFosCompaniesMap_();
+  var usersMap = loadFosClockifyUsersMap_();
   var rows = res.rows || [];
   var projects = [];
   for (var i = 0; i < rows.length; i++) {
     var r = rows[i];
     if (!r || !r.fibery_id) continue;
+    var owner = resolveFosAgreementOwnerFromRow_(r, usersMap);
+    if (!isAdmin) {
+      var oe =
+        typeof normalizeEmail_ === 'function'
+          ? normalizeEmail_(owner.ownerEmail || '')
+          : String(owner.ownerEmail || '')
+              .trim()
+              .toLowerCase();
+      if (!oe || oe !== myEmail) continue;
+    }
     var company = r.customer_id ? companiesMap[r.customer_id] : null;
     projects.push({
       fiberyId: stringOr_(r.fibery_id, ''),
       name: stringOr_(r.name, '(Unnamed project)'),
       companyName: company ? stringOrNull_(company.name) : null,
-      ownerEmail: stringOrNull_(r.owner_email),
-      ownerName: stringOrNull_(r.owner_name),
+      ownerEmail: owner.ownerEmail,
+      ownerName: owner.ownerName,
       state: stringOrNull_(r.state_name) || stringOrNull_(r.status),
     });
   }

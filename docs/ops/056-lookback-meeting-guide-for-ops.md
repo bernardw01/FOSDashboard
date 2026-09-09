@@ -1,8 +1,8 @@
 # Monthly Lookback Meeting Guide (Ops)
 
 **Audience:** Ops Manager (Jess) and facilitators running the Monthly Client Financial Performance Review  
-**Product:** Performance Hub → Delivery → **Engagement review** → **Lookback** tab  
-**Feature:** 056 (shipped in Hub v3.21.0)  
+**Product:** Performance Hub → Delivery → **Project performance review** → **Lookback** tab  
+**Feature:** 056 (shipped in Hub v3.21.0; Admin redo/delete in v3.22.0)  
 **Last updated:** 2026-09-09
 
 This guide is the day-to-day playbook. It is not the full product spec. For selection rules and engineering detail, see `docs/features/056-monthly-lookback-financial-review.md`.
@@ -13,7 +13,7 @@ This guide is the day-to-day playbook. It is not the full product spec. For sele
 
 Each reporting month, after time close, Hub **locks** a financial snapshot for Delivery projects, **auto-selects** projects that need discussion, and gives Project Owners a short window to write narratives and attach evidence. Your Lookback meeting always uses that **locked** view. Live PM Overview / P&L can keep moving; the meeting does not chase live time.
 
-Lookback lives **inside Engagement review** as a second mode (Reviews | Lookback). It does **not** replace calendar invites, meeting notes, recordings, or AI synopsis on the existing Engagement review workspace.
+Lookback lives **inside Project performance review** as a second mode (Reviews | Lookback). It does **not** replace calendar invites, meeting notes, recordings, or AI synopsis on the existing Performance Review workspace.
 
 **Email alerts are deferred for the first cycles.** You (and owners) drive the cadence in person and via your usual agenda / chat.
 
@@ -27,7 +27,7 @@ Lookback lives **inside Engagement review** as a second mode (Reviews | Lookback
 | **Project Owners** | Complete narratives + evidence for their selected / opted-in projects within the owner window |
 | **Guy (or named opt-in allowlist)** | May manually opt a green project in with a required Reason |
 | **Assigned PM** | May opt in their own green projects with a required Reason |
-| **Admin** | Can force **Lock month now** if the job missed; can **Close cycle** (archive / read-only) after the meeting |
+| **Admin** | Can force **Lock month now** if the job missed; can **Re-run recommended list** (refresh Automatic picks/metrics; keep Manual opt-ins and narratives); can **Delete Lookback** (confirm; removes the month); can **Close cycle** (archive / read-only) after the meeting |
 
 You cannot remove an **Automatic** selection. Opt-in only adds projects; it does not delete Hub’s auto picks.
 
@@ -67,7 +67,7 @@ Header text in Hub shows the lock timestamp and **Owner window through YYYY-MM-D
 ### B. Confirm the lock (day after lock, or next morning)
 
 1. Open Performance Hub (Web App).
-2. Go to **Delivery → Engagement review**.
+2. Go to **Delivery → Project performance review**.
 3. Click **Lookback** (next to Reviews).
 4. Choose the **reporting month** in the month picker.
 5. Confirm the header shows the month **locked** (timestamp) and an owner-window end date.
@@ -86,7 +86,7 @@ Goal: move selected projects from **Action Required** into **Ready for Review**.
 2. Work the **Action Required** list first (narratives not Complete).
 3. For each project, note the **Assigned Owner** and why it was selected (Automatic criteria or Manual Reason).
 4. Chase owners (meeting agenda, Slack, email as you prefer). Remind them:
-   - Open Hub → Engagement review → **Lookback** → their project.
+   - Open Hub → Project performance review → **Lookback** → their project.
    - Fill required narrative fields (below).
    - Set status to **Complete**.
    - Upload screenshot evidence if useful.
@@ -116,13 +116,13 @@ From the Lookback month view, build a simple agenda:
 3. **Action Required:** call out anything still incomplete; decide live whether to discuss anyway or park.
 4. **Green (not selected):** quick scan only. Metrics are read-only. Opt in during prep if a green project must be discussed; do not invent live “refresh” numbers for the locked month.
 
-Optional: keep using the **Reviews** side of Engagement review for calendar, notes, recordings, and synopsis for the same meeting series. Lookback supplies the **locked financial cohort**; Reviews supplies the **meeting workspace**.
+Optional: keep using the **Reviews** side of Project performance review for calendar, notes, recordings, and synopsis for the same meeting series. Lookback supplies the **locked financial cohort**; Reviews supplies the **meeting workspace**.
 
 ### E. During the meeting
 
 1. Share screen on **Lookback** for the correct reporting month (not live PM Overview as the source of truth).
 2. For each Ready project: open the row → read trigger (why selected) → read narrative → skim evidence.
-3. Capture decisions in your usual notes (Engagement review notes or team notes). Lookback does not auto-email outcomes.
+3. Capture decisions in your usual notes (Performance Review notes or team notes). Lookback does not auto-email outcomes.
 4. End with Action Required leftovers and any follow-ups (opt-ins for next month, Fibery updates, staffing, etc.).
 
 ### F. After the meeting
@@ -138,7 +138,7 @@ Optional: keep using the **Reviews** side of Engagement review for calendar, not
 ### Open Lookback
 
 1. Sign in to Performance Hub with your Google / Hub login.
-2. **Delivery** in the left nav → **Engagement review**.
+2. **Delivery** in the left nav → **Project performance review**.
 3. Click **Lookback**.
 
 On a phone (&lt; 768px): use **Choose month** (bottom sheet). Project lists render as cards.
@@ -212,9 +212,11 @@ Locked metrics in v1 show **project-to-date** margins (actual / planned / EAC). 
 | --- | --- |
 | Month never appears after lock date | Admin: **Lock month now**, or engineering if lock job / Datastore failed |
 | Guy cannot opt in | Admin: confirm his Hub email is on Setting **`LOOKBACK_OPT_IN_EMAILS`** |
-| Owner cannot see Lookback | They need Hub login; assigned owners and allowlisted users can open Lookback even without full Engagement review create rights |
+| Owner cannot see Lookback | They need Hub login; assigned owners and allowlisted users can open Lookback even without full Performance Review create rights |
 | Need the month frozen after the meeting | Admin: **Close cycle** |
-| Numbers look wrong vs Fibery | Treat lock as official for the meeting; file a data issue for next lock; do not “fix” history by re-locking (months cannot be locked twice) |
+| Recommended list looks wrong after lock | Admin: **Re-run recommended list** (keeps Manual opt-ins and narratives) |
+| Need to scrap a bad Lookback month | Admin: **Delete Lookback** (confirm), then **Lock month now** again |
+| Numbers look wrong vs Fibery | Treat lock as official for the meeting; file a data issue; Admin may re-run selection or delete and re-lock if the month is still open |
 
 ---
 
@@ -237,7 +239,7 @@ Month end
   -> Meeting = Lookback tab (locked month)
   -> Admin Close cycle when done
 
-Hub path: Delivery -> Engagement review -> Lookback
+Hub path: Delivery -> Project performance review -> Lookback
 Agenda order: Ready -> Action Required -> Green scan
 Opt-in: green project + required Reason (CE / owner / Guy)
 Complete needs: What + Why + Recovery

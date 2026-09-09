@@ -1,5 +1,5 @@
 /**
- * PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 037: Calendar invites for Engagement Reviews (auth Users only).
  */
@@ -64,7 +64,7 @@ function erCreateOrUpdateCalendarEvent_(reviewId, webAppUrl) {
   // Prefer hash deep link consumed by the shell.
   var link = String(ScriptApp.getService().getUrl() || deep || '');
   var desc =
-    'Engagement Review: ' +
+    'Project Performance Review: ' +
     String(review.name || '') +
     '\nTarget date: ' +
     target +
@@ -72,7 +72,7 @@ function erCreateOrUpdateCalendarEvent_(reviewId, webAppUrl) {
     String((bundle.agreements || []).length) +
     '\nOpen in Hub: ' +
     link +
-    '#engagement-review/' +
+    '#project-performance-review/' +
     encodeURIComponent(String(review.id));
 
   var cal;
@@ -100,11 +100,11 @@ function erCreateOrUpdateCalendarEvent_(reviewId, webAppUrl) {
 
   try {
     if (event) {
-      event.setTitle('Engagement Review: ' + String(review.name || ''));
+      event.setTitle('Project Performance Review: ' + String(review.name || ''));
       event.setTime(start, end);
       event.setDescription(desc);
     } else {
-      event = cal.createEvent('Engagement Review: ' + String(review.name || ''), start, end, {
+      event = cal.createEvent('Project Performance Review: ' + String(review.name || ''), start, end, {
         description: desc,
         sendInvites: true,
         guests: guestEmails.join(','),

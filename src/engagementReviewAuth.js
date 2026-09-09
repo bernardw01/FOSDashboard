@@ -1,5 +1,5 @@
 /**
- * PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 037: Engagement Review access gates.
  * View / create reviews & updates: CLIENT-ENGAGEMENT, EXEC, or ADMIN.
@@ -150,7 +150,48 @@ function engagementReviewGateMessage_(msg) {
     return 'Your session is not authorized. Reload the page.';
   }
   if (msg === 'FORBIDDEN') {
-    return 'Engagement review and Lookback are available to Client Engagement, Execs, Admins, assigned owners, and named Lookback opt-in users.';
+    return 'Project performance review and Lookback are available to Client Engagement, Execs, Admins, assigned owners, and named Lookback opt-in users.';
   }
   return msg || 'Request failed.';
+}
+
+/**
+ * BUG-056-06 (A): whether the Reviews mode tab should be hidden.
+ * Mirrors client erHideReviewsTab_ (lookbackOnly OR not Admin).
+ * Does not change create-review gates (037 #5).
+ *
+ * @param {boolean} isAdmin
+ * @param {boolean} lookbackOnly
+ * @return {boolean}
+ */
+function erShouldHideReviewsTab_(isAdmin, lookbackOnly) {
+  return !!lookbackOnly || !isAdmin;
+}
+
+/**
+ * BUG-056-06: Reviews tab visibility matrix.
+ * @return {!Object}
+ */
+function test_erShouldHideReviewsTab_() {
+  var cases = [
+    { label: 'Admin', isAdmin: true, lookbackOnly: false, hide: false },
+    { label: 'EXEC/CE', isAdmin: false, lookbackOnly: false, hide: true },
+    { label: 'lookbackOnly cohort', isAdmin: false, lookbackOnly: true, hide: true },
+    { label: 'Admin+lookbackOnly (impossible)', isAdmin: true, lookbackOnly: true, hide: true },
+  ];
+  var fail = [];
+  for (var i = 0; i < cases.length; i++) {
+    var c = cases[i];
+    var got = erShouldHideReviewsTab_(c.isAdmin, c.lookbackOnly);
+    if (got !== c.hide) fail.push(c.label + ' expected hide=' + c.hide + ' got ' + got);
+  }
+  return {
+    ok: true,
+    pass: fail.length === 0,
+    fail: fail,
+    message:
+      fail.length === 0
+        ? 'PASS: Reviews tab hidden for non-Admin and lookbackOnly; visible for Admin.'
+        : 'FAIL: ' + fail.join('; '),
+  };
 }

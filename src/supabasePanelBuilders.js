@@ -1,5 +1,5 @@
 /**
- * PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: panel hydrate builders that read Supabase typed
  * tables (Agreement Management mirror from `supabaseAmMirror.js`, labor
@@ -224,7 +224,7 @@ function buildAgreementDashboardPayloadFromSupabase_() {
     'fos_agreements',
     { or: '(state_name.is.null,state_name.neq.Closed-Lost)' },
     'fibery_id,public_id,name,state_name,agreement_type,agreement_progress_name,' +
-      'customer_id,assigned_owner_id,total_planned_revenue,rev_recognized,total_labor_costs,total_materials_odc,' +
+      'customer_id,assigned_owner_id,owner_email,owner_name,total_planned_revenue,rev_recognized,total_labor_costs,total_materials_odc,' +
       'current_margin,target_margin,duration_start,duration_end,execution_date'
   );
   if (!agreementsRes.ok) {
@@ -294,9 +294,18 @@ function buildAgreementDashboardPayloadFromSupabase_() {
   for (var a2 = 0; a2 < agreementRows.length; a2++) {
     var r = agreementRows[a2];
     var custId = r.customer_id;
-    var ownerId = r.assigned_owner_id || null;
-    var ownerRow = ownerId && ownerUsersMap[ownerId] ? ownerUsersMap[ownerId] : null;
-    var ownerName = ownerRow && ownerRow.name ? String(ownerRow.name).trim() : '';
+    var resolvedOwner =
+      typeof resolveFosAgreementOwnerFromRow_ === 'function'
+        ? resolveFosAgreementOwnerFromRow_(r, ownerUsersMap)
+        : null;
+    var ownerName =
+      resolvedOwner && resolvedOwner.ownerName
+        ? resolvedOwner.ownerName
+        : '';
+    if (!ownerName && r.assigned_owner_id && ownerUsersMap[r.assigned_owner_id]) {
+      var ownerRow = ownerUsersMap[r.assigned_owner_id];
+      ownerName = ownerRow && ownerRow.name ? String(ownerRow.name).trim() : '';
+    }
     rawAgreements.push({
       id: r.fibery_id,
       publicId: r.public_id,

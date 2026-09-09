@@ -370,7 +370,8 @@ Panel-specific thresholds (Agreement, Utilization, Labor hours, Delivery, Pipeli
 | [`docs/supabase-data-model.md`](docs/supabase-data-model.md) | Supabase table catalog, ERD, build instructions |
 | [`docs/teamwork-manifest.json`](docs/teamwork-manifest.json) | Teamwork project ids, notebooks, release tasks |
 | [`.clasp.json`](.clasp.json) | Apps Script `scriptId` + `"rootDir": "src"` |
-| [`.cursor/rules/`](.cursor/rules/) | Cursor agent rules (PRD versioning, snapshots, mobile, Teamwork) |
+| [`.cursor/rules/`](.cursor/rules/) | Cursor agent rules (PRD versioning, snapshots, mobile, Teamwork, architect/implementer split) |
+| [`CLAUDE.md`](CLAUDE.md) | Claude Code's role (architecture/specs only) in the two-agent SDLC |
 
 ---
 
@@ -490,3 +491,4 @@ Review diffs carefully; pull overwrites matching local `src/` files.
 - [`.cursor/rules/mobile-ui-shell.mdc`](.cursor/rules/mobile-ui-shell.mdc) - mobile accommodations for shell UI.
 - [`.cursor/rules/teamwork-product-workflow.mdc`](.cursor/rules/teamwork-product-workflow.mdc) - Teamwork ↔ git sync rules.
 - [`.cursor/rules/documentation-style.mdc`](.cursor/rules/documentation-style.mdc) - docs style (no em dashes).
+- [`.cursor/rules/architect-implementer-workflow.mdc`](.cursor/rules/architect-implementer-workflow.mdc) / [`CLAUDE.md`](CLAUDE.md) - Claude Code drafts specs, Cursor implements; see either file for the split.

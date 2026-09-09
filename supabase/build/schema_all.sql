@@ -1,5 +1,5 @@
 -- FinOps Performance Hub - combined Supabase schema
--- Generated: 2026-08-04T23:10:56Z
+-- Generated: 2026-09-09T20:11:27Z
 -- Source: C:/code/FOSDashboard/supabase/migrations
 -- Idempotent: migrations use IF NOT EXISTS where possible.
 
@@ -1399,3 +1399,979 @@ grant all on table public.fos_engagement_updates
 
 commit;
 -- ========== END 045_engagement_updates_status_pack.sql ==========
+
+-- ========== BEGIN 046_fos_labor_costs_util_dims.sql ==========
+-- Utilization / RA labor dimensions: Clockify project -> agreement customer,
+-- Clockify user -> team member role. Live Apps Script joins the same tables;
+-- this view is the Datastore-side contract for SQL and future RPCs.
+
+create or replace view public.fos_labor_costs_util_dims
+with (security_invoker = true) as
+select
+  lc.clockify_time_log_id,
+  lc.start_date_time,
+  lc.project_id,
+  lc.user_id,
+  a.fibery_id as agreement_id,
+  a.name as agreement_name,
+  co.name as customer_name,
+  r.name as user_role_name,
+  r.bill_rate as user_role_bill_rate,
+  r.cost_rate as user_role_cost_rate
+from public.fos_labor_costs lc
+left join lateral (
+  select agr.fibery_id, agr.name, agr.customer_id
+  from public.fos_agreements agr
+  where agr.clockify_project_id is not null
+    and agr.clockify_project_id = lc.project_id
+  order by agr.fibery_id
+  limit 1
+) a on true
+left join public.fos_companies co on co.fibery_id = a.customer_id
+left join lateral (
+  select u.team_member_role_id
+  from public.fos_clockify_users u
+  where (
+      u.clockify_user_id is not null
+      and u.clockify_user_id = lc.user_id
+    )
+    or (
+      u.clockify_user_email is not null
+      and lower(u.clockify_user_email) = lower(lc.user_id)
+    )
+  order by
+    case when u.clockify_user_id = lc.user_id then 0 else 1 end,
+    u.fibery_id
+  limit 1
+) u on true
+left join public.fos_team_member_roles r on r.fibery_id = u.team_member_role_id;
+
+comment on view public.fos_labor_costs_util_dims is
+  'One row per fos_labor_costs time entry with agreement customer and team-member role (LATERAL 1:1 joins).';
+
+grant select on table public.fos_labor_costs_util_dims to postgres, service_role, anon, authenticated;
+-- ========== END 046_fos_labor_costs_util_dims.sql ==========
+
+-- ========== BEGIN 047_drop_unused_indexes.sql ==========
+-- Feature 047 workstream A3: drop indexes that have never been used.
+--
+-- Measured 2026-08-24 against pg_stat_user_indexes with 40 days of statistics
+-- (stats_reset 2026-07-15). Every index below had idx_scan = 0 over that
+-- window. None is unique, primary, or backing a constraint.
+--
+-- This is write-path relief for the nightly hydrate and the Clockify mirror
+-- trigger, not a read win. Read performance on the hot paths is already fine:
+-- the 90-day utilization aggregate completes in about 18 ms warm on
+-- fos_labor_costs_start_date_time_idx.
+--
+-- Follow-up (not done here): fos_labor_costs still carries three index pairs
+-- where the single-column index is a prefix of a composite one
+-- (project_id / project_start, user_id / user_start, status / status_start).
+-- All six have non-zero scans, so consolidating them needs a query review
+-- rather than a stats read.
+--
+-- Deliberately NOT dropped:
+--   * public.labor_costs indexes (labor_costs_project_start_idx 1856 kB,
+--     labor_costs_fetched_at_idx 912 kB, labor_costs_project_id_idx 552 kB).
+--     That table is owned by the Clockify sync project, not this repo. They
+--     are unused by the dashboard, but the owning project should drop them.
+--   * fos_hubspot_deals_hubspot_id_uidx. Unique, and it protects against
+--     duplicate deal mirrors even though no read currently seeks on it.
+--   * 16 kB indexes on small dimension tables. On tables of 10 to 150 rows the
+--     planner correctly prefers a sequential scan, so these will always show
+--     zero scans. They cost almost nothing and churning them adds risk.
+
+begin;
+
+-- fos_labor_costs: 22,343 rows, written by the mirror trigger on every
+-- Clockify sync. These two are the only meaningful write overhead in the set.
+drop index if exists public.fos_labor_costs_fetched_at_idx;   -- 936 kB
+drop index if exists public.fos_labor_costs_synced_at_idx;    -- 528 kB
+
+-- Mirror tables rewritten in full on each nightly hydrate.
+drop index if exists public.fos_ai_usage_rows_email_idx;      -- 96 kB
+drop index if exists public.fos_pnl_revenue_items_revenue_idx; -- 72 kB
+drop index if exists public.fos_revenue_items_target_date_idx; -- 40 kB
+drop index if exists public.fos_agreement_pnl_items_month_idx; -- 40 kB
+
+analyze public.fos_labor_costs;
+analyze public.fos_ai_usage_rows;
+analyze public.fos_revenue_items;
+
+commit;
+-- ========== END 047_drop_unused_indexes.sql ==========
+
+-- ========== BEGIN 048_perf_diagnostic_runs.sql ==========
+-- Feature 047: persist performance harness output.
+--
+-- The harness runs inside Apps Script, but the numbers are needed outside it to
+-- compare a workstream against its baseline. `clasp run` is not usable on this
+-- project without linking a standard GCP project and issuing a private OAuth
+-- client, so results are written here instead and read back over PostgREST.
+--
+-- Rows are small (one JSON document per run) and are kept indefinitely: the
+-- point is to compare workstream B, C, and D against the workstream A numbers
+-- months from now.
+
+begin;
+
+create table if not exists public.fos_perf_runs (
+  run_id       text primary key,
+  kind         text not null check (kind in ('baseline', 'parity')),
+  captured_at  timestamptz not null default now(),
+  prd_version  text,
+  label        text,
+  passed       boolean,
+  flags        jsonb,
+  result       jsonb not null
+);
+
+create index if not exists fos_perf_runs_captured_idx
+  on public.fos_perf_runs (captured_at desc);
+
+comment on table public.fos_perf_runs is
+  'Feature 047 performance harness output (_diag_capturePerfBaseline, _diag_comparePerfParity*). One JSON document per run.';
+
+commit;
+-- ========== END 048_perf_diagnostic_runs.sql ==========
+
+-- ========== BEGIN 049_perf_runs_kind_constraint.sql ==========
+-- Feature 047: allow new performance-harness kinds without a migration.
+--
+-- Migration 048 pinned `kind` to the two values that existed at the time,
+-- `baseline` and `parity`. Workstream B1 added a third, `codec`, and the insert
+-- failed against `fos_perf_runs_kind_check`. The failure is quiet by design:
+-- `perfPersistRun_` logs a warning and returns null, so the diagnostic still
+-- printed a correct result to the execution log and only the persisted copy was
+-- lost. That is exactly the kind of gap that is noticed late, and workstreams B,
+-- C, and D are each expected to add further kinds.
+--
+-- Trade-off, stated plainly: this swaps an allow-list for a shape check. It
+-- still rejects nulls, empty strings, uppercase, whitespace, and overlong text,
+-- so the column cannot become a free-text dumping ground. It no longer catches a
+-- typo such as 'paritty', which the allow-list would have. That is accepted
+-- deliberately. This table is written by a single internal code path and read by
+-- diagnostics, so a mistyped kind is a nuisance to be filtered out, whereas a
+-- rejected insert silently loses a measurement we ran a full hydrate to get.
+
+begin;
+
+alter table public.fos_perf_runs
+  drop constraint if exists fos_perf_runs_kind_check;
+
+alter table public.fos_perf_runs
+  add constraint fos_perf_runs_kind_check
+  check (kind ~ '^[a-z][a-z0-9_-]{0,31}$');
+
+comment on column public.fos_perf_runs.kind is
+  'Harness family, lowercase slug: baseline, parity, codec, and future workstream kinds. Shape-checked rather than enumerated so a new diagnostic does not require a migration.';
+
+commit;
+-- ========== END 049_perf_runs_kind_constraint.sql ==========
+
+-- ========== BEGIN 050_fos_rpc_ra_week_grid.sql ==========
+-- Feature 047 Workstream B2: Resource assignments week grid RPC.
+--
+-- Replaces a full-table PostgREST read of public.fos_resource_allocations plus
+-- four dimension-table reads with one call that filters allocation overlap in
+-- SQL and resolves the display joins there too.
+--
+-- The returned `allocations` array is byte-for-byte the shape
+-- `mapFosResourceAllocationRowToRaw_` produces in
+-- src/supabasePanelBuilders.js, so every downstream aggregation helper in
+-- src/resourceAssignmentDashboard.js runs unchanged. Nothing about the panel
+-- payload shape changes; only where the rows come from.
+--
+-- Overlap semantics deliberately mirror `allocationOverlapsRangeYmd_`:
+--
+--   * A row with both duration bounds null is IN range. The implementation
+--     plan sketched `duration_start < p_end and duration_end >= p_start`,
+--     which silently drops those rows. One of the 149 mirrored allocations is
+--     exactly that case, so the sketch would have changed a KPI.
+--   * A single null bound falls back to the other bound.
+--   * A reversed pair is swapped before comparison (least/greatest).
+--   * Both ends are inclusive: start <= p_end and end >= p_start.
+--
+-- Row order matters. Alert ties are broken by input order in JavaScript, so
+-- the dimension lookups are scalar subqueries rather than joins: the planner
+-- keeps the heap order of the sequential scan, which is what an unordered
+-- PostgREST select returns today. Do not add an ORDER BY without re-running
+-- _diag_comparePerfParity('resource-assignments', ...).
+
+create or replace function public.fos_rpc_ra_week_grid(
+  p_start date,
+  p_end   date
+) returns jsonb
+language sql
+stable
+set statement_timeout = '20s'
+as $$
+  select jsonb_build_object(
+    'rangeStart', p_start,
+    'rangeEnd', p_end,
+    'totalCount', (select count(*) from public.fos_resource_allocations),
+    'matchedCount', count(*),
+    'allocations', coalesce(jsonb_agg(alloc), '[]'::jsonb)
+  )
+  from (
+    select jsonb_build_object(
+      'id', a.fibery_id,
+      'duration', jsonb_build_object('start', a.duration_start, 'end', a.duration_end),
+      'allocationName', a.allocation_name,
+      'percentAllocated', a.percent_allocated,
+      'clockifyUserId', a.clockify_user_id,
+      'clockifyUserName', (
+        select u.name from public.fos_clockify_users u
+        where u.fibery_id = a.clockify_user_id
+      ),
+      'clockifyUserCompany', (
+        select u.company_enum_name from public.fos_clockify_users u
+        where u.fibery_id = a.clockify_user_id
+      ),
+      'roleName', (
+        select r.name from public.fos_team_member_roles r
+        where r.fibery_id = a.clockify_user_role_id
+      ),
+      'agreementId', a.agreement_id,
+      'agreementName', (
+        select ag.name from public.fos_agreements ag
+        where ag.fibery_id = a.agreement_id
+      ),
+      'customerName', (
+        select c.name from public.fos_companies c
+        where c.fibery_id = (
+          select ag.customer_id from public.fos_agreements ag
+          where ag.fibery_id = a.agreement_id
+        )
+      ),
+      'allocatedAndBillable', a.allocated_billable,
+      'allocatedHours', a.allocated_hours
+    ) as alloc
+    from public.fos_resource_allocations a
+    where a.fibery_id is not null
+      and (
+        (a.duration_start is null and a.duration_end is null)
+        or (
+          least(
+            coalesce(a.duration_start, a.duration_end),
+            coalesce(a.duration_end, a.duration_start)
+          ) <= p_end
+          and greatest(
+            coalesce(a.duration_start, a.duration_end),
+            coalesce(a.duration_end, a.duration_start)
+          ) >= p_start
+        )
+      )
+  ) filtered;
+$$;
+
+comment on function public.fos_rpc_ra_week_grid(date, date) is
+  'Feature 047 B2. Resource allocations overlapping [p_start, p_end] with display joins resolved. Mirrors allocationOverlapsRangeYmd_ exactly, including all-null durations being in range. Called behind the PERF_USE_RA_RPC kill switch.';
+
+grant execute on function public.fos_rpc_ra_week_grid(date, date)
+  to postgres, service_role, anon, authenticated;
+-- ========== END 050_fos_rpc_ra_week_grid.sql ==========
+
+-- ========== BEGIN 051_fos_viz_range_payloads.sql ==========
+-- Feature 047 Workstream B4: range-keyed visualization cache.
+--
+-- Every Utilization load rebuilds from fos_labor_costs today. The stored panel
+-- blob in fos_panel_payloads is only a fallback, and it carries exactly one
+-- window (the default range at hydrate time), so no other range can ever be
+-- served from it. This table caches the normalized row bundle for a
+-- day-aligned window so a repeated window is one read instead of eleven.
+--
+-- WHY DAY-ALIGNED, AND WHY THE PLAN'S DDL WAS NOT USABLE AS WRITTEN
+--
+-- The implementation plan proposed `primary key (panel_key, range_start,
+-- range_end, cache_schema_version)` with both bounds typed `date`. Measured
+-- against the live table, labor timestamps are intra-day: of 22,546 rows only
+-- 168 sit exactly on midnight and there are 1,163 distinct times of day. The
+-- client also never sends a day boundary for a preset window; it sends
+-- `new Date()` instants, so the default 60-day window differs by milliseconds
+-- on every request. A `date`-keyed entry would therefore be served to requests
+-- whose real instant bounds differ from the ones it was built for. On today's
+-- data that is 51 rows at the start edge of the default window, which moves
+-- every KPI on the panel.
+--
+-- So the date columns here are deliberately a SUPERSET key, not the answer:
+--
+--   range_start = floor(requested start to UTC day)
+--   range_end   = ceil (requested end   to UTC day)
+--
+-- The cached bundle holds every row in that superset. Apps Script then filters
+-- it to the exact requested instants before computing anything, which is the
+-- same re-slice `applyUtilizationRequestedRange_` already performs on the
+-- stored panel blob. Numbers cannot move, and the default window becomes
+-- cacheable even though its instants never repeat.
+--
+-- KEY DESIGN
+--
+--   panel_key            which panel's bundle this is
+--   range_start/_end     the day-aligned superset described above
+--   cache_schema_version the panel's cacheSchemaVersion, so a panel bump
+--                        orphans every old entry with no explicit purge
+--   key_hash             fingerprint of every other input that can change the
+--                        stored rows: the resolved threshold object and the
+--                        PERF_* flags that affect row content. Deliberately
+--                        over-keyed. An ADMIN retuning a threshold costs one
+--                        rebuild; a key that missed a threshold would serve
+--                        wrong numbers silently.
+--
+-- INVALIDATION
+--
+-- source_watermark and source_row_count fingerprint the inputs. The watermark
+-- is the greatest synced_at across fos_labor_costs and the four dimension
+-- tables whose values land inside a normalized row (users, roles, agreements,
+-- companies). The row count is carried separately because an upstream DELETE
+-- does not advance any synced_at.
+--
+-- Note that fos_labor_costs is written by the Clockify sync project, not by
+-- this repo's nightly hydrate: on 2026-08-25 its max synced_at was 05:35 while
+-- the hydrate ran 08:57 to 10:04. "Last completed hydrate" is therefore NOT a
+-- sufficient epoch, which is why the watermark is computed from the source
+-- tables themselves. Measured cost of the whole fingerprint expression: 19.5 ms
+-- warm, entirely from shared buffers, so no new index is required.
+--
+-- Apps Script reads the watermark BEFORE fetching rows and stamps that value on
+-- the write. If an upstream sync lands mid-build, the entry is stamped with the
+-- pre-build watermark and is treated as stale on the next read. The failure
+-- direction is a wasted rebuild, never a stale serve.
+
+begin;
+
+create table if not exists public.fos_viz_range_payloads (
+  panel_key            text        not null,
+  range_start          date        not null,
+  range_end            date        not null,
+  cache_schema_version int         not null,
+  key_hash             text        not null,
+  payload              jsonb       not null,
+  row_count            int         not null default 0,
+  payload_chars        int         not null default 0,
+  built_at             timestamptz not null default now(),
+  source_watermark     timestamptz,
+  source_row_count     int,
+  primary key (panel_key, range_start, range_end, cache_schema_version, key_hash)
+);
+
+create index if not exists fos_viz_range_payloads_gc_idx
+  on public.fos_viz_range_payloads (panel_key, source_watermark);
+
+comment on table public.fos_viz_range_payloads is
+  'Feature 047 B4. Day-aligned superset row bundles per panel and window. Read behind the PERF_USE_RANGE_CACHE kill switch and re-sliced to the exact requested instants in Apps Script, so the date bounds are a cache key and never the answer.';
+
+-- Fingerprint of every input that can change a cached bundle's rows.
+-- Kept as its own function so the read RPC, the writer, and the garbage
+-- collector cannot disagree about what "unchanged" means.
+create or replace function public.fos_viz_source_fingerprint()
+returns jsonb
+language sql
+stable
+set statement_timeout = '20s'
+as $$
+  select jsonb_build_object(
+    'watermark', greatest(
+      (select max(synced_at) from public.fos_labor_costs),
+      (select max(synced_at) from public.fos_clockify_users),
+      (select max(synced_at) from public.fos_team_member_roles),
+      (select max(synced_at) from public.fos_agreements),
+      (select max(synced_at) from public.fos_companies)
+    ),
+    'rowCount', (select count(*) from public.fos_labor_costs)
+  );
+$$;
+
+comment on function public.fos_viz_source_fingerprint() is
+  'Feature 047 B4. Greatest synced_at across fos_labor_costs and the four dimension tables a normalized utilization row draws from, plus the labor row count so an upstream delete is detected. ~19.5 ms warm.';
+
+-- One round trip for the whole read decision: does an entry exist, is it still
+-- fresh against the current fingerprint, and what is the current fingerprint so
+-- the caller can stamp a write on a miss.
+--
+-- `payload` is returned ONLY when the entry is fresh. Shipping ~900 kB that the
+-- caller is about to discard would make a miss more expensive than no cache.
+create or replace function public.fos_rpc_viz_range_get(
+  p_panel_key            text,
+  p_range_start          date,
+  p_range_end            date,
+  p_cache_schema_version int,
+  p_key_hash             text
+) returns jsonb
+language plpgsql
+stable
+set statement_timeout = '20s'
+as $$
+declare
+  v_fp    jsonb := public.fos_viz_source_fingerprint();
+  v_row   public.fos_viz_range_payloads;
+  v_hit   boolean := false;
+  v_fresh boolean := false;
+begin
+  select * into v_row
+  from public.fos_viz_range_payloads
+  where panel_key = p_panel_key
+    and range_start = p_range_start
+    and range_end = p_range_end
+    and cache_schema_version = p_cache_schema_version
+    and key_hash = p_key_hash;
+  v_hit := found;
+
+  if v_hit then
+    v_fresh :=
+      v_row.source_watermark is not null
+      and (v_fp->>'watermark') is not null
+      and v_row.source_watermark >= (v_fp->>'watermark')::timestamptz
+      and v_row.source_row_count is not null
+      and v_row.source_row_count = (v_fp->>'rowCount')::int;
+  end if;
+
+  return jsonb_build_object(
+    'hit', v_hit,
+    'fresh', v_fresh,
+    'payload', case when v_fresh then v_row.payload else null end,
+    'builtAt', v_row.built_at,
+    'rowCount', v_row.row_count,
+    'storedWatermark', v_row.source_watermark,
+    'storedRowCount', v_row.source_row_count,
+    'currentWatermark', v_fp->>'watermark',
+    'currentRowCount', (v_fp->>'rowCount')::int
+  );
+end;
+$$;
+
+comment on function public.fos_rpc_viz_range_get(text, date, date, int, text) is
+  'Feature 047 B4. Returns the cached bundle only when its stored fingerprint still matches the live one, plus the current fingerprint so a miss can be stamped correctly. Called behind PERF_USE_RANGE_CACHE.';
+
+-- Drops entries that can never be served again because the sources moved on.
+-- Exact rather than heuristic: no TTL, no size cap, no guessing which windows
+-- matter. Run at the end of hydrate.
+create or replace function public.fos_rpc_viz_range_gc(p_panel_key text)
+returns jsonb
+language plpgsql
+volatile
+set statement_timeout = '20s'
+as $$
+declare
+  v_fp      jsonb := public.fos_viz_source_fingerprint();
+  v_deleted int;
+begin
+  delete from public.fos_viz_range_payloads
+  where panel_key = p_panel_key
+    and (
+      source_watermark is null
+      or source_watermark < (v_fp->>'watermark')::timestamptz
+      or source_row_count is null
+      or source_row_count <> (v_fp->>'rowCount')::int
+    );
+  get diagnostics v_deleted = row_count;
+  return jsonb_build_object(
+    'deleted', v_deleted,
+    'remaining', (
+      select count(*) from public.fos_viz_range_payloads where panel_key = p_panel_key
+    )
+  );
+end;
+$$;
+
+comment on function public.fos_rpc_viz_range_gc(text) is
+  'Feature 047 B4. Deletes range-cache entries whose source fingerprint is behind the live one, which are exactly the entries that can never be served again.';
+
+grant execute on function public.fos_viz_source_fingerprint()
+  to postgres, service_role, anon, authenticated;
+grant execute on function public.fos_rpc_viz_range_get(text, date, date, int, text)
+  to postgres, service_role, anon, authenticated;
+grant execute on function public.fos_rpc_viz_range_gc(text)
+  to postgres, service_role, anon, authenticated;
+
+commit;
+-- ========== END 051_fos_viz_range_payloads.sql ==========
+
+-- ========== BEGIN 052_fos_agreements_bid_program_fields.sql ==========
+-- Feature 049: Bid / Program / Initial Planned Hours on Agreements
+-- Mirrors new Fibery Agreement Management/Agreements fields into Datastore
+-- and adds fos_programs for Program entity joins.
+
+begin;
+
+create table if not exists public.fos_programs (
+  fibery_id text primary key,
+  public_id text,
+  name text,
+  created_at timestamptz,
+  modified_at timestamptz,
+  synced_at timestamptz not null default now(),
+  raw jsonb
+);
+
+create index if not exists fos_programs_name_idx on public.fos_programs (name);
+create index if not exists fos_programs_public_id_idx on public.fos_programs (public_id);
+
+comment on table public.fos_programs is
+  'Fibery Agreement Management/Program entities mirrored for agreement program joins.';
+
+alter table public.fos_agreements
+  add column if not exists bid_cost numeric,
+  add column if not exists bid_margin numeric,
+  add column if not exists bid_revenue numeric,
+  add column if not exists initial_planned_hours numeric,
+  add column if not exists program_id text,
+  add column if not exists program_name text;
+
+create index if not exists fos_agreements_program_idx
+  on public.fos_agreements (program_id);
+
+comment on column public.fos_agreements.bid_cost is 'Fibery Agreement Management/Bid Cost';
+comment on column public.fos_agreements.bid_margin is 'Fibery Agreement Management/Bid Margin (formula)';
+comment on column public.fos_agreements.bid_revenue is 'Fibery Agreement Management/Bid Revenue';
+comment on column public.fos_agreements.initial_planned_hours is 'Fibery Agreement Management/Initial Planned Hours';
+comment on column public.fos_agreements.program_id is 'Fibery Agreement Management/Program relation id';
+comment on column public.fos_agreements.program_name is 'Program display name (Program Name lookup, else relation Name)';
+
+grant all on table public.fos_programs to postgres, service_role, anon, authenticated;
+
+commit;
+-- ========== END 052_fos_agreements_bid_program_fields.sql ==========
+
+-- ========== BEGIN 053_fos_ra_range_cache_fingerprint.sql ==========
+-- Feature 047 follow-on: Resource assignments range payload cache.
+--
+-- Reuses fos_viz_range_payloads (migration 051) with panel_key =
+-- 'resource-assignments'. Unlike Utilization (row bundles re-sliced in GAS),
+-- RA stores the fully assembled panel payload for an exact From/To YMD window
+-- so Live open / Reload is one Postgres read instead of a full Apps Script
+-- rebuild.
+--
+-- The B4 get/gc RPCs used fos_viz_source_fingerprint() for every panel_key.
+-- That fingerprint ignores fos_resource_allocations, so an RA entry would stay
+-- "fresh" after allocation edits. This migration adds an RA fingerprint and
+-- makes get/gc choose the fingerprint by panel_key.
+
+begin;
+
+create or replace function public.fos_ra_source_fingerprint()
+returns jsonb
+language sql
+stable
+set statement_timeout = '20s'
+as $$
+  select jsonb_build_object(
+    'watermark', greatest(
+      (select max(synced_at) from public.fos_labor_costs),
+      (select max(synced_at) from public.fos_resource_allocations),
+      (select max(synced_at) from public.fos_clockify_users),
+      (select max(synced_at) from public.fos_team_member_roles),
+      (select max(synced_at) from public.fos_agreements),
+      (select max(synced_at) from public.fos_companies)
+    ),
+    'rowCount',
+      coalesce((select count(*) from public.fos_labor_costs), 0)
+      + coalesce((select count(*) from public.fos_resource_allocations), 0)
+  );
+$$;
+
+comment on function public.fos_ra_source_fingerprint() is
+  'Feature 047 RA range cache. Greatest synced_at across labor, allocations, and RA dimension tables, plus labor+allocation row counts so deletes invalidate.';
+
+create or replace function public.fos_panel_source_fingerprint(p_panel_key text)
+returns jsonb
+language sql
+stable
+set statement_timeout = '20s'
+as $$
+  select case
+    when p_panel_key = 'resource-assignments' then public.fos_ra_source_fingerprint()
+    else public.fos_viz_source_fingerprint()
+  end;
+$$;
+
+comment on function public.fos_panel_source_fingerprint(text) is
+  'Feature 047. Dispatches to the Utilization or Resource assignments source fingerprint by panel_key.';
+
+create or replace function public.fos_rpc_viz_range_get(
+  p_panel_key            text,
+  p_range_start          date,
+  p_range_end            date,
+  p_cache_schema_version int,
+  p_key_hash             text
+) returns jsonb
+language plpgsql
+stable
+set statement_timeout = '20s'
+as $$
+declare
+  v_fp    jsonb := public.fos_panel_source_fingerprint(p_panel_key);
+  v_row   public.fos_viz_range_payloads;
+  v_hit   boolean := false;
+  v_fresh boolean := false;
+begin
+  select * into v_row
+  from public.fos_viz_range_payloads
+  where panel_key = p_panel_key
+    and range_start = p_range_start
+    and range_end = p_range_end
+    and cache_schema_version = p_cache_schema_version
+    and key_hash = p_key_hash;
+  v_hit := found;
+
+  if v_hit then
+    v_fresh :=
+      v_row.source_watermark is not null
+      and (v_fp->>'watermark') is not null
+      and v_row.source_watermark >= (v_fp->>'watermark')::timestamptz
+      and v_row.source_row_count is not null
+      and v_row.source_row_count = (v_fp->>'rowCount')::int;
+  end if;
+
+  return jsonb_build_object(
+    'hit', v_hit,
+    'fresh', v_fresh,
+    'payload', case when v_fresh then v_row.payload else null end,
+    'builtAt', v_row.built_at,
+    'rowCount', v_row.row_count,
+    'storedWatermark', v_row.source_watermark,
+    'storedRowCount', v_row.source_row_count,
+    'currentWatermark', v_fp->>'watermark',
+    'currentRowCount', (v_fp->>'rowCount')::int
+  );
+end;
+$$;
+
+comment on function public.fos_rpc_viz_range_get(text, date, date, int, text) is
+  'Feature 047 B4 (+ RA follow-on). Returns the cached bundle only when its stored fingerprint still matches the live one for that panel_key.';
+
+create or replace function public.fos_rpc_viz_range_gc(p_panel_key text)
+returns jsonb
+language plpgsql
+volatile
+set statement_timeout = '20s'
+as $$
+declare
+  v_fp      jsonb := public.fos_panel_source_fingerprint(p_panel_key);
+  v_deleted int;
+begin
+  delete from public.fos_viz_range_payloads
+  where panel_key = p_panel_key
+    and (
+      source_watermark is null
+      or source_watermark < (v_fp->>'watermark')::timestamptz
+      or source_row_count is null
+      or source_row_count <> (v_fp->>'rowCount')::int
+    );
+  get diagnostics v_deleted = row_count;
+  return jsonb_build_object(
+    'deleted', v_deleted,
+    'remaining', (
+      select count(*) from public.fos_viz_range_payloads where panel_key = p_panel_key
+    )
+  );
+end;
+$$;
+
+comment on function public.fos_rpc_viz_range_gc(text) is
+  'Feature 047 B4 (+ RA follow-on). Deletes range-cache entries whose panel fingerprint is behind the live one.';
+
+grant execute on function public.fos_ra_source_fingerprint()
+  to postgres, service_role, anon, authenticated;
+grant execute on function public.fos_panel_source_fingerprint(text)
+  to postgres, service_role, anon, authenticated;
+grant execute on function public.fos_rpc_viz_range_get(text, date, date, int, text)
+  to postgres, service_role, anon, authenticated;
+grant execute on function public.fos_rpc_viz_range_gc(text)
+  to postgres, service_role, anon, authenticated;
+
+commit;
+-- ========== END 053_fos_ra_range_cache_fingerprint.sql ==========
+
+-- ========== BEGIN 054_fos_mirror_reconcile.sql ==========
+-- Feature 036 / 047: ghost-row reconcile after full Fibery AM mirror scans.
+-- Apps Script records fibery_ids seen during a full-scan step, then deletes
+-- Supabase rows not in that snapshot (and stale junction rows).
+
+create table if not exists public.fos_reconcile_snapshot (
+  run_id text not null,
+  step_key text not null,
+  fibery_id text not null,
+  primary key (run_id, step_key, fibery_id)
+);
+
+create index if not exists fos_reconcile_snapshot_run_step_idx
+  on public.fos_reconcile_snapshot (run_id, step_key);
+
+comment on table public.fos_reconcile_snapshot is
+  'Transient fibery_id sets for AM mirror ghost reconcile; cleared per step after reconcile.';
+
+create table if not exists public.fos_reconcile_junction_snapshot (
+  run_id text not null,
+  step_key text not null,
+  parent_fibery_id text not null,
+  child_fibery_id text not null,
+  primary key (run_id, step_key, parent_fibery_id, child_fibery_id)
+);
+
+create index if not exists fos_reconcile_junction_snapshot_run_step_idx
+  on public.fos_reconcile_junction_snapshot (run_id, step_key);
+
+comment on table public.fos_reconcile_junction_snapshot is
+  'Transient M2M pairs seen during a full-scan AM mirror step (company segments, etc.).';
+
+grant all on table public.fos_reconcile_snapshot to postgres, service_role, anon, authenticated;
+grant all on table public.fos_reconcile_junction_snapshot to postgres, service_role, anon, authenticated;
+
+-- Allowlisted mirror tables only (security definer; called from Apps Script service role).
+create or replace function public.fos_reconcile_mirror_step(
+  p_run_id text,
+  p_step_key text,
+  p_table_name text,
+  p_enum_type text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_deleted int := 0;
+  v_sql text;
+begin
+  if p_run_id is null or length(trim(p_run_id)) = 0 then
+    raise exception 'run_id required';
+  end if;
+  if p_step_key is null or length(trim(p_step_key)) = 0 then
+    raise exception 'step_key required';
+  end if;
+
+  if p_table_name = 'fos_am_enums' then
+    if p_enum_type is null or length(trim(p_enum_type)) = 0 then
+      raise exception 'enum_type required for fos_am_enums';
+    end if;
+    delete from public.fos_am_enums t
+    where t.enum_type = p_enum_type
+      and t.fibery_id not in (
+        select s.fibery_id
+        from public.fos_reconcile_snapshot s
+        where s.run_id = p_run_id
+          and s.step_key = p_step_key
+      );
+    get diagnostics v_deleted = row_count;
+  elsif p_table_name in (
+    'fos_team_member_roles',
+    'fos_companies',
+    'fos_clockify_users',
+    'fos_contacts',
+    'fos_services_estimates',
+    'fos_programs',
+    'fos_agreements',
+    'fos_resource_allocations',
+    'fos_estimated_allocations',
+    'fos_other_direct_costs',
+    'fos_invoice_requests',
+    'fos_status_updates',
+    'fos_revenue_items',
+    'fos_agreement_pnl_items',
+    'fos_hubspot_deals',
+    'fos_ai_usage_rows'
+  ) then
+    v_sql := format(
+      'delete from public.%I t where t.fibery_id not in (
+         select s.fibery_id from public.fos_reconcile_snapshot s
+         where s.run_id = $1 and s.step_key = $2
+       )',
+      p_table_name
+    );
+    execute v_sql using p_run_id, p_step_key;
+    get diagnostics v_deleted = row_count;
+  else
+    raise exception 'table not allowed: %', p_table_name;
+  end if;
+
+  delete from public.fos_reconcile_snapshot
+  where run_id = p_run_id and step_key = p_step_key;
+
+  return jsonb_build_object(
+    'deleted', v_deleted,
+    'table', p_table_name,
+    'enumType', p_enum_type
+  );
+end;
+$$;
+
+comment on function public.fos_reconcile_mirror_step(text, text, text, text) is
+  'Deletes mirror rows whose fibery_id was not recorded in fos_reconcile_snapshot for this run/step.';
+
+create or replace function public.fos_reconcile_mirror_junction_step(
+  p_run_id text,
+  p_step_key text,
+  p_table_name text,
+  p_parent_column text,
+  p_child_column text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_deleted int := 0;
+  v_sql text;
+begin
+  if p_table_name not in (
+    'fos_company_segments',
+    'fos_agreement_assigned_resources',
+    'fos_pnl_revenue_items'
+  ) then
+    raise exception 'junction table not allowed: %', p_table_name;
+  end if;
+  if p_parent_column not in ('company_fibery_id', 'agreement_fibery_id', 'pnl_fibery_id') then
+    raise exception 'parent column not allowed: %', p_parent_column;
+  end if;
+  if p_child_column not in ('segment_fibery_id', 'clockify_user_fibery_id', 'revenue_item_fibery_id') then
+    raise exception 'child column not allowed: %', p_child_column;
+  end if;
+
+  v_sql := format(
+    'delete from public.%I j
+     where j.%I not in (
+       select s.fibery_id from public.fos_reconcile_snapshot s
+       where s.run_id = $1 and s.step_key = $2
+     )
+     or not exists (
+       select 1 from public.fos_reconcile_junction_snapshot s
+       where s.run_id = $1 and s.step_key = $2
+         and s.parent_fibery_id = j.%I
+         and s.child_fibery_id = j.%I
+     )',
+    p_table_name,
+    p_parent_column,
+    p_parent_column,
+    p_child_column
+  );
+  execute v_sql using p_run_id, p_step_key;
+  get diagnostics v_deleted = row_count;
+
+  delete from public.fos_reconcile_junction_snapshot
+  where run_id = p_run_id and step_key = p_step_key;
+
+  return jsonb_build_object('deleted', v_deleted, 'table', p_table_name);
+end;
+$$;
+
+comment on function public.fos_reconcile_mirror_junction_step(text, text, text, text, text) is
+  'Deletes stale M2M rows after a full parent-entity mirror step.';
+
+create or replace function public.fos_reconcile_snapshot_gc(p_run_id text default null)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_ids int := 0;
+  v_junc int := 0;
+begin
+  if p_run_id is not null and length(trim(p_run_id)) > 0 then
+    delete from public.fos_reconcile_snapshot where run_id = p_run_id;
+    get diagnostics v_ids = row_count;
+    delete from public.fos_reconcile_junction_snapshot where run_id = p_run_id;
+    get diagnostics v_junc = row_count;
+  else
+    return jsonb_build_object('snapshotRows', 0, 'junctionRows', 0);
+  end if;
+  return jsonb_build_object('snapshotRows', v_ids, 'junctionRows', v_junc);
+end;
+$$;
+
+grant execute on function public.fos_reconcile_mirror_step(text, text, text, text)
+  to postgres, service_role, anon, authenticated;
+grant execute on function public.fos_reconcile_mirror_junction_step(text, text, text, text, text)
+  to postgres, service_role, anon, authenticated;
+grant execute on function public.fos_reconcile_snapshot_gc(text)
+  to postgres, service_role, anon, authenticated;
+-- ========== END 054_fos_mirror_reconcile.sql ==========
+
+-- ========== BEGIN 055_lookback_reviews.sql ==========
+-- Feature 056: Monthly Client Financial Performance Review (Lookback)
+-- Locked month archive, selected/green projects, narrative evidence.
+
+begin;
+
+create table if not exists public.fos_lookback_months (
+  id uuid primary key default gen_random_uuid(),
+  reporting_period date not null,
+  locked_at timestamptz,
+  lock_timezone text not null default 'America/Los_Angeles',
+  status text not null default 'locking',
+  threshold_pct numeric not null default 50,
+  created_by_email text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint fos_lookback_months_period_uidx unique (reporting_period),
+  constraint fos_lookback_months_status_chk
+    check (status in ('locking', 'open_for_narratives', 'archived'))
+);
+
+create table if not exists public.fos_lookback_projects (
+  id uuid primary key default gen_random_uuid(),
+  month_id uuid not null references public.fos_lookback_months(id) on delete cascade,
+  agreement_fibery_id text not null,
+  agreement_name text,
+  company_name text,
+  assigned_owner_email text,
+  assigned_owner_name text,
+  selected boolean not null default false,
+  review_type text,
+  criteria jsonb not null default '[]'::jsonb,
+  selected_by_email text,
+  reason text,
+  narrative jsonb not null default '{}'::jsonb,
+  narrative_status text not null default 'not_started',
+  metrics jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  updated_by_email text,
+  unique (month_id, agreement_fibery_id),
+  constraint fos_lookback_projects_type_chk
+    check (review_type is null or review_type in ('automatic', 'manual')),
+  constraint fos_lookback_projects_status_chk
+    check (narrative_status in ('not_started', 'in_progress', 'complete'))
+);
+
+create index if not exists fos_lookback_projects_month_sel_idx
+  on public.fos_lookback_projects (month_id, selected, narrative_status);
+create index if not exists fos_lookback_projects_owner_idx
+  on public.fos_lookback_projects (assigned_owner_email);
+
+create table if not exists public.fos_lookback_evidence (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references public.fos_lookback_projects(id) on delete cascade,
+  drive_file_id text not null,
+  file_name text,
+  mime_type text,
+  byte_size bigint,
+  uploaded_by_email text not null,
+  uploaded_at timestamptz not null default now()
+);
+
+create index if not exists fos_lookback_evidence_project_idx
+  on public.fos_lookback_evidence (project_id, uploaded_at desc);
+
+grant all on table public.fos_lookback_months to postgres, service_role, anon, authenticated;
+grant all on table public.fos_lookback_projects to postgres, service_role, anon, authenticated;
+grant all on table public.fos_lookback_evidence to postgres, service_role, anon, authenticated;
+
+commit;
+-- ========== END 055_lookback_reviews.sql ==========
+
+-- ========== BEGIN 056_lookback_projects_sort_order.sql ==========
+-- Feature 056 / FEATURE-056-07: persisted Ready for Review order.
+
+begin;
+
+alter table public.fos_lookback_projects
+  add column if not exists sort_order integer not null default 0;
+
+create index if not exists fos_lookback_projects_month_sort_idx
+  on public.fos_lookback_projects (month_id, sort_order);
+
+commit;
+-- ========== END 056_lookback_projects_sort_order.sql ==========

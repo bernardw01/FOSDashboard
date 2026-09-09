@@ -1,5 +1,5 @@
 /**
- * PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -16,7 +16,7 @@ var ADMIN_SETTINGS_GROUPS_ = [
   { id: 'utilization', title: 'Utilization (Operations)' },
   { id: 'labor-hours', title: 'Labor hours' },
   { id: 'delivery', title: 'Delivery - PM Overview' },
-  { id: 'engagement-review', title: 'Engagement Review' },
+  { id: 'engagement-review', title: 'Project Performance Review' },
   { id: 'snapshots', title: 'Historical snapshots' },
   { id: 'expenses-dashboard', title: 'Expenses dashboard' },
   { id: 'pipeline-dashboard', title: 'Pipeline dashboard (Sales)' },
@@ -1052,7 +1052,7 @@ function getAdminSettingsCatalog_() {
     adminSettingEntry_(
       'ENGAGEMENT_REVIEW_DRIVE_FOLDER_ID',
       'engagement-review',
-      'Engagement Review recordings folder',
+      'Project Performance Review recordings folder',
       'Google Drive folder id for call recording uploads (feature 037). When empty, uses a subfolder under FOS_SNAPSHOT_DRIVE_FOLDER_ID named engagement-review-recordings.',
       'string',
       ''
@@ -1060,7 +1060,7 @@ function getAdminSettingsCatalog_() {
     adminSettingEntry_(
       'ENGAGEMENT_REVIEW_CALENDAR_ID',
       'engagement-review',
-      'Engagement Review calendar id',
+      'Project Performance Review calendar id',
       'Optional Google Calendar id for review invites. When empty, uses the script default calendar.',
       'string',
       ''
@@ -1094,7 +1094,7 @@ function getAdminSettingsCatalog_() {
       'LOOKBACK_EVIDENCE_DRIVE_FOLDER_ID',
       'engagement-review',
       'Lookback evidence Drive folder',
-      'Google Drive folder id for Lookback screenshot uploads. When empty, uses a lookback-evidence subfolder under the Engagement Review recordings folder.',
+      'Google Drive folder id for Lookback screenshot uploads. When empty, uses a lookback-evidence subfolder under the Project Performance Review recordings folder.',
       'string',
       ''
     ),

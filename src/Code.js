@@ -1,11 +1,11 @@
 /**
- * PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.21.1';
+var FOS_PRD_VERSION = '3.26.0';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.21.1';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.21.1 Fix Lookback lock: use fos_agreements.duration_end (no end_date column).';
+  'v3.26.0 Lookback project detail: freeze PM Overview Project Performance 7 KPIs at lock/re-run (FEATURE-056-11).';
 
 /**
  * @return {string}
@@ -206,7 +206,7 @@ function buildNavigationModel_(auth) {
         { id: 'pm-overview', label: 'PM Overview', active: false },
         { id: 'services-summary', label: 'Services Summary', active: false },
         { id: 'revenue-review', label: 'Revenue review', active: false },
-        { id: 'engagement-review', label: 'Engagement review', active: false },
+        { id: 'project-performance-review', label: 'Project performance review', active: false },
       ],
     },
     {
@@ -283,7 +283,7 @@ function buildNavigationModel_(auth) {
         label: item.label,
         active: item.active,
         children: item.children.filter(function (ch) {
-          return ch.id !== 'engagement-review';
+          return ch.id !== 'project-performance-review' && ch.id !== 'engagement-review';
         }),
       };
     });

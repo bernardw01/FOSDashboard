@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -4918,6 +4918,10 @@
       opacity: 0.4;
     }
 
+    tr.lb-ready-row.is-dragging {
+      opacity: 0.4;
+    }
+
     .er-update-row .btn {
       min-height: 44px;
       min-width: 44px;
@@ -6175,7 +6179,7 @@
         'pm-overview': 'bi-truck',
         'services-summary': 'bi-clipboard-data',
         'revenue-review': 'bi-cash-stack',
-        'engagement-review': 'bi-clipboard2-check',
+        'project-performance-review': 'bi-clipboard2-check',
         'expenses': 'bi-receipt-cutoff',
         'ai-usage': 'bi-cpu',
         'portfolio-pnl': 'bi-table',
@@ -7115,7 +7119,8 @@
           showServicesSummary();
         } else if (id === 'revenue-review') {
           showRevenueReview();
-        } else if (id === 'engagement-review') {
+        } else if (id === 'project-performance-review' || id === 'engagement-review') {
+          setActiveNav('project-performance-review');
           showEngagementReview();
         } else if (id === 'expenses') {
           showExpenses();
@@ -8164,7 +8169,7 @@
           'pm-overview': 'PM Overview',
           'services-summary': 'Services Summary',
           'revenue-review': 'Revenue review',
-          'engagement-review': 'Engagement review',
+          'project-performance-review': 'Project performance review',
           expenses: 'Expenses',
           settings: 'Settings',
           shell: 'Shell / data source',
@@ -9875,20 +9880,21 @@
       function applyDeepLinkPanelFromHash_() {
         try {
           var hash = String(window.location.hash || '');
-          var er = hash.match(/#?engagement-review\/([0-9a-f-]{36})(?:\/([0-9a-f-]{36}))?/i);
+          var er = hash.match(/#?(?:project-performance-review|engagement-review)\/([0-9a-f-]{36})(?:\/([0-9a-f-]{36}))?/i);
           if (er) {
-            navigateToNavId_('engagement-review');
+            navigateToNavId_('project-performance-review');
             showEngagementReview({ reviewId: er[1], agreementId: er[2] || null });
             return;
           }
           var m = hash.match(/panel=([a-z0-9-]+)/i);
           if (!m) return;
           var panelId = m[1];
+          if (panelId === 'engagement-review') panelId = 'project-performance-review';
           if (
             panelId === 'agreement-dashboard' ||
             panelId === 'operations' ||
             panelId === 'profile' ||
-            panelId === 'engagement-review'
+            panelId === 'project-performance-review'
           ) {
             if (panelId === 'agreement-dashboard' && !navItemById_('agreement-dashboard')) {
               navigateToNavId_('home');
@@ -21584,6 +21590,7 @@
         lookbackMonthId: '',
         lookbackBundle: null,
         lookbackProjectId: '',
+        lookbackActionFilters: { statuses: [], owners: [] },
       };
       var erViewerState_ = { updateId: null, html: '', fileName: 'engagement-update.html' };
       var ER_DIM_KEYS_ = ['schedule', 'cost_hours', 'margin', 'client_sentiment'];
@@ -21658,6 +21665,12 @@
         if (els.panelPipeline) els.panelPipeline.classList.add('d-none');
       }
 
+      function erHideReviewsTab_() {
+        // BUG-056-06 (A): Reviews tab is Admin-only. Existing lookbackOnly cohort
+        // stays hidden too. Single source of truth for #er-mode-reviews-btn.
+        return !!erState_.lookbackOnly || !erState_.isAdmin;
+      }
+
       function erApplyCanCreateUi_() {
         var canCreate = !!(erState_.isAdmin || erState_.canCreate) && !erState_.lookbackOnly;
         var newBtn = document.getElementById('er-new-btn');
@@ -21667,7 +21680,7 @@
         var noteFormWrap = document.getElementById('er-note-form-wrap');
         if (noteFormWrap) noteFormWrap.classList.toggle('d-none', !canCreate);
         var reviewsBtn = document.getElementById('er-mode-reviews-btn');
-        if (reviewsBtn) reviewsBtn.classList.toggle('d-none', !!erState_.lookbackOnly);
+        if (reviewsBtn) reviewsBtn.classList.toggle('d-none', erHideReviewsTab_());
       }
 
       /**
@@ -21703,8 +21716,8 @@
         hideOtherPanelsForEngagementReview_();
         els.panelEngagementReview.classList.remove('d-none');
         hideAccountChromePanels_();
-        els.topbarTitle.textContent = 'Engagement review';
-        logActivity_('engagement_review_nav', 'engagement-review', '');
+        els.topbarTitle.textContent = 'Project performance review';
+        logActivity_('engagement_review_nav', 'project-performance-review', '');
         // renderNav assigns the server model onto navState and sets navState.isAdmin
         // (there is no navState.model). Using .model left New review hidden for Admins.
         erState_.isAdmin = !!navState.isAdmin;
@@ -21718,7 +21731,7 @@
           erOpenProject_(openReview, openAgreement);
         } else if (openReview) {
           erOpenDetail_(openReview);
-        } else if (erState_.lookbackOnly || (opts && opts.lookback)) {
+        } else if (erHideReviewsTab_() || (opts && opts.lookback)) {
           erState_.mode = 'lookback';
           erShowView_('lookback');
           lbLoadMonths_();
@@ -21849,11 +21862,21 @@
             (r.status || '') +
             ' · ' +
             String((res.updates || []).length) +
-            ' Engagement Update' +
+            ' Project Update' +
             ((res.updates || []).length === 1 ? '' : 's');
         }
         var adminActions = document.getElementById('er-admin-actions');
         if (adminActions) adminActions.classList.toggle('d-none', !admin);
+        var delReviewBtn = document.getElementById('er-delete-review-btn');
+        if (delReviewBtn) {
+          var updateCount = (res.updates || []).length;
+          delReviewBtn.disabled = updateCount > 0;
+          delReviewBtn.title =
+            updateCount > 0
+              ? 'Cannot delete a review that has Project Updates'
+              : 'Delete this performance review';
+          delReviewBtn.classList.toggle('d-none', !admin);
+        }
         var uploadWrap = document.getElementById('er-upload-wrap');
         if (uploadWrap) uploadWrap.classList.toggle('d-none', !admin);
         var addPart = document.getElementById('er-add-participant-wrap');
@@ -21908,7 +21931,7 @@
         erState_.currentAgreementId = agreementId;
         erShowView_('project');
         erSetLoading_(true);
-        logActivity_('engagement_review_project_detail', 'engagement-review', agreementId);
+        logActivity_('engagement_review_project_detail', 'project-performance-review', agreementId);
         google.script.run
           .withSuccessHandler(function (res) {
             erSetLoading_(false);
@@ -22277,13 +22300,13 @@
             if (!res || !res.ok) {
               var err = document.getElementById('er-detail-error');
               if (err) {
-                err.textContent = (res && res.message) || 'Could not reorder Engagement Updates.';
+                err.textContent = (res && res.message) || 'Could not reorder Project Updates.';
                 err.classList.remove('d-none');
               }
               erRenderUpdatesList_();
               return;
             }
-            logActivity_('engagement_update_reorder', 'engagement-review', erState_.currentReviewId || '');
+            logActivity_('engagement_update_reorder', 'project-performance-review', erState_.currentReviewId || '');
             var list = (erState_.detail && erState_.detail.updates) || [];
             var indexOf = {};
             for (var i = 0; i < orderedIds.length; i++) indexOf[String(orderedIds[i])] = i;
@@ -22296,7 +22319,7 @@
             erSetLoading_(false);
             var err = document.getElementById('er-detail-error');
             if (err) {
-              err.textContent = e && e.message ? e.message : 'Could not reorder Engagement Updates.';
+              err.textContent = e && e.message ? e.message : 'Could not reorder Project Updates.';
               err.classList.remove('d-none');
             }
             erRenderUpdatesList_();
@@ -22305,46 +22328,144 @@
       }
 
       /* --------------------------------------------------------------------
-         Engagement Update create / edit modal.
+         Project Update create / edit modal.
          -------------------------------------------------------------------- */
 
-      function erPopulateProjectSelect_() {
-        var select = document.getElementById('er-um-project-select');
-        if (!select) return;
-        function render(projects) {
-          select.innerHTML =
-            '<option value="">Select a project…</option>' +
-            (projects || [])
-              .map(function (p) {
-                return (
-                  '<option value="' +
-                  escapeHtml(p.fiberyId) +
-                  '">' +
-                  escapeHtml(p.name) +
-                  (p.companyName ? ' · ' + escapeHtml(p.companyName) : '') +
-                  '</option>'
-                );
-              })
-              .join('');
+      function erRagSelectColors_(value) {
+        var v = String(value || '').toLowerCase();
+        if (v === 'off_track' || v === 'red') {
+          return { border: '#f07178', bg: 'rgba(240,113,120,0.12)' };
         }
-        if (erState_.projectsCache) {
-          render(erState_.projectsCache);
-          return;
+        if (v === 'at_risk' || v === 'amber' || v === 'yellow') {
+          return { border: '#f5c542', bg: 'rgba(245,197,66,0.12)' };
         }
-        select.innerHTML = '<option value="">Loading projects…</option>';
+        return { border: '#3dd68c', bg: 'rgba(61,214,140,0.12)' };
+      }
+
+      function erApplyRagSelectStyle_(el) {
+        if (!el) return;
+        var c = erRagSelectColors_(el.value);
+        el.style.borderLeft = '4px solid ' + c.border;
+        el.style.background = c.bg;
+      }
+
+      function erWireRagSelectStyles_() {
+        var nodes = document.querySelectorAll('#erUpdateModal .er-rag-select');
+        for (var i = 0; i < nodes.length; i++) {
+          (function (sel) {
+            erApplyRagSelectStyle_(sel);
+            if (sel.getAttribute('data-er-rag-wired') === '1') return;
+            sel.setAttribute('data-er-rag-wired', '1');
+            sel.addEventListener('change', function () {
+              erApplyRagSelectStyle_(sel);
+            });
+          })(nodes[i]);
+        }
+      }
+
+      function erPeriodToMonthInput_(period) {
+        var p = String(period || '').slice(0, 7);
+        return /^\d{4}-\d{2}$/.test(p) ? p : '';
+      }
+
+      function erPopulateLookbackPeriodSelect_(selectedPeriod) {
+        var sel = document.getElementById('er-um-lookback-period');
+        var emptyHint = document.getElementById('er-um-lookback-empty');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">Loading Lookback months…</option>';
+        if (emptyHint) emptyHint.classList.add('d-none');
         google.script.run
           .withSuccessHandler(function (res) {
-            if (!res || !res.ok) {
-              render([]);
+            var months = (res && res.ok && res.months) || [];
+            var open = [];
+            for (var i = 0; i < months.length; i++) {
+              if (String(months[i].status || '') === 'open_for_narratives') open.push(months[i]);
+            }
+            if (!open.length) {
+              sel.innerHTML = '<option value="">No open Lookback months</option>';
+              sel.disabled = true;
+              if (emptyHint) emptyHint.classList.remove('d-none');
               return;
             }
-            erState_.projectsCache = res.projects || [];
-            render(erState_.projectsCache);
+            sel.disabled = false;
+            if (emptyHint) emptyHint.classList.add('d-none');
+            sel.innerHTML = '<option value="">Select a Lookback month…</option>';
+            var want = erPeriodToMonthInput_(selectedPeriod);
+            for (var j = 0; j < open.length; j++) {
+              var m = open[j];
+              var val = erPeriodToMonthInput_(m.reportingPeriod);
+              if (!val) continue;
+              var op = document.createElement('option');
+              op.value = val;
+              op.textContent = lbPeriodLabel_ ? lbPeriodLabel_(m.reportingPeriod) : val;
+              if (want && want === val) op.selected = true;
+              sel.appendChild(op);
+            }
+            if (want) {
+              sel.value = want;
+              erPopulateProjectSelectForPeriod_(want);
+            }
           })
           .withFailureHandler(function () {
-            render([]);
+            sel.innerHTML = '<option value="">Could not load Lookback months</option>';
+            sel.disabled = true;
+            if (emptyHint) emptyHint.classList.remove('d-none');
           })
-          .listEngagementUpdateProjects();
+          .listLookbackMonths();
+      }
+
+      function erPopulateProjectSelectForPeriod_(period) {
+        var select = document.getElementById('er-um-project-select');
+        var periodHidden = document.getElementById('er-um-period');
+        var ownerEl = document.getElementById('er-um-owner-readonly');
+        if (!select) return;
+        var p = erPeriodToMonthInput_(period);
+        if (periodHidden) periodHidden.value = p || '';
+        if (!p) {
+          select.disabled = true;
+          select.innerHTML = '<option value="">Select a Lookback period first…</option>';
+          erState_.projectsCache = [];
+          if (ownerEl) ownerEl.textContent = '-';
+          return;
+        }
+        select.disabled = true;
+        select.innerHTML = '<option value="">Loading selected projects…</option>';
+        google.script.run
+          .withSuccessHandler(function (res) {
+            var projects = (res && res.ok && res.projects) || [];
+            erState_.projectsCache = projects;
+            if (!projects.length) {
+              select.innerHTML = '<option value="">No selected Lookback projects</option>';
+              select.disabled = true;
+              return;
+            }
+            select.disabled = false;
+            select.innerHTML =
+              '<option value="">Select a project…</option>' +
+              projects
+                .map(function (proj) {
+                  return (
+                    '<option value="' +
+                    escapeHtml(proj.fiberyId) +
+                    '">' +
+                    escapeHtml(proj.name) +
+                    (proj.companyName ? ' · ' + escapeHtml(proj.companyName) : '') +
+                    '</option>'
+                  );
+                })
+                .join('');
+          })
+          .withFailureHandler(function () {
+            erState_.projectsCache = [];
+            select.innerHTML = '<option value="">Could not load projects</option>';
+            select.disabled = true;
+          })
+          .listLookbackSelectedProjects(p);
+      }
+
+      function erPopulateProjectSelect_() {
+        var lookbackSel = document.getElementById('er-um-lookback-period');
+        erPopulateProjectSelectForPeriod_(lookbackSel ? lookbackSel.value : '');
       }
 
       function erRenderQuantPanel_(snapshot) {
@@ -22353,7 +22474,7 @@
         var q = snapshot || {};
         if (!q || !Object.keys(q).length) {
           el.innerHTML =
-            '<p class="mb-0" style="color:var(--ag-text-muted)">No metrics yet. Save this Engagement Update to pull hours, cost, and revenue.</p>';
+            '<p class="mb-0" style="color:var(--ag-text-muted)">No metrics yet. Save this Project Update to pull hours, cost, and revenue.</p>';
           return;
         }
         var hours = q.hoursMtd || {};
@@ -22420,6 +22541,17 @@
         el.innerHTML = html;
       }
 
+      function erOwnerDisplayLabel_(update) {
+        if (!update) return 'Unassigned';
+        var live =
+          update.currentOwnerName ||
+          update.currentOwnerEmail ||
+          '';
+        if (live) return live;
+        // Create/cache paths may only have frozen snapshot fields.
+        return update.assignedOwnerName || update.assignedOwnerEmail || 'Unassigned';
+      }
+
       function erFillUpdateModal_(mode, update) {
         erState_.editingUpdateId = mode === 'edit' && update ? update.id : null;
         var titleEl = document.getElementById('erUpdateModalLabel');
@@ -22427,6 +22559,8 @@
         var projectSelect = document.getElementById('er-um-project-select');
         var projectReadonlyWrap = document.getElementById('er-um-project-readonly-wrap');
         var projectReadonly = document.getElementById('er-um-project-readonly');
+        var lookbackReadonlyWrap = document.getElementById('er-um-lookback-period-readonly-wrap');
+        var lookbackReadonly = document.getElementById('er-um-lookback-period-readonly');
         var detailFields = document.getElementById('er-um-detail-fields');
         var ownerEl = document.getElementById('er-um-owner-readonly');
         var periodEl = document.getElementById('er-um-period');
@@ -22434,24 +22568,29 @@
         var pulledEl = document.getElementById('er-um-metrics-pulled-at');
 
         if (mode === 'create') {
-          if (titleEl) titleEl.textContent = 'Create Engagement Update';
+          if (titleEl) titleEl.textContent = 'Create Project Update';
           if (saveBtn) saveBtn.textContent = 'Create';
           if (projectSelect) {
             projectSelect.classList.remove('d-none');
-            projectSelect.disabled = false;
+            projectSelect.disabled = true;
             projectSelect.value = '';
           }
           if (projectReadonlyWrap) projectReadonlyWrap.classList.add('d-none');
+          if (lookbackReadonlyWrap) lookbackReadonlyWrap.classList.add('d-none');
+          if (lookbackReadonly) lookbackReadonly.textContent = '';
           if (detailFields) detailFields.classList.add('d-none');
           if (ownerEl) ownerEl.textContent = '-';
-          if (periodEl) {
-            var now = new Date();
-            var mm = String(now.getMonth() + 1);
-            if (mm.length < 2) mm = '0' + mm;
-            periodEl.value = now.getFullYear() + '-' + mm;
-          }
+          if (periodEl) periodEl.value = '';
           if (overallEl) overallEl.value = 'on_track';
-          erPopulateProjectSelect_();
+          var lookbackSel = document.getElementById('er-um-lookback-period');
+          if (lookbackSel) {
+            lookbackSel.classList.remove('d-none');
+            lookbackSel.disabled = false;
+            lookbackSel.onchange = function () {
+              erPopulateProjectSelectForPeriod_(lookbackSel.value);
+            };
+          }
+          erPopulateLookbackPeriodSelect_('');
           if (projectSelect) {
             projectSelect.onchange = function () {
               var proj = (erState_.projectsCache || []).filter(function (p) {
@@ -22460,12 +22599,27 @@
               if (ownerEl) ownerEl.textContent = proj ? proj.ownerName || proj.ownerEmail || '-' : '-';
             };
           }
+          erWireRagSelectStyles_();
         } else {
-          if (titleEl) titleEl.textContent = 'Edit Engagement Update';
+          if (titleEl) titleEl.textContent = 'Edit Project Update';
           if (saveBtn) saveBtn.textContent = 'Save';
           if (projectSelect) {
             projectSelect.classList.add('d-none');
             projectSelect.disabled = true;
+          }
+          var lookbackSelEdit = document.getElementById('er-um-lookback-period');
+          if (lookbackSelEdit) {
+            lookbackSelEdit.classList.add('d-none');
+            lookbackSelEdit.disabled = true;
+          }
+          var lookbackEmpty = document.getElementById('er-um-lookback-empty');
+          if (lookbackEmpty) lookbackEmpty.classList.add('d-none');
+          if (lookbackReadonlyWrap) lookbackReadonlyWrap.classList.remove('d-none');
+          if (lookbackReadonly) {
+            lookbackReadonly.textContent =
+              lbPeriodLabel_(update.reportingPeriod) ||
+              String(update.reportingPeriod || '').slice(0, 7) ||
+              '';
           }
           if (projectReadonlyWrap) projectReadonlyWrap.classList.remove('d-none');
           if (projectReadonly) {
@@ -22474,7 +22628,8 @@
               (update.companyName ? ' · ' + update.companyName : '');
           }
           if (detailFields) detailFields.classList.remove('d-none');
-          if (ownerEl) ownerEl.textContent = update.assignedOwnerName || update.assignedOwnerEmail || '-';
+          // BUG-037-01: prefer live currentOwner* from getEngagementStatusPack.
+          if (ownerEl) ownerEl.textContent = erOwnerDisplayLabel_(update);
           if (periodEl) periodEl.value = String(update.reportingPeriod || '').slice(0, 7);
           if (overallEl) overallEl.value = update.overallRag || 'on_track';
 
@@ -22495,6 +22650,7 @@
           if (pnEl) pnEl.value = (qual.priorities_next || []).join('\n');
           var riskEl = document.getElementById('er-um-risks');
           if (riskEl) riskEl.value = erRisksToLines_(qual.risks || []);
+          erWireRagSelectStyles_();
           var revEl = document.getElementById('er-um-revenue-callout');
           if (revEl) revEl.value = erHtmlParagraphsToPlain_(qual.revenue_callout_html || '');
           var mfEl = document.getElementById('er-um-margin-footnote');
@@ -22518,24 +22674,20 @@
       }
 
       function erOpenEditUpdateModal_(updateId) {
-        var cached = erFindUpdateById_(updateId);
-        if (cached) {
-          erFillUpdateModal_('edit', cached);
-          return;
-        }
+        // Always fetch so Edit can show live Owner (BUG-037-01); cache may lack currentOwner*.
         erSetLoading_(true);
         google.script.run
           .withSuccessHandler(function (res) {
             erSetLoading_(false);
             if (!res || !res.ok) {
-              window.alert((res && res.message) || 'Could not load Engagement Update.');
+              window.alert((res && res.message) || 'Could not load Project Update.');
               return;
             }
             erFillUpdateModal_('edit', res.update);
           })
           .withFailureHandler(function (e) {
             erSetLoading_(false);
-            window.alert(e && e.message ? e.message : 'Could not load Engagement Update.');
+            window.alert(e && e.message ? e.message : 'Could not load Project Update.');
           })
           .getEngagementStatusPack(updateId);
       }
@@ -22559,6 +22711,12 @@
         var overallRag = (document.getElementById('er-um-overall-rag') || {}).value || 'on_track';
 
         if (!erState_.editingUpdateId) {
+          var lookbackSelSave = document.getElementById('er-um-lookback-period');
+          if (lookbackSelSave && lookbackSelSave.value) {
+            period = lookbackSelSave.value;
+            var periodHiddenSave = document.getElementById('er-um-period');
+            if (periodHiddenSave) periodHiddenSave.value = period;
+          }
           var aid = (document.getElementById('er-um-project-select') || {}).value || '';
           if (!aid) {
             if (errEl) {
@@ -22569,7 +22727,7 @@
           }
           if (!period) {
             if (errEl) {
-              errEl.textContent = 'Reporting period is required.';
+              errEl.textContent = 'Lookback period is required.';
               errEl.classList.remove('d-none');
             }
             return;
@@ -22580,12 +22738,12 @@
               erSetLoading_(false);
               if (!res || !res.ok) {
                 if (errEl) {
-                  errEl.textContent = (res && res.message) || 'Could not create Engagement Update.';
+                  errEl.textContent = (res && res.message) || 'Could not create Project Update.';
                   errEl.classList.remove('d-none');
                 }
                 return;
               }
-              logActivity_('engagement_update_create', 'engagement-review', (res.update && res.update.id) || '');
+              logActivity_('engagement_update_create', 'project-performance-review', (res.update && res.update.id) || '');
               if (typeof showSaveToast_ === 'function') showSaveToast_();
               erFillUpdateModal_('edit', res.update);
               erOpenDetail_(erState_.currentReviewId);
@@ -22593,7 +22751,7 @@
             .withFailureHandler(function (e) {
               erSetLoading_(false);
               if (errEl) {
-                errEl.textContent = e && e.message ? e.message : 'Could not create Engagement Update.';
+                errEl.textContent = e && e.message ? e.message : 'Could not create Project Update.';
                 errEl.classList.remove('d-none');
               }
             })
@@ -22631,12 +22789,12 @@
             erSetLoading_(false);
             if (!res || !res.ok) {
               if (errEl) {
-                errEl.textContent = (res && res.message) || 'Could not save Engagement Update.';
+                errEl.textContent = (res && res.message) || 'Could not save Project Update.';
                 errEl.classList.remove('d-none');
               }
               return;
             }
-            logActivity_('engagement_update_edit', 'engagement-review', (res.update && res.update.id) || '');
+            logActivity_('engagement_update_edit', 'project-performance-review', (res.update && res.update.id) || '');
             if (typeof showSaveToast_ === 'function') showSaveToast_();
             var modalEl = document.getElementById('erUpdateModal');
             if (modalEl && window.bootstrap) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
@@ -22645,7 +22803,7 @@
           .withFailureHandler(function (e) {
             erSetLoading_(false);
             if (errEl) {
-              errEl.textContent = e && e.message ? e.message : 'Could not save Engagement Update.';
+              errEl.textContent = e && e.message ? e.message : 'Could not save Project Update.';
               errEl.classList.remove('d-none');
             }
           })
@@ -22667,7 +22825,7 @@
               }
               return;
             }
-            logActivity_('engagement_update_refresh_metrics', 'engagement-review', (res.update && res.update.id) || '');
+            logActivity_('engagement_update_refresh_metrics', 'project-performance-review', (res.update && res.update.id) || '');
             if (typeof showSaveToast_ === 'function') showSaveToast_();
             erFillUpdateModal_('edit', res.update);
             erUpdateCachedUpdate_(res.update);
@@ -22687,7 +22845,7 @@
          -------------------------------------------------------------------- */
 
       function erOpenViewer_(updateId) {
-        logActivity_('engagement_update_view', 'engagement-review', updateId || '');
+        logActivity_('engagement_update_view', 'project-performance-review', updateId || '');
         var titleEl = document.getElementById('erViewerModalLabel');
         var frame = document.getElementById('er-viewer-frame');
         var errEl = document.getElementById('er-viewer-error');
@@ -22702,13 +22860,13 @@
         if (titleEl) {
           titleEl.textContent = cached
             ? (cached.agreementName || cached.agreementFiberyId) + ' · ' + String(cached.reportingPeriod || '').slice(0, 7)
-            : 'Engagement Update';
+            : 'Project Update';
         }
         google.script.run
           .withSuccessHandler(function (res) {
             if (!res || !res.ok) {
               if (errEl) {
-                errEl.textContent = (res && res.message) || 'Could not load Engagement Update.';
+                errEl.textContent = (res && res.message) || 'Could not load Project Update.';
                 errEl.classList.remove('d-none');
               }
               return;
@@ -22719,7 +22877,7 @@
           })
           .withFailureHandler(function (e) {
             if (errEl) {
-              errEl.textContent = e && e.message ? e.message : 'Could not load Engagement Update.';
+              errEl.textContent = e && e.message ? e.message : 'Could not load Project Update.';
               errEl.classList.remove('d-none');
             }
           })
@@ -22829,7 +22987,7 @@
               }
               return;
             }
-            logActivity_('engagement_review_note_save', 'engagement-review', erState_.currentReviewId || '');
+            logActivity_('engagement_review_note_save', 'project-performance-review', erState_.currentReviewId || '');
             if (typeof showSaveToast_ === 'function') showSaveToast_();
             erCancelEditNote_();
             erOpenDetail_(erState_.currentReviewId);
@@ -22961,6 +23119,7 @@
 
       function lbCriteriaLabel_(code) {
         var c = String(code || '');
+        if (c === 'user_removed') return 'Removed by user';
         if (c.indexOf('eac_margin_below_') === 0) return 'EAC margin below ' + c.slice('eac_margin_below_'.length) + '%';
         if (c === 'actual_vs_plan_margin_5pts') return 'Actual vs plan margin ±5 pts';
         if (c === 'closed_in_month') return 'Closed in reporting month';
@@ -23034,6 +23193,9 @@
 
       function lbOpenMonth_(monthId) {
         if (!monthId) return;
+        if (String(erState_.lookbackMonthId || '') !== String(monthId)) {
+          erState_.lookbackActionFilters = { statuses: [], owners: [] };
+        }
         erState_.lookbackMonthId = monthId;
         erSetLoading_(true);
         google.script.run
@@ -23047,7 +23209,7 @@
               }
               return;
             }
-            logActivity_('lookback_month_open', 'engagement-review', res.month && res.month.reportingPeriod);
+            logActivity_('lookback_month_open', 'project-performance-review', res.month && res.month.reportingPeriod);
             erState_.lookbackBundle = res;
             lbRenderMonth_();
             if (erState_.lookbackProjectId && document.getElementById('er-view-lookback-project') && !document.getElementById('er-view-lookback-project').classList.contains('d-none')) {
@@ -23065,6 +23227,185 @@
           .getLookbackMonth(monthId);
       }
 
+      function lbOwnerLabel_(p) {
+        return String((p && (p.assignedOwnerName || p.assignedOwnerEmail)) || '').trim() || 'Unassigned';
+      }
+
+      function lbCanRemoveLookbackRow_(p, b, writable) {
+        if (!writable || !p || !p.selected) return false;
+        if (!b) return false;
+        if (b.canOptInAny || b.canOverride || erState_.isAdmin) return true;
+        var mine = String((navState && navState.userEmail) || '').toLowerCase();
+        return !!(mine && String(p.assignedOwnerEmail || '').toLowerCase() === mine);
+      }
+
+      function lbRemoveLookbackProject_(agreementFiberyId, agreementName) {
+        var mid = erState_.lookbackMonthId;
+        if (!mid || !agreementFiberyId) return;
+        var label = agreementName || agreementFiberyId;
+        if (!window.confirm('Remove "' + label + '" from Lookback review? It will return to Green (not selected). Narrative is kept.')) {
+          return;
+        }
+        erSetLoading_(true);
+        google.script.run
+          .withSuccessHandler(function (res) {
+            erSetLoading_(false);
+            if (!res || !res.ok) {
+              window.alert((res && res.message) || 'Could not remove project.');
+              return;
+            }
+            if (typeof showSaveToast_ === 'function') showSaveToast_();
+            lbOpenMonth_(mid);
+          })
+          .withFailureHandler(function (e) {
+            erSetLoading_(false);
+            window.alert(e && e.message ? e.message : 'Could not remove project.');
+          })
+          .removeLookbackSelectedProject(mid, agreementFiberyId);
+      }
+
+      function lbFilterActionRows_(rows) {
+        var f = erState_.lookbackActionFilters || { statuses: [], owners: [] };
+        var statuses = f.statuses || [];
+        var owners = f.owners || [];
+        if (!statuses.length && !owners.length) return rows.slice();
+        var out = [];
+        for (var i = 0; i < rows.length; i++) {
+          var p = rows[i];
+          var st = String(p.narrativeStatus || 'not_started');
+          var ow = lbOwnerLabel_(p);
+          if (statuses.length && statuses.indexOf(st) < 0) continue;
+          if (owners.length && owners.indexOf(ow) < 0) continue;
+          out.push(p);
+        }
+        return out;
+      }
+
+      function lbSelectedMultiValues_(sel) {
+        var out = [];
+        if (!sel) return out;
+        var opts = sel.options || [];
+        for (var i = 0; i < opts.length; i++) {
+          if (opts[i].selected) out.push(opts[i].value);
+        }
+        return out;
+      }
+
+      function lbPopulateActionFilters_(actionRows) {
+        var statusSel = document.getElementById('lb-action-filter-status');
+        var ownerSel = document.getElementById('lb-action-filter-owner');
+        var prev = erState_.lookbackActionFilters || { statuses: [], owners: [] };
+        var statusSet = {};
+        var ownerSet = {};
+        for (var i = 0; i < actionRows.length; i++) {
+          statusSet[String(actionRows[i].narrativeStatus || 'not_started')] = true;
+          ownerSet[lbOwnerLabel_(actionRows[i])] = true;
+        }
+        function fill(sel, keys, prevSelected) {
+          if (!sel) return;
+          var keep = {};
+          for (var p = 0; p < (prevSelected || []).length; p++) keep[prevSelected[p]] = true;
+          sel.innerHTML = '';
+          var list = Object.keys(keys).sort();
+          for (var j = 0; j < list.length; j++) {
+            var op = document.createElement('option');
+            op.value = list[j];
+            op.textContent = list[j];
+            if (keep[list[j]]) op.selected = true;
+            sel.appendChild(op);
+          }
+          sel.size = Math.min(Math.max(list.length, 1), 4);
+        }
+        fill(statusSel, statusSet, prev.statuses);
+        fill(ownerSel, ownerSet, prev.owners);
+        erState_.lookbackActionFilters = {
+          statuses: lbSelectedMultiValues_(statusSel),
+          owners: lbSelectedMultiValues_(ownerSel),
+        };
+      }
+
+      function lbApplyActionFiltersFromUi_() {
+        erState_.lookbackActionFilters = {
+          statuses: lbSelectedMultiValues_(document.getElementById('lb-action-filter-status')),
+          owners: lbSelectedMultiValues_(document.getElementById('lb-action-filter-owner')),
+        };
+        lbRenderMonth_();
+      }
+
+      function lbClearActionFilters_() {
+        erState_.lookbackActionFilters = { statuses: [], owners: [] };
+        var statusSel = document.getElementById('lb-action-filter-status');
+        var ownerSel = document.getElementById('lb-action-filter-owner');
+        if (statusSel) {
+          for (var i = 0; i < statusSel.options.length; i++) statusSel.options[i].selected = false;
+        }
+        if (ownerSel) {
+          for (var j = 0; j < ownerSel.options.length; j++) ownerSel.options[j].selected = false;
+        }
+        lbRenderMonth_();
+      }
+
+      function lbOpenActionFilterMobileSheet_() {
+        var f = erState_.lookbackActionFilters || { statuses: [], owners: [] };
+        var items = [
+          { id: 'clear', label: 'Clear all filters', selected: !f.statuses.length && !f.owners.length },
+          { id: 'status', label: 'Filter by status…' },
+          { id: 'owner', label: 'Filter by owner…' },
+        ];
+        openMobileFilterSheet_({
+          title: 'Action Required filters',
+          context: 'lookback_action_filters',
+          items: items,
+          onSelect: function (id) {
+            if (id === 'clear') {
+              lbClearActionFilters_();
+              return;
+            }
+            var b = erState_.lookbackBundle;
+            var selected = (b && b.selected) || [];
+            var action = [];
+            for (var i = 0; i < selected.length; i++) {
+              if (selected[i].narrativeStatus !== 'complete') action.push(selected[i]);
+            }
+            var keys = {};
+            for (var a = 0; a < action.length; a++) {
+              if (id === 'status') keys[String(action[a].narrativeStatus || 'not_started')] = true;
+              else keys[lbOwnerLabel_(action[a])] = true;
+            }
+            var list = Object.keys(keys).sort();
+            var cur = id === 'status' ? f.statuses || [] : f.owners || [];
+            var sheetItems = [{ id: '__all__', label: 'All', selected: !cur.length }];
+            for (var k = 0; k < list.length; k++) {
+              sheetItems.push({
+                id: list[k],
+                label: list[k],
+                selected: cur.indexOf(list[k]) >= 0,
+              });
+            }
+            openMobileFilterSheet_({
+              title: id === 'status' ? 'Status' : 'Owner',
+              context: 'lookback_action_' + id,
+              items: sheetItems,
+              onSelect: function (val) {
+                if (id === 'status') {
+                  erState_.lookbackActionFilters = {
+                    statuses: val === '__all__' ? [] : [val],
+                    owners: (erState_.lookbackActionFilters && erState_.lookbackActionFilters.owners) || [],
+                  };
+                } else {
+                  erState_.lookbackActionFilters = {
+                    statuses: (erState_.lookbackActionFilters && erState_.lookbackActionFilters.statuses) || [],
+                    owners: val === '__all__' ? [] : [val],
+                  };
+                }
+                lbPopulateActionFilters_(action);
+                lbRenderMonth_();
+              },
+            });
+          },
+        });
+      }
+
       function lbProjectRowHtml_(p, writable) {
         var met = p.metrics || {};
         return (
@@ -23078,43 +23419,202 @@
         );
       }
 
-      function lbRenderProjectTable_(host, rows) {
+      function lbRenderProjectTable_(host, rows, opts) {
         if (!host) return;
+        opts = opts || {};
+        var showRemove = !!opts.showRemove;
+        var b = erState_.lookbackBundle;
+        var writable = !!(b && b.month && b.month.status === 'open_for_narratives');
+        var canReorder = !!opts.showReorder && !!(b && b.canReorderReady);
         if (!rows.length) {
           host.innerHTML = '<p class="small mb-0" style="color:var(--ag-text-muted)">None.</p>';
           return;
         }
         var html =
-          '<div class="table-responsive fos-section-card"><table class="table table-sm align-middle mb-0" style="color:var(--ag-text)"><thead><tr class="small" style="color:var(--ag-text-muted)"><th>Project</th><th>Owner</th><th>Type</th><th>Status</th><th>EAC</th></tr></thead><tbody>';
+          '<div class="table-responsive fos-section-card"><table class="table table-sm align-middle mb-0" style="color:var(--ag-text)"><thead><tr class="small" style="color:var(--ag-text-muted)">' +
+          (canReorder ? '<th class="d-none d-md-table-cell" style="width:2rem"> </th>' : '') +
+          '<th>Project</th><th>Owner</th><th>Type</th><th>Status</th><th>EAC</th>' +
+          (showRemove ? '<th class="text-end"> </th>' : '') +
+          '</tr></thead><tbody id="' +
+          (canReorder ? 'lb-ready-tbody' : '') +
+          '">';
         for (var i = 0; i < rows.length; i++) {
           var p = rows[i];
+          var canRm = showRemove && lbCanRemoveLookbackRow_(p, b, writable);
           html +=
-            '<tr class="lb-proj-row" data-id="' +
+            '<tr class="lb-proj-row' +
+            (canReorder ? ' lb-ready-row' : '') +
+            '" data-id="' +
             escapeAttr_(p.id) +
-            '" style="cursor:pointer"><td>' +
+            '"' +
+            (canReorder ? ' draggable="true"' : '') +
+            ' style="cursor:pointer">' +
+            (canReorder
+              ? '<td class="d-none d-md-table-cell lb-drag-cell" style="cursor:grab;color:var(--ag-text-muted)" title="Drag to reorder"><i class="bi bi-grip-vertical" aria-hidden="true"></i></td>'
+              : '') +
+            '<td>' +
             escapeHtml(p.agreementName || '') +
             '</td><td>' +
-            escapeHtml(p.assignedOwnerName || p.assignedOwnerEmail || '') +
+            escapeHtml(lbOwnerLabel_(p)) +
             '</td><td>' +
             escapeHtml(p.reviewType || '') +
             '</td><td>' +
             escapeHtml(p.narrativeStatus || '') +
             '</td><td>' +
             lbFmtPct_((p.metrics || {}).eacMarginPct) +
-            '</td></tr>';
+            '</td>';
+          if (showRemove) {
+            html +=
+              '<td class="text-end">' +
+              (canRm
+                ? '<button type="button" class="btn btn-sm btn-outline-danger lb-remove-btn" data-aid="' +
+                  escapeAttr_(p.agreementFiberyId) +
+                  '" data-name="' +
+                  escapeAttr_(p.agreementName || '') +
+                  '" title="Remove from Lookback" aria-label="Remove from Lookback" style="min-height:44px;min-width:44px"><i class="bi bi-trash" aria-hidden="true"></i></button>'
+                : '') +
+              '</td>';
+          }
+          html += '</tr>';
         }
         html += '</tbody></table></div>';
         host.innerHTML = html;
         var trs = host.querySelectorAll('.lb-proj-row');
         for (var t = 0; t < trs.length; t++) {
           trs[t].addEventListener('click', function (ev) {
+            var tgt = ev.target;
+            while (tgt && tgt !== ev.currentTarget) {
+              if (
+                tgt.classList &&
+                (tgt.classList.contains('lb-remove-btn') || tgt.classList.contains('lb-drag-cell'))
+              ) {
+                return;
+              }
+              tgt = tgt.parentNode;
+            }
             lbOpenProject_(ev.currentTarget.getAttribute('data-id'));
           });
         }
+        var rms = host.querySelectorAll('.lb-remove-btn');
+        for (var r = 0; r < rms.length; r++) {
+          rms[r].addEventListener('click', function (ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            var btn = ev.currentTarget;
+            lbRemoveLookbackProject_(btn.getAttribute('data-aid'), btn.getAttribute('data-name'));
+          });
+        }
+        if (canReorder) {
+          lbWireReadyDesktopReorder_(host);
+        }
       }
 
-      function lbRenderProjectCards_(host, rows) {
+      function lbWireReadyDesktopReorder_(host) {
+        var tbody = host.querySelector('tbody');
+        if (!tbody) return;
+        var rows = tbody.querySelectorAll('.lb-ready-row');
+        for (var i = 0; i < rows.length; i++) {
+          (function (row) {
+            row.addEventListener('dragstart', function (e) {
+              e.dataTransfer.setData('text/plain', row.getAttribute('data-id') || '');
+              row.classList.add('is-dragging');
+            });
+            row.addEventListener('dragend', function () {
+              row.classList.remove('is-dragging');
+            });
+            row.addEventListener('dragover', function (e) {
+              e.preventDefault();
+              var dragging = tbody.querySelector('.is-dragging');
+              if (!dragging || dragging === row) return;
+              var rect = row.getBoundingClientRect();
+              var before = (e.clientY - rect.top) / rect.height < 0.5;
+              tbody.insertBefore(dragging, before ? row : row.nextSibling);
+            });
+            row.addEventListener('drop', function (e) {
+              e.preventDefault();
+              lbCommitReadyReorderFromDom_(tbody);
+            });
+          })(rows[i]);
+        }
+      }
+
+      function lbCommitReadyReorderFromDom_(container) {
+        if (!container) return;
+        var nodes = container.querySelectorAll('[data-id]');
+        var ordered = [];
+        for (var i = 0; i < nodes.length; i++) {
+          var id = nodes[i].getAttribute('data-id');
+          if (id) ordered.push(id);
+        }
+        lbPersistReadyReorder_(ordered);
+      }
+
+      function lbMoveReadyProject_(projectId, dir) {
+        var b = erState_.lookbackBundle;
+        if (!b || !b.canReorderReady) return;
+        var selected = (b.selected || []).slice();
+        var ready = [];
+        for (var i = 0; i < selected.length; i++) {
+          if (selected[i].narrativeStatus === 'complete') ready.push(selected[i]);
+        }
+        var idx = -1;
+        for (var r = 0; r < ready.length; r++) {
+          if (String(ready[r].id) === String(projectId)) {
+            idx = r;
+            break;
+          }
+        }
+        if (idx < 0) return;
+        var j = idx + dir;
+        if (j < 0 || j >= ready.length) return;
+        var tmp = ready[idx];
+        ready[idx] = ready[j];
+        ready[j] = tmp;
+        var ordered = [];
+        for (var k = 0; k < ready.length; k++) {
+          ordered.push(ready[k].id);
+          ready[k].sortOrder = k;
+        }
+        lbPersistReadyReorder_(ordered);
+      }
+
+      function lbPersistReadyReorder_(orderedIds) {
+        var b = erState_.lookbackBundle;
+        if (!b || !b.month || !b.canReorderReady) return;
+        var monthId = b.month.id;
+        var selected = b.selected || [];
+        var orderMap = {};
+        for (var i = 0; i < orderedIds.length; i++) {
+          orderMap[String(orderedIds[i])] = i;
+        }
+        for (var s = 0; s < selected.length; s++) {
+          var sid = String(selected[s].id);
+          if (Object.prototype.hasOwnProperty.call(orderMap, sid)) {
+            selected[s].sortOrder = orderMap[sid];
+          }
+        }
+        lbRenderMonth_();
+        google.script.run
+          .withSuccessHandler(function (res) {
+            if (!res || !res.ok) {
+              window.alert((res && res.message) || 'Could not reorder Ready for Review.');
+              return;
+            }
+            logActivity_('lookback_ready_reorder', 'project-performance-review', monthId || '');
+          })
+          .withFailureHandler(function (err) {
+            window.alert(err && err.message ? err.message : 'Could not reorder Ready for Review.');
+          })
+          .reorderLookbackReadyProjects(monthId, orderedIds);
+      }
+
+      function lbRenderProjectCards_(host, rows, opts) {
         if (!host) return;
+        opts = opts || {};
+        var showRemove = !!opts.showRemove;
+        var b = erState_.lookbackBundle;
+        var writable = !!(b && b.month && b.month.status === 'open_for_narratives');
+        var canReorder = !!opts.showReorder && !!(b && b.canReorderReady);
         host.innerHTML = '';
         if (!rows.length) {
           host.innerHTML = '<p class="small mb-0" style="color:var(--ag-text-muted)">None.</p>';
@@ -23122,9 +23622,36 @@
         }
         for (var i = 0; i < rows.length; i++) {
           (function (p) {
+            var wrap = document.createElement('div');
+            wrap.className = 'd-flex gap-2 align-items-stretch mb-2 lb-ready-card-wrap';
+            wrap.setAttribute('data-id', p.id);
+            if (canReorder) {
+              var reorder = document.createElement('div');
+              reorder.className = 'er-reorder-mobile d-flex flex-column';
+              reorder.innerHTML =
+                '<button type="button" class="btn btn-sm btn-outline-secondary lb-ready-reorder-btn" data-dir="up" aria-label="Move up" style="min-height:44px;min-width:44px"><i class="bi bi-chevron-up"></i></button>' +
+                '<button type="button" class="btn btn-sm btn-outline-secondary lb-ready-reorder-btn" data-dir="down" aria-label="Move down" style="min-height:44px;min-width:44px"><i class="bi bi-chevron-down"></i></button>';
+              var upBtn = reorder.querySelector('[data-dir="up"]');
+              var downBtn = reorder.querySelector('[data-dir="down"]');
+              if (upBtn) {
+                upBtn.addEventListener('click', function (ev) {
+                  ev.preventDefault();
+                  ev.stopPropagation();
+                  lbMoveReadyProject_(p.id, -1);
+                });
+              }
+              if (downBtn) {
+                downBtn.addEventListener('click', function (ev) {
+                  ev.preventDefault();
+                  ev.stopPropagation();
+                  lbMoveReadyProject_(p.id, 1);
+                });
+              }
+              wrap.appendChild(reorder);
+            }
             var card = document.createElement('button');
             card.type = 'button';
-            card.className = 'fos-section-card w-100 text-start mb-2';
+            card.className = 'fos-section-card flex-grow-1 text-start';
             card.style.minHeight = '44px';
             card.innerHTML =
               '<div class="fw-semibold">' +
@@ -23135,12 +23662,41 @@
             card.addEventListener('click', function () {
               lbOpenProject_(p.id);
             });
-            host.appendChild(card);
+            wrap.appendChild(card);
+            if (showRemove && lbCanRemoveLookbackRow_(p, b, writable)) {
+              var rm = document.createElement('button');
+              rm.type = 'button';
+              rm.className = 'btn btn-outline-danger';
+              rm.style.minHeight = '44px';
+              rm.style.minWidth = '44px';
+              rm.title = 'Remove from Lookback';
+              rm.setAttribute('aria-label', 'Remove from Lookback');
+              rm.innerHTML = '<i class="bi bi-trash" aria-hidden="true"></i>';
+              rm.addEventListener('click', function (ev) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                lbRemoveLookbackProject_(p.agreementFiberyId, p.agreementName);
+              });
+              wrap.appendChild(rm);
+            }
+            host.appendChild(wrap);
           })(rows[i]);
         }
       }
 
       function lbRenderMonth_() {
+        // BUG-056-09: filter select rebuild can re-fire change -> re-enter this render
+        // and abort before opt-in controls are wired. Skip nested renders.
+        if (erState_._lbRendering) return;
+        erState_._lbRendering = true;
+        try {
+          lbRenderMonthBody_();
+        } finally {
+          erState_._lbRendering = false;
+        }
+      }
+
+      function lbRenderMonthBody_() {
         var b = erState_.lookbackBundle;
         if (!b) return;
         var month = b.month || {};
@@ -23174,15 +23730,21 @@
           if (selected[i].narrativeStatus === 'complete') ready.push(selected[i]);
           else action.push(selected[i]);
         }
-        lbRenderProjectTable_(document.getElementById('lb-ready-desktop'), ready);
-        lbRenderProjectTable_(document.getElementById('lb-action-desktop'), action);
-        lbRenderProjectCards_(document.getElementById('lb-ready-mobile'), ready);
-        lbRenderProjectCards_(document.getElementById('lb-action-mobile'), action);
+        lbPopulateActionFilters_(action);
+        var actionView = lbFilterActionRows_(action);
+        lbRenderProjectTable_(document.getElementById('lb-ready-desktop'), ready, { showReorder: true });
+        lbRenderProjectTable_(document.getElementById('lb-action-desktop'), actionView, { showRemove: true });
+        lbRenderProjectCards_(document.getElementById('lb-ready-mobile'), ready, { showReorder: true });
+        lbRenderProjectCards_(document.getElementById('lb-action-mobile'), actionView, { showRemove: true });
         var green = b.green || [];
-        lbRenderProjectTable_(document.getElementById('lb-green-desktop'), green);
-        lbRenderProjectCards_(document.getElementById('lb-green-mobile'), green);
+        lbRenderProjectTable_(document.getElementById('lb-green-desktop'), green, {});
+        lbRenderProjectCards_(document.getElementById('lb-green-mobile'), green, {});
         var arch = document.getElementById('lb-archive-btn');
         if (arch) arch.classList.toggle('d-none', !b.canArchive);
+        var redoBtn = document.getElementById('lb-redo-btn');
+        if (redoBtn) redoBtn.classList.toggle('d-none', !b.canRedo);
+        var delBtn = document.getElementById('lb-delete-btn');
+        if (delBtn) delBtn.classList.toggle('d-none', !b.canDeleteMonth);
         var optBtn = document.getElementById('lb-optin-toggle-btn');
         var writable = month.status === 'open_for_narratives';
         var canOpt = writable && (b.canOptInAny || b.canOverride || erState_.isAdmin);
@@ -23199,9 +23761,12 @@
         }
         if (optBtn) optBtn.classList.toggle('d-none', !canOpt);
         var optSel = document.getElementById('lb-optin-project');
+        var optEmpty = document.getElementById('lb-optin-empty');
+        var optSave = document.getElementById('lb-optin-save-btn');
         if (optSel) {
           optSel.innerHTML = '';
           var mine = String((navState && navState.userEmail) || '').toLowerCase();
+          var optionCount = 0;
           for (var z = 0; z < green.length; z++) {
             var gp = green[z];
             if (
@@ -23215,6 +23780,27 @@
             op.value = gp.agreementFiberyId;
             op.textContent = gp.agreementName || gp.agreementFiberyId;
             optSel.appendChild(op);
+            optionCount++;
+          }
+          if (!green.length) {
+            if (optEmpty) {
+              optEmpty.textContent = 'No projects available to opt in this month.';
+              optEmpty.classList.remove('d-none');
+            }
+            optSel.classList.add('d-none');
+            if (optSave) optSave.disabled = true;
+          } else if (!optionCount) {
+            if (optEmpty) {
+              optEmpty.textContent =
+                'No projects available for you to opt in. You may only opt in your own Green projects.';
+              optEmpty.classList.remove('d-none');
+            }
+            optSel.classList.add('d-none');
+            if (optSave) optSave.disabled = true;
+          } else {
+            if (optEmpty) optEmpty.classList.add('d-none');
+            optSel.classList.remove('d-none');
+            if (optSave) optSave.disabled = false;
           }
         }
       }
@@ -23231,22 +23817,189 @@
         return null;
       }
 
+      function lbFormatPerfMonthLabel_(ym) {
+        var s = String(ym || '').slice(0, 7);
+        var m = s.match(/^(\d{4})-(\d{2})$/);
+        if (!m) return s || '';
+        var months = [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
+        ];
+        var mi = Number(m[2]) - 1;
+        return (months[mi] || m[2]) + ' ' + m[1];
+      }
+
+      /**
+       * FEATURE-056-11: render frozen Project Performance KPIs only from metrics blob.
+       * Never fetches live PnL / performance on page view.
+       * @param {!Object} met
+       * @return {string}
+       */
+      function lbRenderFrozenProjectPerfKpis_(met) {
+        met = met || {};
+        var duration = met.duration || null;
+        var perf = met.performance || null;
+        var hasResourcePlan = met.hasResourcePlan === true;
+        var noPlanTip =
+          'No resource plan is available to use. Planned margin, projected margin, and EAC are hidden until allocations exist.';
+        var html = '';
+
+        if (!duration || !duration.hasDuration) {
+          html += deliveryKpiChipHtml_({
+            tipId: 'lb-perf-kpi-duration-missing',
+            title: DELIVERY_KPI_TIPS_.durationMissing,
+            label: 'Contract duration',
+            valueHtml: 'Not set',
+            subHtml: 'Set Duration in Fibery',
+            chipClass: ' fos-delivery-duration-chip',
+          });
+        } else if (duration.invalid) {
+          html += deliveryKpiChipHtml_({
+            tipId: 'lb-perf-kpi-duration-invalid',
+            title: 'Fibery Duration end must be after the start date.',
+            label: 'Contract duration',
+            valueHtml: 'Invalid range',
+            subHtml: 'Check Fibery dates',
+            chipClass: ' fos-delivery-duration-chip',
+          });
+        } else if (duration.partial) {
+          html += deliveryKpiChipHtml_({
+            tipId: 'lb-perf-kpi-duration-partial',
+            title: DELIVERY_KPI_TIPS_.durationMissing,
+            label: 'Contract duration',
+            valueHtml: duration.daysRemaining != null ? escapeHtml(String(Math.round(duration.daysRemaining))) : 'Partial',
+            subHtml: 'Incomplete duration dates',
+            chipClass: ' fos-delivery-duration-chip',
+          });
+        } else {
+          var daysValue = 'Ended';
+          var daysSub = '';
+          var dr = duration.daysRemaining;
+          if (dr === 0) {
+            daysValue = '0';
+            daysSub = 'Last day of reporting month';
+          } else if (dr > 0) {
+            daysValue = String(Math.round(dr));
+            daysSub = Math.round(dr) + ' days remaining';
+          } else if (dr < 0) {
+            daysSub = 'Ended ' + Math.abs(Math.round(dr)) + ' days ago';
+          }
+          if (duration.asOfDate) {
+            daysSub = (daysSub ? daysSub + ' · ' : '') + 'As of ' + String(duration.asOfDate);
+          }
+          html +=
+            deliveryKpiChipHtml_({
+              tipId: 'lb-perf-kpi-days-remaining',
+              title: DELIVERY_KPI_TIPS_.daysRemaining,
+              label: 'Days remaining',
+              valueHtml: escapeHtml(daysValue),
+              subHtml: escapeHtml(daysSub || 'Through duration end'),
+              chipClass: ' fos-delivery-duration-chip',
+            }) +
+            deliveryKpiChipHtml_({
+              tipId: 'lb-perf-kpi-elapsed',
+              title: DELIVERY_KPI_TIPS_.elapsed,
+              label: '% elapsed',
+              valueHtml: escapeHtml(
+                duration.elapsedPct === null || duration.elapsedPct === undefined
+                  ? ' - '
+                  : String(duration.elapsedPct) + '%'
+              ),
+              subHtml: 'Of contract window',
+              chipClass: ' fos-delivery-duration-chip',
+            });
+        }
+
+        if (!perf) {
+          html +=
+            '<div class="fos-delivery-pnl-kpi-chip"><div class="label">Performance</div>' +
+            '<div class="value">Not frozen</div>' +
+            '<div class="sub">Admin: Re-run recommended list to freeze Project Performance KPIs</div></div>';
+          return html;
+        }
+
+        var hidePlanKpis = !hasResourcePlan;
+        var plannedReason = perf.plannedMarginReason ? String(perf.plannedMarginReason) : '';
+        var projectedReason = perf.projectedMarginReason ? String(perf.projectedMarginReason) : '';
+        var eacH = perf.eacHours || {};
+        var eacD = perf.eacDollars || {};
+        var actualMargin = perf.actualMarginPctToDate;
+        var actualSub = met.asOfMonthKey
+          ? 'Through ' + lbFormatPerfMonthLabel_(met.asOfMonthKey)
+          : 'Through reporting month';
+
+        html +=
+          deliveryKpiChipHtml_({
+            tipId: 'lb-perf-kpi-planned',
+            title: hidePlanKpis
+              ? noPlanTip
+              : perfMarginKpiTip_(DELIVERY_KPI_TIPS_.planned, plannedReason),
+            label: 'Planned margin',
+            valueHtml: escapeHtml(hidePlanKpis ? 'N/A' : formatPerfPct_(perf.plannedMarginPct)),
+            subHtml: hidePlanKpis ? 'No plan available' : perfMarginKpiSub_(plannedReason, 'From SOW rates'),
+          }) +
+          deliveryKpiChipHtml_({
+            tipId: 'lb-perf-kpi-projected',
+            title: hidePlanKpis
+              ? noPlanTip
+              : perfMarginKpiTip_(DELIVERY_KPI_TIPS_.projected, projectedReason),
+            label: 'Projected margin',
+            valueHtml: escapeHtml(hidePlanKpis ? 'N/A' : formatPerfPct_(perf.projectedMarginPct)),
+            subHtml: hidePlanKpis
+              ? 'No plan available'
+              : perfMarginKpiSub_(projectedReason, 'Cost card rates'),
+          }) +
+          deliveryKpiChipHtml_({
+            tipId: 'lb-perf-kpi-eac-h',
+            title: hidePlanKpis ? noPlanTip : DELIVERY_KPI_TIPS_.eacHours,
+            label: 'EAC hours',
+            valueHtml: escapeHtml(hidePlanKpis ? 'N/A' : formatHours(eacH.value || 0)),
+            subHtml: hidePlanKpis
+              ? 'No plan available'
+              : escapeHtml(eacH.budgeted == null ? 'No budget' : 'Budget ' + formatHours(eacH.budgeted)),
+          }) +
+          deliveryKpiChipHtml_({
+            tipId: 'lb-perf-kpi-eac-d',
+            title: hidePlanKpis ? noPlanTip : DELIVERY_KPI_TIPS_.eacDollars,
+            label: 'EAC $',
+            valueHtml: hidePlanKpis ? 'N/A' : formatExpense_(eacD.value || 0),
+            subHtml: hidePlanKpis
+              ? 'No plan available'
+              : 'Labor + expenses/ODC' +
+                (eacD.budgeted == null ? '' : ' · budg ' + formatMoneyCompact(eacD.budgeted)),
+          }) +
+          deliveryKpiChipHtml_({
+            tipId: 'lb-perf-kpi-actual',
+            title: DELIVERY_KPI_TIPS_.actualMargin,
+            label: 'Actual margin to date',
+            valueHtml: escapeHtml(formatPerfPct_(actualMargin)),
+            subHtml: escapeHtml(actualSub),
+          });
+        return html;
+      }
+
       function lbOpenProject_(projectId) {
         var p = lbFindProject_(projectId);
         if (!p) return;
         erState_.lookbackProjectId = projectId;
-        logActivity_('lookback_project_open', 'engagement-review', p.agreementName || projectId);
+        logActivity_('lookback_project_open', 'project-performance-review', p.agreementName || projectId);
         erShowView_('lookback-project');
         document.getElementById('lb-proj-title').textContent = p.agreementName || 'Project';
         document.getElementById('lb-proj-sub').textContent =
           (p.companyName ? p.companyName + ' · ' : '') +
           (p.assignedOwnerName || p.assignedOwnerEmail || '');
         var met = p.metrics || {};
-        document.getElementById('lb-proj-metrics').innerHTML =
-          lbKpiCard_('Actual margin', lbFmtPct_(met.actualMarginPct)) +
-          lbKpiCard_('Planned margin', lbFmtPct_(met.plannedMarginPct)) +
-          lbKpiCard_('EAC / projected', lbFmtPct_(met.eacMarginPct)) +
-          lbKpiCard_('Hours (locked month)', 'N/A');
+        document.getElementById('lb-proj-metrics').innerHTML = lbRenderFrozenProjectPerfKpis_(met);
         var crit = (p.criteria || []).map(lbCriteriaLabel_).join('; ');
         var trig =
           (p.reviewType === 'automatic' ? 'Automatic' : 'Manual') +
@@ -23336,7 +24089,7 @@
               }
               return;
             }
-            logActivity_('lookback_narrative_save', 'engagement-review', erState_.lookbackProjectId);
+            logActivity_('lookback_narrative_save', 'project-performance-review', erState_.lookbackProjectId);
             if (typeof showSaveToast_ === 'function') showSaveToast_();
             lbOpenMonth_(erState_.lookbackMonthId);
           })
@@ -23364,7 +24117,7 @@
               }
               return;
             }
-            logActivity_('engagement_review_ai_synopsis', 'engagement-review', erState_.currentReviewId || '');
+            logActivity_('engagement_review_ai_synopsis', 'project-performance-review', erState_.currentReviewId || '');
             if (typeof showSaveToast_ === 'function') showSaveToast_();
             if (erState_.detail && erState_.detail.review) {
               erState_.detail.review.ai_synopsis_json = res.synopsis;
@@ -23433,7 +24186,7 @@
                   }
                   return;
                 }
-                logActivity_('engagement_review_create', 'engagement-review', res.review && res.review.id);
+                logActivity_('engagement_review_create', 'project-performance-review', res.review && res.review.id);
                 var modalEl = document.getElementById('erCreateModal');
                 if (modalEl && window.bootstrap) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
                 if (typeof showSaveToast_ === 'function') showSaveToast_();
@@ -23461,7 +24214,7 @@
                 }
                 return;
               }
-              if (activity) logActivity_(activity, 'engagement-review', erState_.currentReviewId || '');
+              if (activity) logActivity_(activity, 'project-performance-review', erState_.currentReviewId || '');
               if (typeof showSaveToast_ === 'function') showSaveToast_();
               if (erState_.currentReviewId) erOpenDetail_(erState_.currentReviewId);
             })
@@ -23513,6 +24266,53 @@
             ]);
           });
         }
+        var delReviewBtnWire = document.getElementById('er-delete-review-btn');
+        if (delReviewBtnWire) {
+          delReviewBtnWire.addEventListener('click', function () {
+            if (!erState_.currentReviewId || delReviewBtnWire.disabled) return;
+            var name =
+              (erState_.detail && erState_.detail.review && erState_.detail.review.name) ||
+              'this performance review';
+            if (
+              !window.confirm(
+                'Are you sure you want to delete "' +
+                  name +
+                  '"? This cannot be undone. Reviews with Project Updates cannot be deleted.'
+              )
+            ) {
+              return;
+            }
+            erSetLoading_(true);
+            google.script.run
+              .withSuccessHandler(function (res) {
+                erSetLoading_(false);
+                if (!res || !res.ok) {
+                  var err = document.getElementById('er-detail-error');
+                  if (err) {
+                    err.textContent = (res && res.message) || 'Could not delete review.';
+                    err.classList.remove('d-none');
+                  }
+                  return;
+                }
+                logActivity_('engagement_review_delete', 'project-performance-review', erState_.currentReviewId);
+                erState_.currentReviewId = '';
+                erState_.detail = null;
+                if (typeof showSaveToast_ === 'function') showSaveToast_();
+                erShowView_('list');
+                if (typeof erLoadList_ === 'function') erLoadList_();
+                else if (typeof showEngagementReview === 'function') showEngagementReview();
+              })
+              .withFailureHandler(function (e) {
+                erSetLoading_(false);
+                var err = document.getElementById('er-detail-error');
+                if (err) {
+                  err.textContent = e && e.message ? e.message : 'Could not delete review.';
+                  err.classList.remove('d-none');
+                }
+              })
+              .deleteEngagementReview(erState_.currentReviewId);
+          });
+        }
         var addPartBtn = document.getElementById('er-add-participant-btn');
         if (addPartBtn) {
           addPartBtn.addEventListener('click', function () {
@@ -23545,7 +24345,7 @@
                     }
                     return;
                   }
-                  logActivity_('engagement_review_recording_upload', 'engagement-review', file.name);
+                  logActivity_('engagement_review_recording_upload', 'project-performance-review', file.name);
                   if (typeof showSaveToast_ === 'function') showSaveToast_();
                   erOpenDetail_(erState_.currentReviewId);
                 })
@@ -23591,7 +24391,7 @@
                   }
                   return;
                 }
-                logActivity_('engagement_update_submit', 'engagement-review', erState_.currentAgreementId || '');
+                logActivity_('engagement_update_submit', 'project-performance-review', erState_.currentAgreementId || '');
                 if (typeof showSaveToast_ === 'function') showSaveToast_();
                 erOpenProject_(erState_.currentReviewId, erState_.currentAgreementId);
               })
@@ -23632,7 +24432,7 @@
         if (viewerDlBtn) {
           viewerDlBtn.addEventListener('click', function () {
             if (!erViewerState_.html) return;
-            logActivity_('engagement_update_export', 'engagement-review', erViewerState_.updateId || '');
+            logActivity_('engagement_update_export', 'project-performance-review', erViewerState_.updateId || '');
             var blob = new Blob([erViewerState_.html], { type: 'text/html' });
             var url = URL.createObjectURL(blob);
             var a = document.createElement('a');
@@ -23669,6 +24469,7 @@
         var modeReviews = document.getElementById('er-mode-reviews-btn');
         if (modeReviews) {
           modeReviews.addEventListener('click', function () {
+            if (erHideReviewsTab_()) return;
             erState_.mode = 'reviews';
             erShowView_('list');
             erLoadList_();
@@ -23678,7 +24479,7 @@
         if (modeLookback) {
           modeLookback.addEventListener('click', function () {
             erState_.mode = 'lookback';
-            logActivity_('lookback_nav', 'engagement-review', '');
+            logActivity_('lookback_nav', 'project-performance-review', '');
             erShowView_('lookback');
             lbLoadMonths_();
           });
@@ -23729,7 +24530,7 @@
                   }
                   return;
                 }
-                logActivity_('lookback_lock', 'engagement-review', period);
+                logActivity_('lookback_lock', 'project-performance-review', period);
                 if (typeof showSaveToast_ === 'function') showSaveToast_();
                 lbLoadMonths_();
               })
@@ -23758,6 +24559,88 @@
               .archiveLookbackMonth(erState_.lookbackMonthId);
           });
         }
+        var lbRedo = document.getElementById('lb-redo-btn');
+        if (lbRedo) {
+          lbRedo.addEventListener('click', function () {
+            if (!erState_.lookbackMonthId) return;
+            if (
+              !window.confirm(
+                'Re-run the recommended list? This refreshes automatic projects and metrics. Manual opt-ins and narratives are kept.'
+              )
+            ) {
+              return;
+            }
+            erSetLoading_(true);
+            google.script.run
+              .withSuccessHandler(function (res) {
+                erSetLoading_(false);
+                if (!res || !res.ok) {
+                  var errEl = document.getElementById('lb-error');
+                  if (errEl) {
+                    errEl.textContent = (res && res.message) || 'Re-run failed.';
+                    errEl.classList.remove('d-none');
+                  }
+                  return;
+                }
+                logActivity_('lookback_redo', 'project-performance-review', erState_.lookbackMonthId);
+                if (typeof showSaveToast_ === 'function') showSaveToast_();
+                lbOpenMonth_(erState_.lookbackMonthId);
+              })
+              .withFailureHandler(function (e) {
+                erSetLoading_(false);
+                var errEl = document.getElementById('lb-error');
+                if (errEl) {
+                  errEl.textContent = e && e.message ? e.message : 'Re-run failed.';
+                  errEl.classList.remove('d-none');
+                }
+              })
+              .redoLookbackSelection(erState_.lookbackMonthId);
+          });
+        }
+        var lbDel = document.getElementById('lb-delete-btn');
+        if (lbDel) {
+          lbDel.addEventListener('click', function () {
+            if (!erState_.lookbackMonthId) return;
+            var month = (erState_.lookbackBundle && erState_.lookbackBundle.month) || {};
+            var periodLabel = lbPeriodLabel_(month.reportingPeriod) || month.reportingPeriod || '';
+            if (
+              !window.confirm(
+                'Delete Lookback for ' +
+                  periodLabel +
+                  '? This permanently removes the month, selected projects, narratives, and evidence metadata.'
+              )
+            ) {
+              return;
+            }
+            erSetLoading_(true);
+            google.script.run
+              .withSuccessHandler(function (res) {
+                erSetLoading_(false);
+                if (!res || !res.ok) {
+                  var errEl = document.getElementById('lb-error');
+                  if (errEl) {
+                    errEl.textContent = (res && res.message) || 'Delete failed.';
+                    errEl.classList.remove('d-none');
+                  }
+                  return;
+                }
+                logActivity_('lookback_delete', 'project-performance-review', periodLabel);
+                erState_.lookbackMonthId = '';
+                erState_.lookbackBundle = null;
+                if (typeof showSaveToast_ === 'function') showSaveToast_();
+                lbLoadMonths_();
+              })
+              .withFailureHandler(function (e) {
+                erSetLoading_(false);
+                var errEl = document.getElementById('lb-error');
+                if (errEl) {
+                  errEl.textContent = e && e.message ? e.message : 'Delete failed.';
+                  errEl.classList.remove('d-none');
+                }
+              })
+              .deleteLookbackMonth(erState_.lookbackMonthId);
+          });
+        }
         var lbBack = document.getElementById('lb-back-btn');
         if (lbBack) {
           lbBack.addEventListener('click', function () {
@@ -23779,6 +24662,13 @@
             var aid = (document.getElementById('lb-optin-project') || {}).value || '';
             var reason = (document.getElementById('lb-optin-reason') || {}).value || '';
             var oerr = document.getElementById('lb-optin-error');
+            if (!aid) {
+              if (oerr) {
+                oerr.textContent = 'Select a project to opt in.';
+                oerr.classList.remove('d-none');
+              }
+              return;
+            }
             google.script.run
               .withSuccessHandler(function (res) {
                 if (!res || !res.ok) {
@@ -23788,11 +24678,29 @@
                   }
                   return;
                 }
-                logActivity_('lookback_opt_in', 'engagement-review', aid);
+                logActivity_('lookback_opt_in', 'project-performance-review', aid);
                 if (typeof showSaveToast_ === 'function') showSaveToast_();
                 lbOpenMonth_(erState_.lookbackMonthId);
               })
               .optInLookbackProject(erState_.lookbackMonthId, aid, reason);
+          });
+        }
+        var lbActionStatus = document.getElementById('lb-action-filter-status');
+        if (lbActionStatus) {
+          lbActionStatus.addEventListener('change', lbApplyActionFiltersFromUi_);
+        }
+        var lbActionOwner = document.getElementById('lb-action-filter-owner');
+        if (lbActionOwner) {
+          lbActionOwner.addEventListener('change', lbApplyActionFiltersFromUi_);
+        }
+        var lbActionClear = document.getElementById('lb-action-filter-clear');
+        if (lbActionClear) {
+          lbActionClear.addEventListener('click', lbClearActionFilters_);
+        }
+        var lbActionMobile = document.getElementById('lb-action-filter-mobile-btn');
+        if (lbActionMobile) {
+          lbActionMobile.addEventListener('click', function () {
+            lbOpenActionFilterMobileSheet_();
           });
         }
         var lbNSave = document.getElementById('lb-n-save-btn');
@@ -23819,7 +24727,7 @@
                     }
                     return;
                   }
-                  logActivity_('lookback_evidence_upload', 'engagement-review', file.name);
+                  logActivity_('lookback_evidence_upload', 'project-performance-review', file.name);
                   if (typeof showSaveToast_ === 'function') showSaveToast_();
                   lbOpenMonth_(erState_.lookbackMonthId);
                 })
@@ -31184,7 +32092,7 @@
             var cta = '';
             if (navState && navState.engagementReviewAccess === true) {
               cta =
-                ' <button type="button" class="btn btn-sm btn-outline-secondary ms-2" id="delivery-pnl-timing-cta" style="min-height:44px">Open Engagement review</button>';
+                ' <button type="button" class="btn btn-sm btn-outline-secondary ms-2" id="delivery-pnl-timing-cta" style="min-height:44px">Open Project performance review</button>';
             }
             badge.innerHTML =
               '<strong>Timing review recommended.</strong> ' +
@@ -31197,9 +32105,9 @@
                 logActivity_('delivery_pnl_timing_badge_click', 'pm-overview',
                   'agreementId=' + (deliveryState.selectedId || ''));
                 if (typeof navigateToNavId_ === 'function') {
-                  navigateToNavId_('engagement-review');
+                  navigateToNavId_('project-performance-review');
                 } else if (typeof showEngagementReview === 'function') {
-                  setActiveNav('engagement-review');
+                  setActiveNav('project-performance-review');
                   showEngagementReview();
                 }
               });
@@ -32812,8 +33720,8 @@
               showRevenueReview();
               return;
             }
-            if (item.id === 'engagement-review') {
-              setActiveNav('engagement-review');
+            if (item.id === 'project-performance-review' || item.id === 'engagement-review') {
+              setActiveNav('project-performance-review');
               showEngagementReview();
               return;
             }

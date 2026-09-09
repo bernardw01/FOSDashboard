@@ -36,6 +36,23 @@ Exact commands + manual steps:
 2) **Mobile (~390px):** open deployed Web App in device mode; confirm panel is usable without sidebar-only controls
 3) …
 
+## Architecture Review (required before implementation starts)
+Author: Claude Code. Name an explicit outcome for each - "nothing to flag" is valid, an empty
+or placeholder line is not.
+- **Security:** authn/authz path touched (Role / Team / `fibery_access` gate per
+  `src/authUsersSheet.js` and feature 002), input validation on any new `google.script.run`
+  entry point, secrets handling (Fibery token, `SUPABASE_SERVICE_ROLE_KEY` stay server-side).
+  This product is single-tenant (one Workspace); check the change against the Role/Team/ADMIN
+  access matrix in `README.md` rather than multi-tenant isolation.
+- **Performance:** Apps Script execution-time quota, Sheets batching, N+1 Fibery calls,
+  unindexed Supabase queries, and whether a dashboard `cacheSchemaVersion` is affected (if so,
+  see `.cursor/rules/dashboard-snapshot-cache-sync.mdc`).
+- **Regression risk:** what else reads the payload/route/shape being changed, and whether that
+  surface has any existing `_diag_*` / `test_*` coverage today.
+- **Testing gaps:** this repo has no automated test framework. Name the existing untested
+  surface the change touches and what `test_*` / `_diag_*` coverage should be added, not just
+  "test the new code."
+
 ## Implementation Checklist
 - [ ] Update feature spec checkboxes as implemented
 - [ ] **Mobile UI** per `.cursor/rules/mobile-ui-shell.mdc` (same PR as desktop)
