@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.16 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `pm-overview`, panel
  * `#panel-pm-overview`). Public endpoints, all authorized via
@@ -104,9 +104,11 @@ var DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_ = 2;
  *        EAC hours/$, timing review, resourcesLifetime).
  *   v15 - v3.7.3: resourcesLifetime merges alias / first-name duplicates.
  *   v16 - v3.7.6 / feature 040 R5: laborByPerson.allocatedCost (month-prorated).
+ *   v19 - v3.21.1: laborByPerson.allocatedCost uses hours * user cost rate
+ *        when Fibery Allocated Cost is empty.
  * @const {number}
  */
-var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 18;
+var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 19;
 
 /** @const {number} Default TTL (minutes) for the client-side cache. */
 var DELIVERY_DEFAULT_CACHE_TTL_MIN_ = 10;
@@ -797,8 +799,9 @@ function getDeliveryPerfResourceRowsForRange(opts) {
   }
   var rows = ppBuildResourcesLifetime_(
     isAllTime ? months : monthsFiltered,
-    isAllTime ? assignments : [],
-    customerName
+    assignments,
+    customerName,
+    { mergeAssignmentLifetime: isAllTime }
   );
   if (!isAllTime) {
     if (!laborCtx.ok) {
@@ -821,6 +824,9 @@ function getDeliveryPerfResourceRowsForRange(opts) {
     rows = overlayPerfResourceLoggedTotals_(rows, loggedByKey, customerName);
     empty.truncated = !!laborCtx.partial;
     empty.message = laborCtx.message || '';
+  }
+  if (typeof ppFillAllocatedCostFromRates_ === 'function') {
+    ppFillAllocatedCostFromRates_(rows, assignments);
   }
   empty.rows = rows;
   if (rows.length && typeof ppAttachSowRoleDisplay_ === 'function') {
@@ -1981,6 +1987,23 @@ function deliveryPnlPersonNamesMatch_(aName, bName) {
 }
 
 /**
+ * Planned allocation cost: allocated hours * user cost rate (current, then SOW),
+ * else Fibery Allocated Cost.
+ * @param {!Object} row
+ * @return {number}
+ * @private
+ */
+function allocationPlanCostFromRates_(row) {
+  var hours = Number(row.allocatedHours || 0);
+  if (!isFinite(hours) || hours < 0) hours = 0;
+  var rate = numberOrNull_(row.currentCostRate);
+  if (rate === null) rate = numberOrNull_(row.sowCostRate);
+  if (rate !== null && hours > 0) return hours * rate;
+  var fiberyCost = Number(row.allocatedCost || 0);
+  return isFinite(fiberyCost) && fiberyCost > 0 ? fiberyCost : 0;
+}
+
+/**
  * Calendar-day prorate of Allocated Hours into one month.
  * @param {!Object} row
  * @param {string} monthKey
@@ -1992,7 +2015,7 @@ function prorateAllocationHoursForMonth_(row, monthKey) {
   var durEndIso = row.durEnd || null;
   var rowHours = Number(row.allocatedHours || 0);
   if (!isFinite(rowHours) || rowHours < 0) rowHours = 0;
-  var rowCost = Number(row.allocatedCost || 0);
+  var rowCost = allocationPlanCostFromRates_(row);
   if (!isFinite(rowCost) || rowCost < 0) rowCost = 0;
   var pct = deliveryPnlNormalizePercent_(row.percentAllocated);
   var name = stringOrNull_(row.clockifyUserName)

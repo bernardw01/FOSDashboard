@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.20.16 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -4710,6 +4710,11 @@
       #panel-pipeline.fos-pipeline-charts-open .fos-pipeline-mobile-extra {
         display: block !important;
       }
+
+      #panel-engagement-review #lb-kpis > .col-6 {
+        flex: 0 0 auto;
+        width: 50%;
+      }
     }
 
     @media (min-width: 768px) {
@@ -5964,7 +5969,7 @@
       // the user upgrades.
       var DELIVERY_PNL_KEY_PREFIX = 'fos_delivery_pnl_';
       var DELIVERY_PNL_KEY_SUFFIX = '_v16';
-      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 18;
+      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 19;
       var DELIVERY_STATUS_CLIENT_META_ = {
         on_track: { enumName: 'Agreement On Track', trafficLight: 'green' },
         at_risk: { enumName: 'Agreement At Risk', trafficLight: 'yellow' },
@@ -21564,6 +21569,8 @@
       var erState_ = {
         isAdmin: false,
         canCreate: null,
+        lookbackOnly: false,
+        mode: 'reviews',
         filter: 'all',
         reviews: [],
         currentReviewId: null,
@@ -21573,6 +21580,10 @@
         projectsCache: null,
         editingUpdateId: null,
         editingNoteId: null,
+        lookbackMonths: [],
+        lookbackMonthId: '',
+        lookbackBundle: null,
+        lookbackProjectId: '',
       };
       var erViewerState_ = { updateId: null, html: '', fileName: 'engagement-update.html' };
       var ER_DIM_KEYS_ = ['schedule', 'cost_hours', 'margin', 'client_sentiment'];
@@ -21588,9 +21599,33 @@
         var list = document.getElementById('er-view-list');
         var detail = document.getElementById('er-view-detail');
         var project = document.getElementById('er-view-project');
+        var lookback = document.getElementById('er-view-lookback');
+        var lbProj = document.getElementById('er-view-lookback-project');
+        var tabs = document.getElementById('er-mode-tabs');
         if (list) list.classList.toggle('d-none', which !== 'list');
         if (detail) detail.classList.toggle('d-none', which !== 'detail');
         if (project) project.classList.toggle('d-none', which !== 'project');
+        if (lookback) lookback.classList.toggle('d-none', which !== 'lookback');
+        if (lbProj) lbProj.classList.toggle('d-none', which !== 'lookback-project');
+        if (tabs) {
+          tabs.classList.toggle('d-none', which !== 'list' && which !== 'lookback');
+        }
+        var revBtn = document.getElementById('er-mode-reviews-btn');
+        var lbBtn = document.getElementById('er-mode-lookback-btn');
+        var lookOn = which === 'lookback' || which === 'lookback-project';
+        if (revBtn) {
+          revBtn.style.background = lookOn ? '' : 'var(--ag-accent)';
+          revBtn.style.color = lookOn ? '' : '#061b30';
+          revBtn.classList.toggle('btn-outline-secondary', lookOn);
+          revBtn.classList.toggle('fw-semibold', !lookOn);
+        }
+        if (lbBtn) {
+          lbBtn.style.background = lookOn ? 'var(--ag-accent)' : '';
+          lbBtn.style.color = lookOn ? '#061b30' : '';
+          lbBtn.style.border = lookOn ? 'none' : '';
+          lbBtn.classList.toggle('btn-outline-secondary', !lookOn);
+          lbBtn.classList.toggle('fw-semibold', lookOn);
+        }
       }
 
       function erFmtDate_(iso) {
@@ -21624,13 +21659,15 @@
       }
 
       function erApplyCanCreateUi_() {
-        var canCreate = !!(erState_.isAdmin || erState_.canCreate);
+        var canCreate = !!(erState_.isAdmin || erState_.canCreate) && !erState_.lookbackOnly;
         var newBtn = document.getElementById('er-new-btn');
         if (newBtn) newBtn.classList.toggle('d-none', !canCreate);
         var createUpdateBtn = document.getElementById('er-create-update-btn');
         if (createUpdateBtn) createUpdateBtn.classList.toggle('d-none', !canCreate);
         var noteFormWrap = document.getElementById('er-note-form-wrap');
         if (noteFormWrap) noteFormWrap.classList.toggle('d-none', !canCreate);
+        var reviewsBtn = document.getElementById('er-mode-reviews-btn');
+        if (reviewsBtn) reviewsBtn.classList.toggle('d-none', !!erState_.lookbackOnly);
       }
 
       /**
@@ -21671,6 +21708,7 @@
         // renderNav assigns the server model onto navState and sets navState.isAdmin
         // (there is no navState.model). Using .model left New review hidden for Admins.
         erState_.isAdmin = !!navState.isAdmin;
+        erState_.lookbackOnly = !!(navState && navState.lookbackOnly);
         erApplyCanCreateUi_();
         erWireUi_();
         erRefreshCanCreate_();
@@ -21680,6 +21718,10 @@
           erOpenProject_(openReview, openAgreement);
         } else if (openReview) {
           erOpenDetail_(openReview);
+        } else if (erState_.lookbackOnly || (opts && opts.lookback)) {
+          erState_.mode = 'lookback';
+          erShowView_('lookback');
+          lbLoadMonths_();
         } else {
           erShowView_('list');
           erLoadList_();
@@ -22902,6 +22944,412 @@
             : '');
       }
 
+      function lbFmtPct_(n) {
+        if (n == null || !isFinite(Number(n))) return 'N/A';
+        return Number(n).toFixed(1) + '%';
+      }
+
+      function lbPeriodLabel_(period) {
+        var raw = String(period || '');
+        var s = raw.slice(0, 7);
+        var y = s.slice(0, 4);
+        var m = Number(raw.slice(5, 7));
+        var names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        if (!y || !m) return s || 'Month';
+        return (names[m - 1] || s) + ' ' + y;
+      }
+
+      function lbCriteriaLabel_(code) {
+        var c = String(code || '');
+        if (c.indexOf('eac_margin_below_') === 0) return 'EAC margin below ' + c.slice('eac_margin_below_'.length) + '%';
+        if (c === 'actual_vs_plan_margin_5pts') return 'Actual vs plan margin ±5 pts';
+        if (c === 'closed_in_month') return 'Closed in reporting month';
+        if (c === 'mom_margin_3pts') return 'EAC margin ±3 pts vs prior lock';
+        return c;
+      }
+
+      function lbKpiCard_(label, value) {
+        return (
+          '<div class="col-6 col-md-3"><div class="fos-section-card h-100 py-2 px-3"><div class="small" style="color:var(--ag-text-muted)">' +
+          escapeHtml(label) +
+          '</div><div class="fw-bold" style="color:var(--ag-text)">' +
+          escapeHtml(String(value)) +
+          '</div></div></div>'
+        );
+      }
+
+      function lbLoadMonths_() {
+        erSetLoading_(true);
+        var errEl = document.getElementById('lb-error');
+        if (errEl) errEl.classList.add('d-none');
+        google.script.run
+          .withSuccessHandler(function (res) {
+            erSetLoading_(false);
+            if (!res || !res.ok) {
+              if (errEl) {
+                errEl.textContent = (res && res.message) || 'Could not load Lookback months.';
+                errEl.classList.remove('d-none');
+              }
+              return;
+            }
+            erState_.lookbackOnly = !!res.lookbackOnly;
+            erState_.isAdmin = !!res.isAdmin;
+            erState_.lookbackMonths = res.months || [];
+            erApplyCanCreateUi_();
+            var sel = document.getElementById('lb-month-select');
+            if (sel) {
+              sel.innerHTML = '';
+              for (var i = 0; i < erState_.lookbackMonths.length; i++) {
+                var m = erState_.lookbackMonths[i];
+                var opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = lbPeriodLabel_(m.reportingPeriod);
+                sel.appendChild(opt);
+              }
+            }
+            var empty = document.getElementById('lb-empty');
+            if (empty) empty.classList.toggle('d-none', erState_.lookbackMonths.length > 0);
+            var lockWrap = document.getElementById('lb-admin-lock-wrap');
+            if (lockWrap) lockWrap.classList.toggle('d-none', !res.canLock);
+            if (erState_.lookbackMonths.length) {
+              var pick = erState_.lookbackMonthId;
+              var found = false;
+              for (var j = 0; j < erState_.lookbackMonths.length; j++) {
+                if (erState_.lookbackMonths[j].id === pick) found = true;
+              }
+              if (!found) pick = erState_.lookbackMonths[0].id;
+              if (sel) sel.value = pick;
+              lbOpenMonth_(pick);
+            }
+          })
+          .withFailureHandler(function (e) {
+            erSetLoading_(false);
+            if (errEl) {
+              errEl.textContent = e && e.message ? e.message : 'Could not load Lookback months.';
+              errEl.classList.remove('d-none');
+            }
+          })
+          .listLookbackMonths();
+      }
+
+      function lbOpenMonth_(monthId) {
+        if (!monthId) return;
+        erState_.lookbackMonthId = monthId;
+        erSetLoading_(true);
+        google.script.run
+          .withSuccessHandler(function (res) {
+            erSetLoading_(false);
+            if (!res || !res.ok) {
+              var errEl = document.getElementById('lb-error');
+              if (errEl) {
+                errEl.textContent = (res && res.message) || 'Could not load Lookback.';
+                errEl.classList.remove('d-none');
+              }
+              return;
+            }
+            logActivity_('lookback_month_open', 'engagement-review', res.month && res.month.reportingPeriod);
+            erState_.lookbackBundle = res;
+            lbRenderMonth_();
+            if (erState_.lookbackProjectId && document.getElementById('er-view-lookback-project') && !document.getElementById('er-view-lookback-project').classList.contains('d-none')) {
+              lbOpenProject_(erState_.lookbackProjectId);
+            }
+          })
+          .withFailureHandler(function (e) {
+            erSetLoading_(false);
+            var errEl = document.getElementById('lb-error');
+            if (errEl) {
+              errEl.textContent = e && e.message ? e.message : 'Could not load Lookback.';
+              errEl.classList.remove('d-none');
+            }
+          })
+          .getLookbackMonth(monthId);
+      }
+
+      function lbProjectRowHtml_(p, writable) {
+        var met = p.metrics || {};
+        return (
+          escapeHtml(p.agreementName || '') +
+          ' · ' +
+          escapeHtml(p.reviewType || '') +
+          ' · ' +
+          escapeHtml(p.narrativeStatus || '') +
+          ' · EAC ' +
+          lbFmtPct_(met.eacMarginPct)
+        );
+      }
+
+      function lbRenderProjectTable_(host, rows) {
+        if (!host) return;
+        if (!rows.length) {
+          host.innerHTML = '<p class="small mb-0" style="color:var(--ag-text-muted)">None.</p>';
+          return;
+        }
+        var html =
+          '<div class="table-responsive fos-section-card"><table class="table table-sm align-middle mb-0" style="color:var(--ag-text)"><thead><tr class="small" style="color:var(--ag-text-muted)"><th>Project</th><th>Owner</th><th>Type</th><th>Status</th><th>EAC</th></tr></thead><tbody>';
+        for (var i = 0; i < rows.length; i++) {
+          var p = rows[i];
+          html +=
+            '<tr class="lb-proj-row" data-id="' +
+            escapeAttr_(p.id) +
+            '" style="cursor:pointer"><td>' +
+            escapeHtml(p.agreementName || '') +
+            '</td><td>' +
+            escapeHtml(p.assignedOwnerName || p.assignedOwnerEmail || '') +
+            '</td><td>' +
+            escapeHtml(p.reviewType || '') +
+            '</td><td>' +
+            escapeHtml(p.narrativeStatus || '') +
+            '</td><td>' +
+            lbFmtPct_((p.metrics || {}).eacMarginPct) +
+            '</td></tr>';
+        }
+        html += '</tbody></table></div>';
+        host.innerHTML = html;
+        var trs = host.querySelectorAll('.lb-proj-row');
+        for (var t = 0; t < trs.length; t++) {
+          trs[t].addEventListener('click', function (ev) {
+            lbOpenProject_(ev.currentTarget.getAttribute('data-id'));
+          });
+        }
+      }
+
+      function lbRenderProjectCards_(host, rows) {
+        if (!host) return;
+        host.innerHTML = '';
+        if (!rows.length) {
+          host.innerHTML = '<p class="small mb-0" style="color:var(--ag-text-muted)">None.</p>';
+          return;
+        }
+        for (var i = 0; i < rows.length; i++) {
+          (function (p) {
+            var card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'fos-section-card w-100 text-start mb-2';
+            card.style.minHeight = '44px';
+            card.innerHTML =
+              '<div class="fw-semibold">' +
+              escapeHtml(p.agreementName || '') +
+              '</div><div class="small" style="color:var(--ag-text-muted)">' +
+              lbProjectRowHtml_(p) +
+              '</div>';
+            card.addEventListener('click', function () {
+              lbOpenProject_(p.id);
+            });
+            host.appendChild(card);
+          })(rows[i]);
+        }
+      }
+
+      function lbRenderMonth_() {
+        var b = erState_.lookbackBundle;
+        if (!b) return;
+        var month = b.month || {};
+        var sub = document.getElementById('lb-header-sub');
+        var lockTxt = month.lockedAt ? String(month.lockedAt).replace('T', ' ').slice(0, 16) + ' UTC' : 'not locked';
+        var win = b.ownerWindowEnd ? ' Owner window through ' + b.ownerWindowEnd + '.' : '';
+        var st = month.status === 'archived' ? ' This cycle is closed (read-only).' : '';
+        if (sub) {
+          sub.textContent =
+            lbPeriodLabel_(month.reportingPeriod) +
+            ' locked ' +
+            lockTxt +
+            '.' +
+            win +
+            ' Hours tiles are N/A in this release. Project-to-date margins shown (no Y2D label).' +
+            st;
+        }
+        var kpis = b.kpis || {};
+        var kpiHost = document.getElementById('lb-kpis');
+        if (kpiHost) {
+          kpiHost.innerHTML =
+            lbKpiCard_('Selected', kpis.totalSelected || 0) +
+            lbKpiCard_('Automatic', kpis.automatic || 0) +
+            lbKpiCard_('Manual', kpis.manual || 0) +
+            lbKpiCard_('Complete', kpis.complete || 0);
+        }
+        var selected = b.selected || [];
+        var ready = [];
+        var action = [];
+        for (var i = 0; i < selected.length; i++) {
+          if (selected[i].narrativeStatus === 'complete') ready.push(selected[i]);
+          else action.push(selected[i]);
+        }
+        lbRenderProjectTable_(document.getElementById('lb-ready-desktop'), ready);
+        lbRenderProjectTable_(document.getElementById('lb-action-desktop'), action);
+        lbRenderProjectCards_(document.getElementById('lb-ready-mobile'), ready);
+        lbRenderProjectCards_(document.getElementById('lb-action-mobile'), action);
+        var green = b.green || [];
+        lbRenderProjectTable_(document.getElementById('lb-green-desktop'), green);
+        lbRenderProjectCards_(document.getElementById('lb-green-mobile'), green);
+        var arch = document.getElementById('lb-archive-btn');
+        if (arch) arch.classList.toggle('d-none', !b.canArchive);
+        var optBtn = document.getElementById('lb-optin-toggle-btn');
+        var writable = month.status === 'open_for_narratives';
+        var canOpt = writable && (b.canOptInAny || b.canOverride || erState_.isAdmin);
+        if (!canOpt && writable && navState && navState.userEmail) {
+          for (var g = 0; g < green.length; g++) {
+            if (
+              String(green[g].assignedOwnerEmail || '').toLowerCase() ===
+              String(navState.userEmail).toLowerCase()
+            ) {
+              canOpt = true;
+              break;
+            }
+          }
+        }
+        if (optBtn) optBtn.classList.toggle('d-none', !canOpt);
+        var optSel = document.getElementById('lb-optin-project');
+        if (optSel) {
+          optSel.innerHTML = '';
+          var mine = String((navState && navState.userEmail) || '').toLowerCase();
+          for (var z = 0; z < green.length; z++) {
+            var gp = green[z];
+            if (
+              !b.canOptInAny &&
+              !b.canOverride &&
+              String(gp.assignedOwnerEmail || '').toLowerCase() !== mine
+            ) {
+              continue;
+            }
+            var op = document.createElement('option');
+            op.value = gp.agreementFiberyId;
+            op.textContent = gp.agreementName || gp.agreementFiberyId;
+            optSel.appendChild(op);
+          }
+        }
+      }
+
+      function lbFindProject_(id) {
+        var b = erState_.lookbackBundle;
+        if (!b) return null;
+        var lists = [b.selected || [], b.green || []];
+        for (var li = 0; li < lists.length; li++) {
+          for (var i = 0; i < lists[li].length; i++) {
+            if (lists[li][i].id === id) return lists[li][i];
+          }
+        }
+        return null;
+      }
+
+      function lbOpenProject_(projectId) {
+        var p = lbFindProject_(projectId);
+        if (!p) return;
+        erState_.lookbackProjectId = projectId;
+        logActivity_('lookback_project_open', 'engagement-review', p.agreementName || projectId);
+        erShowView_('lookback-project');
+        document.getElementById('lb-proj-title').textContent = p.agreementName || 'Project';
+        document.getElementById('lb-proj-sub').textContent =
+          (p.companyName ? p.companyName + ' · ' : '') +
+          (p.assignedOwnerName || p.assignedOwnerEmail || '');
+        var met = p.metrics || {};
+        document.getElementById('lb-proj-metrics').innerHTML =
+          lbKpiCard_('Actual margin', lbFmtPct_(met.actualMarginPct)) +
+          lbKpiCard_('Planned margin', lbFmtPct_(met.plannedMarginPct)) +
+          lbKpiCard_('EAC / projected', lbFmtPct_(met.eacMarginPct)) +
+          lbKpiCard_('Hours (locked month)', 'N/A');
+        var crit = (p.criteria || []).map(lbCriteriaLabel_).join('; ');
+        var trig =
+          (p.reviewType === 'automatic' ? 'Automatic' : 'Manual') +
+          (crit ? ' · ' + crit : '') +
+          (p.reason ? ' · Reason: ' + p.reason : '');
+        document.getElementById('lb-proj-trigger').textContent = trig;
+        var n = p.narrative || {};
+        document.getElementById('lb-n-what').value = n.whatHappened || '';
+        document.getElementById('lb-n-why').value = n.why || '';
+        document.getElementById('lb-n-recovery').value = n.recovery || '';
+        document.getElementById('lb-n-lead').value = n.leadership || '';
+        document.getElementById('lb-n-more').value = n.additional || '';
+        document.getElementById('lb-n-status').value = p.narrativeStatus || 'not_started';
+        var month = erState_.lookbackBundle.month || {};
+        var writable = month.status === 'open_for_narratives';
+        var canEdit =
+          writable &&
+          p.selected &&
+          (erState_.lookbackBundle.canOverride ||
+            erState_.isAdmin ||
+            String(p.assignedOwnerEmail || '').toLowerCase() ===
+              String((navState && navState.userEmail) || '').toLowerCase());
+        var fields = ['lb-n-what', 'lb-n-why', 'lb-n-recovery', 'lb-n-lead', 'lb-n-more', 'lb-n-status'];
+        for (var f = 0; f < fields.length; f++) {
+          var el = document.getElementById(fields[f]);
+          if (el) el.disabled = !canEdit;
+        }
+        var saveBtn = document.getElementById('lb-n-save-btn');
+        if (saveBtn) saveBtn.classList.toggle('d-none', !canEdit);
+        var up = document.getElementById('lb-evidence-upload-wrap');
+        if (up) up.classList.toggle('d-none', !canEdit || !p.selected);
+        var list = document.getElementById('lb-evidence-list');
+        if (list) {
+          list.innerHTML = '';
+          var evs = p.evidence || [];
+          if (!evs.length) list.innerHTML = '<li>No images yet.</li>';
+          for (var e = 0; e < evs.length; e++) {
+            var li = document.createElement('li');
+            li.textContent = evs[e].file_name || evs[e].fileName || 'image';
+            if (canEdit) {
+              var del = document.createElement('button');
+              del.type = 'button';
+              del.className = 'btn btn-sm btn-link';
+              del.style.minHeight = '44px';
+              del.textContent = 'Remove';
+              del.setAttribute('data-id', evs[e].id);
+              del.addEventListener('click', function (ev) {
+                var eid = ev.currentTarget.getAttribute('data-id');
+                erSetLoading_(true);
+                google.script.run
+                  .withSuccessHandler(function (res) {
+                    erSetLoading_(false);
+                    if (!res || !res.ok) return;
+                    lbOpenMonth_(erState_.lookbackMonthId);
+                    setTimeout(function () {
+                      lbOpenProject_(projectId);
+                    }, 400);
+                  })
+                  .deleteLookbackEvidence(eid, projectId);
+              });
+              li.appendChild(del);
+            }
+            list.appendChild(li);
+          }
+        }
+      }
+
+      function lbSaveNarrative_() {
+        var err = document.getElementById('lb-n-error');
+        if (err) err.classList.add('d-none');
+        var narrative = {
+          whatHappened: (document.getElementById('lb-n-what') || {}).value || '',
+          why: (document.getElementById('lb-n-why') || {}).value || '',
+          recovery: (document.getElementById('lb-n-recovery') || {}).value || '',
+          leadership: (document.getElementById('lb-n-lead') || {}).value || '',
+          additional: (document.getElementById('lb-n-more') || {}).value || '',
+        };
+        var status = (document.getElementById('lb-n-status') || {}).value || 'in_progress';
+        erSetLoading_(true);
+        google.script.run
+          .withSuccessHandler(function (res) {
+            erSetLoading_(false);
+            if (!res || !res.ok) {
+              if (err) {
+                err.textContent = (res && res.message) || 'Save failed.';
+                err.classList.remove('d-none');
+              }
+              return;
+            }
+            logActivity_('lookback_narrative_save', 'engagement-review', erState_.lookbackProjectId);
+            if (typeof showSaveToast_ === 'function') showSaveToast_();
+            lbOpenMonth_(erState_.lookbackMonthId);
+          })
+          .withFailureHandler(function (e) {
+            erSetLoading_(false);
+            if (err) {
+              err.textContent = e && e.message ? e.message : 'Save failed.';
+              err.classList.remove('d-none');
+            }
+          })
+          .saveLookbackNarrative(erState_.lookbackProjectId, narrative, status);
+      }
+
       function erGenerateSynopsisHandler_() {
         var errEl = document.getElementById('er-synopsis-error');
         if (errEl) errEl.classList.add('d-none');
@@ -23218,6 +23666,176 @@
         if (noteCancelBtn) noteCancelBtn.addEventListener('click', erCancelEditNote_);
         var genSynopsisBtn = document.getElementById('er-generate-synopsis-btn');
         if (genSynopsisBtn) genSynopsisBtn.addEventListener('click', erGenerateSynopsisHandler_);
+        var modeReviews = document.getElementById('er-mode-reviews-btn');
+        if (modeReviews) {
+          modeReviews.addEventListener('click', function () {
+            erState_.mode = 'reviews';
+            erShowView_('list');
+            erLoadList_();
+          });
+        }
+        var modeLookback = document.getElementById('er-mode-lookback-btn');
+        if (modeLookback) {
+          modeLookback.addEventListener('click', function () {
+            erState_.mode = 'lookback';
+            logActivity_('lookback_nav', 'engagement-review', '');
+            erShowView_('lookback');
+            lbLoadMonths_();
+          });
+        }
+        var lbMonthSel = document.getElementById('lb-month-select');
+        if (lbMonthSel) {
+          lbMonthSel.addEventListener('change', function () {
+            lbOpenMonth_(lbMonthSel.value);
+          });
+        }
+        var lbMonthSheet = document.getElementById('lb-month-sheet-btn');
+        if (lbMonthSheet) {
+          lbMonthSheet.addEventListener('click', function () {
+            var items = [];
+            for (var i = 0; i < (erState_.lookbackMonths || []).length; i++) {
+              var mm = erState_.lookbackMonths[i];
+              items.push({
+                id: mm.id,
+                label: lbPeriodLabel_(mm.reportingPeriod),
+                selected: mm.id === erState_.lookbackMonthId,
+              });
+            }
+            openMobileFilterSheet_({
+              title: 'Reporting month',
+              context: 'lookback-month',
+              items: items,
+              onSelect: function (itemId) {
+                var sel = document.getElementById('lb-month-select');
+                if (sel) sel.value = itemId;
+                lbOpenMonth_(itemId);
+              },
+            });
+          });
+        }
+        var lbLockBtn = document.getElementById('lb-lock-btn');
+        if (lbLockBtn) {
+          lbLockBtn.addEventListener('click', function () {
+            var period = (document.getElementById('lb-lock-period') || {}).value || '';
+            erSetLoading_(true);
+            google.script.run
+              .withSuccessHandler(function (res) {
+                erSetLoading_(false);
+                if (!res || !res.ok) {
+                  var errEl = document.getElementById('lb-error');
+                  if (errEl) {
+                    errEl.textContent = (res && res.message) || 'Lock failed.';
+                    errEl.classList.remove('d-none');
+                  }
+                  return;
+                }
+                logActivity_('lookback_lock', 'engagement-review', period);
+                if (typeof showSaveToast_ === 'function') showSaveToast_();
+                lbLoadMonths_();
+              })
+              .withFailureHandler(function (e) {
+                erSetLoading_(false);
+                var errEl = document.getElementById('lb-error');
+                if (errEl) {
+                  errEl.textContent = e && e.message ? e.message : 'Lock failed.';
+                  errEl.classList.remove('d-none');
+                }
+              })
+              .lockLookbackMonth(period);
+          });
+        }
+        var lbArch = document.getElementById('lb-archive-btn');
+        if (lbArch) {
+          lbArch.addEventListener('click', function () {
+            if (!erState_.lookbackMonthId) return;
+            erSetLoading_(true);
+            google.script.run
+              .withSuccessHandler(function (res) {
+                erSetLoading_(false);
+                if (!res || !res.ok) return;
+                lbOpenMonth_(erState_.lookbackMonthId);
+              })
+              .archiveLookbackMonth(erState_.lookbackMonthId);
+          });
+        }
+        var lbBack = document.getElementById('lb-back-btn');
+        if (lbBack) {
+          lbBack.addEventListener('click', function () {
+            erState_.lookbackProjectId = '';
+            erShowView_('lookback');
+            lbRenderMonth_();
+          });
+        }
+        var lbOptToggle = document.getElementById('lb-optin-toggle-btn');
+        if (lbOptToggle) {
+          lbOptToggle.addEventListener('click', function () {
+            var form = document.getElementById('lb-optin-form');
+            if (form) form.classList.toggle('d-none');
+          });
+        }
+        var lbOptSave = document.getElementById('lb-optin-save-btn');
+        if (lbOptSave) {
+          lbOptSave.addEventListener('click', function () {
+            var aid = (document.getElementById('lb-optin-project') || {}).value || '';
+            var reason = (document.getElementById('lb-optin-reason') || {}).value || '';
+            var oerr = document.getElementById('lb-optin-error');
+            google.script.run
+              .withSuccessHandler(function (res) {
+                if (!res || !res.ok) {
+                  if (oerr) {
+                    oerr.textContent = (res && res.message) || 'Opt-in failed.';
+                    oerr.classList.remove('d-none');
+                  }
+                  return;
+                }
+                logActivity_('lookback_opt_in', 'engagement-review', aid);
+                if (typeof showSaveToast_ === 'function') showSaveToast_();
+                lbOpenMonth_(erState_.lookbackMonthId);
+              })
+              .optInLookbackProject(erState_.lookbackMonthId, aid, reason);
+          });
+        }
+        var lbNSave = document.getElementById('lb-n-save-btn');
+        if (lbNSave) lbNSave.addEventListener('click', lbSaveNarrative_);
+        var lbEvUp = document.getElementById('lb-evidence-upload-btn');
+        if (lbEvUp) {
+          lbEvUp.addEventListener('click', function () {
+            var input = document.getElementById('lb-evidence-file');
+            if (!input || !input.files || !input.files[0]) return;
+            var file = input.files[0];
+            var reader = new FileReader();
+            reader.onload = function () {
+              var dataUrl = String(reader.result || '');
+              var b64 = dataUrl.split(',')[1] || '';
+              erSetLoading_(true);
+              google.script.run
+                .withSuccessHandler(function (res) {
+                  erSetLoading_(false);
+                  if (!res || !res.ok) {
+                    var nerr = document.getElementById('lb-n-error');
+                    if (nerr) {
+                      nerr.textContent = (res && res.message) || 'Upload failed.';
+                      nerr.classList.remove('d-none');
+                    }
+                    return;
+                  }
+                  logActivity_('lookback_evidence_upload', 'engagement-review', file.name);
+                  if (typeof showSaveToast_ === 'function') showSaveToast_();
+                  lbOpenMonth_(erState_.lookbackMonthId);
+                })
+                .withFailureHandler(function () {
+                  erSetLoading_(false);
+                })
+                .uploadLookbackEvidence(
+                  erState_.lookbackProjectId,
+                  file.name,
+                  file.type || 'image/png',
+                  b64
+                );
+            };
+            reader.readAsDataURL(file);
+          });
+        }
       }
 
       /* ===================================================================
@@ -30158,7 +30776,14 @@
             asg.roleName || '(No role)'
           );
           var asgHours = Number(asg.allocatedHours || 0);
-          var asgCost = Number(asg.allocatedCost || 0);
+          var asgRate = asg.currentCostRate != null && isFinite(Number(asg.currentCostRate))
+            ? Number(asg.currentCostRate)
+            : (asg.sowCostRate != null && isFinite(Number(asg.sowCostRate))
+              ? Number(asg.sowCostRate)
+              : null);
+          var asgCost = asgRate != null && asgHours > 0
+            ? asgHours * asgRate
+            : Number(asg.allocatedCost || 0);
           if (asgHours > aRow.allocatedHoursLife) aRow.allocatedHoursLife = asgHours;
           if (asgCost > aRow.allocatedCostLife) aRow.allocatedCostLife = asgCost;
           if (!skipOrange && asg.allocatedAndBillable === false) aRow.highlightOrange = true;
@@ -30243,6 +30868,55 @@
         }
       }
 
+      function fillDeliveryPerfAllocatedCostFromRates_(rows, payload) {
+        var assignments = (payload && payload.resourceAllocations && payload.resourceAllocations.assignments) || [];
+        for (var i = 0; i < (rows || []).length; i++) {
+          var row = rows[i];
+          if (!row) continue;
+          var hours = Number(row.allocatedHoursLife || 0);
+          if (!(hours > 0)) continue;
+          if (Number(row.allocatedCostLife || 0) > 0) continue;
+          var roleNorm = String(row.role || '(No role)').trim().toLowerCase();
+          var roleHours = 0;
+          var roleCost = 0;
+          var anyHours = 0;
+          var anyCost = 0;
+          var anyRate = null;
+          for (var a = 0; a < assignments.length; a++) {
+            var asg = assignments[a];
+            if (!deliveryPerfPersonNamesMatch_(row.name, asg.name)) continue;
+            var rate = asg.currentCostRate != null && isFinite(Number(asg.currentCostRate))
+              ? Number(asg.currentCostRate)
+              : (asg.sowCostRate != null && isFinite(Number(asg.sowCostRate))
+                ? Number(asg.sowCostRate)
+                : null);
+            if (rate == null) continue;
+            anyRate = rate;
+            var h = Number(asg.allocatedHours || 0);
+            if (!isFinite(h) || h < 0) h = 0;
+            var w = h > 0 ? h : 1;
+            anyHours += w;
+            anyCost += w * rate;
+            if (String(asg.roleName || '(No role)').trim().toLowerCase() === roleNorm) {
+              roleHours += w;
+              roleCost += w * rate;
+            }
+          }
+          var resolved = null;
+          if (roleHours > 0) resolved = roleCost / roleHours;
+          else if (anyHours > 0) resolved = anyCost / anyHours;
+          else if (anyRate != null) resolved = anyRate;
+          else {
+            var lh = Number(row.loggedHoursLife || 0);
+            var lc = Number(row.loggedCostLife || 0);
+            if (lh > 0 && isFinite(lc) && lc !== 0) resolved = Math.abs(lc) / lh;
+          }
+          if (resolved == null) continue;
+          row.allocatedCostLife = Math.round(hours * resolved * 100) / 100;
+        }
+        return rows;
+      }
+
       function buildDeliveryPerfResourceRowsLocal_(payload, range) {
         var monthsInRange = range.isAllTime
           ? ((payload && payload.months) || [])
@@ -30251,7 +30925,7 @@
         if (range.isAllTime) {
           rows = mergeDeliveryPerfAssignmentLifetime_(rows, payload);
         }
-        return rows;
+        return fillDeliveryPerfAllocatedCostFromRates_(rows, payload);
       }
 
       function fetchDeliveryPerfResourceRows_(payload, range, onDone) {

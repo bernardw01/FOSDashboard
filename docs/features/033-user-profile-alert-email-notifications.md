@@ -290,6 +290,7 @@ Profile JSON is stored **on the existing Users row**, not on a separate tab.
 | `AUTH_COL_PROFILE` | `Profile` | Column header for Profile JSON on Users tab |
 | `NOTIFICATIONS_ENABLED` | `true` | Kill switch for all notifier jobs |
 | `NOTIFICATIONS_FROM_NAME` | `FinOps Performance Hub` | Email display name if supported |
+| `NOTIFICATIONS_FROM_EMAIL` | *(empty)* | Optional Gmail **Send mail as** alias for outbound digests (feature **054**). When set, jobs use `GmailApp` with this `from` address. |
 | `NOTIFICATIONS_LOG_SHEET_NAME` | `Notification Log` | Sent + dismissible in-app history (separate tab) |
 | `NOTIFICATIONS_DAILY_HOUR` | `8` | Local hour for Daily job |
 | `NOTIFICATIONS_WEEKLY_HOUR` | `8` | Local hour for Weekly (Tuesday) |

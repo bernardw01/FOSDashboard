@@ -1,11 +1,11 @@
 /**
- * PRD version 3.20.16 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.20.16';
+var FOS_PRD_VERSION = '3.21.1';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.20.16';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.20.16 PM Overview opens Project Performance by default when a project is selected.';
+  'v3.21.1 Fix Lookback lock: use fos_agreements.duration_end (no end_date column).';
 
 /**
  * @return {string}
@@ -226,7 +226,8 @@ function buildNavigationModel_(auth) {
   var expensesAccess = canAccessExpensesDashboard_(auth);
   var pipelineAccess = canAccessPipelineDashboard_(auth);
   var resourceAssignmentsAccess = canAccessResourceAssignmentsDashboard_(auth);
-  var engagementReviewAccess = canAccessEngagementReview_(auth);
+  var engagementReviewAccess = canAccessEngagementReviewNav_(auth);
+  var lookbackOnly = canAccessLookback_(auth) && !canAccessEngagementReview_(auth);
   var agreementDashboardAccess = canAccessAgreementDashboard_(auth);
   var navItems = allItems.slice();
   if (!expensesAccess) {
@@ -297,6 +298,7 @@ function buildNavigationModel_(auth) {
     pipelineAccess: pipelineAccess,
     resourceAssignmentsAccess: resourceAssignmentsAccess,
     engagementReviewAccess: engagementReviewAccess,
+    lookbackOnly: lookbackOnly,
     agreementDashboardAccess: agreementDashboardAccess,
     isAdmin: isAdminUser_(auth),
     // Feature 047 B3: the client fires getAgreementChartData() for a first

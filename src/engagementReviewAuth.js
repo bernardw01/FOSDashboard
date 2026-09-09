@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.16 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 037: Engagement Review access gates.
  * View / create reviews & updates: CLIENT-ENGAGEMENT, EXEC, or ADMIN.
@@ -19,6 +19,69 @@ function canAccessEngagementReview_(auth) {
     return true;
   }
   return String(auth.team || '').trim().toUpperCase() === 'CLIENT-ENGAGEMENT';
+}
+
+/**
+ * Assigned owners and named opt-in users (LOOKBACK_OPT_IN_EMAILS, e.g. Guy)
+ * can open Engagement review for the Lookback tab without CE/EXEC/ADMIN.
+ * @param {{ email?: string, role?: string, team?: string }} auth
+ * @return {boolean}
+ */
+function canAccessLookback_(auth) {
+  if (canAccessEngagementReview_(auth)) return true;
+  if (isLookbackOptInEmail_(auth && auth.email)) return true;
+  return lookbackUserIsAssignedOwner_(auth);
+}
+
+/**
+ * @param {{ email?: string }} auth
+ * @return {boolean}
+ */
+function lookbackUserIsAssignedOwner_(auth) {
+  if (!auth || !auth.email) return false;
+  if (typeof isSupabaseConfigured_ !== 'function' || !isSupabaseConfigured_()) return false;
+  try {
+    var res = supabaseSelect_(
+      'fos_agreements',
+      { owner_email: 'eq.' + String(auth.email) },
+      'fibery_id',
+      1
+    );
+    if (!res.ok || !res.json) return false;
+    var rows = res.json;
+    return Object.prototype.toString.call(rows) === '[object Array]' && rows.length > 0;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * @param {string=} email
+ * @return {boolean}
+ */
+function isLookbackOptInEmail_(email) {
+  var mine = normalizeEmail_(email);
+  if (!mine) return false;
+  var raw = '';
+  try {
+    raw = String(PropertiesService.getScriptProperties().getProperty('LOOKBACK_OPT_IN_EMAILS') || '');
+  } catch (e) {
+    raw = '';
+  }
+  var parts = raw.split(/[,;\s]+/);
+  for (var i = 0; i < parts.length; i++) {
+    if (normalizeEmail_(parts[i]) === mine) return true;
+  }
+  return false;
+}
+
+/**
+ * Nav + Lookback APIs: CE/EXEC/ADMIN or Lookback allowlist.
+ * @param {{ email?: string, role?: string, team?: string }} auth
+ * @return {boolean}
+ */
+function canAccessEngagementReviewNav_(auth) {
+  return canAccessLookback_(auth);
 }
 
 /**
@@ -70,12 +133,24 @@ function requireEngagementReviewAdminForApi_() {
  * @param {string} msg
  * @return {string}
  */
+function requireLookbackAccessForApi_() {
+  var auth = requireAuthForApi_();
+  if (!canAccessLookback_(auth)) {
+    throw new Error('FORBIDDEN');
+  }
+  return auth;
+}
+
+/**
+ * @param {string} msg
+ * @return {string}
+ */
 function engagementReviewGateMessage_(msg) {
   if (msg === 'NOT_AUTHORIZED') {
     return 'Your session is not authorized. Reload the page.';
   }
   if (msg === 'FORBIDDEN') {
-    return 'Engagement review is available to the Client Engagement team, Execs, and Admins.';
+    return 'Engagement review and Lookback are available to Client Engagement, Execs, Admins, assigned owners, and named Lookback opt-in users.';
   }
   return msg || 'Request failed.';
 }

@@ -1,4 +1,4 @@
-<!-- PRD version 3.20.16 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md -->
 <!-- Feature 047 D2: deferred dashboard panel markup. -->
 <!-- Settings (#panel-settings) and Profile (#panel-profile) live in DashboardShell.html (always inline). -->
 
@@ -1711,6 +1711,11 @@
               <span class="fos-loading-label">Loading engagement reviews…</span>
             </div>
 
+            <div id="er-mode-tabs" class="d-flex flex-wrap gap-2 mb-3">
+              <button type="button" class="btn btn-sm fw-semibold px-3" id="er-mode-reviews-btn" style="min-height: 44px; background: var(--ag-accent); color: #061b30; border: none;">Reviews</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="er-mode-lookback-btn" style="min-height: 44px;">Lookback</button>
+            </div>
+
             <div id="er-view-list">
               <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
                 <div class="flex-grow-1 min-w-0">
@@ -1751,6 +1756,90 @@
               </div>
               <div id="er-list-mobile" class="d-md-none"></div>
               <p class="small mt-3 d-none" id="er-list-empty" style="color: var(--ag-text-muted)">No engagement reviews yet.</p>
+            </div>
+
+            <div id="er-view-lookback" class="d-none">
+              <div class="d-flex flex-wrap align-items-start gap-3 mb-3">
+                <div class="flex-grow-1 min-w-0">
+                  <h1 class="h5 mb-1 fw-bold" style="color: var(--ag-text)">Lookback</h1>
+                  <p class="small mb-0" id="lb-header-sub" style="color: var(--ag-text-muted)">
+                    Locked monthly financial review. Live PM Overview numbers can still move after lock.
+                  </p>
+                </div>
+                <div class="d-flex flex-wrap gap-2 align-items-end">
+                  <div>
+                    <label class="small d-none d-md-block" for="lb-month-select" style="color: var(--ag-text-muted)">Reporting month</label>
+                    <select id="lb-month-select" class="form-select form-select-sm d-none d-md-block" style="width: auto; min-height: 44px;"></select>
+                    <button type="button" class="btn btn-sm btn-outline-secondary fos-mobile-only" id="lb-month-sheet-btn" style="min-height: 44px;">Choose month</button>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="lb-archive-btn" style="min-height: 44px;">Close cycle</button>
+                </div>
+              </div>
+              <div class="d-none d-md-flex flex-wrap align-items-end gap-2 mb-3" id="lb-admin-lock-wrap">
+                <label class="small" for="lb-lock-period" style="color: var(--ag-text-muted)">Admin lock</label>
+                <input type="month" id="lb-lock-period" class="form-control form-control-sm" style="width: auto; min-height: 44px;" />
+                <button type="button" class="btn btn-sm fw-semibold" id="lb-lock-btn" style="background: var(--ag-accent); color: #061b30; border: none; min-height: 44px;">Lock month now</button>
+              </div>
+              <p class="small d-none text-danger" id="lb-error" role="alert"></p>
+              <p class="small d-none" id="lb-empty" style="color: var(--ag-text-muted)">No Lookback months yet. An Admin can lock a reporting month after time close.</p>
+              <div id="lb-kpis" class="row g-2 mb-3"></div>
+              <h2 class="h6 fw-bold" style="color: var(--ag-text)">Ready for Review</h2>
+              <div id="lb-ready-desktop" class="d-none d-md-block mb-3"></div>
+              <div id="lb-ready-mobile" class="d-md-none mb-3"></div>
+              <h2 class="h6 fw-bold" style="color: var(--ag-text)">Action Required</h2>
+              <div id="lb-action-desktop" class="d-none d-md-block mb-3"></div>
+              <div id="lb-action-mobile" class="d-md-none mb-3"></div>
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <h2 class="h6 fw-bold mb-0" style="color: var(--ag-text)">Green (not selected)</h2>
+                <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="lb-optin-toggle-btn" style="min-height: 44px;">Opt a project in</button>
+              </div>
+              <div id="lb-green-desktop" class="d-none d-md-block"></div>
+              <div id="lb-green-mobile" class="d-md-none"></div>
+              <div class="d-none fos-section-card mt-3" id="lb-optin-form">
+                <label class="small" for="lb-optin-project" style="color: var(--ag-text-muted)">Project</label>
+                <select id="lb-optin-project" class="form-select form-select-sm mb-2" style="min-height: 44px;"></select>
+                <label class="small" for="lb-optin-reason" style="color: var(--ag-text-muted)">Reason (required)</label>
+                <textarea id="lb-optin-reason" class="form-control form-control-sm mb-2" rows="2"></textarea>
+                <button type="button" class="btn btn-sm fw-semibold" id="lb-optin-save-btn" style="background: var(--ag-accent); color: #061b30; border: none; min-height: 44px;">Opt in</button>
+                <span class="small d-none text-danger ms-2" id="lb-optin-error" role="alert"></span>
+              </div>
+            </div>
+
+            <div id="er-view-lookback-project" class="d-none">
+              <button type="button" class="btn btn-sm btn-link px-0 mb-2" id="lb-back-btn" style="min-height: 44px; color: var(--ag-accent);">← Lookback month</button>
+              <h2 class="h5 mb-1 fw-bold" id="lb-proj-title" style="color: var(--ag-text)">Project</h2>
+              <p class="small mb-3" id="lb-proj-sub" style="color: var(--ag-text-muted)"></p>
+              <div id="lb-proj-metrics" class="row g-2 mb-3"></div>
+              <p class="small mb-3" id="lb-proj-trigger" style="color: var(--ag-text-muted)"></p>
+              <section class="fos-section-card mb-3">
+                <h3 class="h6 fw-bold" style="color: var(--ag-text)">Narrative</h3>
+                <label class="small" for="lb-n-what">What happened?</label>
+                <textarea id="lb-n-what" class="form-control form-control-sm mb-2" rows="3"></textarea>
+                <label class="small" for="lb-n-why">Why did it happen?</label>
+                <textarea id="lb-n-why" class="form-control form-control-sm mb-2" rows="3"></textarea>
+                <label class="small" for="lb-n-recovery">Recovery plan and next steps</label>
+                <textarea id="lb-n-recovery" class="form-control form-control-sm mb-2" rows="3"></textarea>
+                <label class="small" for="lb-n-lead">Leadership support needed (optional)</label>
+                <textarea id="lb-n-lead" class="form-control form-control-sm mb-2" rows="2"></textarea>
+                <label class="small" for="lb-n-more">Additional details (optional)</label>
+                <textarea id="lb-n-more" class="form-control form-control-sm mb-2" rows="2"></textarea>
+                <label class="small" for="lb-n-status">Narrative status</label>
+                <select id="lb-n-status" class="form-select form-select-sm mb-2" style="min-height: 44px;">
+                  <option value="not_started">Not Started</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="complete">Complete</option>
+                </select>
+                <button type="button" class="btn btn-sm fw-semibold" id="lb-n-save-btn" style="background: var(--ag-accent); color: #061b30; border: none; min-height: 44px;">Save narrative</button>
+                <span class="small d-none text-danger ms-2" id="lb-n-error" role="alert"></span>
+              </section>
+              <section class="fos-section-card mb-3">
+                <h3 class="h6 fw-bold" style="color: var(--ag-text)">Evidence</h3>
+                <ul class="small mb-2 ps-3" id="lb-evidence-list" style="color: var(--ag-text-muted)"></ul>
+                <div id="lb-evidence-upload-wrap">
+                  <input type="file" class="form-control form-control-sm" id="lb-evidence-file" accept="image/*" />
+                  <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="lb-evidence-upload-btn" style="min-height: 44px;">Upload image</button>
+                </div>
+              </section>
             </div>
 
             <div id="er-view-detail" class="d-none">

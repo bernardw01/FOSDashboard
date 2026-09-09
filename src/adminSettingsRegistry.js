@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.16 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -216,6 +216,14 @@ function getAdminSettingsCatalog_() {
       'Display name on outbound notification emails.',
       'string',
       'FinOps Performance Hub'
+    ),
+    adminSettingEntry_(
+      'NOTIFICATIONS_FROM_EMAIL',
+      'notifications',
+      'Email from address',
+      'Optional Gmail Send mail as alias for alert digests and hydrate-failure emails. Leave blank to send from the script owner account (MailApp). The alias must be verified on the account that owns notification triggers. Run _diag_notificationFromEmail_() to list aliases.',
+      'string',
+      ''
     ),
     adminSettingEntry_(
       'AUTH_COL_FIBERY_ACCESS',
@@ -1054,6 +1062,39 @@ function getAdminSettingsCatalog_() {
       'engagement-review',
       'Engagement Review calendar id',
       'Optional Google Calendar id for review invites. When empty, uses the script default calendar.',
+      'string',
+      ''
+    ),
+    adminSettingEntry_(
+      'LOOKBACK_MARGIN_THRESHOLD',
+      'engagement-review',
+      'Lookback EAC margin floor (%)',
+      'Feature 056. Auto-select a locked Lookback project when EAC / projected margin (Fibery Target Planned Margin at Complete) is below this percent. Default 50. Does not change Agreement Attention LOW_MARGIN_THRESHOLD.',
+      'number',
+      50,
+      { min: 1, max: 100 }
+    ),
+    adminSettingEntry_(
+      'LOOKBACK_TIMEZONE',
+      'engagement-review',
+      'Lookback lock timezone',
+      'IANA timezone for the Lookback lock calendar (first Sunday after month-end plus one US federal business day, 23:59). Default America/Los_Angeles.',
+      'string',
+      'America/Los_Angeles'
+    ),
+    adminSettingEntry_(
+      'LOOKBACK_OPT_IN_EMAILS',
+      'engagement-review',
+      'Lookback opt-in emails',
+      'Comma-separated Hub login emails (for example Guy) who may opt any green project into a locked Lookback with a required Reason. Does not grant the whole FINANCE team.',
+      'string',
+      ''
+    ),
+    adminSettingEntry_(
+      'LOOKBACK_EVIDENCE_DRIVE_FOLDER_ID',
+      'engagement-review',
+      'Lookback evidence Drive folder',
+      'Google Drive folder id for Lookback screenshot uploads. When empty, uses a lookback-evidence subfolder under the Engagement Review recordings folder.',
       'string',
       ''
     ),

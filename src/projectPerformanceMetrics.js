@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.16 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 040: shared project performance metrics (planned / projected margin,
  * EAC hours and dollars, timing-review flag, lifetime resources). Consumed by
@@ -162,13 +162,6 @@ function ppPersonNamesMatch_(aName, bName) {
 }
 
 /**
- * @param {!Object} byKey
- * @param {string} name
- * @param {string} role
- * @return {!Object}
- * @private
- */
-/**
  * @param {*} raw
  * @return {?number}
  * @private
@@ -177,6 +170,92 @@ function ppNormalizeRate_(raw) {
   if (raw === null || raw === undefined || raw === '') return null;
   var n = Number(raw);
   return isFinite(n) && n >= 0 ? n : null;
+}
+
+/**
+ * Prefer current Team Member Role cost rate, then SOW cost rate.
+ * @param {?Object} asg
+ * @return {?number}
+ * @private
+ */
+function ppAssignmentCostRate_(asg) {
+  if (!asg) return null;
+  var current = ppNormalizeRate_(asg.currentCostRate);
+  if (current != null) return current;
+  return ppNormalizeRate_(asg.sowCostRate);
+}
+
+/**
+ * Hours-weighted cost rate for a person/role from allocations, then logged
+ * cost / logged hours when no allocation rate exists.
+ * @param {?string} name
+ * @param {?string} role
+ * @param {!Array<!Object>} assignments
+ * @param {number=} loggedHours
+ * @param {number=} loggedCost
+ * @return {?number}
+ * @private
+ */
+function ppResolveCostRateForPerson_(name, role, assignments, loggedHours, loggedCost) {
+  var roleNorm = String(role || '(No role)').trim().toLowerCase();
+  var anyHours = 0;
+  var anyCost = 0;
+  var roleHours = 0;
+  var roleCost = 0;
+  var anyRate = null;
+  for (var i = 0; i < (assignments || []).length; i++) {
+    var asg = assignments[i];
+    var asgName = asg.name || asg.clockifyUserName || asg.allocationName;
+    if (!ppPersonNamesMatch_(name, asgName)) continue;
+    var rate = ppAssignmentCostRate_(asg);
+    if (rate == null) continue;
+    anyRate = rate;
+    var h = Number(asg.allocatedHours || 0);
+    if (!isFinite(h) || h < 0) h = 0;
+    var weight = h > 0 ? h : 1;
+    anyHours += weight;
+    anyCost += weight * rate;
+    var asgRole = String(asg.roleName || '(No role)').trim().toLowerCase();
+    if (asgRole === roleNorm) {
+      roleHours += weight;
+      roleCost += weight * rate;
+    }
+  }
+  if (roleHours > 0) return roleCost / roleHours;
+  if (anyHours > 0) return anyCost / anyHours;
+  if (anyRate != null) return anyRate;
+  var lh = Number(loggedHours || 0);
+  var lc = Number(loggedCost || 0);
+  if (lh > 0 && isFinite(lc) && lc !== 0) return Math.abs(lc) / lh;
+  return null;
+}
+
+/**
+ * When Fibery Allocated Cost is missing, set allocatedCostLife to
+ * allocated hours * user cost rate.
+ * @param {!Array<!Object>} rows
+ * @param {!Array<!Object>} assignments
+ * @return {!Array<!Object>}
+ * @private
+ */
+function ppFillAllocatedCostFromRates_(rows, assignments) {
+  for (var i = 0; i < (rows || []).length; i++) {
+    var r = rows[i];
+    if (!r) continue;
+    var hours = Number(r.allocatedHoursLife || 0);
+    if (!(hours > 0)) continue;
+    if (Number(r.allocatedCostLife || 0) > 0) continue;
+    var rate = ppResolveCostRateForPerson_(
+      r.name,
+      r.role,
+      assignments,
+      r.loggedHoursLife,
+      r.loggedCostLife
+    );
+    if (rate == null) continue;
+    r.allocatedCostLife = ppRound2_(hours * rate);
+  }
+  return rows;
 }
 
 /**
@@ -490,10 +569,15 @@ function buildProjectPerformanceBlock_(args) {
  * @param {!Array<!Object>} months
  * @param {!Array<!Object>} assignments
  * @param {string=} customerName
+ * @param {?Object=} opts
+ * @param {boolean=} opts.mergeAssignmentLifetime When false, skip lifetime
+ *   assignment hour/cost max (date-range rows). Rates still fill allocated cost.
  * @return {!Array<!Object>}
  * @private
  */
-function ppBuildResourcesLifetime_(months, assignments, customerName) {
+function ppBuildResourcesLifetime_(months, assignments, customerName, opts) {
+  opts = opts || {};
+  var mergeLifetime = opts.mergeAssignmentLifetime !== false;
   var byKey = {};
   var skipOrange = typeof isNoAllocationOrangeExemptCustomer_ === 'function'
     ? isNoAllocationOrangeExemptCustomer_(customerName)
@@ -514,6 +598,10 @@ function ppBuildResourcesLifetime_(months, assignments, customerName) {
       if (monthAlloc > mRow.allocatedHoursLife) {
         mRow.allocatedHoursLife = monthAlloc;
       }
+      var monthAllocCost = Number(p.allocatedCost || 0);
+      if (monthAllocCost > mRow.allocatedCostLife) {
+        mRow.allocatedCostLife = monthAllocCost;
+      }
       if (!skipOrange && p.allocatedAndBillable === false) {
         mRow.allocatedAndBillable = false;
         mRow.highlightOrange = true;
@@ -530,6 +618,7 @@ function ppBuildResourcesLifetime_(months, assignments, customerName) {
       life.loggedHoursLife += src.loggedHoursLife;
       life.loggedCostLife += src.loggedCostLife;
       life.allocatedHoursLife += src.allocatedHoursLife;
+      life.allocatedCostLife += src.allocatedCostLife || 0;
       if (!skipOrange && src.allocatedAndBillable === false) {
         life.allocatedAndBillable = false;
         life.highlightOrange = true;
@@ -542,24 +631,29 @@ function ppBuildResourcesLifetime_(months, assignments, customerName) {
   }
 
   // Seed / top up from Fibery assignments (allocation-only people + lifetime totals).
-  for (var a = 0; a < (assignments || []).length; a++) {
-    var asg = assignments[a];
-    var aName = asg.name || '(Unknown user)';
-    var aRole = asg.roleName || '(No role)';
-    var aRow = ppEnsureResourcesLifetimeRow_(byKey, aName, aRole);
-    var asgHours = Number(asg.allocatedHours || 0);
-    var asgCost = Number(asg.allocatedCost || 0);
-    if (asgHours > aRow.allocatedHoursLife) {
-      aRow.allocatedHoursLife = asgHours;
-    }
-    if (asgCost > aRow.allocatedCostLife) {
-      aRow.allocatedCostLife = asgCost;
-    }
-    if (!skipOrange && asg.allocatedAndBillable === false) {
-      aRow.allocatedAndBillable = false;
-      aRow.highlightOrange = true;
-    } else if (asg.allocatedAndBillable === true && aRow.allocatedAndBillable !== false) {
-      aRow.allocatedAndBillable = true;
+  if (mergeLifetime) {
+    for (var a = 0; a < (assignments || []).length; a++) {
+      var asg = assignments[a];
+      var aName = asg.name || '(Unknown user)';
+      var aRole = asg.roleName || '(No role)';
+      var aRow = ppEnsureResourcesLifetimeRow_(byKey, aName, aRole);
+      var asgHours = Number(asg.allocatedHours || 0);
+      var asgRate = ppAssignmentCostRate_(asg);
+      var asgCost = asgRate != null && asgHours > 0
+        ? asgHours * asgRate
+        : Number(asg.allocatedCost || 0);
+      if (asgHours > aRow.allocatedHoursLife) {
+        aRow.allocatedHoursLife = asgHours;
+      }
+      if (asgCost > aRow.allocatedCostLife) {
+        aRow.allocatedCostLife = asgCost;
+      }
+      if (!skipOrange && asg.allocatedAndBillable === false) {
+        aRow.allocatedAndBillable = false;
+        aRow.highlightOrange = true;
+      } else if (asg.allocatedAndBillable === true && aRow.allocatedAndBillable !== false) {
+        aRow.allocatedAndBillable = true;
+      }
     }
   }
 
@@ -567,7 +661,12 @@ function ppBuildResourcesLifetime_(months, assignments, customerName) {
   var keys = Object.keys(byKey);
   for (var k = 0; k < keys.length; k++) {
     var r = byKey[keys[k]];
-    if (r.loggedHoursLife <= 0 && r.allocatedHoursLife <= 0 && r.loggedCostLife <= 0) {
+    if (
+      r.loggedHoursLife <= 0 &&
+      r.allocatedHoursLife <= 0 &&
+      r.loggedCostLife <= 0 &&
+      !(r.allocatedCostLife > 0)
+    ) {
       continue;
     }
     if (!skipOrange && r.loggedHoursLife > 0 && r.allocatedHoursLife <= 0) {
@@ -589,5 +688,5 @@ function ppBuildResourcesLifetime_(months, assignments, customerName) {
   out.sort(function (a, b) {
     return String(a.name).localeCompare(String(b.name));
   });
-  return out;
+  return ppFillAllocatedCostFromRates_(out, assignments || []);
 }

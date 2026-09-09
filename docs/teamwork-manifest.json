@@ -532,6 +532,44 @@
       "publishedAt": "2026-08-31",
       "lastSyncedAt": "2026-08-31",
       "gitMirror": "docs/features/053-pm-overview-sow-margin-and-role.md"
+    },
+    "feature_054": {
+      "id": 313632,
+      "title": "Feature 054 - Alert emails from shared or group address",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/313632",
+      "featureId": "054",
+      "intakeTaskId": 40507255,
+      "publishedAt": "2026-09-01",
+      "lastSyncedAt": "2026-09-01",
+      "gitMirror": "docs/features/054-notification-shared-from-address.md"
+    },
+    "feature_055": {
+      "id": 313653,
+      "title": "Feature 055 - Planned margin on PM Overview and Portfolio P&L",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/313653",
+      "featureId": "055",
+      "intakeTaskId": 40521091,
+      "publishedAt": "2026-09-01",
+      "lastSyncedAt": "2026-09-01",
+      "gitMirror": "docs/features/055-planned-margin-hub-locations.md"
+    },
+    "performance_hub_glossary": {
+      "id": 313662,
+      "title": "Performance Hub glossary - margin, plan, bid, and EAC terms",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/313662",
+      "publishedAt": "2026-09-01",
+      "lastSyncedAt": "2026-09-01",
+      "gitMirror": "docs/glossary-performance-hub-terms.md"
+    },
+    "feature_056": {
+      "id": 313716,
+      "title": "Feature 056 - Monthly Client Financial Performance Review (Lookback)",
+      "url": "https://win.godeap.io/app/projects/1615262/notebooks/313716",
+      "featureId": "056",
+      "intakeTaskId": 40478571,
+      "publishedAt": "2026-09-02",
+      "lastSyncedAt": "2026-09-08",
+      "gitMirror": "docs/features/056-monthly-lookback-financial-review.md"
     }
   },
   "tasks": {
@@ -2245,6 +2283,57 @@
         "Total (rounded to nearest 0.5h): 9.0h"
       ],
       "estDevHoursGitBase": "20b213e6f1af8ce252c7a4b72b63bc527201c55f"
+    },
+    "Feature 054 - Alert emails from shared or group address": {
+      "id": 40953593,
+      "url": "https://win.godeap.io/app/tasks/40953593",
+      "featureId": "054",
+      "releaseType": "Enhancement",
+      "releaseTitle": "Alert emails from shared or group address",
+      "provisionalTaskName": true,
+      "shippedVersion": null,
+      "tasklist": "Admin and settings",
+      "tasklistId": 4174286,
+      "notebookKey": "feature_054",
+      "intakeTaskId": 40507255,
+      "inboxTaskUrl": "https://win.godeap.io/app/tasks/40507255",
+      "workflowStage": "Spec Draft",
+      "createdAt": "2026-09-01",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Alert emails from shared or group address"
+    },
+    "Feature 055 - Planned margin on PM Overview and Portfolio P&L": {
+      "id": 40954786,
+      "url": "https://win.godeap.io/app/tasks/40954786",
+      "featureId": "055",
+      "releaseType": "Enhancement",
+      "releaseTitle": "Planned margin on PM Overview and Portfolio P&L",
+      "provisionalTaskName": true,
+      "shippedVersion": null,
+      "tasklist": "Delivery",
+      "tasklistId": 4174283,
+      "notebookKey": "feature_055",
+      "intakeTaskId": 40521091,
+      "inboxTaskUrl": "https://win.godeap.io/app/tasks/40521091",
+      "workflowStage": "Spec Draft",
+      "createdAt": "2026-09-01",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Planned margin on PM Overview and Portfolio P&L"
+    },
+    "Feature 056 - Monthly Client Financial Performance Review (Lookback)": {
+      "id": 40976878,
+      "url": "https://win.godeap.io/app/tasks/40976878",
+      "featureId": "056",
+      "releaseType": "Enhancement",
+      "releaseTitle": "Monthly Client Financial Performance Review (Lookback)",
+      "provisionalTaskName": true,
+      "shippedVersion": null,
+      "tasklist": "Delivery",
+      "tasklistId": 4174283,
+      "notebookKey": "feature_056",
+      "intakeTaskId": 40478571,
+      "inboxTaskUrl": "https://win.godeap.io/app/tasks/40478571",
+      "workflowStage": "Spec Draft",
+      "createdAt": "2026-09-02",
+      "renameAtShip": "v{FOS_PRD_VERSION} - Monthly Client Financial Performance Review (Lookback)"
     }
   },
   "supersededDuplicates": {

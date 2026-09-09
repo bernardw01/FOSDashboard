@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.16 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: Fibery -> Supabase hydrate (nightly + ADMIN Pull).
  * Dataset am-mirror (supabaseAmMirror.js) hydrates Agreement Management typed
@@ -759,16 +759,24 @@ function notifyAdminsHydrateFailed_(state, note) {
     'The Fibery â†’ Datastore hydrate ended in failure.\n\n' +
     summary +
     '\n\nOpen ADMIN Settings â†’ Datastore hydrate for status, then Pull from Fibery to resume from the failed step (or set SUPABASE_SYNC_FORCE_FULL=true for a full restart).\n';
-  var fromName = 'FinOps Performance Hub';
   for (var i = 0; i < emails.length; i++) {
     var email = emails[i];
     try {
-      MailApp.sendEmail({
-        to: email,
-        subject: subject,
-        body: body,
-        name: fromName,
-      });
+      if (typeof sendNotificationEmail_ === 'function') {
+        sendNotificationEmail_({
+          to: email,
+          subject: subject,
+          body: body,
+          htmlBody: body.replace(/\n/g, '<br>'),
+        });
+      } else {
+        MailApp.sendEmail({
+          to: email,
+          subject: subject,
+          body: body,
+          name: 'FinOps Performance Hub',
+        });
+      }
       if (typeof appendNotificationLogRow_ === 'function') {
         appendNotificationLogRow_({
           email: email,

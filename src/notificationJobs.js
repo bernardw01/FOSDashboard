@@ -1,5 +1,5 @@
 /**
- * PRD version 3.20.16 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.21.1 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Hourly / Daily / Weekly alert email notification jobs (Feature 033).
  * Evaluates live Fibery via existing dashboard builders. No Immediate frequency.
@@ -9,6 +9,7 @@
  *   NOTIFICATIONS_DAILY_HOUR
  *   NOTIFICATIONS_WEEKLY_HOUR
  *   NOTIFICATIONS_FROM_NAME
+ *   NOTIFICATIONS_FROM_EMAIL
  *   NOTIFICATIONS_DEFAULT_TIMEZONE
  */
 
@@ -334,6 +335,77 @@ function escapeHtmlForEmail_(s) {
 }
 
 /**
+ * @return {{ fromName: string, fromEmail: string }}
+ */
+function notificationFromIdentity_() {
+  var props = PropertiesService.getScriptProperties();
+  var fromName =
+    (props.getProperty('NOTIFICATIONS_FROM_NAME') || '').trim() || 'FinOps Performance Hub';
+  var fromEmail = (props.getProperty('NOTIFICATIONS_FROM_EMAIL') || '').trim();
+  return { fromName: fromName, fromEmail: fromEmail };
+}
+
+/**
+ * Send an outbound notification email using Gmail send-as when configured.
+ * @param {{ to: string, subject: string, htmlBody: string, body: string }} opts
+ */
+function sendNotificationEmail_(opts) {
+  var to = String((opts && opts.to) || '').trim();
+  if (!to) {
+    throw new Error('sendNotificationEmail_: missing recipient.');
+  }
+  var subject = String((opts && opts.subject) || '');
+  var htmlBody = String((opts && opts.htmlBody) || '');
+  var body = String((opts && opts.body) || '');
+  var identity = notificationFromIdentity_();
+  if (identity.fromEmail) {
+    GmailApp.sendEmail(to, subject, body, {
+      htmlBody: htmlBody,
+      name: identity.fromName,
+      from: identity.fromEmail,
+    });
+    return;
+  }
+  MailApp.sendEmail({
+    to: to,
+    subject: subject,
+    htmlBody: htmlBody,
+    body: body,
+    name: identity.fromName,
+  });
+}
+
+/**
+ * @return {{ configuredFromEmail: string, fromName: string, gmailAliases: !Array<string>, aliasConfigured: (boolean|null) }}
+ */
+function _diag_notificationFromEmail_() {
+  var identity = notificationFromIdentity_();
+  var aliases = [];
+  try {
+    aliases = GmailApp.getAliases() || [];
+  } catch (e) {
+    aliases = [];
+  }
+  var aliasConfigured = null;
+  if (identity.fromEmail) {
+    var needle = identity.fromEmail.toLowerCase();
+    aliasConfigured = false;
+    for (var i = 0; i < aliases.length; i++) {
+      if (String(aliases[i] || '').trim().toLowerCase() === needle) {
+        aliasConfigured = true;
+        break;
+      }
+    }
+  }
+  return {
+    configuredFromEmail: identity.fromEmail || '(not set; MailApp uses script owner)',
+    fromName: identity.fromName,
+    gmailAliases: aliases,
+    aliasConfigured: aliasConfigured,
+  };
+}
+
+/**
  * @param {string} frequency hourly|daily|weekly
  * @return {{ ok: boolean, sent: number, skipped: number, message?: string }}
  */
@@ -356,10 +428,6 @@ function processNotificationsForFrequency_(frequency) {
     } catch (e) {
       baseUrl = '';
     }
-    var fromName =
-      (PropertiesService.getScriptProperties().getProperty('NOTIFICATIONS_FROM_NAME') || '').trim() ||
-      'FinOps Performance Hub';
-
     var profiles = listAllUserProfiles_();
     var sent = 0;
     var skipped = 0;
@@ -427,12 +495,11 @@ function processNotificationsForFrequency_(frequency) {
       var deepLink = buildNotificationDeepLink_(baseUrl, primaryNav);
       var composed = composeNotificationEmail_(matched, frequency, deepLink);
       try {
-        MailApp.sendEmail({
+        sendNotificationEmail_({
           to: email,
           subject: composed.subject,
           htmlBody: composed.html,
           body: composed.text,
-          name: fromName,
         });
         appendNotificationLogRow_({
           email: email,

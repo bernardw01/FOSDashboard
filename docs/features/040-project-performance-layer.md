@@ -1,7 +1,7 @@
 # Feature: Project Performance layer (Delivery)
 
 > **Status:** Shipped (**v3.6.0**; patched through **v3.8.2**)  
-> **PRD version:** **3.9.0** (`FR-137`, `AC-99`; empty-plan KPIs tightened by **046**)  
+> **PRD version:** **3.20.18** (`FR-137`, `AC-99`; allocated cost = hours × user cost rate)  
 > **Feature ID:** **040**  
 > **Release type:** Enhancement  
 > **Task list:** Delivery  
@@ -81,7 +81,7 @@ Extend the **Delivery** selected-project experience with a **Project Performance
 | 13 | Historical | Snapshot / Datastore modes must render Project Performance from payload fields (no live Fibery). |
 | 14 | Mobile | Same release: tabs in filter sheet or stacked controls; KPI cards 2-col; tables → cards; ≥ 44px targets (**029**). |
 | 15 | Access | Same as Delivery panel today (no new role gate). Timing badge / Engagement Review CTA only when user can open **037**. |
-| 16 | Resource variances (R5) | **Hours variance** = logged hours − allocated hours. **Cost variance $** = logged cost − allocated cost. Positive = over plan (logged more than allocated). **Allocated cost** = Fibery assignment allocated cost (lifetime from assignments; date-filtered months use the same month-prorate as allocated hours). |
+| 16 | Resource variances (R5) | **Hours variance** = logged hours − allocated hours. **Cost variance $** = logged cost − allocated cost. Positive = over plan (logged more than allocated). **Allocated cost** = allocated hours × user **Team Member Role** cost rate (SOW cost rate if current rate is missing; Fibery Allocated Cost only if no rate). Date-filtered rows use the same hours × rate on month-prorated allocated hours, not the unfiltered lifetime assignment total. |
 | 17 | KPI formula tooltips (R5) | Every calculated KPI chip on **PM Overview** (project summary strip **and** Project Performance strip) MUST expose hover/`title` (and `aria-describedby` or equivalent) copy that states the formula in one or two sentences. Status update chip is not a calculated KPI; no formula tooltip required. |
 | 18 | Performance Copy CSV (R5) | **Copy CSV** on the Project Performance tab copies **visible** resource table rows (respecting the date range) including the new variance columns. Reuse the Accounting P&L clipboard helper and ~3s status flash. |
 
@@ -141,7 +141,7 @@ Extend the **Delivery** selected-project experience with a **Project Performance
 - [ ] **Given** resource rows, **when** rendered with the default date range, **then** each resource can show **lifetime logged hours**, **lifetime allocated hours**, **lifetime allocated cost**, and **lifetime logged cost** for the project (full life), not only the selected month.
 - [ ] **Given** orange / non-billable / unallocated rules already live, **when** the table renders, **then** those rules continue to apply and a legend/tooltip explains orange highlighting.
 - [ ] **Given** a resource with allocated hours/cost and logged hours/cost, **when** the table renders, **then** **Hours variance** = logged − allocated and **Cost variance $** = logged cost − allocated cost (positive over plan). Zero allocated with logged time still shows variance equal to logged amounts.
-- [ ] **Given** the custom date range is not all time, **when** resource rows render, **then** allocated cost and both variances use the same calendar-month filter as hours and logged cost (month-prorated allocation cost, not the unfiltered lifetime assignment total).
+- [ ] **Given** the custom date range is not all time, **when** resource rows render, **then** allocated cost and both variances use the same calendar-month filter as hours and logged cost (allocated hours × user cost rate, not the unfiltered lifetime assignment total).
 
 ### No resource plan (v3.8.2)
 
@@ -378,3 +378,4 @@ Ship **R1-R4 together** as a single MINOR (**v3.6.0**). **R5** / **R6** are foll
 | 2026-08-19 | **v3.7.6 / R5:** Allocated cost + hours/cost variance columns; KPI formula tooltips on PM Overview; Performance Copy CSV. Delivery P&L schema **16**. |
 | 2026-08-20 | **v3.8.2 / R6:** When `resourceAllocations.hasAllocations` is false, hide the Performance resource table and show **No Resource Plan Found**. |
 | 2026-08-21 | **v3.9.0 / feature 046:** Empty-plan Planned/Projected/EAC chips are N/A with **No plan available**; Actual margin stays. |
+| 2026-09-01 | **v3.20.18:** Date-range (and all-time) allocated cost = allocated hours × Team Member Role cost rate when Fibery Allocated Cost is empty. Delivery P&L schema **19**. |
