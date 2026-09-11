@@ -1,5 +1,5 @@
 /**
- * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement Management Fibery â†’ Supabase relational mirror (Pull / nightly).
  * Full-scan steps reconcile ghosts: fibery_ids seen during the step are stored

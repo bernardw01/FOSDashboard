@@ -1,4 +1,4 @@
-<!-- PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md -->
 <!-- Feature 047 D2: deferred dashboard panel markup. -->
 <!-- Settings (#panel-settings) and Profile (#panel-profile) live in DashboardShell.html (always inline). -->
 
@@ -1793,10 +1793,16 @@
               <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
                 <h2 class="h6 fw-bold mb-0" style="color: var(--ag-text)">Action Required</h2>
                 <div class="d-flex flex-wrap gap-2 align-items-center" id="lb-action-filter-bar">
-                  <label class="small mb-0 d-none d-md-inline" for="lb-action-filter-status" style="color: var(--ag-text-muted)">Status</label>
-                  <select id="lb-action-filter-status" class="form-select form-select-sm d-none d-md-block" style="width: auto; min-width: 8rem; min-height: 44px;" multiple title="Status filter"></select>
-                  <label class="small mb-0 d-none d-md-inline" for="lb-action-filter-owner" style="color: var(--ag-text-muted)">Owner</label>
-                  <select id="lb-action-filter-owner" class="form-select form-select-sm d-none d-md-block" style="width: auto; min-width: 8rem; min-height: 44px;" multiple title="Owner filter"></select>
+                  <label class="small mb-0 d-none d-md-inline" style="color: var(--ag-text-muted)">Status</label>
+                  <div class="fos-util-multi d-none d-md-block" style="width: auto; min-width: 8rem;">
+                    <button type="button" class="multi-trigger w-100" id="lb-action-filter-status-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" style="min-height: 44px;">All statuses</button>
+                    <ul class="dropdown-menu" id="lb-action-filter-status-menu" aria-label="Status filter"></ul>
+                  </div>
+                  <label class="small mb-0 d-none d-md-inline" style="color: var(--ag-text-muted)">Owner</label>
+                  <div class="fos-util-multi d-none d-md-block" style="width: auto; min-width: 8rem;">
+                    <button type="button" class="multi-trigger w-100" id="lb-action-filter-owner-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" style="min-height: 44px;">All owners</button>
+                    <ul class="dropdown-menu" id="lb-action-filter-owner-menu" aria-label="Owner filter"></ul>
+                  </div>
                   <button type="button" class="btn btn-sm btn-outline-secondary d-none d-md-inline-flex" id="lb-action-filter-clear" style="min-height: 44px;">Clear filters</button>
                   <button type="button" class="btn btn-sm btn-outline-secondary fos-mobile-only" id="lb-action-filter-mobile-btn" style="min-height: 44px;">Filters</button>
                 </div>

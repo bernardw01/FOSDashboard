@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -8902,6 +8902,7 @@
         } else {
           var st = status.state || {};
           var last = status.lastRun || {};
+          var health = status.syncHealth || {};
           var pingOk = status.ping && status.ping.ok;
           var nightly = status.nightlyTrigger || {};
           var nightlyLabel = nightly.installed
@@ -8914,6 +8915,14 @@
             durMs != null && isFinite(Number(durMs))
               ? Math.round(Number(durMs) / 1000) + 's'
               : 'n/a';
+          var startedLabel =
+            health.startedAt || st.startedAt || last.startedAt
+              ? String(health.startedAt || st.startedAt || last.startedAt)
+              : 'n/a';
+          var ageLabel = 'n/a';
+          if (health.runningAgeMs != null && isFinite(Number(health.runningAgeMs))) {
+            ageLabel = Math.round(Number(health.runningAgeMs) / 60000) + ' min';
+          }
           statusLine.textContent =
             'Read source: ' +
             (status.readSource || 'supabase') +
@@ -8923,18 +8932,29 @@
             (pingOk ? 'ok' : 'fail') +
             ' · Nightly trigger: ' +
             nightlyLabel +
-            ' · Last run: ' +
-            (last.status || st.status || 'idle') +
+            ' · Status: ' +
+            (health.status || last.status || st.status || 'idle') +
+            ' · Started: ' +
+            startedLabel +
+            ' · Running age: ' +
+            ageLabel +
             ' · Duration: ' +
             durLabel +
             (last.scriptVersion || st.scriptVersion
               ? ' · Script: ' + (last.scriptVersion || st.scriptVersion)
               : '') +
-            (st.datasetsDone != null
-              ? ' · Progress: ' + st.datasetsDone + '/' + (st.datasetsTotal || '?')
+            (health.datasetsDone != null || st.datasetsDone != null
+              ? ' · Progress: ' +
+                (health.datasetsDone != null ? health.datasetsDone : st.datasetsDone) +
+                '/' +
+                (health.datasetsTotal != null
+                  ? health.datasetsTotal
+                  : st.datasetsTotal || '?')
               : '') +
             (last.resumeEligible || st.resumeEligible ? ' · resume pending' : '');
-          if (!nightly.installed || last.status === 'failed' || st.status === 'failed') {
+          if (health.staleRunning) {
+            statusLine.style.color = 'var(--danger)';
+          } else if (!nightly.installed || last.status === 'failed' || st.status === 'failed') {
             statusLine.style.color = 'var(--warning, #c9a227)';
           }
           if (last.status === 'failed' || st.status === 'failed') {
@@ -8942,6 +8962,19 @@
           }
         }
         wrap.appendChild(statusLine);
+
+        if (status && status.syncHealth && status.syncHealth.staleRunning) {
+          var staleLine = document.createElement('p');
+          staleLine.className = 'small mb-2';
+          staleLine.style.color = 'var(--danger)';
+          staleLine.textContent =
+            'Sync state looks stale (running longer than ' +
+            Math.round(
+              Number(status.syncHealth.staleThresholdMs || 14400000) / 3600000
+            ) +
+            'h). Pull will abandon the stuck run and start fresh, or use Force clear.';
+          wrap.appendChild(staleLine);
+        }
 
         if (
           status &&
@@ -8974,18 +9007,39 @@
         runBtn.textContent = adminSettingsState_.supabaseSyncRunning
           ? 'Pulling…'
           : 'Pull from Fibery';
+        var staleRunning = !!(status && status.syncHealth && status.syncHealth.staleRunning);
         var canRun =
           status &&
           status.ok !== false &&
           status.syncEnabled &&
           status.configured &&
           !adminSettingsState_.supabaseSyncRunning &&
-          !adminSettingsState_.loading;
+          !adminSettingsState_.loading &&
+          (!status.state ||
+            status.state.status !== 'running' ||
+            staleRunning);
         runBtn.disabled = !canRun;
         runBtn.addEventListener('click', function () {
           runAdminSupabaseSync_();
         });
         actions.appendChild(runBtn);
+
+        var clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.className = 'btn btn-sm btn-outline-warning';
+        clearBtn.id = 'settings-supabase-sync-clear-btn';
+        clearBtn.style.minHeight = '44px';
+        clearBtn.textContent = 'Force clear stuck state';
+        clearBtn.disabled =
+          !status ||
+          status.ok === false ||
+          adminSettingsState_.supabaseSyncRunning ||
+          adminSettingsState_.loading ||
+          !(staleRunning || (status.state && status.state.status === 'running'));
+        clearBtn.addEventListener('click', function () {
+          forceClearAdminSupabaseSyncState_(resultEl);
+        });
+        actions.appendChild(clearBtn);
 
         var resultEl = document.createElement('span');
         resultEl.className = 'small';
@@ -9112,6 +9166,40 @@
             finishAdminSupabaseSyncUi_(resultEl, msg);
           })
           .runSupabaseSyncForSettings();
+      }
+
+      function forceClearAdminSupabaseSyncState_(resultEl) {
+        if (adminSettingsState_.supabaseSyncRunning) {
+          return;
+        }
+        if (resultEl) {
+          resultEl.style.color = 'var(--text-muted)';
+          resultEl.textContent = 'Clearing sync state…';
+        }
+        google.script.run
+          .withSuccessHandler(function (res) {
+            if (!res || res.ok === false) {
+              finishAdminSupabaseSyncUi_(
+                resultEl,
+                (res && res.message) || 'Could not clear sync state.'
+              );
+              return;
+            }
+            if (resultEl) {
+              resultEl.style.color = 'var(--accent)';
+              resultEl.textContent = res.message || 'Sync state cleared.';
+            }
+            refreshAdminSupabaseSyncStatus_(function () {
+              renderAdminSettingsGroups_();
+            });
+          })
+          .withFailureHandler(function (err) {
+            finishAdminSupabaseSyncUi_(
+              resultEl,
+              err && err.message ? err.message : 'Could not clear sync state.'
+            );
+          })
+          .forceClearSupabaseSyncStateForSettings();
       }
 
       function refreshAdminAiUsageSyncStatus_(callback) {
@@ -21592,6 +21680,8 @@
         lookbackProjectId: '',
         lookbackActionFilters: { statuses: [], owners: [] },
       };
+      var lbActionStatusFilterMap_ = {};
+      var lbActionOwnerFilterMap_ = {};
       var erViewerState_ = { updateId: null, html: '', fileName: 'engagement-update.html' };
       var ER_DIM_KEYS_ = ['schedule', 'cost_hours', 'margin', 'client_sentiment'];
 
@@ -23281,67 +23371,112 @@
         return out;
       }
 
-      function lbSelectedMultiValues_(sel) {
-        var out = [];
-        if (!sel) return out;
-        var opts = sel.options || [];
-        for (var i = 0; i < opts.length; i++) {
-          if (opts[i].selected) out.push(opts[i].value);
-        }
-        return out;
+      function lbUpdateActionFilterTriggers_() {
+        expensesUpdateMultiTrigger_(
+          document.getElementById('lb-action-filter-status-trigger'),
+          'All statuses',
+          'status',
+          lbActionStatusFilterMap_
+        );
+        expensesUpdateMultiTrigger_(
+          document.getElementById('lb-action-filter-owner-trigger'),
+          'All owners',
+          'owner',
+          lbActionOwnerFilterMap_
+        );
       }
 
       function lbPopulateActionFilters_(actionRows) {
-        var statusSel = document.getElementById('lb-action-filter-status');
-        var ownerSel = document.getElementById('lb-action-filter-owner');
+        var statusMenu = document.getElementById('lb-action-filter-status-menu');
+        var ownerMenu = document.getElementById('lb-action-filter-owner-menu');
         var prev = erState_.lookbackActionFilters || { statuses: [], owners: [] };
+        lbActionStatusFilterMap_ = {};
+        lbActionOwnerFilterMap_ = {};
+        var pi;
+        for (pi = 0; pi < (prev.statuses || []).length; pi++) {
+          lbActionStatusFilterMap_[prev.statuses[pi]] = true;
+        }
+        for (pi = 0; pi < (prev.owners || []).length; pi++) {
+          lbActionOwnerFilterMap_[prev.owners[pi]] = true;
+        }
         var statusSet = {};
         var ownerSet = {};
         for (var i = 0; i < actionRows.length; i++) {
           statusSet[String(actionRows[i].narrativeStatus || 'not_started')] = true;
           ownerSet[lbOwnerLabel_(actionRows[i])] = true;
         }
-        function fill(sel, keys, prevSelected) {
-          if (!sel) return;
-          var keep = {};
-          for (var p = 0; p < (prevSelected || []).length; p++) keep[prevSelected[p]] = true;
-          sel.innerHTML = '';
-          var list = Object.keys(keys).sort();
-          for (var j = 0; j < list.length; j++) {
-            var op = document.createElement('option');
-            op.value = list[j];
-            op.textContent = list[j];
-            if (keep[list[j]]) op.selected = true;
-            sel.appendChild(op);
+        function pruneMap_(map, valid) {
+          var keys = setFromKeys(map);
+          for (var pj = 0; pj < keys.length; pj++) {
+            if (!valid[keys[pj]]) {
+              delete map[keys[pj]];
+            }
           }
-          sel.size = Math.min(Math.max(list.length, 1), 4);
         }
-        fill(statusSel, statusSet, prev.statuses);
-        fill(ownerSel, ownerSet, prev.owners);
+        pruneMap_(lbActionStatusFilterMap_, statusSet);
+        pruneMap_(lbActionOwnerFilterMap_, ownerSet);
+        var statusList = Object.keys(statusSet).sort();
+        var ownerList = Object.keys(ownerSet).sort();
+        var onChange = lbApplyActionFiltersFromUi_;
+        expensesPopulateMultiMenu_(
+          statusMenu,
+          statusList,
+          function (k) {
+            return k;
+          },
+          function (k) {
+            return k;
+          },
+          lbActionStatusFilterMap_,
+          onChange
+        );
+        expensesPopulateMultiMenu_(
+          ownerMenu,
+          ownerList,
+          function (k) {
+            return k;
+          },
+          function (k) {
+            return k;
+          },
+          lbActionOwnerFilterMap_,
+          onChange
+        );
+        lbUpdateActionFilterTriggers_();
         erState_.lookbackActionFilters = {
-          statuses: lbSelectedMultiValues_(statusSel),
-          owners: lbSelectedMultiValues_(ownerSel),
+          statuses: setFromKeys(lbActionStatusFilterMap_),
+          owners: setFromKeys(lbActionOwnerFilterMap_),
         };
       }
 
       function lbApplyActionFiltersFromUi_() {
         erState_.lookbackActionFilters = {
-          statuses: lbSelectedMultiValues_(document.getElementById('lb-action-filter-status')),
-          owners: lbSelectedMultiValues_(document.getElementById('lb-action-filter-owner')),
+          statuses: setFromKeys(lbActionStatusFilterMap_),
+          owners: setFromKeys(lbActionOwnerFilterMap_),
         };
+        lbUpdateActionFilterTriggers_();
         lbRenderMonth_();
       }
 
       function lbClearActionFilters_() {
         erState_.lookbackActionFilters = { statuses: [], owners: [] };
-        var statusSel = document.getElementById('lb-action-filter-status');
-        var ownerSel = document.getElementById('lb-action-filter-owner');
-        if (statusSel) {
-          for (var i = 0; i < statusSel.options.length; i++) statusSel.options[i].selected = false;
+        lbActionStatusFilterMap_ = {};
+        lbActionOwnerFilterMap_ = {};
+        var statusMenu = document.getElementById('lb-action-filter-status-menu');
+        var ownerMenu = document.getElementById('lb-action-filter-owner-menu');
+        if (statusMenu) {
+          var statusChecks = statusMenu.querySelectorAll('input[type=checkbox]');
+          for (var si = 0; si < statusChecks.length; si++) {
+            statusChecks[si].checked = false;
+          }
         }
-        if (ownerSel) {
-          for (var j = 0; j < ownerSel.options.length; j++) ownerSel.options[j].selected = false;
+        if (ownerMenu) {
+          var ownerChecks = ownerMenu.querySelectorAll('input[type=checkbox]');
+          for (var oi = 0; oi < ownerChecks.length; oi++) {
+            ownerChecks[oi].checked = false;
+          }
         }
+        lbUpdateActionFilterTriggers_();
         lbRenderMonth_();
       }
 
@@ -24684,14 +24819,6 @@
               })
               .optInLookbackProject(erState_.lookbackMonthId, aid, reason);
           });
-        }
-        var lbActionStatus = document.getElementById('lb-action-filter-status');
-        if (lbActionStatus) {
-          lbActionStatus.addEventListener('change', lbApplyActionFiltersFromUi_);
-        }
-        var lbActionOwner = document.getElementById('lb-action-filter-owner');
-        if (lbActionOwner) {
-          lbActionOwner.addEventListener('change', lbApplyActionFiltersFromUi_);
         }
         var lbActionClear = document.getElementById('lb-action-filter-clear');
         if (lbActionClear) {
@@ -30012,6 +30139,12 @@
       }
       function showAiUsage() {
         if (!els.panelAiUsage) return;
+        if (navState.aiUsageHydrateEnabled === false) {
+          showComingSoon(
+            'AI Usage is temporarily unavailable. Ask an ADMIN to re-enable AI usage hydration in Settings.'
+          );
+          return;
+        }
         if (navState.expensesAccess === false) {
           showComingSoon('AI Usage is available to the Finance team, Execs, and Admins.');
           return;
@@ -33752,6 +33885,7 @@
         navState.expensesAccess = model.expensesAccess !== false;
         navState.pipelineAccess = model.pipelineAccess !== false;
         navState.resourceAssignmentsAccess = model.resourceAssignmentsAccess !== false;
+        navState.aiUsageHydrateEnabled = model.aiUsageHydrateEnabled !== false;
         if (els.settingsLinkWrap) {
           if (navState.isAdmin) {
             els.settingsLinkWrap.classList.remove('d-none');

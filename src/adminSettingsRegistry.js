@@ -1,5 +1,5 @@
 /**
- * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Admin settings catalog (feature 011).
  * Single source of truth for Script Property metadata exposed in the Settings panel.
@@ -929,6 +929,14 @@ function getAdminSettingsCatalog_() {
       true
     ),
     adminSettingEntry_(
+      'AI_USAGE_HYDRATE_ENABLED',
+      'ai-usage-sync',
+      'AI usage hydrate enabled',
+      'Kill switch for Hub AI Usage panel display and Supabase hydrate step. Does not affect feature 017 Anthropic to Fibery ingest (AI_USAGE_SYNC_ENABLED).',
+      'boolean',
+      true
+    ),
+    adminSettingEntry_(
       'AI_USAGE_SYNC_TRIGGER_HOUR',
       'ai-usage-sync',
       'Daily sync trigger hour',
@@ -1109,8 +1117,16 @@ function getAdminSettingsCatalog_() {
     adminSettingEntry_(
       'PERF_USE_UTIL_RPC',
       'performance',
-      'Utilization aggregates in Postgres (reserved)',
-      'Feature 047. Reserved for a future fos_rpc_util_aggregates migration. The RPC was never built, so this flag currently gates nothing. Leave it off; turning it on has no effect on Utilization.',
+      'Utilization aggregates in Postgres (B7)',
+      'Feature 047 B7. When true, Live Utilization uses fos_rpc_util_aggregates for KPIs and aggregate slices; rows still load for charts and byPersonWeek. Run _diag_verifyWorkstreamB7UtilRpc() before enabling.',
+      'boolean',
+      false
+    ),
+    adminSettingEntry_(
+      'PERF_HYDRATE_AGREEMENT_REVENUE_RPC',
+      'performance',
+      'Agreement hydrate revenue SQL (B7 pilot)',
+      'Feature 047 B7 pilot. When true, agreement hydrate maps revenue items via fos_rpc_agreement_revenue_mapped instead of the JS loop. Run _diag_verifyWorkstreamB7AgreementHydrateRpc() before enabling.',
       'boolean',
       false
     ),

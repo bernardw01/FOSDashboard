@@ -1,5 +1,5 @@
 /**
- * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: Fibery -> Supabase hydrate (nightly + ADMIN Pull).
  * Dataset am-mirror (supabaseAmMirror.js) hydrates Agreement Management typed
@@ -22,6 +22,52 @@ var SUPABASE_SYNC_LOCK_WAIT_MS_ = 5000;
 /** @const {string} */
 var SUPABASE_SYNC_STATE_PROP_ = 'SUPABASE_SYNC_STATE_V1';
 
+/** @const {number} Default max age for status=running before treating as abandoned (4h). */
+var SUPABASE_SYNC_STALE_RUNNING_MS_ = 4 * 60 * 60 * 1000;
+
+/** @const {!Array<string>} Dataset keys that may soft-fail without halting hydrate. */
+var SUPABASE_SYNC_SOFT_FAIL_DATASETS_ = ['ai-usage'];
+
+/**
+ * @param {string} datasetKey
+ * @param {!Object} result
+ * @return {boolean}
+ * @private
+ */
+function supabaseSyncDatasetFailureIsSoft_(datasetKey, result) {
+  if (!result || result.ok) {
+    return false;
+  }
+  if (result.softFail) {
+    return true;
+  }
+  if (
+    SUPABASE_SYNC_SOFT_FAIL_DATASETS_.indexOf(datasetKey) >= 0 &&
+    result.emptyReason === 'NO_ROWS_IN_RANGE'
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Accumulates per-dataset wall-clock ms on the running sync state.
+ *
+ * @param {!Object} state
+ * @param {string} datasetKey
+ * @param {number} elapsedMs
+ * @private
+ */
+function supabaseSyncRecordDatasetTiming_(state, datasetKey, elapsedMs) {
+  if (!state || !datasetKey || !isFinite(elapsedMs)) {
+    return;
+  }
+  if (!state.datasetTimings) {
+    state.datasetTimings = {};
+  }
+  state.datasetTimings[datasetKey] = (state.datasetTimings[datasetKey] || 0) + elapsedMs;
+}
+
 /** @const {!Array<string>} */
 var SUPABASE_SYNC_DATASETS_ = [
   // Relational Agreement Management mirror first, then panel JSON blobs.
@@ -38,6 +84,20 @@ var SUPABASE_SYNC_DATASETS_ = [
   // product is a cache, so nothing downstream depends on it.
   'viz-warm',
 ];
+
+/**
+ * Active hydrate dataset keys (filters ai-usage when AI_USAGE_HYDRATE_ENABLED=false).
+ * @return {!Array<string>}
+ * @private
+ */
+function getSupabaseSyncDatasets_() {
+  if (typeof aiUsageHydrateIsEnabled_ === 'function' && !aiUsageHydrateIsEnabled_()) {
+    return SUPABASE_SYNC_DATASETS_.filter(function (key) {
+      return key !== 'ai-usage';
+    });
+  }
+  return SUPABASE_SYNC_DATASETS_.slice();
+}
 
 /**
  * @return {boolean}
@@ -102,6 +162,27 @@ function runSupabaseSyncForSettings() {
 }
 
 /**
+ * ADMIN Settings: force-clear persisted sync state (stuck running guard).
+ * @return {!Object}
+ */
+function forceClearSupabaseSyncStateForSettings() {
+  var auth = requireAuthForApi_();
+  requireAdminRole_(auth);
+  var previous = readSupabaseSyncState_();
+  if (previous && previous.status === 'running') {
+    supabaseSyncAbandonStaleRunning_(previous, 'admin-force-clear');
+  } else {
+    PropertiesService.getScriptProperties().deleteProperty(SUPABASE_SYNC_STATE_PROP_);
+  }
+  return {
+    ok: true,
+    message: 'Supabase sync state cleared.',
+    previous: previous,
+    syncHealth: buildSupabaseSyncHealth_(readSupabaseSyncState_()),
+  };
+}
+
+/**
  * ADMIN Settings: status + last run.
  * @return {!Object}
  */
@@ -158,7 +239,128 @@ function getSupabaseSyncStatus() {
     nightlyTrigger: nightly,
     schemaDrift: schemaDrift,
     perfFlags: perfFlagsSnapshot_(),
+    syncHealth: buildSupabaseSyncHealth_(state),
   };
+}
+
+/**
+ * BUG-036-01: surface running age and staleness for Settings / diagnostics.
+ * @param {?Object} state
+ * @return {!Object}
+ */
+function buildSupabaseSyncHealth_(state) {
+  var guard = supabaseSyncEvaluateRunningGuard_(state);
+  return {
+    status: state && state.status ? state.status : 'idle',
+    startedAt: state && state.startedAt ? state.startedAt : null,
+    datasetsDone: state && state.datasetsDone != null ? state.datasetsDone : null,
+    datasetsTotal: state && state.datasetsTotal != null ? state.datasetsTotal : null,
+    datasetCursor:
+      state && state.datasets && state.datasetIndex != null
+        ? state.datasets[Math.min(state.datasetIndex, state.datasets.length - 1)]
+        : null,
+    runningAgeMs: guard.ageMs,
+    staleThresholdMs: guard.thresholdMs,
+    staleRunning: guard.stale,
+    blockedByRunning: guard.blocked,
+  };
+}
+
+/**
+ * @return {number}
+ */
+function supabaseSyncStaleRunningThresholdMs_() {
+  var raw = PropertiesService.getScriptProperties().getProperty(
+    'SUPABASE_SYNC_STALE_RUNNING_HOURS'
+  );
+  if (raw === null || raw === undefined || String(raw).trim() === '') {
+    return SUPABASE_SYNC_STALE_RUNNING_MS_;
+  }
+  var hours = parseFloat(String(raw).trim());
+  if (isNaN(hours) || hours < 1) {
+    return SUPABASE_SYNC_STALE_RUNNING_MS_;
+  }
+  return Math.round(hours * 60 * 60 * 1000);
+}
+
+/**
+ * @param {?Object} state
+ * @return {?number}
+ */
+function supabaseSyncRunningAgeMs_(state) {
+  if (!state || !state.startedAt) {
+    return null;
+  }
+  try {
+    return Date.now() - new Date(state.startedAt).getTime();
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * @param {?Object} state
+ * @return {boolean}
+ */
+function supabaseSyncIsStaleRunning_(state) {
+  if (!state || state.status !== 'running') {
+    return false;
+  }
+  var ageMs = supabaseSyncRunningAgeMs_(state);
+  if (ageMs == null || !isFinite(ageMs)) {
+    return true;
+  }
+  return ageMs > supabaseSyncStaleRunningThresholdMs_();
+}
+
+/**
+ * BUG-036-01 guard helper (testable without starting a real sync).
+ * @param {?Object} state
+ * @return {!{blocked: boolean, stale: boolean, ageMs: (?number), thresholdMs: number}}
+ */
+function supabaseSyncEvaluateRunningGuard_(state) {
+  if (!state || state.status !== 'running') {
+    return {
+      blocked: false,
+      stale: false,
+      ageMs: null,
+      thresholdMs: supabaseSyncStaleRunningThresholdMs_(),
+    };
+  }
+  var ageMs = supabaseSyncRunningAgeMs_(state);
+  var stale = supabaseSyncIsStaleRunning_(state);
+  return {
+    blocked: !stale,
+    stale: stale,
+    ageMs: ageMs,
+    thresholdMs: supabaseSyncStaleRunningThresholdMs_(),
+  };
+}
+
+/**
+ * @param {!Object} state
+ * @param {string} triggerKind
+ */
+function supabaseSyncAbandonStaleRunning_(state, triggerKind) {
+  var msg =
+    'Abandoned stale running sync (started ' +
+    (state.startedAt || '?') +
+    ', trigger ' +
+    (triggerKind || 'unknown') +
+    ').';
+  try {
+    state.status = 'failed';
+    state.finishedAt = new Date().toISOString();
+    state.lastError = msg;
+    state.resumeEligible = false;
+    state.notes = state.notes || [];
+    state.notes.push(msg);
+    insertSupabaseSyncRunRow_(state, 'failed');
+  } catch (e) {
+    supabaseWarn_('abandon stale sync row update failed', e);
+  }
+  PropertiesService.getScriptProperties().deleteProperty(SUPABASE_SYNC_STATE_PROP_);
+  supabaseWarn_(msg, { runId: state.runId });
 }
 
 /**
@@ -213,11 +415,17 @@ function startSupabaseSync_(triggerKind) {
   try {
     var existing = readSupabaseSyncState_();
     if (existing && existing.status === 'running') {
-      return {
-        ok: false,
-        message: 'Supabase sync already in progress.',
-        state: existing,
-      };
+      if (supabaseSyncIsStaleRunning_(existing)) {
+        supabaseSyncAbandonStaleRunning_(existing, triggerKind || 'manual');
+        existing = readSupabaseSyncState_();
+      } else {
+        return {
+          ok: false,
+          message: 'Supabase sync already in progress.',
+          state: existing,
+          syncHealth: buildSupabaseSyncHealth_(existing),
+        };
+      }
     }
     var resume = supabaseSyncShouldResume_(existing);
     var runId =
@@ -254,9 +462,9 @@ function startSupabaseSync_(triggerKind) {
         startedAt: new Date().toISOString(),
         finishedAt: null,
         datasetIndex: 0,
-        datasets: SUPABASE_SYNC_DATASETS_.slice(),
+        datasets: getSupabaseSyncDatasets_(),
         datasetsDone: 0,
-        datasetsTotal: SUPABASE_SYNC_DATASETS_.length,
+        datasetsTotal: getSupabaseSyncDatasets_().length,
         notes: [],
         lastError: null,
         resumeEligible: false,
@@ -351,8 +559,35 @@ function processSupabaseSyncBatch_() {
       Date.now() - started < SUPABASE_SYNC_TIME_BUDGET_MS_
     ) {
       var key = state.datasets[state.datasetIndex];
+      if (
+        key === 'ai-usage' &&
+        typeof aiUsageHydrateIsEnabled_ === 'function' &&
+        !aiUsageHydrateIsEnabled_()
+      ) {
+        state.notes.push('ai-usage: skipped (AI_USAGE_HYDRATE_ENABLED=false)');
+        state.datasetIndex++;
+        state.datasetsDone = state.datasetIndex;
+        writeSupabaseSyncState_(state);
+        processed++;
+        continue;
+      }
+      var stepStarted = Date.now();
       var result = hydrateSupabaseDataset_(key, state);
+      supabaseSyncRecordDatasetTiming_(state, key, Date.now() - stepStarted);
       if (!result.ok) {
+        if (supabaseSyncDatasetFailureIsSoft_(key, result)) {
+          var softNote =
+            key +
+            ': skipped (' +
+            (result.detail || result.message || result.emptyReason || 'soft fail') +
+            ')';
+          state.notes.push(softNote);
+          state.datasetIndex++;
+          state.datasetsDone = state.datasetIndex;
+          writeSupabaseSyncState_(state);
+          processed++;
+          continue;
+        }
         state.lastError = result.message || 'Dataset failed: ' + key;
         state.notes.push(key + ': ' + state.lastError);
         writeSupabaseSyncState_(state);
@@ -569,10 +804,50 @@ function hydrateSupabaseAiUsage_() {
   // immediately before building the panel from fos_ai_usage_rows.
   var mirrored = mirrorAiUsageRowsFromFibery_();
   if (!mirrored.ok) {
-    return { ok: false, message: mirrored.message || 'AI usage row mirror failed.' };
+    return {
+      ok: false,
+      message:
+        mirrored.message ||
+        'AI usage Fibery mirror failed. Fix the mirror error and run Pull from Fibery again.',
+    };
   }
   var built = buildAiUsagePayloadFromSupabase_(null, null);
   if (!built || built.ok === false) {
+    if (
+      mirrored.ok &&
+      built &&
+      (built.emptyReason === 'NO_ROWS_IN_RANGE' || built.emptyReason === 'TABLE_EMPTY')
+    ) {
+      var props = getAiUsageDashboardProps_();
+      var now = new Date();
+      var range = resolveAiUsageRange_(null, null, now, props.defaultRangeDays);
+      var softPayload = buildAiUsageSoftEmptyOkPayloadFromSupabase_(
+        now.toISOString(),
+        props,
+        range,
+        built.message || 'No AI usage rows in the query window.'
+      );
+      var softSave = saveSupabasePanelPayload_(
+        'ai-usage',
+        softPayload,
+        softPayload.cacheSchemaVersion
+      );
+      if (!softSave.ok) {
+        return { ok: false, message: softSave.message || 'AI Usage upsert failed.' };
+      }
+      return {
+        ok: true,
+        softFail: true,
+        emptyReason: built.emptyReason,
+        detail:
+          'mirror ok, rows=' +
+          mirrored.count +
+          '; panel empty for window (' +
+          (built.message || 'no rows in range') +
+          ')',
+        message: built.message,
+      };
+    }
     return {
       ok: false,
       message: (built && built.message) || 'AI Usage Supabase build failed.',
@@ -918,4 +1193,230 @@ function insertSupabaseSyncRunRow_(state, status) {
   } catch (e) {
     supabaseWarn_('insert sync run failed', e);
   }
+}
+
+/**
+ * BUG-036-01 ops: clear persisted sync state so startSupabaseSync_ can proceed.
+ * Does not require auth (Execution API / editor only).
+ * @return {!Object}
+ */
+function _diag_clearSupabaseSyncState() {
+  var previous = readSupabaseSyncState_();
+  PropertiesService.getScriptProperties().deleteProperty(SUPABASE_SYNC_STATE_PROP_);
+  return {
+    ok: true,
+    message: 'SUPABASE_SYNC_STATE_V1 cleared.',
+    previous: previous,
+  };
+}
+
+/**
+ * BUG-036-01 ops: clear stuck state and start a fresh manual hydrate.
+ * @return {!Object}
+ */
+function _diag_unstickAndStartSupabaseSync() {
+  var cleared = _diag_clearSupabaseSyncState();
+  var started = startSupabaseSync_('manual');
+  return {
+    ok: !!(started && started.ok),
+    cleared: cleared,
+    started: started,
+  };
+}
+
+/**
+ * BUG-036-01: report sync health without auth (Execution API / editor only).
+ * @return {!Object}
+ */
+function _diag_supabaseSyncHealth() {
+  var state = readSupabaseSyncState_();
+  return {
+    ok: true,
+    configured: isSupabaseConfigured_(),
+    syncEnabled: supabaseSyncIsEnabled_(),
+    state: state,
+    syncHealth: buildSupabaseSyncHealth_(state),
+    nightlyTrigger: getSupabaseNightlyTriggerStatus_(),
+  };
+}
+
+/**
+ * BUG-036-01 TDD: stale running guard allows a new start; fresh running blocks.
+ * @return {!Object}
+ */
+function test_supabaseSyncStaleRunningGuard_() {
+  var staleState = {
+    status: 'running',
+    startedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+    runId: 'test-stale-running',
+  };
+  var freshState = {
+    status: 'running',
+    startedAt: new Date().toISOString(),
+    runId: 'test-fresh-running',
+  };
+  var staleGuard = supabaseSyncEvaluateRunningGuard_(staleState);
+  var freshGuard = supabaseSyncEvaluateRunningGuard_(freshState);
+  var pass =
+    staleGuard.stale === true &&
+    staleGuard.blocked === false &&
+    freshGuard.stale === false &&
+    freshGuard.blocked === true;
+  return {
+    ok: pass,
+    staleCase: staleGuard,
+    freshCase: freshGuard,
+  };
+}
+
+/**
+ * BUG-036-02 TDD: empty-window messaging must not tell the operator to re-run Pull.
+ * @return {!Object}
+ */
+function test_supabaseAiUsageEmptyWindowDistinction_() {
+  if (typeof aiUsageHydrateIsEnabled_ === 'function' && !aiUsageHydrateIsEnabled_()) {
+    return aiUsageHydratePausedDiagResult_();
+  }
+  var props = getAiUsageDashboardProps_();
+  var range = resolveAiUsageRange_(null, null, new Date(), props.defaultRangeDays);
+  var emptyWindow = emptyAiUsagePayloadFromSupabase_(
+    new Date().toISOString(),
+    props,
+    range,
+    'No AI usage rows in the query window (' +
+      range.startYmd +
+      ' through ' +
+      range.endYmd +
+      '). Latest mirrored usage_date is 2026-05-31.',
+    null,
+    'NO_ROWS_IN_RANGE'
+  );
+  var pass =
+    emptyWindow.emptyReason === 'NO_ROWS_IN_RANGE' &&
+    String(emptyWindow.message).indexOf('query window') >= 0 &&
+    String(emptyWindow.message).indexOf('Ask an ADMIN to run Pull from Fibery') === -1;
+  return { ok: pass, emptyWindow: emptyWindow };
+}
+
+/**
+ * BUG-036-02: Supabase + feature 017 freshness snapshot (editor / Execution API).
+ * @return {!Object}
+ */
+function _diag_aiUsageDataFreshness_() {
+  if (typeof aiUsageHydrateIsEnabled_ === 'function' && !aiUsageHydrateIsEnabled_()) {
+    return aiUsageHydratePausedDiagResult_();
+  }
+  var supa = aiUsageQuerySupabaseTableContext_();
+  var lastRun = typeof readLatestAiUsageSyncRunFromSheet_ === 'function'
+    ? readLatestAiUsageSyncRunFromSheet_()
+    : null;
+  var fiberyMax = null;
+  if (typeof aiUsageQueryMaxUsageDateYmd_ === 'function') {
+    try {
+      fiberyMax = aiUsageQueryMaxUsageDateYmd_();
+    } catch (e) {
+      fiberyMax = { error: e && e.message ? e.message : String(e) };
+    }
+  }
+  return {
+    ok: true,
+    supabase: supa,
+    fiberyMaxUsageDate: fiberyMax,
+    feature017LastRun: lastRun,
+    diagnosis:
+      supa.maxUsageDateYmd && supa.maxUsageDateYmd < '2026-06-01'
+        ? 'Upstream Claude API Costs stale since ~2026-05-31. Check feature 017 Settings sync / Anthropic ingest before expecting hydrate ai-usage to populate recent rows.'
+        : null,
+  };
+}
+
+/**
+ * CHANGE-036-03: paused hydrate short-circuits AI usage diagnostic steps.
+ * @return {!Object}
+ */
+function test_aiUsageHydrateDiagnosticsPausedShortCircuit_() {
+  var props = PropertiesService.getScriptProperties();
+  var prev = props.getProperty(AI_USAGE_HYDRATE_ENABLED_PROP_);
+  var empty = null;
+  var fresh = null;
+  var err = null;
+  try {
+    props.setProperty(AI_USAGE_HYDRATE_ENABLED_PROP_, 'false');
+    empty = test_supabaseAiUsageEmptyWindowDistinction_();
+    fresh = _diag_aiUsageDataFreshness_();
+  } catch (e) {
+    err = e && e.message ? e.message : String(e);
+  } finally {
+    if (prev === null || prev === undefined || prev === '') {
+      props.deleteProperty(AI_USAGE_HYDRATE_ENABLED_PROP_);
+    } else {
+      props.setProperty(AI_USAGE_HYDRATE_ENABLED_PROP_, prev);
+    }
+  }
+  var pass =
+    !err &&
+    empty &&
+    empty.skipped === true &&
+    empty.pass === true &&
+    fresh &&
+    fresh.skipped === true &&
+    fresh.pass === true;
+  return {
+    ok: true,
+    pass: pass,
+    empty: empty,
+    fresh: fresh,
+    error: err,
+    message: pass
+      ? 'PASS: AI usage diagnostics return skipped when hydrate is paused.'
+      : 'FAIL: expected skipped paused short-circuit from both AI usage diag steps.',
+  };
+}
+
+/**
+ * Feature 047 B7: time each hydrate dataset step in isolation (skips am-mirror).
+ * Run from Apps Script editor; persists to fos_perf_runs when perfPersistRun_ exists.
+ * @return {!Object}
+ */
+function _diag_measureSupabaseHydrateDatasetTimings() {
+  var keys = [
+    'agreement',
+    'utilization',
+    'pipeline',
+    'resource-assignments',
+    'ai-usage',
+    'portfolio-pnl',
+    'viz-warm',
+  ];
+  var timings = {};
+  var results = {};
+  for (var i = 0; i < keys.length; i++) {
+    var key = keys[i];
+    var t0 = Date.now();
+    var result = hydrateSupabaseDataset_(key, { amMirror: null });
+    timings[key] = Date.now() - t0;
+    results[key] = {
+      ok: !!(result && result.ok),
+      ms: timings[key],
+      detail: result && (result.detail || result.message),
+      softFail: !!(result && result.softFail),
+    };
+  }
+  var ranked = keys.slice().sort(function (a, b) {
+    return (timings[b] || 0) - (timings[a] || 0);
+  });
+  var summary = {
+    ok: true,
+    timingsMs: timings,
+    results: results,
+    rankedHydrateCandidates: ranked,
+    note:
+      'am-mirror omitted (multi-continuation). Per-step totals also accumulate on sync state.datasetTimings during Pull from Fibery.',
+  };
+  console.log('===== HYDRATE DATASET TIMINGS =====');
+  console.log(JSON.stringify(summary, null, 2));
+  if (typeof perfPersistRun_ === 'function') {
+    summary.runId = perfPersistRun_('measure', 'supabase hydrate dataset timings', true, summary);
+  }
+  return summary;
 }

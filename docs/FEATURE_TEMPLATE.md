@@ -51,7 +51,11 @@ or placeholder line is not.
   surface has any existing `_diag_*` / `test_*` coverage today.
 - **Testing gaps:** this repo has no automated test framework. Name the existing untested
   surface the change touches and what `test_*` / `_diag_*` coverage should be added, not just
-  "test the new code."
+  "test the new code." Any new `test_*`/`_diag_*` function this spec calls for MUST also be
+  registered as a `{id, label, fn}` entry in `FOS_DIAG_SUITE_STEPS_`
+  (`src/perfParityDiagnostics.js`, feature **057**) so it becomes part of the standing,
+  browser-runnable diagnostic suite (Settings → Run diagnostic suite) rather than an
+  undiscoverable one-off function nobody runs again.
 
 ## Implementation Checklist
 - [ ] Update feature spec checkboxes as implemented

@@ -32,6 +32,13 @@ rule, written for Claude Code: `CLAUDE.md` at repo root.
   record that evidence in the spec's Verification Steps / Implementation Checklist. Do not
   create a permanent one-off script for a single verification - same anti-pattern already
   called out for backfill scripts in `teamwork-product-workflow.mdc`.
+- **Register every new `test_*`/`_diag_*` function in `FOS_DIAG_SUITE_STEPS_`**
+  (`src/perfParityDiagnostics.js`, feature **057**) as a `{id, label, fn}` entry, with a
+  **product-area label, not an incident/feature-number label** (labels like "BUG-036-01 ..."
+  read as archaeology once the incident is old news - name what it checks, not why it was
+  added). This is the standing, Supabase-backed (`fos_perf_runs`), Settings → **Run diagnostic
+  suite** entry point the user runs after every `clasp push` - a test that isn't registered
+  there is invisible to that check and to future troubleshooting.
 - Run the **real** verification gate, not a generic one: manual Verification Steps at desktop
   and ~390px mobile width, relevant `_diag_*` functions, `clasp push`, then
   `python3 scripts/check_deployed_matches_git.py` (must exit 0) before calling anything shipped.

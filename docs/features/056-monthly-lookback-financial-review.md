@@ -1,7 +1,7 @@
 # Feature: Monthly Client Financial Performance Review (Lookback)
 
 > **Status:** Shipped in **v3.21.0** (build used proposed defaults for R1-R7); lock query fix **v3.21.1**; route rename **v3.21.3**; Admin redo/delete **v3.22.0**; selection + Action UX **v3.23.0**
-> **PRD version:** 3.26.0
+> **PRD version:** 3.29.2
 > **Feature ID:** **056**  
 > **Release type:** Enhancement  
 > **Task list:** Delivery  
@@ -635,6 +635,61 @@ However, **two other consumers of those same raw Supabase columns skip the scali
 
 ---
 
+### BUG-056-12: Planned margin (and likely Projected margin / EAC hours / EAC $) show N/A for every project after FEATURE-056-11
+
+**Reported:** 2026-09-09 - "In reviewing the project lookback I see that all of the planned margins are showing up as N/A." Follow-up confirmed: **Projected margin** is also missing/N/A; **Actual margin** shows a real value.
+
+**CORRECTED 2026-09-09 - initial theory disproven, closing as not-a-code-bug.** The first hypothesis below (systemic freeze failure) assumed EAC hours/$ would also be blank, inferred from the user's earlier answer rather than confirmed directly. A screenshot of the actual affected project (RCI (T+L) - Phase 2 - Acuity Implementation) showed **EAC hours: 491.3** and **EAC $: ($62.6K)** both populated with real numbers, with Planned margin and Projected margin showing **N/A · "See tooltip"** - not "No plan available". That subtext is the `perfMarginKpiSub_(reason, fallback)` pattern (`src/DashboardShell.html` line 31117-31119): it only shows "See tooltip" when `plannedMarginReason`/`projectedMarginReason` is set, which only happens when `ppComputeAllocationLaborMargin_` (`src/projectPerformanceMetrics.js`) succeeds in finding a resource plan but fails its **100% rate coverage** requirement (not every billable allocation has a SOW bill/cost rate, for Planned; or a current Team Member Role rate, for Projected) - a completely different, much narrower code path than the "no resource plan at all" (`hasResourcePlan`) gate this entry originally assumed was firing.
+
+The user confirmed **PM Overview's live Project Performance tab shows the identical N/A / "See tooltip" state for this same project right now.** That settles it: Lookback's frozen snapshot is **faithfully reproducing** what the live calculation already shows - this is not a Lookback bug, not a freeze failure, and not something Cursor can fix in code. It's a genuine, pre-existing data gap: this project's resource allocations don't have complete SOW and/or current Team Member Role rate coverage in Fibery, which is exactly the condition **046** ("Hide planned margins without a resource plan") and this margin calculation were designed to surface, not hide.
+
+**No code fix queued for the reported symptom.** The earlier analysis (systemic freeze failure, `perfWarnings` audit, rate-limit risk) is preserved below only in case a **future** report shows the pattern originally assumed here (Planned/Projected/EAC hours/EAC $ **all** blank together, or Actual margin also failing) - that would be the real systemic-failure signature this entry was written for, and none of that has actually been observed yet.
+
+**Optional, small UX follow-on (not required, confirm with the user before doing it):** "See tooltip" requires a hover to learn anything - on a page meant to be reviewed in a meeting (Lookback's whole purpose), that's an easy thing to miss or misread as broken. Consider surfacing the reason text (already available as `plannedMarginReason`/`projectedMarginReason`) directly in the card's subtext instead of behind a hover, at least on this page. This is a UI-clarity nice-to-have, not a bug fix - do not build it without asking, since it's out of scope of what was actually reported.
+
+**Original (superseded) analysis, kept for reference:**
+- **Where the rich freeze can silently come back empty** (still valid background, just not what happened here): `hasResourcePlan` defaults to `false` and `performance` defaults to `null` if `fetchAgreementContextForPnlFromSupabase_` or `buildDeliveryProjectMonthlyPnLFromSupabase_` fail, or if an exception is thrown - all captured in `perfWarnings`, which nothing surfaces to the user today. If a **true** systemic failure is ever reported (EAC hours/$ also blank), start there.
+- **Volume/rate-limit risk**, flagged in FEATURE-056-11's own Architecture Review before it shipped, remains a live, unverified risk worth checking independently of this specific report - not because it explains this case, but because it hasn't been ruled out for larger eligible-agreement counts.
+
+**Acceptance Criteria:** none - closed without a code change. If a future report shows the true systemic pattern (EAC hours/$ also blank), reopen with that evidence rather than starting a new entry.
+
+---
+
+### CHANGE-056-13: Action Required filters should use the same multi-select dropdown widget as PM Overview
+
+**Requested:** 2026-09-11 - "On the lookback main page, the filters are multi-select list but they are not drop downs. I want to use the same multi-select drop downs that are on the PM Overview page."
+
+**Current state (confirmed, code-level):** `FEATURE-056-05`'s Status/Owner filters render as native HTML `<select multiple>` list boxes - `src/DashboardShellPanels.html` lines 1796-1799 (`#lb-action-filter-status`, `#lb-action-filter-owner`), populated by `lbPopulateActionFilters_` (`src/DashboardShell.html`) via plain `<option>` elements. A native multi-select shows as an always-expanded scrollable list, not a closed dropdown - exactly the "list, not a dropdown" the user is pointing at.
+
+**Target widget, already built and used elsewhere - reuse it, do not build a new one.** PM Overview's Customer/Agreement type/Status/Owner filters (`src/DashboardShellPanels.html` ~lines 1130-1147, e.g. `#delivery-customer-trigger`/`#delivery-customer-menu`) use a shared multi-select dropdown pattern:
+- Markup: a `div.fos-util-multi` wrapper containing a `button.multi-trigger` (`data-bs-toggle="dropdown" data-bs-auto-close="outside"`, so it opens as a real dropdown and stays open while checking multiple boxes) plus a `ul.dropdown-menu` that gets populated with checkbox `<li>` items.
+- Client logic: `expensesUpdateMultiTrigger_(trigger, defaultLabel, dimLabel, selectedMap)` (`src/DashboardShell.html` ~line 25418) updates the trigger button's label (e.g. "3 owners" + a count badge when something is selected, the default label like "All owners" when nothing is); `expensesPopulateMultiMenu_(menu, items, keyFn, labelFn, selectedMap, onChange)` (~line 25430) builds the checkbox list inside the dropdown menu and wires the change handler.
+- Despite the `expenses`-prefixed function names (historical - this widget originated on the Expenses panel), it is already the **general-purpose, cross-panel multi-select dropdown** for this codebase - PM Overview/Delivery, and presumably Utilization (`fos-util-multi` class name), already reuse it rather than each panel inventing its own. Lookback should be the next reuse, not a new implementation.
+
+**Acceptance Criteria (testable):**
+- [x] `#lb-action-filter-status` and `#lb-action-filter-owner` (native `<select multiple>`) are replaced with the `fos-util-multi` trigger-button + dropdown-menu markup, matching PM Overview's Customer/Type/Status/Owner filters exactly (same classes, same `data-bs-toggle`/`data-bs-auto-close` attributes). **PASS (v3.29.2):** `DashboardShellPanels.html` uses `div.fos-util-multi`, `button.multi-trigger`, `ul.dropdown-menu` with matching attributes.
+- [x] `lbPopulateActionFilters_` is rewritten to call `expensesPopulateMultiMenu_`/`expensesUpdateMultiTrigger_` (or thin Lookback-specific wrappers around them, if a different call shape is needed) instead of building `<option>` elements - reuse the shared functions, don't fork a parallel copy of their logic. **PASS (v3.29.2):** `lbPopulateActionFilters_` + `lbUpdateActionFilterTriggers_` call shared helpers; maps sync to `erState_.lookbackActionFilters` arrays.
+- [x] Given no filter is selected, the trigger buttons read "All statuses" / "All owners" (matching the "All customers"/"All owners" convention already used elsewhere), not a blank control. **PASS:** default labels on triggers; `expensesUpdateMultiTrigger_` resets when map empty.
+- [x] Given one or more values are checked, the trigger button shows the count (e.g. "2 statuses", with the count badge), matching the existing widget's behavior exactly - no new label format invented. **PASS:** uses `expensesUpdateMultiTrigger_` with dimLabel `status`/`owner`.
+- [x] Filtering behavior itself (which rows show/hide in Action Required) is unchanged - this is a presentation-only swap, not a logic change. `lbFilterActionRows_` and the underlying filter-state (`erState_.lookbackActionFilters`) keep working exactly as before. **PASS:** `lbFilterActionRows_` untouched; state remains `{statuses:[], owners:[]}` arrays.
+- [x] The existing "Clear filters" button (`#lb-action-filter-clear`) still clears both dropdowns' selections and resets the trigger labels. **PASS:** `lbClearActionFilters_` clears maps, unchecks boxes, updates triggers.
+- [x] **Mobile:** the existing `#lb-action-filter-mobile-btn` / mobile filter sheet path for Action Required (if it currently duplicates the native selects for mobile) is updated consistently - confirm what the mobile path currently renders before assuming it needs the same dropdown treatment; a bottom sheet with checkboxes may already be the right mobile pattern per `.cursor/rules/mobile-ui-shell.mdc` and shouldn't be replaced with a desktop-style dropdown. **PASS:** mobile path unchanged (`lbOpenActionFilterMobileSheet_` uses `openMobileFilterSheet_` with checkbox items); desktop-only dropdown swap.
+
+**Architecture Review:**
+- **Security:** None - presentation-only change, no new data exposure or entry point.
+- **Performance:** None - same filter-state and same underlying row data; only the control rendering changes.
+- **Regression risk:** Low, but touches shared functions (`expensesUpdateMultiTrigger_`/`expensesPopulateMultiMenu_`) used by Expenses and PM Overview/Delivery today - do not change either shared function's signature or behavior to accommodate Lookback; if Lookback needs something those functions don't already support, add an optional parameter with a default that preserves existing callers' behavior, or wrap rather than modify. Re-verify Expenses and PM Overview's own filters still work after this change, since they share the code being touched.
+- **Testing gaps:** No existing test covers the Action Required filter UI at all (FEATURE-056-05 shipped without one). Add a quick manual check/assertion that populating the new dropdowns with a known status/owner set produces the expected trigger label and checkbox state, consistent with how the shared widget already behaves for PM Overview - register it in `FOS_DIAG_SUITE_STEPS_` per the standing convention (feature 057) if it's automatable; otherwise a documented manual Verification Step is sufficient given this is a thin UI change.
+
+**Verification Steps:**
+1. Desktop: open the Lookback tab on Project performance review with a month that has Action Required rows spanning more than one status/owner; confirm Status and Owner now render as closed dropdown buttons (not always-expanded list boxes), open/close correctly, and show the same trigger-label/count-badge behavior as PM Overview's filters.
+2. Apply a filter; confirm Action Required rows update exactly as before (no behavior change, only appearance).
+3. Click **Clear filters**; confirm both dropdowns reset to "All statuses"/"All owners" and the full list returns.
+4. Regression-check PM Overview's own Customer/Type/Status/Owner filters and Expenses' filters still work unchanged, since this touches shared code.
+5. **Mobile (~390px):** confirm whatever the mobile filter path already does for Action Required still works correctly after this change.
+
+---
+
 ## Change requests
 
 _(Customer edits after Spec Approved go here until ship.)_
@@ -662,3 +717,6 @@ _(Customer edits after Spec Approved go here until ship.)_
 | 2026-09-09 | **v3.25.0:** FEATURE-056-07 Ready for Review Admin reorder (sort_order replaces rank within Ready; mobile up/down). Decisions: who=Admin only; sort=A. BUG-056-06 still OPEN. |
 | 2026-09-09 | **v3.25.1:** BUG-056-06 (A) Reviews tab Admin-only; EXEC/CE land on Lookback; New review unchanged. |
 | 2026-09-09 | **v3.26.0:** FEATURE-056-11 Lookback project detail freezes PM Overview 7 Performance KPIs at lock/re-run; render from metrics blob only. |
+| 2026-09-09 | Spec update: added **BUG-056-12** (initial hypothesis: Planned + Projected + EAC all N/A, systemic freeze failure) then **corrected same day** after a screenshot showed EAC hours/$ populated fine and the user confirmed PM Overview's live tab shows the identical N/A/"See tooltip" state for the same project. Closed as not-a-code-bug: Lookback is correctly reproducing a genuine SOW/current-rate coverage gap on that project's allocations. No fix queued. |
+| 2026-09-11 | **v3.29.2:** CHANGE-056-13 shipped - Action Required Status/Owner filters use shared `fos-util-multi` dropdown (PM Overview widget); mobile filter sheet unchanged. |
+| 2026-09-11 | Spec update: added **CHANGE-056-13** - Action Required's Status/Owner filters (FEATURE-056-05) currently render as native `<select multiple>` list boxes; replace with the same `fos_util-multi` trigger-button + checkbox-dropdown widget already used by PM Overview/Delivery and Expenses (`expensesUpdateMultiTrigger_`/`expensesPopulateMultiMenu_`) - presentation-only, reuse the existing shared component rather than building a new one. Not yet implemented. |

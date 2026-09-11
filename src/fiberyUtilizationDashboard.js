@@ -1,5 +1,5 @@
 /**
- * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Utilization Management Dashboard orchestrator (route id `operations`, panel
  * `#panel-operations`). Reads `Agreement Management/Labor Costs` from Fibery
@@ -96,6 +96,79 @@ function getUtilizationDashboardData(rangeStart, rangeEnd) {
     return served;
   }
   return applyUtilizationRequestedRange_(served, rangeStart, rangeEnd);
+}
+
+/** @type {!{rpc: number, rpcFallbacks: number}} Parity harness tally for util aggregates RPC. */
+var UTIL_AGG_RPC_TALLY_ = { rpc: 0, rpcFallbacks: 0 };
+
+/** Resets {@link UTIL_AGG_RPC_TALLY_} for a parity run. */
+function utilAggRpcTallyReset_() {
+  UTIL_AGG_RPC_TALLY_ = { rpc: 0, rpcFallbacks: 0 };
+}
+
+/**
+ * Applies the same top-N caps as buildUtilizationAggregates_ to RPC output.
+ *
+ * @param {!Object} aggregates
+ * @param {!Object} thresholds
+ * @return {!Object}
+ * @private
+ */
+function applyUtilRpcTopNSlices_(aggregates, thresholds) {
+  var out = {
+    byCustomer: (aggregates.byCustomer || []).slice(0, thresholds.topNCustomers),
+    byProject: (aggregates.byProject || []).slice(0, thresholds.topNProjects),
+    byPerson: (aggregates.byPerson || []).slice(0, thresholds.topNPersons),
+    byRole: aggregates.byRole || [],
+    byWeek: aggregates.byWeek || [],
+    billableVsNonBillable: aggregates.billableVsNonBillable || [],
+  };
+  return out;
+}
+
+/**
+ * Feature 047 B7: utilization KPIs + aggregate slices from Postgres.
+ *
+ * @param {string} startIso inclusive
+ * @param {string} endIso exclusive
+ * @param {!Object} thresholds
+ * @return {!{ok: true, kpis: !Object, aggregates: !Object}|!{ok: false, message: string}}
+ */
+function fetchUtilAggregatesViaRpc_(startIso, endIso, thresholds) {
+  if (!isSupabaseConfigured_()) {
+    return { ok: false, message: 'Supabase not configured.' };
+  }
+  var rpc = supabaseRpc_('fos_rpc_util_aggregates', {
+    p_start: startIso,
+    p_end: endIso,
+  });
+  if (!rpc || rpc.ok === false) {
+    return {
+      ok: false,
+      message: (rpc && rpc.message) || 'fos_rpc_util_aggregates failed.',
+    };
+  }
+  var doc = rpc.json;
+  if (typeof doc === 'string') {
+    try {
+      doc = JSON.parse(doc);
+    } catch (e) {
+      doc = null;
+    }
+  }
+  if (!doc || typeof doc !== 'object') {
+    return { ok: false, message: 'fos_rpc_util_aggregates returned empty JSON.' };
+  }
+  var kpis = doc.kpis || null;
+  var aggRaw = doc.aggregates || null;
+  if (!kpis || !aggRaw) {
+    return { ok: false, message: 'fos_rpc_util_aggregates missing kpis or aggregates.' };
+  }
+  return {
+    ok: true,
+    kpis: kpis,
+    aggregates: applyUtilRpcTopNSlices_(aggRaw, thresholds),
+  };
 }
 
 /**
@@ -204,10 +277,31 @@ function buildUtilizationRowsForWindow_(startIso, endIso, thresholds) {
  */
 function assembleUtilizationPayload_(rows, range, thresholds, now, opts) {
   opts = opts || {};
-  var kpis = computeUtilizationKpis_(rows);
-  var dimensions = buildUtilizationDimensions_(rows, thresholds);
-  var aggregates = buildUtilizationAggregates_(rows, thresholds);
+  var kpis = null;
+  var aggregates = null;
+  var usedRpc = false;
+  if (perfFlag_('PERF_USE_UTIL_RPC')) {
+    var rpcRes = fetchUtilAggregatesViaRpc_(range.start, range.end, thresholds);
+    if (rpcRes.ok) {
+      kpis = rpcRes.kpis;
+      aggregates = rpcRes.aggregates;
+      usedRpc = true;
+      UTIL_AGG_RPC_TALLY_.rpc++;
+    } else {
+      UTIL_AGG_RPC_TALLY_.rpcFallbacks++;
+    }
+  }
+  if (!kpis) {
+    kpis = computeUtilizationKpis_(rows);
+  }
+  if (!aggregates) {
+    aggregates = buildUtilizationAggregates_(rows, thresholds);
+  }
   aggregates.byPersonWeek = buildByPersonWeek_(rows, range, thresholds);
+  if (usedRpc) {
+    aggregates.loadSource = 'fos_rpc_util_aggregates';
+  }
+  var dimensions = buildUtilizationDimensions_(rows, thresholds);
   var alerts = buildUtilizationAlerts_(
     rows,
     aggregates.byPersonWeek,

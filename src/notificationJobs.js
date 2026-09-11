@@ -1,5 +1,5 @@
 /**
- * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Hourly / Daily / Weekly alert email notification jobs (Feature 033).
  * Evaluates live Fibery via existing dashboard builders. No Immediate frequency.
@@ -118,7 +118,13 @@ function userCanAccessNotificationDashboard_(auth, dashboardNavId) {
       ? canAccessAgreementDashboard_(auth)
       : false;
   }
-  if (id === 'expenses' || id === 'portfolio-pnl' || id === 'ai-usage') {
+  if (id === 'expenses' || id === 'portfolio-pnl') {
+    return canAccessExpensesDashboard_(auth);
+  }
+  if (id === 'ai-usage') {
+    if (typeof aiUsageHydrateIsEnabled_ === 'function' && !aiUsageHydrateIsEnabled_()) {
+      return false;
+    }
     return canAccessExpensesDashboard_(auth);
   }
   if (id === 'pipeline') {

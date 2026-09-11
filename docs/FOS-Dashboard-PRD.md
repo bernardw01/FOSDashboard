@@ -1,10 +1,10 @@
 # FinOps Performance Hub (Google Workspace Web App)
 
-**PRD version 3.26.0** - `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
+**PRD version 3.29.2** - `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
 
 Product Requirements Document
 
-Version 3.26.0 - 2026-09-09
+Version 3.29.2 - 2026-09-11
 
 ## 1) Overview
 
@@ -721,6 +721,13 @@ The **Clockify to Fibery Sync** product (see `docs/PRD.md`) remains the **system
 
 | Date | Version | Change Summary | Author |
 | --- | --- | --- | --- |
+| 2026-09-11 | 3.29.2 | **CHANGE-056-13 Lookback Action Required filters.** Status/Owner use shared `fos-util-multi` dropdown widget (same as PM Overview); presentation-only, filter logic unchanged. PATCH -> **3.29.2**. | Cursor |
+| 2026-09-10 | 3.29.1 | **CHANGE-036-03 AI Usage hydrate pause.** New `AI_USAGE_HYDRATE_ENABLED` kill switch hides Finance nav AI Usage, skips Supabase hydrate step, pauses AI usage diagnostic steps, and gates notification catalog; feature 017 ingest unchanged. **Feature 057:** `runDiagnosticSuiteManual_()` for Apps Script editor (non-heavy default). PATCH -> **3.29.1**. | Cursor |
+| 2026-09-10 | 3.29.0 | **Feature 057 standing diagnostic suite.** `scripts/run_diagnostics.py` runs `_diag_runFullDiagnosticsSuite` via `clasp run` (dev-time only; no Web App entry point). Expanded `FOS_DIAG_SUITE_STEPS_` with Lookback, Performance Review, and panel health checks; registry minimum self-check. MINOR -> **3.29.0**. | Cursor |
+| 2026-09-10 | 3.28.2 | **B7 RPC parity fixes (migration 059).** `fos_rpc_util_aggregates` coalesces zero `billableHours` and resolves person names via `fos_clockify_users`; `fos_rpc_agreement_revenue_mapped` nulls agreement/customer when Closed-Lost (matches JS `agreementNameById` map). PATCH -> **3.28.2**. | Cursor |
+| 2026-09-10 | 3.28.1 | **`_diag_runFullDiagnosticsSuite()`** runs BUG-036/B7 verification steps in one editor execution and persists master + step results to `fos_perf_runs` (`kind: diag-suite`). PATCH -> **3.28.1**. | Cursor |
+| 2026-09-10 | 3.28.0 | **BUG-036-02 + Workstream B7.** AI usage hydrate distinguishes mirror failure vs empty query window; `ai-usage` soft-fails so `portfolio-pnl`/`viz-warm` continue; `_diag_aiUsageDataFreshness_` and `test_supabaseAiUsageEmptyWindowDistinction_`. B7: per-dataset hydrate timing on sync state + `_diag_measureSupabaseHydrateDatasetTimings`; `fos_rpc_util_aggregates` wired to `PERF_USE_UTIL_RPC`; agreement hydrate pilot `fos_rpc_agreement_revenue_mapped` behind `PERF_HYDRATE_AGREEMENT_REVENUE_RPC`; parity entry points `_diag_verifyWorkstreamB7UtilRpc` and `_diag_verifyWorkstreamB7AgreementHydrateRpc`. MINOR -> **3.28.0**. | Cursor |
+| 2026-09-10 | 3.27.0 | **Supabase hydrate staleness guard (036).** `startSupabaseSync_` abandons `running` state older than 4h instead of blocking forever; Settings shows sync health (status, startedAt, progress, stale indicator) plus Admin **Force clear stuck state**; `_diag_supabaseSyncHealth` and `test_supabaseSyncStaleRunningGuard_`. BUG-036-01. MINOR -> **3.27.0**. | Cursor |
 | 2026-09-09 | 3.26.0 | **Lookback project Performance KPIs (056).** Freeze PM Overview 7-card Project Performance set (Days remaining, % elapsed, Planned/Projected margin, EAC hours/$, Actual margin) into os_lookback_projects.metrics at lock/Re-run; detail page renders only from frozen blob via deliveryKpiChipHtml_ + DELIVERY_KPI_TIPS_; duration as-of last calendar day of reporting month; ~20 eligible DIP agreements (volume OK). FEATURE-056-11. MINOR -> **3.26.0**. | Cursor |
 | 2026-09-09 | 3.25.1 | **Reviews tab Admin-only (056).** Hide #er-mode-reviews-btn for non-Admins (EXEC/CE/lookbackOnly land on Lookback); New review create affordances unchanged; APIs still gate independently. BUG-056-06 (A). PATCH -> **3.25.1**. | Cursor |
 | 2026-09-09 | 3.25.0 | **Lookback Ready for Review reorder (056).** Admin-only drag-drop (desktop) and up/down (mobile) for Ready for Review; persisted sort_order on os_lookback_projects (migration 056); server sort uses sort_order within Ready (replaces rank); Action/Green unchanged; Re-run preserves order. FEATURE-056-07. BUG-056-06 still OPEN. MINOR -> **3.25.0**. | Cursor |

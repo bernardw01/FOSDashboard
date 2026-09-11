@@ -1,11 +1,11 @@
 /**
- * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.26.0';
+var FOS_PRD_VERSION = '3.29.2';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.26.0';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.26.0 Lookback project detail: freeze PM Overview Project Performance 7 KPIs at lock/re-run (FEATURE-056-11).';
+  'v3.29.2 Lookback Action Required filters use PM Overview multi-select dropdowns.';
 
 /**
  * @return {string}
@@ -288,6 +288,22 @@ function buildNavigationModel_(auth) {
       };
     });
   }
+  if (typeof aiUsageHydrateIsEnabled_ === 'function' && !aiUsageHydrateIsEnabled_()) {
+    navItems = navItems.map(function (item) {
+      if (item.id !== 'finance-group' || !item.children) {
+        return item;
+      }
+      return {
+        type: item.type,
+        id: item.id,
+        label: item.label,
+        active: item.active,
+        children: item.children.filter(function (ch) {
+          return ch.id !== 'ai-usage';
+        }),
+      };
+    });
+  }
   var model = {
     userEmail: auth.email,
     userLabel: label,
@@ -308,6 +324,8 @@ function buildNavigationModel_(auth) {
       typeof perfFlag_ === 'function' ? perfFlag_('PERF_USE_SLIM_CHARTS') : false,
     perfLazyPanelMarkup:
       typeof perfFlag_ === 'function' ? perfFlag_('PERF_LAZY_PANEL_MARKUP') : false,
+    aiUsageHydrateEnabled:
+      typeof aiUsageHydrateIsEnabled_ === 'function' ? aiUsageHydrateIsEnabled_() : true,
     items: navItems,
   };
 
@@ -334,4 +352,70 @@ function buildNavigationModel_(auth) {
   }
 
   return model;
+}
+
+/**
+ * @param {!Array} items
+ * @return {boolean}
+ * @private
+ */
+function financeNavHasAiUsageChild_(items) {
+  if (!items || !items.length) {
+    return false;
+  }
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].id !== 'finance-group' || !items[i].children) {
+      continue;
+    }
+    for (var j = 0; j < items[i].children.length; j++) {
+      if (items[i].children[j].id === 'ai-usage') {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * CHANGE-036-03: Finance nav hides AI Usage when hydrate is paused.
+ * @return {!Object}
+ */
+function test_aiUsageHydrateNavGating_() {
+  var props = PropertiesService.getScriptProperties();
+  var prev = props.getProperty(AI_USAGE_HYDRATE_ENABLED_PROP_);
+  var passOff = false;
+  var passOn = false;
+  var err = null;
+  try {
+    props.setProperty(AI_USAGE_HYDRATE_ENABLED_PROP_, 'false');
+    var auth = {
+      ok: true,
+      email: 'diag-test@example.com',
+      role: 'ADMIN',
+      team: 'Finance',
+      fiberyAccess: true,
+    };
+    passOff = !financeNavHasAiUsageChild_(buildNavigationModel_(auth).items);
+    props.setProperty(AI_USAGE_HYDRATE_ENABLED_PROP_, 'true');
+    passOn = financeNavHasAiUsageChild_(buildNavigationModel_(auth).items);
+  } catch (e) {
+    err = e && e.message ? e.message : String(e);
+  } finally {
+    if (prev === null || prev === undefined || prev === '') {
+      props.deleteProperty(AI_USAGE_HYDRATE_ENABLED_PROP_);
+    } else {
+      props.setProperty(AI_USAGE_HYDRATE_ENABLED_PROP_, prev);
+    }
+  }
+  var pass = passOff && passOn && !err;
+  return {
+    ok: true,
+    pass: pass,
+    passOff: passOff,
+    passOn: passOn,
+    error: err,
+    message: pass
+      ? 'PASS: AI Usage nav child hidden when hydrate paused and visible when enabled.'
+      : 'FAIL: nav gating (off=' + passOff + ', on=' + passOn + (err ? ', err=' + err : '') + ')',
+  };
 }

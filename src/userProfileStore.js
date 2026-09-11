@@ -1,5 +1,5 @@
 /**
- * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Profile JSON lives on the same **Users** auth tab used for authorization
  * (Feature 033). Column header default: **Profile** (overridable).
@@ -372,10 +372,17 @@ function listAllUserProfiles_() {
 function getMyUserProfile() {
   var auth = requireAuthForApi_();
   var profile = getUserProfileDocForEmail_(auth.email);
+  var fullCatalog = getNotificationCatalogForClient_();
+  var catalog = [];
+  for (var i = 0; i < fullCatalog.length; i++) {
+    if (userCanAccessNotificationDashboard_(auth, fullCatalog[i].dashboardNavId)) {
+      catalog.push(fullCatalog[i]);
+    }
+  }
   return {
     ok: true,
     profile: profile,
-    catalog: getNotificationCatalogForClient_(),
+    catalog: catalog,
   };
 }
 

@@ -1,5 +1,5 @@
 /**
- * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 056: Build a Lookback lock from fos_agreements.
  * Auto-select is Services-only (CHANGE-056-01). Subscriptions (and other

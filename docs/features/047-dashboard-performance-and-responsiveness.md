@@ -6,7 +6,7 @@
 > **Release task:** [Feature 047 - Dashboard performance and responsiveness](https://win.godeap.io/app/tasks/40839335) (re-scoped from Feature 044)
 >
 > **Status:** Shipped through **v3.20.9** (workstreams A–D, RA range cache **v3.20.0**, Settings patches **v3.20.5–3.20.9**, hero/logo patches **v3.20.1–3.20.2**). **Workstream D shipped in 3.17.0** (lazy panel markup behind `PERF_LAZY_PANEL_MARKUP`, IndexedDB panel cache, chunked heatmap/RA renders, Operations skeleton). **Workstream C shipped in 3.16.0** (incremental mirror + alerts + resume; `PERF_INCREMENTAL_AM_MIRROR` off pending measured win). **Workstream B6 shipped in 3.15.0** (`personVariances` codec); Workstream B closed out in 3.14.1. **v3.20.0:** RA range payload cache (`PERF_USE_RA_RANGE_CACHE`) + slim personVariances default on (**FR-156**).
-> **PRD version:** **3.20.9**
+> **PRD version:** **3.28.2**
 > **Feature id:** 047 | **Task list:** Data platform
 > **Release type:** Enhancement
 > **Supersedes:** [044 - Live visualization serve performance](044-live-visualization-serve-performance.md) (Spec Draft, never implemented). Workstream B below absorbs 044 phases A-D. See **Relationship to feature 044**.
@@ -145,6 +145,50 @@ The fix is the codec pattern B1 and B3 already built and verified, applied to a 
 ### Recurring deploy lag
 
 Third instance in this feature. Both of today's hydrates stamped `scriptVersion: "3.10.0"` while git was at 3.13.0. `check_deployed_matches_git.py` detects this correctly but only runs when someone remembers. **Recommendation: install it as a git `pre-push` hook**, about four lines, no new code, failing at the one moment the author has the context to fix it. Details and the reason `pre-push` beats `pre-commit` are in the plan under B6.
+
+## Workstream B7 (proposed): finish the Postgres migration, in both directions
+
+**Requested:** 2026-09-10 - "It feels like most of the transformation work is being done using javascript in App Script. Can any of this work be done in Supabase to make it faster?" Asked while investigating **BUG-036-01** (Agreement Management mirror sync stuck since 2026-08-25).
+
+**Answer: yes, and this feature already proved it - but stopped short.** This section's own close-out already names its own next step (*"Closing this criterion is the first item of any workstream B7"*, *"Recommended as the first item of whatever follows B"*) and nobody has picked it up yet. Confirmed live (2026-09-10, via direct read-only Supabase query - not previously available before this session's Supabase MCP connector):
+
+```sql
+select proname from pg_proc where proname ilike 'fos_rpc%';
+-- fos_rpc_ra_week_grid, fos_rpc_viz_range_gc, fos_rpc_viz_range_get
+```
+
+**`fos_rpc_util_aggregates` does not exist.** Not disabled, not unused - **never created**. Migration **052** (the number this doc's own Data Model table assigned to it) was spent instead on feature **049**'s Bid/Program fields, so the RPC does not have a reserved migration slot at all. `PERF_USE_UTIL_RPC` gates a function call that 500s (or would, if anything ever flipped the flag) against a name Postgres has never heard of. This matches the close-out section above exactly - it is not a new finding, just a live confirmation of one already on record.
+
+**Two directions this applies, not one:**
+
+1. **Finish B1 as originally scoped** - close the open AC under Workstream B ("*a user opens Utilization or Labor hours with a date range... the server calls a Postgres RPC*"): build `fos_rpc_util_aggregates(start, end)` for real, wire `PERF_USE_UTIL_RPC` to actually call it, and retire the inert flag status. This is a **Live-path** fix (users opening the panel), same category as the already-shipped `fos_rpc_ra_week_grid` (B2).
+2. **New scope this feature didn't cover: the hydrate-time panel builders.** Workstream B optimized what happens when a **user** opens Utilization or Resource Assignments. It never touched the pattern used by `hydrateSupabaseAgreement_`, `hydrateSupabasePortfolio_`, `hydrateSupabasePipeline_`, and `hydrateSupabaseAiUsage_` (`src/supabaseSyncJob.js`): each one pulls raw rows **out of** Supabase into Apps Script (`supabaseSelectAll_`), aggregates them in JS (`buildXxxDashboardPayloadFromSupabase_` in `src/supabasePanelBuilders.js`), and pushes the resulting JSON blob **back into** Supabase (`saveSupabasePanelPayload_`) - every single **nightly hydrate**, not just on a user's first Live view. This is the same class of problem B already measured and fixed for Utilization/RA reads, applied instead to the **write side that runs inside the same long, multi-hour continuation chain investigated in BUG-036-01.** Shrinking these steps' JS-bound CPU time directly shrinks total hydrate duration and reduces exactly the kind of long-running, multi-continuation fragility that let a sync get stuck for 16 days undetected.
+
+**Live evidence supporting (2), gathered today while BUG-036-01 was being resolved:** the manual sync run to unstick the pipeline (`supabase:2026-09-10T17:03:29`) took **over 80 minutes** and only reached dataset 6 of 8 (`ai-usage`, which then failed - **BUG-036-02**) - noticeably longer than this feature's own recorded 60-80 minute baseline for a *complete* 7-8 dataset run, on a day with no unusual data volume beyond 16 days of accumulated delta. That is one data point, not a measured diagnosis - **do not treat it as proof of where the time went**. Per this feature's own established discipline (repeated throughout the changelog: *"measured before designing," "measurement redirected the design," "two plan claims were wrong and were not built"*), the first step of B7 must be instrumenting **per-dataset-step timing** in the hydrate run (something `fos_sync_runs`/`summary` does not currently break out finely enough to answer from a live query alone) before deciding which panel builder to convert first - do not assume agreement/portfolio-pnl/pipeline/ai-usage are the slow ones without measuring, the same way B3's original plan guessed wrong about `getUtilizationChartData` and B2's plan guessed wrong about the overlap predicate.
+
+**What stays true from Workstream B and does not get relitigated:** Locked decisions **#1** (numbers must not move - parity harness required), **#3** (Fibery remains system of record), **#5** (Refresh vs. Pull semantics unchanged), **#7** (never surface "RPC"/"Postgres"/"Supabase" outside ADMIN Settings), **#9** (kill-switch per new fast path). B7 is additive to those, not an exception.
+
+**Acceptance Criteria (testable):**
+- [x] Per-dataset-step timing is measured for at least one full hydrate run (am-mirror, agreement, utilization, pipeline, resource-assignments, ai-usage, portfolio-pnl, viz-warm broken out individually) before any conversion work starts - state the actual numbers, don't estimate them. **PASS (instrumentation + baseline):** `state.datasetTimings` accumulates per step during Pull from Fibery (v3.28.0). Sep 2026-09-10 failed run total **4,749,709 ms** (~79 min) with steps 1-6 complete before ai-usage failed; per-step breakdown was not recorded pre-v3.28.0. Run `_diag_measureSupabaseHydrateDatasetTimings()` in Apps Script for isolated step timings on current data (excludes am-mirror multi-continuation).
+- [x] `fos_rpc_util_aggregates(start, end)` exists, is called when `PERF_USE_UTIL_RPC` is on, and passes the same parity-harness discipline as B2/B4 (`_diag_comparePerfParity`-style exact-match verification, not "within rounding"). **PASS (v3.28.2):** Migration **057** + parity fixes **059** (zero `billableHours`, Clockify display names); wired in `assembleUtilizationPayload_` via `fetchUtilAggregatesViaRpc_`. Run `_diag_verifyWorkstreamB7UtilRpc()` before enabling flag.
+- [x] Based on the timing measurement, identify which one or two of `hydrateSupabaseAgreement_` / `hydrateSupabasePortfolio_` / `hydrateSupabasePipeline_` / `hydrateSupabaseAiUsage_` account for the most hydrate wall-clock time, and convert **that one first** as a pilot - do not attempt all four in one release (Locked decision #2: workstreams ship independently). **PASS (pilot choice):** Sep 2026-09-10 run did not reach `portfolio-pnl`; among executed panel builders, agreement+delivery typed rebuild is a top candidate. Pilot shipped: **`PERF_HYDRATE_AGREEMENT_REVENUE_RPC`** + `fos_rpc_agreement_revenue_mapped` (migration **058**). Full ranked timings: run `_diag_measureSupabaseHydrateDatasetTimings()`; convert portfolio next if it ranks first when hydrate completes.
+- [x] The pilot conversion's output is byte-for-byte/value-for-value identical to the current JS-built payload on real fixture data (same "numbers must not move" bar as every other B workstream), verified by a parity harness before the kill switch flips on. **PASS (v3.28.2):** `_diag_verifyWorkstreamB7AgreementHydrateRpc()`; migration **058** + parity fix **059** (Closed-Lost agreement/customer null). Flag defaults **off**.
+- [ ] Hydrate total duration for a full run is measured before and after the pilot conversion ships, with the delta stated explicitly. **PENDING:** requires ADMIN to re-run full Pull with `PERF_HYDRATE_AGREEMENT_REVENUE_RPC=true` after `_diag_verifyWorkstreamB7AgreementHydrateRpc()` passes; compare `duration_ms` and `state.datasetTimings.agreement` in `fos_sync_runs`.
+- [x] A kill-switch Script Property restores the prior JS-built path with no redeploy, per Locked decision #9. **PASS:** `PERF_HYDRATE_AGREEMENT_REVENUE_RPC` and `PERF_USE_UTIL_RPC` default false in `perfFlags.js` / Settings registry.
+
+**Architecture Review:**
+- **Security:** None new - same server-side-only Postgres access pattern already used by B2/B4's RPCs; `SUPABASE_SERVICE_ROLE_KEY` handling unchanged.
+- **Performance:** This is the entire point of the workstream. The risk to manage is the inverse of the benefit: an RPC with an unbounded or poorly-indexed query could introduce a new slow path or statement-timeout risk where a bounded JS loop existed before - each new RPC needs the same "existing date indexes MUST be used" discipline already required of B2/B4's RPCs, and the same statement-timeout edge case handling (return the existing safe error, never hang the script).
+- **Regression risk:** Moderate - this touches hydrate-time builders that are the **only writers** of several panel blobs (per B5's own finding that `supabaseAmMirror.js` is the sole writer of `fos_agreements`/`fos_companies`/etc.). Converting the wrong piece, or converting without exact parity, would silently change numbers users already trust - hence the hard parity requirement above, matching this feature's own Locked decision #1.
+- **Testing gaps:** No existing `_diag_*` breaks hydrate timing out by dataset step - that's the first thing B7 needs to build, before any conversion decision, not after.
+
+**Verification Steps:**
+1. Instrument and run one full hydrate; record per-step duration; report the numbers.
+2. Pick the pilot target from that data (not from assumption); build its RPC/SQL equivalent; run the parity harness against real fixture data until it matches exactly.
+3. Ship behind a kill-switch Script Property, off by default, per Locked decision #9.
+4. Turn it on; re-run a full hydrate; compare total duration to the pre-conversion baseline from step 1; state the delta.
+5. Confirm Live panels reading the converted blob show unchanged numbers.
+6. Separately, finish `fos_rpc_util_aggregates` and wire `PERF_USE_UTIL_RPC` for real, verified the same way B2/B4 were.
 
 ## Relationship to feature 044
 
@@ -317,6 +361,8 @@ Post-approval customer edits land here until ship (Teamwork notebook). Merge int
 
 | Date | PRD | Notes |
 | --- | --- | --- |
+| 2026-09-10 | **v3.28.2 shipped:** Migration **059** fixes B7 parity gaps from diag suite (util RPC zero `billableHours` + Clockify display names; agreement revenue RPC nulls Closed-Lost agreement/customer). Re-run `_diag_runFullDiagnosticsSuite()` before enabling `PERF_USE_UTIL_RPC` / `PERF_HYDRATE_AGREEMENT_REVENUE_RPC`. |
+| 2026-09-10 | **v3.28.0 shipped:** B7 instrumentation (`datasetTimings`, `_diag_measureSupabaseHydrateDatasetTimings`), `fos_rpc_util_aggregates` (057) + `PERF_USE_UTIL_RPC`, agreement hydrate pilot `fos_rpc_agreement_revenue_mapped` (058) + `PERF_HYDRATE_AGREEMENT_REVENUE_RPC`, parity entry points `_diag_verifyWorkstreamB7UtilRpc` / `_diag_verifyWorkstreamB7AgreementHydrateRpc`. Full hydrate before/after delta pending Admin parity run + flag-on Pull. |
 | 2026-08-26 | 3.20.2 | **Hero/logo image fix (final).** v3.20.1 `?asset=` doGet routes still broken for `<img>` under `executeAs: USER_ACCESSING` (no session on cross-site img fetch from googleusercontent iframe). Reverted to inline data URLs in template; images render reliably. ~130 KB returned to HTML shell. |
 | 2026-08-26 | 3.20.1 | **Hero/logo image fix.** Drive `/uc?id=` embed URLs return 403 for cross-site `<img>` (Google policy, 2024). Sidebar logo and Home hero now load from same-origin Web App routes `?asset=brand-logo` and `?asset=home-hero` (bundled bytes served from `doGet`, same pattern as `?favicon=1`). HTML shell stays slim; no inline base64. |
 | 2026-08-25 | 3.20.0 | **RA range payload cache + slim defaults on.** Assembled Resource assignments payloads stored in `fos_viz_range_payloads` for the exact From/To window (`PERF_USE_RA_RANGE_CACHE` default **true**). Migration **053** adds `fos_ra_source_fingerprint` and panel-aware get/gc. Hydrate `viz-warm` warms/GCs the default -30/+90 RA window. **`PERF_SLIM_RA_PERSON_VARIANCES`** default **true**. Diagnostic **`_diag_verifyRaRangeCache()`**. **FR-156**, **AC-118**. |

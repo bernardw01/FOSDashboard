@@ -1,5 +1,5 @@
 /**
- * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 047 Step 0: parity and measurement harness.
  *
@@ -58,6 +58,11 @@
  *
  *   _diag_comparePerfParityAllFixtures('utilization')
  *     The above across all four fixture ranges.
+ *
+ *   _diag_runFullDiagnosticsSuite()
+ *     Dev-time diagnostic suite (feature 057): registered smoke tests and panel
+ *     health checks. Default skips heavy steps. Also runnable via
+ *     `python scripts/run_diagnostics.py` after clasp push.
  *
  * Tolerances are deliberately tight: currency and hours to 0.01, percentages
  * to 0.1, and counts must match exactly.
@@ -1781,4 +1786,631 @@ function _diag_verifyWorkstreamC() {
   out.runId = perfPersistRun_('workstream-c', 'verify C helpers', out.pass, out);
   console.log('_diag_verifyWorkstreamC -> ' + JSON.stringify(out).slice(0, 3000));
   return out;
+}
+
+/**
+ * Feature 047 B7: verify fos_rpc_util_aggregates against the JS builder.
+ *
+ * @return {!Object}
+ */
+function _diag_verifyWorkstreamB7UtilRpc() {
+  var thresholds = getUtilizationThresholds_();
+  var now = new Date();
+  var range = resolveRange_(null, null, now, thresholds);
+  var probe = fetchUtilAggregatesViaRpc_(range.start, range.end, thresholds);
+  utilAggRpcTallyReset_();
+  var baseline;
+  var candidate;
+  perfFlagOverridePush_({ PERF_USE_UTIL_RPC: false, PERF_USE_RANGE_CACHE: false });
+  try {
+    baseline = buildUtilizationPayloadFromFosLaborCosts_(range, thresholds, now);
+  } finally {
+    perfFlagOverridePop_();
+  }
+  perfFlagOverridePush_({ PERF_USE_UTIL_RPC: true, PERF_USE_RANGE_CACHE: false });
+  try {
+    candidate = buildUtilizationPayloadFromFosLaborCosts_(range, thresholds, now);
+  } finally {
+    perfFlagOverridePop_();
+  }
+  var diffs = [];
+  var opts = { clockToleranceMs: PERF_PARITY_CLOCK_TOLERANCE_MS_, tolerated: [] };
+  perfParityWalk_(baseline.kpis || {}, candidate.kpis || {}, '$.kpis', diffs, opts);
+  perfParityWalk_(
+    baseline.aggregates || {},
+    candidate.aggregates || {},
+    '$.aggregates',
+    diffs,
+    opts
+  );
+  var tally = {
+    rpc: UTIL_AGG_RPC_TALLY_.rpc,
+    rpcFallbacks: UTIL_AGG_RPC_TALLY_.rpcFallbacks,
+  };
+  var armsProven = tally.rpc >= 1 && tally.rpcFallbacks === 0;
+  var summary = {
+    workstream: 'B7-util-rpc',
+    pass: diffs.length === 0 && probe.ok && armsProven,
+    rpcProbe: { ok: probe.ok, message: probe.ok ? null : probe.message },
+    parityDiffCount: diffs.length,
+    diffs: diffs.slice(0, 25),
+    tally: tally,
+    armsProven: armsProven,
+  };
+  console.log('===== WORKSTREAM B7 UTIL RPC =====');
+  console.log(JSON.stringify(summary, null, 2));
+  perfPersistRun_('parity', 'B7 util aggregates RPC', summary.pass, summary);
+  return summary;
+}
+
+/**
+ * Feature 047 B7 pilot: agreement hydrate revenue RPC parity.
+ *
+ * @return {!Object}
+ */
+function _diag_verifyWorkstreamB7AgreementHydrateRpc() {
+  var todayIso = formatDateOnlyIso_(new Date());
+  var probe = fetchAgreementRevenueMappedViaRpc_(todayIso);
+  agreementRevenueRpcTallyReset_();
+  var baseline;
+  var candidate;
+  perfFlagOverridePush_({ PERF_HYDRATE_AGREEMENT_REVENUE_RPC: false });
+  try {
+    baseline = buildAgreementDashboardPayloadFromSupabase_();
+  } finally {
+    perfFlagOverridePop_();
+  }
+  perfFlagOverridePush_({ PERF_HYDRATE_AGREEMENT_REVENUE_RPC: true });
+  try {
+    candidate = buildAgreementDashboardPayloadFromSupabase_();
+  } finally {
+    perfFlagOverridePop_();
+  }
+  var diffs = [];
+  var opts = { clockToleranceMs: PERF_PARITY_CLOCK_TOLERANCE_MS_, tolerated: [] };
+  perfParityWalk_(
+    baseline.futureRevenueItems || [],
+    candidate.futureRevenueItems || [],
+    '$.futureRevenueItems',
+    diffs,
+    opts
+  );
+  perfParityWalk_(
+    baseline.historicalRevenueItems || [],
+    candidate.historicalRevenueItems || [],
+    '$.historicalRevenueItems',
+    diffs,
+    opts
+  );
+  perfParityWalk_(
+    baseline.revenueItemsByAgreement || {},
+    candidate.revenueItemsByAgreement || {},
+    '$.revenueItemsByAgreement',
+    diffs,
+    opts
+  );
+  var tally = {
+    rpc: AGREEMENT_REVENUE_RPC_TALLY_.rpc,
+    js: AGREEMENT_REVENUE_RPC_TALLY_.js,
+    rpcFallbacks: AGREEMENT_REVENUE_RPC_TALLY_.rpcFallbacks,
+  };
+  var armsProven = tally.rpc >= 1 && tally.rpcFallbacks === 0;
+  var summary = {
+    workstream: 'B7-agreement-hydrate-pilot',
+    pass:
+      diffs.length === 0 &&
+      probe.ok &&
+      armsProven &&
+      baseline.ok !== false &&
+      candidate.ok !== false,
+    rpcProbe: { ok: probe.ok, message: probe.ok ? null : probe.message },
+    parityDiffCount: diffs.length,
+    diffs: diffs.slice(0, 25),
+    tally: tally,
+    armsProven: armsProven,
+  };
+  console.log('===== WORKSTREAM B7 AGREEMENT HYDRATE PILOT =====');
+  console.log(JSON.stringify(summary, null, 2));
+  perfPersistRun_('parity', 'B7 agreement revenue hydrate RPC', summary.pass, summary);
+  return summary;
+}
+
+/**
+ * Minimum registered steps expected in {@link FOS_DIAG_SUITE_STEPS_}. Catches
+ * silent registry truncation (syntax error dropping tail entries).
+ * @const {number}
+ */
+var FOS_DIAG_SUITE_MIN_REGISTERED_STEPS_ = 24;
+
+/**
+ * @param {!Object} payload
+ * @param {string} area
+ * @param {function(!Object): boolean} countOk
+ * @return {!Object}
+ * @private
+ */
+function perfDiagSuiteAssertPanelPayload_(payload, area, countOk) {
+  payload = payload || {};
+  if (payload.ok === false) {
+    return {
+      ok: false,
+      pass: false,
+      area: area,
+      message: payload.message || payload.reason || area + ' payload build failed.',
+      payload: payload,
+    };
+  }
+  var pass = countOk(payload);
+  return {
+    ok: true,
+    pass: pass,
+    area: area,
+    message: pass
+      ? 'PASS: ' + area + ' payload built successfully.'
+      : 'FAIL: ' + area + ' payload ok but empty or missing expected rows/KPIs.',
+    payloadSummary: {
+      ok: payload.ok,
+      source: payload.source || null,
+      loadSource: payload.loadSource || null,
+    },
+  };
+}
+
+/**
+ * Feature 057: Agreements dashboard health (no Web App auth; builder only).
+ * @return {!Object}
+ */
+function perfDiagSuiteCheckAgreementsHealth_() {
+  var payload;
+  if (typeof isSupabaseConfigured_ === 'function' && isSupabaseConfigured_()) {
+    payload = buildAgreementDashboardPayloadFromSupabase_();
+  } else if (typeof buildAgreementDashboardPayload_ === 'function') {
+    payload = buildAgreementDashboardPayload_();
+  } else {
+    return { ok: false, pass: false, message: 'Agreement builders unavailable.' };
+  }
+  return perfDiagSuiteAssertPanelPayload_(payload, 'Agreements', function (p) {
+    return (p.agreements || []).length > 0;
+  });
+}
+
+/**
+ * Feature 057: Delivery dashboard health (derived from agreement family).
+ * @return {!Object}
+ */
+function perfDiagSuiteCheckDeliveryHealth_() {
+  var agreementPayload;
+  if (typeof isSupabaseConfigured_ === 'function' && isSupabaseConfigured_()) {
+    agreementPayload = buildAgreementDashboardPayloadFromSupabase_();
+  } else if (typeof buildAgreementDashboardPayload_ === 'function') {
+    agreementPayload = buildAgreementDashboardPayload_();
+  } else {
+    return { ok: false, pass: false, message: 'Agreement builders unavailable for Delivery.' };
+  }
+  if (!agreementPayload || agreementPayload.ok === false) {
+    return {
+      ok: false,
+      pass: false,
+      message:
+        (agreementPayload && agreementPayload.message) ||
+        'Could not build agreement payload for Delivery check.',
+    };
+  }
+  var ttlMinutes =
+    typeof resolveDeliveryCacheTtlMinutes_ === 'function'
+      ? resolveDeliveryCacheTtlMinutes_()
+      : 60;
+  var payload = buildDeliveryDashboardPayloadFromAgreement_(
+    agreementPayload,
+    agreementPayload.fetchedAt || new Date().toISOString(),
+    ttlMinutes
+  );
+  return perfDiagSuiteAssertPanelPayload_(payload, 'Delivery', function (p) {
+    return (p.projects || []).length > 0;
+  });
+}
+
+/**
+ * Feature 057: Utilization dashboard health (fos_labor_costs path, no auth).
+ * @return {!Object}
+ */
+function perfDiagSuiteCheckUtilizationHealth_() {
+  var thresholds = getUtilizationThresholds_();
+  var now = new Date();
+  var range = resolveRange_(null, null, now, thresholds);
+  var payload = buildUtilizationPayloadFromFosLaborCosts_(range, thresholds, now);
+  return perfDiagSuiteAssertPanelPayload_(payload, 'Utilization', function (p) {
+    return !!(p.kpis && Number(p.kpis.rowCount || 0) > 0);
+  });
+}
+
+/**
+ * Feature 057: Resource Assignments dashboard health.
+ * @return {!Object}
+ */
+function perfDiagSuiteCheckResourceAssignmentsHealth_() {
+  var sample = _diag_resourceAssignmentsSample(null, null);
+  if (!sample || sample.ok === false) {
+    return {
+      ok: false,
+      pass: false,
+      message: (sample && sample.message) || 'Resource Assignments sample failed.',
+    };
+  }
+  var pass = Number(sample.personCount || 0) > 0 && Number(sample.weekCount || 0) > 0;
+  return {
+    ok: true,
+    pass: pass,
+    area: 'Resource Assignments',
+    message: pass
+      ? 'PASS: Resource Assignments grid built (' +
+        sample.personCount +
+        ' persons, ' +
+        sample.weekCount +
+        ' weeks).'
+      : 'FAIL: Resource Assignments payload empty.',
+    sample: sample,
+  };
+}
+
+/**
+ * Feature 057: Pipeline dashboard health (Fibery + sheet merge builder).
+ * @return {!Object}
+ */
+function perfDiagSuiteCheckPipelineHealth_() {
+  var payload = buildPipelineDashboardPayload_();
+  return perfDiagSuiteAssertPanelPayload_(payload, 'Pipeline', function (p) {
+    return (p.deals || []).length > 0;
+  });
+}
+
+/**
+ * Ordered steps for `_diag_runFullDiagnosticsSuite`. Fast checks first; hydrate
+ * timing last because it may exceed the harness budget on its own.
+ * @const {!Array<!{id: string, label: string, fn: function(): !Object, heavy?: boolean}>}
+ */
+var FOS_DIAG_SUITE_STEPS_ = [
+  {
+    id: 'lookback-services-auto-select',
+    label: 'Lookback: Services-only auto-select rules',
+    fn: function () {
+      return test_lookbackEvaluateServicesOnlyAuto_();
+    },
+  },
+  {
+    id: 'lookback-margin-fraction-scale',
+    label: 'Lookback: EAC margin fraction scale',
+    fn: function () {
+      return test_lookbackMarginFractionScale_();
+    },
+  },
+  {
+    id: 'lookback-agreement-owner-resolve',
+    label: 'Lookback: agreement owner resolution',
+    fn: function () {
+      return test_resolveFosAgreementOwnerFromRow_();
+    },
+  },
+  {
+    id: 'lookback-ready-sort-order',
+    label: 'Lookback: Ready for Review sort order',
+    fn: function () {
+      return test_lookbackReadySortOrder_();
+    },
+  },
+  {
+    id: 'lookback-duration-month-end',
+    label: 'Lookback: duration as-of month end',
+    fn: function () {
+      return test_lookbackDurationAsOfMonthEnd_();
+    },
+  },
+  {
+    id: 'lookback-metrics-blob-shape',
+    label: 'Lookback: frozen metrics blob shape',
+    fn: function () {
+      return test_lookbackMetricsBlobShape_();
+    },
+  },
+  {
+    id: 'lookback-eligible-volume',
+    label: 'Lookback: eligible project volume guard',
+    fn: function () {
+      return test_lookbackEligibleVolumeForPerfFreeze_();
+    },
+  },
+  {
+    id: 'lookback-admin-lock-delete',
+    label: 'Lookback: Admin lock and delete gates',
+    fn: function () {
+      return test_lookbackAdminLockDeleteGates_();
+    },
+  },
+  {
+    id: 'lookback-user-removed-marker',
+    label: 'Lookback: removed-user marker handling',
+    fn: function () {
+      return test_lookbackUserRemovedMarker_();
+    },
+  },
+  {
+    id: 'engagement-review-reviews-tab',
+    label: 'Performance Review: Reviews tab visibility',
+    fn: function () {
+      return test_erShouldHideReviewsTab_();
+    },
+  },
+  {
+    id: 'engagement-review-edit-modal',
+    label: 'Performance Review: edit modal owner and period',
+    fn: function () {
+      return test_erFillUpdateModalEditOwnerAndPeriod_();
+    },
+  },
+  {
+    id: 'sync-health',
+    label: 'BUG-036-01 supabase sync health',
+    fn: function () {
+      return _diag_supabaseSyncHealth();
+    },
+  },
+  {
+    id: 'stale-running-guard',
+    label: 'BUG-036-01 stale running guard test',
+    fn: function () {
+      return test_supabaseSyncStaleRunningGuard_();
+    },
+  },
+  {
+    id: 'ai-usage-empty-window',
+    label: 'BUG-036-02 AI usage empty-window message test',
+    fn: function () {
+      return test_supabaseAiUsageEmptyWindowDistinction_();
+    },
+  },
+  {
+    id: 'ai-usage-freshness',
+    label: 'BUG-036-02 AI usage Supabase/Fibery freshness',
+    fn: function () {
+      return _diag_aiUsageDataFreshness_();
+    },
+  },
+  {
+    id: 'ai-usage-hydrate-nav-gating',
+    label: 'AI Usage: hydrate pause hides Finance nav item',
+    fn: function () {
+      return test_aiUsageHydrateNavGating_();
+    },
+  },
+  {
+    id: 'ai-usage-hydrate-diag-pause',
+    label: 'AI Usage: diagnostics paused short-circuit',
+    fn: function () {
+      return test_aiUsageHydrateDiagnosticsPausedShortCircuit_();
+    },
+  },
+  {
+    id: 'b7-util-rpc',
+    label: 'B7 fos_rpc_util_aggregates parity',
+    fn: function () {
+      return _diag_verifyWorkstreamB7UtilRpc();
+    },
+  },
+  {
+    id: 'b7-agreement-hydrate-rpc',
+    label: 'B7 agreement revenue hydrate RPC parity',
+    fn: function () {
+      return _diag_verifyWorkstreamB7AgreementHydrateRpc();
+    },
+  },
+  {
+    id: 'agreements-panel-health',
+    label: 'Agreements: Live payload builds with rows',
+    fn: function () {
+      return perfDiagSuiteCheckAgreementsHealth_();
+    },
+  },
+  {
+    id: 'delivery-panel-health',
+    label: 'Delivery: projects payload builds',
+    fn: function () {
+      return perfDiagSuiteCheckDeliveryHealth_();
+    },
+  },
+  {
+    id: 'utilization-panel-health',
+    label: 'Utilization: labor mirror KPIs',
+    fn: function () {
+      return perfDiagSuiteCheckUtilizationHealth_();
+    },
+  },
+  {
+    id: 'resource-assignments-panel-health',
+    label: 'Resource Assignments: allocation grid builds',
+    fn: function () {
+      return perfDiagSuiteCheckResourceAssignmentsHealth_();
+    },
+  },
+  {
+    id: 'pipeline-panel-health',
+    label: 'Pipeline: merged deals payload builds',
+    fn: function () {
+      return perfDiagSuiteCheckPipelineHealth_();
+    },
+  },
+  {
+    id: 'hydrate-dataset-timings',
+    label: 'B7 per-dataset hydrate timings',
+    heavy: true,
+    fn: function () {
+      return _diag_measureSupabaseHydrateDatasetTimings();
+    },
+  },
+];
+
+/**
+ * Runs one diagnostics-suite step and normalizes pass/fail for the master summary.
+ *
+ * @param {!{id: string, label: string, fn: function(): !Object}} step
+ * @return {!Object}
+ * @private
+ */
+function perfDiagSuiteRunStep_(step) {
+  var started = Date.now();
+  var row = {
+    id: step.id,
+    label: step.label,
+    heavy: !!step.heavy,
+    ms: 0,
+    ok: false,
+    pass: false,
+    error: null,
+    childRunId: null,
+    result: null,
+  };
+  try {
+    var result = step.fn();
+    row.ms = Date.now() - started;
+    row.result = result;
+    row.ok = !!(result && result.ok !== false);
+    if (result && typeof result.pass === 'boolean') {
+      row.pass = result.pass;
+    } else if (result && typeof result.ok === 'boolean') {
+      row.pass = result.ok;
+    } else {
+      row.pass = row.ok;
+    }
+    if (result && result.runId) {
+      row.childRunId = result.runId;
+    }
+  } catch (e) {
+    row.ms = Date.now() - started;
+    row.error = e && e.message ? e.message : String(e);
+    row.ok = false;
+    row.pass = false;
+  }
+  return row;
+}
+
+/**
+ * One Run entry point for the BUG-036 / B7 diagnostics an operator needs after
+ * a hydrate incident. Runs every step in {@link FOS_DIAG_SUITE_STEPS_}, stops
+ * before the 4.5-minute harness budget is exhausted, persists a master document
+ * to `fos_perf_runs`, and logs a JSON summary.
+ *
+ * Individual steps may also write their own `fos_perf_runs` rows (parity /
+ * measure helpers already do). Read the suite with:
+ *
+ *   select run_id, passed, result->'complete' as complete,
+ *          result->'steps' as steps
+ *   from fos_perf_runs
+ *   where kind = 'diag-suite'
+ *   order by captured_at desc limit 1;
+ *
+ * The last step (`hydrate-dataset-timings`) can exceed the budget alone. When
+ * time runs out it is reported as `skipped: true` with reason `budget`. Re-run
+ * `_diag_measureSupabaseHydrateDatasetTimings()` separately if needed.
+ *
+ * @param {boolean=} includeHeavy When false (default), skips heavy steps.
+ * @return {!Object}
+ */
+function _diag_runFullDiagnosticsSuite(includeHeavy) {
+  if (includeHeavy === undefined) {
+    includeHeavy = false;
+  }
+  if (FOS_DIAG_SUITE_STEPS_.length < FOS_DIAG_SUITE_MIN_REGISTERED_STEPS_) {
+    var registryFail = {
+      ok: false,
+      pass: false,
+      suite: 'full-diagnostics',
+      registryError: true,
+      message:
+        'FOS_DIAG_SUITE_STEPS_ registry incomplete: found ' +
+        FOS_DIAG_SUITE_STEPS_.length +
+        ', expected at least ' +
+        FOS_DIAG_SUITE_MIN_REGISTERED_STEPS_ +
+        '.',
+      registeredCount: FOS_DIAG_SUITE_STEPS_.length,
+      minimumCount: FOS_DIAG_SUITE_MIN_REGISTERED_STEPS_,
+    };
+    console.log('===== FULL DIAGNOSTICS SUITE =====');
+    console.log(JSON.stringify(registryFail, null, 2));
+    registryFail.runId = perfPersistRun_(
+      'diag-suite',
+      'full diagnostics suite (registry error)',
+      false,
+      registryFail
+    );
+    return registryFail;
+  }
+  var deadline = Date.now() + PERF_HARNESS_BUDGET_MS_;
+  var stepsOut = [];
+  var skipped = [];
+  var allPass = true;
+  var startedAt = new Date().toISOString();
+
+  for (var i = 0; i < FOS_DIAG_SUITE_STEPS_.length; i++) {
+    var step = FOS_DIAG_SUITE_STEPS_[i];
+    if (step.heavy && !includeHeavy) {
+      skipped.push({ id: step.id, reason: 'includeHeavy=false' });
+      continue;
+    }
+    if (Date.now() >= deadline) {
+      skipped.push({ id: step.id, reason: 'budget' });
+      continue;
+    }
+    var row = perfDiagSuiteRunStep_(step);
+    stepsOut.push(row);
+    if (!row.pass) {
+      allPass = false;
+    }
+  }
+
+  var complete = skipped.length === 0;
+  var summary = {
+    ok: true,
+    suite: 'full-diagnostics',
+    startedAt: startedAt,
+    finishedAt: new Date().toISOString(),
+    prdVersion: typeof FOS_PRD_VERSION === 'string' ? FOS_PRD_VERSION : null,
+    includeHeavy: includeHeavy,
+    budgetMs: PERF_HARNESS_BUDGET_MS_,
+    complete: complete,
+    pass: allPass && complete,
+    stepCount: stepsOut.length,
+    skipped: skipped,
+    steps: stepsOut,
+    queryHint:
+      "select run_id, kind, label, passed, captured_at from fos_perf_runs where kind = 'diag-suite' order by captured_at desc limit 5;",
+  };
+
+  console.log('===== FULL DIAGNOSTICS SUITE =====');
+  console.log(JSON.stringify(summary, null, 2));
+
+  summary.runId = perfPersistRun_('diag-suite', 'full diagnostics suite', summary.pass, summary);
+  if (!summary.runId) {
+    summary.persistWarning = 'Master suite row was not stored in fos_perf_runs (see execution log).';
+  }
+
+  return summary;
+}
+
+/**
+ * Feature 057: public Execution API entry for `clasp run` (no trailing underscore).
+ * Dev-time only; not exposed to the Web App.
+ *
+ * @param {boolean=} includeHeavy When false (default), skips heavy steps.
+ * @return {!Object}
+ */
+function runFullDiagnosticsSuite(includeHeavy) {
+  return _diag_runFullDiagnosticsSuite(includeHeavy);
+}
+
+/**
+ * Feature 057: zero-argument wrapper for the Apps Script editor Run button
+ * (the editor cannot pass includeHeavy=false). Matches scripts/run_diagnostics.py default.
+ * @return {!Object}
+ */
+function runDiagnosticSuiteManual_() {
+  return _diag_runFullDiagnosticsSuite(false);
 }

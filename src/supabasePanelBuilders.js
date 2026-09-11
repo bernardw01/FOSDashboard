@@ -1,5 +1,5 @@
 /**
- * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: panel hydrate builders that read Supabase typed
  * tables (Agreement Management mirror from `supabaseAmMirror.js`, labor
@@ -204,6 +204,90 @@ function loadFosTeamMemberRolesMap_() {
 // 1. Agreement Dashboard
 // ---------------------------------------------------------------------------
 
+/** @type {!{rpc: number, js: number, rpcFallbacks: number}} */
+var AGREEMENT_REVENUE_RPC_TALLY_ = { rpc: 0, js: 0, rpcFallbacks: 0 };
+
+/** Resets {@link AGREEMENT_REVENUE_RPC_TALLY_} for parity runs. */
+function agreementRevenueRpcTallyReset_() {
+  AGREEMENT_REVENUE_RPC_TALLY_ = { rpc: 0, js: 0, rpcFallbacks: 0 };
+}
+
+/**
+ * Feature 047 B7 pilot: revenue historical/future raw rows from Postgres.
+ *
+ * @param {string} todayIso YYYY-MM-DD
+ * @return {!{ok: true, historicalRaw: !Array, futureRaw: !Array}|!{ok: false, message: string}}
+ */
+function fetchAgreementRevenueMappedViaRpc_(todayIso) {
+  var res = supabaseRpc_('fos_rpc_agreement_revenue_mapped', { p_today: todayIso });
+  if (!res || res.ok === false) {
+    return {
+      ok: false,
+      message: (res && res.message) || 'fos_rpc_agreement_revenue_mapped failed.',
+    };
+  }
+  var doc = res.json;
+  if (!doc) {
+    return { ok: false, message: 'fos_rpc_agreement_revenue_mapped returned empty JSON.' };
+  }
+  var historical = doc.historicalRaw;
+  var future = doc.futureRaw;
+  if (Object.prototype.toString.call(historical) !== '[object Array]') {
+    historical = [];
+  }
+  if (Object.prototype.toString.call(future) !== '[object Array]') {
+    future = [];
+  }
+  return { ok: true, historicalRaw: historical, futureRaw: future };
+}
+
+/**
+ * JS path for revenue raw rows (legacy hydrate builder).
+ *
+ * @param {!Array<!Object>} revenueRows
+ * @param {!Object} agreementNameById
+ * @param {!Object} agreementCustomerIdById
+ * @param {!Object} companyNameById
+ * @param {string} todayIso
+ * @return {!{historicalRaw: !Array, futureRaw: !Array}}
+ * @private
+ */
+function buildAgreementRevenueRawRowsFromSupabase_(
+  revenueRows,
+  agreementNameById,
+  agreementCustomerIdById,
+  companyNameById,
+  todayIso
+) {
+  var historicalRaw = [];
+  var futureRaw = [];
+  for (var ri = 0; ri < revenueRows.length; ri++) {
+    var rr = revenueRows[ri];
+    var agAgreementId = rr.agreement_id;
+    var agName = agAgreementId ? (agreementNameById[agAgreementId] || null) : null;
+    var custIdForAgreement = agAgreementId ? agreementCustomerIdById[agAgreementId] : null;
+    var custName = custIdForAgreement ? (companyNameById[custIdForAgreement] || null) : null;
+    var mapped = {
+      id: rr.fibery_id,
+      name: rr.name,
+      targetAmount: rr.target_amount,
+      actualAmount: rr.actual_amount,
+      targetDate: rr.target_date,
+      recognized: rr.revenue_recognized,
+      state: rr.state_name,
+      agreement: agName,
+      agreementId: agAgreementId,
+      customer: custName,
+    };
+    if (rr.revenue_recognized === true) {
+      historicalRaw.push(mapped);
+    } else if (rr.target_date && rr.target_date > todayIso) {
+      futureRaw.push(mapped);
+    }
+  }
+  return { historicalRaw: historicalRaw, futureRaw: futureRaw };
+}
+
 /**
  * Builds the Agreement Dashboard payload from Supabase typed tables
  * (`fos_agreements`, `fos_companies`, `fos_company_segments`,
@@ -344,30 +428,37 @@ function buildAgreementDashboardPayloadFromSupabase_() {
 
   var historicalRaw = [];
   var futureRaw = [];
-  var revenueRows = revenueRes.rows || [];
-  for (var ri = 0; ri < revenueRows.length; ri++) {
-    var rr = revenueRows[ri];
-    var agAgreementId = rr.agreement_id;
-    var agName = agAgreementId ? (agreementNameById[agAgreementId] || null) : null;
-    var custIdForAgreement = agAgreementId ? agreementCustomerIdById[agAgreementId] : null;
-    var custName = custIdForAgreement ? (companyNameById[custIdForAgreement] || null) : null;
-    var mapped = {
-      id: rr.fibery_id,
-      name: rr.name,
-      targetAmount: rr.target_amount,
-      actualAmount: rr.actual_amount,
-      targetDate: rr.target_date,
-      recognized: rr.revenue_recognized,
-      state: rr.state_name,
-      agreement: agName,
-      agreementId: agAgreementId,
-      customer: custName,
-    };
-    if (rr.revenue_recognized === true) {
-      historicalRaw.push(mapped);
-    } else if (rr.target_date && rr.target_date > todayIso) {
-      futureRaw.push(mapped);
+  if (perfFlag_('PERF_HYDRATE_AGREEMENT_REVENUE_RPC')) {
+    var revRpc = fetchAgreementRevenueMappedViaRpc_(todayIso);
+    if (revRpc.ok) {
+      historicalRaw = revRpc.historicalRaw || [];
+      futureRaw = revRpc.futureRaw || [];
+      AGREEMENT_REVENUE_RPC_TALLY_.rpc++;
+    } else {
+      AGREEMENT_REVENUE_RPC_TALLY_.rpcFallbacks++;
+      supabaseWarn_('agreement revenue RPC fallback', { message: revRpc.message });
+      var mappedJs = buildAgreementRevenueRawRowsFromSupabase_(
+        revenueRes.rows || [],
+        agreementNameById,
+        agreementCustomerIdById,
+        companyNameById,
+        todayIso
+      );
+      historicalRaw = mappedJs.historicalRaw;
+      futureRaw = mappedJs.futureRaw;
+      AGREEMENT_REVENUE_RPC_TALLY_.js++;
     }
+  } else {
+    var mappedDefault = buildAgreementRevenueRawRowsFromSupabase_(
+      revenueRes.rows || [],
+      agreementNameById,
+      agreementCustomerIdById,
+      companyNameById,
+      todayIso
+    );
+    historicalRaw = mappedDefault.historicalRaw;
+    futureRaw = mappedDefault.futureRaw;
+    AGREEMENT_REVENUE_RPC_TALLY_.js++;
   }
 
   var companies = normalizeCompanies_(rawCompanies);
@@ -1143,9 +1234,43 @@ function buildAiUsagePayloadFromSupabase_(rangeStart, rangeEnd) {
     }
   }
   if (!rawRows.length) {
+    var freshness = aiUsageQuerySupabaseTableContext_();
+    var emptyReason = 'NO_ROWS_IN_RANGE';
+    var emptyMessage;
+    if (freshness.tableEmpty) {
+      emptyReason = 'TABLE_EMPTY';
+      emptyMessage =
+        'fos_ai_usage_rows is empty. The mirror step may not have run yet, or Fibery returned ' +
+        'no Claude API Costs rows for the mirror window. After confirming Fibery has data, run ' +
+        'Pull from Fibery again.';
+    } else if (freshness.maxUsageDateYmd && freshness.maxUsageDateYmd < range.startYmd) {
+      emptyMessage =
+        'No AI usage rows in the query window (' +
+        range.startYmd +
+        ' through ' +
+        range.endYmd +
+        '). Latest mirrored usage_date is ' +
+        freshness.maxUsageDateYmd +
+        '. Upstream data may be stale: run Settings AI Usage sync (feature 017) to refresh ' +
+        'Fibery from Anthropic, then Pull from Fibery again. A successful mirror with zero rows ' +
+        'in this window is not the same as a failed mirror.';
+    } else {
+      emptyMessage =
+        'No AI usage rows in the query window (' +
+        range.startYmd +
+        ' through ' +
+        range.endYmd +
+        '). Rows exist in fos_ai_usage_rows but none fall in this range (latest usage_date: ' +
+        (freshness.maxUsageDateYmd || 'unknown') +
+        '). Check feature 017 AI Usage sync and Fibery Claude API Costs freshness.';
+    }
     return emptyAiUsagePayloadFromSupabase_(
-      fetchedAtIso, props, range,
-      'AI usage rows have not been mirrored to Supabase yet. Ask an ADMIN to run Pull from Fibery in Settings.'
+      fetchedAtIso,
+      props,
+      range,
+      emptyMessage,
+      null,
+      emptyReason
     );
   }
 
@@ -1195,7 +1320,7 @@ function buildAiUsagePayloadFromSupabase_(rangeStart, rangeEnd) {
  * @return {!Object}
  * @private
  */
-function emptyAiUsagePayloadFromSupabase_(fetchedAtIso, props, range, message, reason) {
+function emptyAiUsagePayloadFromSupabase_(fetchedAtIso, props, range, message, reason, emptyReason) {
   var payload = {
     ok: false,
     source: 'supabase',
@@ -1209,9 +1334,64 @@ function emptyAiUsagePayloadFromSupabase_(fetchedAtIso, props, range, message, r
     filterOptions: { persons: [], roles: [] },
     message: message,
   };
+  if (emptyReason) {
+    payload.emptyReason = emptyReason;
+  }
   if (reason) {
     payload.warnings = ['Supabase error: ' + reason];
   }
+  return payload;
+}
+
+/**
+ * Reads table-level freshness for AI usage empty-state messaging (not the
+ * mirror-window count from the current hydrate step).
+ *
+ * @return {!{ tableEmpty: boolean, maxUsageDateYmd: ?string }}
+ * @private
+ */
+function aiUsageQuerySupabaseTableContext_() {
+  var out = { tableEmpty: true, maxUsageDateYmd: null };
+  if (typeof isSupabaseConfigured_ !== 'function' || !isSupabaseConfigured_()) {
+    return out;
+  }
+  var maxRes = supabaseSelect_('fos_ai_usage_rows', { order: 'usage_date.desc' }, 'usage_date', 1);
+  if (!maxRes.ok || !maxRes.rows || !maxRes.rows.length) {
+    return out;
+  }
+  out.tableEmpty = false;
+  var ymd = aiUsageCoerceYmd_(maxRes.rows[0].usage_date);
+  out.maxUsageDateYmd = ymd || null;
+  return out;
+}
+
+/**
+ * Empty but successful AI usage panel blob when upstream data is stale but
+ * the mirror step itself succeeded (BUG-036-02 resilience).
+ *
+ * @param {string} fetchedAtIso
+ * @param {!Object} props
+ * @param {!Object} range
+ * @param {string} message
+ * @return {!Object}
+ * @private
+ */
+function buildAiUsageSoftEmptyOkPayloadFromSupabase_(fetchedAtIso, props, range, message) {
+  var payload = {
+    ok: true,
+    source: 'supabase',
+    fetchedAt: fetchedAtIso,
+    cacheSchemaVersion: AI_USAGE_DASHBOARD_CACHE_SCHEMA_VERSION_,
+    ttlMinutes: props.cacheTtlMinutes,
+    topN: props.topN,
+    range: range,
+    rows: [],
+    kpis: emptyAiUsageKpis_(),
+    filterOptions: { persons: [], roles: [] },
+    aggregates: buildAiUsageAggregates_([], props.topN),
+    warnings: [message],
+    softEmpty: true,
+  };
   return payload;
 }
 

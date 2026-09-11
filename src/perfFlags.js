@@ -1,5 +1,5 @@
 /**
- * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 047 performance kill switches.
  *
@@ -29,6 +29,8 @@ var PERF_FLAG_DEFAULTS_ = {
   // Workstream B: Postgres aggregate RPCs instead of paging fact rows.
   PERF_USE_UTIL_RPC: false,
   PERF_USE_RA_RPC: false,
+  // Workstream B7 pilot: agreement hydrate revenue mapping via SQL RPC.
+  PERF_HYDRATE_AGREEMENT_REVENUE_RPC: false,
   PERF_USE_SLIM_CHARTS: false,
   // Workstream B3: encode aggregates.byPersonWeek as positional tuples plus
   // string tables instead of 617 fully-keyed objects.

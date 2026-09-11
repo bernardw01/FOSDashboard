@@ -1,5 +1,5 @@
 /**
- * PRD version 3.26.0 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Shared constants for AI usage sync (feature 017).
  */
@@ -9,6 +9,9 @@ var AI_USAGE_FIBERY_APP_PROP_ = 'FIBERY_AI_USAGE_APP';
 
 /** @const {string} */
 var AI_USAGE_SYNC_ENABLED_PROP_ = 'AI_USAGE_SYNC_ENABLED';
+
+/** @const {string} Hub display + Supabase hydrate kill switch (CHANGE-036-03). */
+var AI_USAGE_HYDRATE_ENABLED_PROP_ = 'AI_USAGE_HYDRATE_ENABLED';
 
 /** @const {string} */
 var AI_USAGE_TIMEZONE_PROP_ = 'AI_USAGE_SYNC_TIMEZONE';
@@ -64,6 +67,31 @@ var AI_USAGE_STALE_RUNNING_MS_ = 420000;
 /**
  * @return {string}
  */
+/**
+ * @return {boolean}
+ */
+function aiUsageHydrateIsEnabled_() {
+  var raw = PropertiesService.getScriptProperties().getProperty(AI_USAGE_HYDRATE_ENABLED_PROP_);
+  if (raw === null || raw === undefined || raw === '') {
+    return true;
+  }
+  var v = String(raw).trim().toLowerCase();
+  return v !== 'false' && v !== '0' && v !== 'no';
+}
+
+/**
+ * Feature 057 / CHANGE-036-03: standing suite skip when hydrate is paused.
+ * @return {!Object}
+ */
+function aiUsageHydratePausedDiagResult_() {
+  return {
+    ok: true,
+    pass: true,
+    skipped: true,
+    message: 'AI usage hydration paused (AI_USAGE_HYDRATE_ENABLED=false)',
+  };
+}
+
 function aiUsageFiberyAppPrefix_() {
   var raw = PropertiesService.getScriptProperties().getProperty(AI_USAGE_FIBERY_APP_PROP_);
   var prefix = (raw || 'AI Usage Data').trim();

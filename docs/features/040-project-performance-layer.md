@@ -1,7 +1,7 @@
 # Feature: Project Performance layer (Delivery)
 
 > **Status:** Shipped (**v3.6.0**; patched through **v3.8.2**)  
-> **PRD version:** **3.20.18** (`FR-137`, `AC-99`; allocated cost = hours × user cost rate)  
+> **PRD version:** **3.28.0** (`FR-137`, `AC-99`; allocated cost = hours × user cost rate)  
 > **Feature ID:** **040**  
 > **Release type:** Enhancement  
 > **Task list:** Delivery  
@@ -360,6 +360,70 @@ Ship **R1-R4 together** as a single MINOR (**v3.6.0**). **R5** / **R6** are foll
 
 ---
 
+## Bug fixes (engineering-tracked)
+
+*(Technical appendix; not synced to any Teamwork notebook per `docs/teamwork-workflow.md` "Bug-fix releases." Authored by Claude Code from code review + user report 2026-09-09; implementation belongs to Cursor.)*
+
+### BUG-040-01: Planned margin and Projected margin show N/A site-wide on the live Project Performance tab
+
+**CONFIRMED 2026-09-10 - root cause found, this is a downstream symptom of BUG-036-01, not an independent defect.** A direct read-only Supabase query (via the newly-connected Supabase MCP tool - not previously available) confirmed the actual data: **zero** of the checked `fos_resource_allocations` rows have a `sowBillRate` **key** in their `raw` JSONB column (not null - the key is entirely absent), and every row's `synced_at` is frozen at **2026-08-25 09:28:31 UTC**. Cross-referencing `public.fos_sync_runs` shows the entire Supabase sync/hydrate pipeline has been stuck since **2026-08-25 17:47 UTC** (one manual run left permanently in `status: 'running'`, blocking every subsequent scheduled or manual attempt - see **BUG-036-01** in `docs/features/036-supabase-dashboard-data-layer.md` for the full root cause and fix). `sowBillRate`/`sowCostRate`/`roleOnSow` were added to the AM mirror's select map for feature **053**, which shipped after the last successful sync - so no allocation row has ever actually been synced with these fields present. **Do not implement a calculation-logic fix here** until BUG-036-01 is resolved and a fresh sync has run - re-verify this entry against live data at that point; it may close with no code change needed in this file at all. The original hypothesis-stage analysis below is kept for reference since it correctly identified the shared `allocatedAndBillable` gate mechanism, even though the live data pointed to a sync-freshness cause rather than a rate-mapping bug.
+
+**Original report:** 2026-09-09 - "None of the Projected or Planned margins are showing up in the live data even though it should be there." This was raised while investigating a Lookback report (`docs/features/056-monthly-lookback-financial-review.md` BUG-056-12, closed as not-a-bug for one specific project once the user confirmed PM Overview's live tab showed the same state for it) - the user is now saying the underlying live calculation itself is wrong **across projects generally**, not just the one already checked.
+
+**Mechanism (confirmed, code-level) - both margins share exactly one gate that can explain a site-wide failure.** `ppComputeAllocationLaborMargin_` (`src/projectPerformanceMetrics.js` lines 291-343) is called twice per project - once with `rateMode: 'sow'` (Planned margin) and once with `rateMode: 'current'` (Projected margin). Both calls first filter `assignments` down to `a.allocatedAndBillable === true` (line 295); if that filter empties the list, **both** calls return `{ pct: null, ok: false, reason: 'No billable allocations with hours on this SOW.' }` **before ever looking at any rate** - a single shared cause, not two independent rate problems. Only past that first gate do the two calculations diverge onto separate rate sources:
+- **Planned (SOW):** `row.sowBillRate` / `row.sowCostRate`, sourced from the allocation's mirrored `raw` JSONB column - `sowRateFromSupabaseAllocationRaw_(raw, 'sowBillRate')` (`src/supabasePanelBuilders.js` lines 1357-1362) reads `raw.sowBillRate` / `raw.sowCostRate` directly.
+- **Projected (current):** `role.bill_rate` / `role.cost_rate`, looked up from `loadFosTeamMemberRolesMap_()` by `clockify_user_role_id` (`src/supabasePanelBuilders.js` lines 1383-1405) - a **separate** table/join, unrelated to the SOW rate columns.
+
+Traced end to end and found **structurally correct, but unverified against live data** (I have no way to query Supabase/Fibery directly - this needs Cursor to check the actual values):
+- Fibery field paths are consistent everywhere they're referenced (`Agreement Management/Allocated & Billable`, `.../SOW Bill Rate`, `.../SOW Cost Rate`, `.../Role on SOW`) - `src/supabaseAmMirror.js` lines 306-332.
+- `amMirrorMapResourceAllocation_` (`src/supabaseAmMirror.js` lines 1377-1401) stores `raw: row` - `row` is the select-mapped object using the same camelCase keys (`sowBillRate`, `sowCostRate`, etc.) that `sowRateFromSupabaseAllocationRaw_` later reads, so the key names line up on paper.
+- `amMirrorBool_` (`src/supabaseAmMirror.js` lines 1661-1671) correctly coerces boolean/string/other Fibery values for `allocated_billable` - no obvious bug in the coercion itself.
+
+**Because both a site-wide "no billable allocations" failure (one shared cause) and independent SOW-rate / current-rate data gaps (two separate causes) would produce the same visible symptom, this needs a live data check before writing any code - do not guess which one it is.**
+
+**Ranked diagnostic steps (do these first, in order):**
+1. For a project **known** to have real, billable resource allocations with rates set in Fibery today, query `fos_resource_allocations` directly: check `allocated_billable` (is it actually `true`, or `null`/`false`?), `raw->>'sowBillRate'` and `raw->>'sowCostRate'` (populated or null?), and `clockify_user_role_id` (set, or null?).
+2. If `allocated_billable` is coming back `null`/`false` when Fibery clearly shows it checked, the AM mirror sync for this field is broken (or hasn't run since the field was last edited) - check the mirror's last successful sync timestamp/logs for the `resource_allocations` entity specifically, not just that the job ran generally.
+3. If `allocated_billable` is correctly `true` but `raw->>'sowBillRate'`/`sowCostRate'` are null, check whether `Agreement Management/SOW Bill Rate` / `SOW Cost Rate` are relatively **new** Fibery fields (per **053**'s SOW-based planned margin work) that the AM mirror's field-select list only recently picked up - if so, check whether a **full resync** (not just an incremental one) is needed to backfill `raw` for allocation rows synced before that field was added to the select map.
+4. Separately, if `clockify_user_role_id` is null or `loadFosTeamMemberRolesMap_()`'s underlying table has null `bill_rate`/`cost_rate` for the resolved role, that's a distinct gap specific to Projected margin only - confirm whether Planned margin (SOW path) is affected too before assuming they share one cause.
+5. Cross-check against a project's own **live** Resource Assignments panel (feature 027/028) or the raw Fibery record - if the SOW/current rates are visibly populated there but still come back null through this path, the bug is in the Supabase mirror or this fetch chain, not in Fibery itself.
+
+**Acceptance Criteria (testable):**
+- [x] Root cause identified from live data (per the diagnostic steps above) and stated explicitly before any code change - specifically: is this the shared `allocatedAndBillable` gate, a SOW-rate-specific mirror gap, a current-rate role-lookup gap, or more than one of these at once? **PASS:** BUG-036-01 AM mirror stall; fresh sync 2026-09-10 repopulated `sowBillRate`/`roleOnSow` on all 150 rows. No calculation change in `projectPerformanceMetrics.js`.
+- [x] For a project confirmed to have complete SOW and current rate coverage in Fibery, PM Overview's live Project Performance tab shows real Planned margin and Projected margin percentages, not N/A / "See tooltip". **PASS (data path):** Post-sync Supabase allocations carry SOW rates; August 2026 Lookback metrics updated for covered projects (see per-project table below). Live Web App spot-check recommended for PM Overview tab.
+- [x] If the cause is a stale/incomplete AM mirror sync for newer fields (`SOW Bill Rate`, `SOW Cost Rate`, `Role on SOW`), a resync path is identified and run (full resync vs. incremental) - state which, and confirm it doesn't need a recurring one-off script per the standing rule against those (`.cursor/rules/teamwork-product-workflow.mdc`). **PASS:** ADMIN Pull from Fibery after BUG-036-01 unblock (2026-09-10); incremental AM mirror with reconcile.
+- [x] No regression to the legitimate "See tooltip" / "No plan available" states for projects that genuinely lack complete rate coverage or a resource plan - this fix must not paper over real gaps with fabricated values (same guardrail as BUG-056-12). **PASS:** Projects below still show N/A with explicit Fibery rate-gap reasons.
+- [x] Once fixed, re-verify Lookback's frozen KPI cards (**FEATURE-056-11** / **BUG-056-12**) for the same projects, since Lookback's freeze reuses this exact calculation chain - a live-side fix here should flow through to future locks automatically, but confirm rather than assume. **PASS:** August 2026 Lookback month `03914879-93dd-40a3-96f2-b6e7c0d4b09f` metrics refreshed (LeadWhisper Combined updated 2026-09-10 19:48 UTC).
+
+**Per-project August 2026 Lookback (selected projects, `metrics.performance` after re-run):**
+
+| Project | Planned | Projected | Status |
+| --- | --- | --- | --- |
+| LeadWhisper - Combined SOWs | 55% | 50% | Fixed |
+| Order Form #6 | 54.8% | 50% | Fixed |
+| SOW 1 Change Order 15 & 16 | 54.8% | 50% | Fixed |
+| SOW 15 PCL Utility | 55% | 50% | Fixed |
+| SOW 16 Identity Services | 55.1% | 50% | Fixed |
+| SOW 1 Canon | N/A | 50% | Planned N/A: SOW bill+cost missing on billable allocs (Fibery source) |
+| SOW 21 Omnichannel | N/A | 50% | Planned N/A: SOW rates missing (Niurvi Santos alloc) |
+| SOW 22 Dedicated LW | N/A | 50% | Planned N/A: missing SOW cost rate (Kim-an Quinn) |
+| SOW 23 Fluent | N/A | 50% | Planned N/A: SOW bill present, SOW cost null on all billable allocs |
+| RCI Phase 2 | N/A | N/A | SOW gaps + missing role bill rates (Edison Black, Account Executive - US Contractor) |
+
+**Architecture Review:**
+- **Security:** None - read-only diagnostic and data-sync fix.
+- **Performance:** None expected, unless the fix requires a full AM mirror resync, which is a heavier one-time operation than the normal incremental sync - size that separately if needed.
+- **Regression risk:** This calculation chain is shared by PM Overview's Project Performance tab (**040**/**053**), Delivery P&L (**006**), Engagement Updates (**037**), and Lookback's frozen KPI cards (**056** **FEATURE-056-11**) - a fix here affects all of them. Re-verify each surface still shows correct **and** correctly-N/A states after the fix, not just the one originally reported.
+- **Testing gaps:** No existing test asserts `allocated_billable` / SOW rate / current rate actually reach `ppComputeAllocationLaborMargin_` correctly from a real Supabase row shape - only the calculation function itself has been tested in isolation with stubbed inputs. Add a test that goes through the real fetch chain (`fetchResourceAllocationsForAgreementFromSupabase_` or equivalent) for a known-good fixture row and asserts the resulting `assignments` entry has the expected `allocatedAndBillable`/`sowBillRate`/`sowCostRate`/`currentBillRate`/`currentCostRate` values - this is the layer that was never actually exercised end to end.
+
+**Verification Steps:**
+1. Query `fos_resource_allocations` directly for a project with known-good Fibery rate data; confirm `allocated_billable`, `raw->>'sowBillRate'`, `raw->>'sowCostRate'`, and the resolved role's `bill_rate`/`cost_rate` all match what Fibery shows.
+2. Fix whatever the query reveals (mirror resync, a mapping bug, or a genuinely different issue); confirm PM Overview's live tab now shows real Planned and Projected margin for that project.
+3. Spot-check a project that genuinely lacks complete rate coverage; confirm it still correctly shows N/A / "See tooltip" (not silently "fixed" into a fake value).
+4. Re-lock or re-run a Lookback month containing an affected project; confirm the frozen KPI cards now also show the corrected values.
+
+---
+
 ## Change requests
 
 | Date | Request | Disposition |
@@ -379,3 +443,5 @@ Ship **R1-R4 together** as a single MINOR (**v3.6.0**). **R5** / **R6** are foll
 | 2026-08-20 | **v3.8.2 / R6:** When `resourceAllocations.hasAllocations` is false, hide the Performance resource table and show **No Resource Plan Found**. |
 | 2026-08-21 | **v3.9.0 / feature 046:** Empty-plan Planned/Projected/EAC chips are N/A with **No plan available**; Actual margin stays. |
 | 2026-09-01 | **v3.20.18:** Date-range (and all-time) allocated cost = allocated hours × Team Member Role cost rate when Fibery Allocated Cost is empty. Delivery P&L schema **19**. |
+| 2026-09-10 | **v3.28.0:** BUG-040-01 closed as downstream of BUG-036-01 sync fix. Re-verified August 2026 Lookback metrics and per-project Planned/Projected margin (see AC table). No code change in `projectPerformanceMetrics.js`. |
+| 2026-09-10 | **Confirmed via live Supabase query:** root cause is **BUG-036-01** (sync pipeline stuck since 2026-08-25) - `sowBillRate`/`sowCostRate`/`roleOnSow` have never been synced into `fos_resource_allocations.raw` at all. No calculation-logic fix needed here pending BUG-036-01's remediation; re-verify after that ships. |

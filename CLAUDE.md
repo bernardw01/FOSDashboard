@@ -81,7 +81,11 @@ an explicit outcome for each of these - "nothing to flag" is a valid outcome, si
 4. **Testing gaps** - this repo has **no automated test framework** (no `package.json`, no JS
    test runner; see "Verification reality" below). Name the existing untested surface the
    change touches, and recommend what should get a `test_`-prefixed manual function or a
-   `_diag_*` diagnostic that doesn't exist today - don't just say "test the new code."
+   `_diag_*` diagnostic that doesn't exist today - don't just say "test the new code." Every
+   such recommendation must also say it belongs in `FOS_DIAG_SUITE_STEPS_`
+   (`src/perfParityDiagnostics.js`, feature **057** - the standing, Supabase-backed, Settings
+   → Run diagnostic suite entry point) - new coverage that isn't registered there is invisible
+   to the next session and to the user's own post-push browser check.
 
 ## Cursor's role: implementation
 
@@ -109,9 +113,9 @@ There is **no** `npm test`, `npm run build`, or CI pipeline in this repo. The re
 | Shorthand | What actually runs |
 | --- | --- |
 | **Build** | `clasp push` (uploads `src/`; no compile step - plain JS). Optionally preceded by the BOM check in `.cursor/rules/apps-script-utf8-no-bom.mdc`. |
-| **Test** / smoke | Manual: run the spec's Verification Steps in the Apps Script editor or deployed Web App (desktop **and** ~390px mobile per `.cursor/rules/mobile-ui-shell.mdc`), plus any relevant `_diag_*` function from the README "Optional operators" table. |
+| **Test** / smoke | **Diagnostics (feature 057):** after `clasp push`, run `python scripts/run_diagnostics.py` when Python and `clasp run` are available (non-heavy default via `runFullDiagnosticsSuite`). **Fallback when Python or clasp run is unavailable:** open the Apps Script online editor for this project (`script.google.com`, project bound to the Web App; script id in `.clasp.json`) and run **`runDiagnosticSuiteManual_()`** from the function dropdown (zero-argument wrapper; same non-heavy default as the CLI). Read pass/fail in the Executions log; full history in `fos_perf_runs` (`kind = 'diag-suite'`). Also run spec Verification Steps in the deployed Web App (desktop **and** ~390px mobile per `.cursor/rules/mobile-ui-shell.mdc`) plus any relevant `_diag_*` function from the README "Optional operators" table when a change is panel-specific. |
 | **Build and Deploy** | `clasp push` -> Apps Script **Deploy -> New deployment** (or update existing) -> `python3 scripts/check_deployed_matches_git.py` (must exit 0 - this is the only thing that catches commit-without-push or push-without-commit drift, per its own docstring) -> PRD version bump ritual (`.cursor/rules/google-apps-script-core.mdc`) -> for customer-facing releases, the Teamwork ship ritual (`docs/teamwork-workflow.md`: `python3 scripts/teamwork_ship_command.py --feature-id NNN`, then the printed `teamwork_ship_task.py` invocation). |
 | **Supabase schema change** | `python scripts/supabase_build_schema.py` (generate, read-only against the DB) / `--apply` (writes, via `DATABASE_URL`) - new numbered `0NN_*.sql` file under `supabase/migrations/`, never rewrite history. |
 
 Confirm this table still matches reality before relying on it long-term; it reflects the repo
-as surveyed 2026-09-09 (current product version `3.22.0`).
+as surveyed 2026-09-10 (current product version `3.29.1`).
