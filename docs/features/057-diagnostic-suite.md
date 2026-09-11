@@ -1,6 +1,6 @@
 # Feature: Standing diagnostic suite (CLI-runnable, build-integrated, Supabase-backed)
 
-> **Status:** Shipped (implementation complete; Teamwork ship pending)
+> **Status:** Shipped (v3.29.2)
 > **PRD version:** 3.29.1
 > **Feature ID:** **057**
 > **Release type:** Enhancement
