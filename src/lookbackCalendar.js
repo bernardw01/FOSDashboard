@@ -1,5 +1,5 @@
 /**
- * PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.6 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 056: Lookback lock calendar (first Sunday after month-end + 1 US
  * federal business day, 23:59 America/Los_Angeles).

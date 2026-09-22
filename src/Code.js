@@ -1,11 +1,11 @@
 /**
- * PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.6 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.29.2';
+var FOS_PRD_VERSION = '3.29.6';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.29.2';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.29.2 Lookback Action Required filters use PM Overview multi-select dropdowns.';
+  'v3.29.6 Lookback evidence Drive links; margin and Delivery KPI fixes (3.29.3-3.29.5).';
 
 /**
  * @return {string}

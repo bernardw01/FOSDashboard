@@ -1,5 +1,5 @@
 /**
- * PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.6 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 056: Build a Lookback lock from fos_agreements.
  * Auto-select is Services-only (CHANGE-056-01). Subscriptions (and other
@@ -285,12 +285,17 @@ function lookbackFreezeProjectPerformanceMetrics_(agreementFiberyId, period, ag)
  * @param {!Object} ag
  * @return {!Object}
  */
-function lookbackBuildProjectMetricsBlob_(actual, planned, eacMargin, agreementFiberyId, period, ag) {
+function lookbackBuildProjectMetricsBlob_(actual, planned, eacFallback, agreementFiberyId, period, ag) {
   var rich = lookbackFreezeProjectPerformanceMetrics_(agreementFiberyId, period, ag);
+  var projectedEac =
+    rich.performance && rich.performance.projectedMarginPct != null
+      ? rich.performance.projectedMarginPct
+      : null;
+  var eacMarginPct = projectedEac != null ? projectedEac : eacFallback;
   return {
     actualMarginPct: actual,
     plannedMarginPct: planned,
-    eacMarginPct: eacMargin,
+    eacMarginPct: eacMarginPct,
     hoursPlanned: null,
     hoursActual: null,
     hoursVariance: null,
@@ -372,8 +377,16 @@ function lookbackEvaluateMonthProjects_(period, monthId, threshold) {
     // BUG-056-08: fos_agreements margins are Fibery fractions; compare/display as percent.
     var actual = scaleFractionToPercent_(ag.current_margin);
     var planned = scaleFractionToPercent_(ag.target_margin);
-    var eacMargin = scaleFractionToPercent_(ag.target_planned_margin_at_complete);
-    if (eacMargin == null) eacMargin = actual;
+    var metrics = lookbackBuildProjectMetricsBlob_(
+      actual,
+      planned,
+      actual,
+      String(ag.fibery_id),
+      p,
+      ag
+    );
+    // BUG-040-03: EAC column + auto-select use frozen projectedMarginPct, not Fibery rollup.
+    var eacMargin = metrics.eacMarginPct;
     var criteria = [];
     // CHANGE-056-01: auto-select criteria only for Services.
     if (lookbackIsServicesType_(ag.agreement_type)) {
@@ -413,14 +426,7 @@ function lookbackEvaluateMonthProjects_(period, monthId, threshold) {
       narrative: {},
       narrative_status: 'not_started',
       sort_order: 0,
-      metrics: lookbackBuildProjectMetricsBlob_(
-        actual,
-        planned,
-        eacMargin,
-        String(ag.fibery_id),
-        p,
-        ag
-      ),
+      metrics: metrics,
     });
     if (isSelected) selected++;
     else green++;

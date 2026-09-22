@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.29.6 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -4922,6 +4922,13 @@
       opacity: 0.4;
     }
 
+    a.lb-evidence-link {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      text-decoration: underline;
+    }
+
     .er-update-row .btn {
       min-height: 44px;
       min-width: 44px;
@@ -5965,7 +5972,9 @@
       // P&L share the same TTL knob. The per-project P&Ls use a key prefix
       // so we can iterate sessionStorage to invalidate them in one pass on
       // Refresh.
-      var DELIVERY_CACHE_KEY = 'fos_delivery_dashboard_v1';
+      // v3.29.5: bump key so stale browser Delivery blobs (e.g. $0 laborCosts
+      // while Datastore hydrate is correct) are dropped after deploy.
+      var DELIVERY_CACHE_KEY = 'fos_delivery_dashboard_v2';
       var DELIVERY_CACHE_SCHEMA_VERSION = 2;
       // v1.20.0 (Phase B, FR-94 / FR-95). The per-project P&L key suffix is
       // bumped to `_v2` so any v1.19.0 cache (which had no `projected`
@@ -24173,14 +24182,36 @@
           if (!evs.length) list.innerHTML = '<li>No images yet.</li>';
           for (var e = 0; e < evs.length; e++) {
             var li = document.createElement('li');
-            li.textContent = evs[e].file_name || evs[e].fileName || 'image';
+            var evItem = evs[e];
+            var evLabel = evItem.file_name || evItem.fileName || 'image';
+            var evUrl = String(evItem.viewUrl || '').trim();
+            if (!evUrl) {
+              var evFid = evItem.drive_file_id || evItem.driveFileId;
+              if (evFid) {
+                evUrl =
+                  'https://drive.google.com/file/d/' +
+                  encodeURIComponent(String(evFid)) +
+                  '/view';
+              }
+            }
+            if (evUrl) {
+              var evLink = document.createElement('a');
+              evLink.href = evUrl;
+              evLink.target = '_blank';
+              evLink.rel = 'noopener noreferrer';
+              evLink.className = 'lb-evidence-link';
+              evLink.textContent = evLabel;
+              li.appendChild(evLink);
+            } else {
+              li.textContent = evLabel;
+            }
             if (canEdit) {
               var del = document.createElement('button');
               del.type = 'button';
               del.className = 'btn btn-sm btn-link';
               del.style.minHeight = '44px';
               del.textContent = 'Remove';
-              del.setAttribute('data-id', evs[e].id);
+              del.setAttribute('data-id', evItem.id);
               del.addEventListener('click', function (ev) {
                 var eid = ev.currentTarget.getAttribute('data-id');
                 erSetLoading_(true);
@@ -30297,46 +30328,15 @@
         }
         opts = opts || {};
         var forceRefresh = opts.manual === true;
-        var agreementPayload = null;
-        if (!forceRefresh && !opts.skipBrowserAgreement) {
-          var agreementCached = readAgreementCache();
-          var agreementTtl = readTtlMinutes();
-          if (
-            agreementCached &&
-            agreementCached.ok !== false &&
-            !(agreementTtl > 0 && isCacheStale(agreementCached, agreementTtl))
-          ) {
-            try {
-              // Keep well below Apps Script's practical google.script.run
-              // argument ceiling; larger payloads use the server Drive cache.
-              var agreementSerialized = JSON.stringify(agreementCached);
-              if (agreementSerialized.length <= 1500000) {
-                agreementPayload = JSON.parse(agreementSerialized);
-                agreementPayload.source = 'browser-cache';
-                agreementPayload.loadSource = 'browser-cache';
-                agreementPayload.fromDrive = false;
-                agreementPayload.cacheDateKey = null;
-              }
-            } catch (_) {
-              agreementPayload = null;
-            }
-          }
-        }
+        // Always serve Delivery from the server (Supabase hydrate blob or typed
+        // rebuild). Do not derive from the browser Agreement session cache:
+        // a stale Agreement blob with laborCosts: 0 produced $0 Total Cost /
+        // 100% margin while fos_panel_payloads already had correct costs.
         if (els.deliveryRefreshBtn) els.deliveryRefreshBtn.disabled = true;
         if (els.deliveryFetchError) els.deliveryFetchError.classList.add('d-none');
-        setDeliveryLoading(
-          true,
-          agreementPayload ? { transport: 'browserCache' } : liveLoadSourceHint_()
-        );
-        var runner = google.script.run
+        setDeliveryLoading(true, liveLoadSourceHint_());
+        google.script.run
           .withSuccessHandler(function (data) {
-            if (data && data.fallback === true && !opts.skipBrowserAgreement) {
-              fetchDeliveryFromServer({
-                manual: forceRefresh,
-                skipBrowserAgreement: true,
-              });
-              return;
-            }
             setDeliveryLoading(false);
             if (els.deliveryRefreshBtn) els.deliveryRefreshBtn.disabled = false;
             if (!data || data.ok === false) {
@@ -30360,12 +30360,8 @@
               els.deliveryFetchError.textContent = msg;
               els.deliveryFetchError.classList.remove('d-none');
             }
-          });
-        if (agreementPayload) {
-          runner.getDeliveryDashboardDataFromAgreementPayload(agreementPayload);
-        } else {
-          runner.getDeliveryDashboardData(forceRefresh);
-        }
+          })
+          .getDeliveryDashboardData(forceRefresh);
       }
 
       function applyDeliveryPayload(data) {
@@ -33482,6 +33478,12 @@
         if (els.deliveryRefreshBtn) {
           els.deliveryRefreshBtn.addEventListener('click', function () {
             logActivity_('delivery_refresh', 'pm-overview', 'manual=true');
+            try {
+              sessionStorage.removeItem(DELIVERY_CACHE_KEY);
+              sessionStorage.removeItem(AGREEMENT_CACHE_KEY);
+              // Legacy Delivery key from before v3.29.5.
+              sessionStorage.removeItem('fos_delivery_dashboard_v1');
+            } catch (eClear) { /* ignore */ }
             invalidateAllDeliveryPnlCaches();
             deliveryRenderState.lastRenderedFetchedAt = null;
             fetchDeliveryFromServer({ manual: true });

@@ -1,10 +1,10 @@
 # FinOps Performance Hub (Google Workspace Web App)
 
-**PRD version 3.29.2** - `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
+**PRD version 3.29.6** - `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
 
 Product Requirements Document
 
-Version 3.29.2 - 2026-09-11
+Version 3.29.6 - 2026-09-22
 
 ## 1) Overview
 
@@ -515,7 +515,7 @@ This section defines how the **Delivery Dashboard** (route id `delivery`, panel 
 
 - **Fibery** is the **source of truth** for delivery data. The server reads agreement context through `getAgreementDashboardData()` (reused, no extra round-trip for the projects list), and for each user-selected project it reads `Agreement Management/Labor Costs`, `Agreement Management/Other Direct Costs`, and `Agreement Management/Revenue Item` through batched `fibery.entity/query` calls (see `src/deliveryDashboard.js` `fetchLaborCostsForAgreement_` / `fetchOtherDirectCostsForAgreement_` / `fetchRecognizedRevenueItemsForAgreement_`). Credentials live in Script Properties `FIBERY_HOST` + `FIBERY_API_TOKEN` (FR-52). Thresholds + palettes live in `src/agreementThresholds.js` with optional Script Property overrides.
 - The solution **MUST NOT** persist Delivery payloads in Script Properties, Sheet tabs, or Drive files (parallels FR-52 / FR-70). Server-side caching of either the projects list or the per-project monthly P&L is **explicitly out of scope** for Phase A - the browser owns presentation cache.
-- The **client** caches the last successful projects-list JSON in `sessionStorage` under key `fos_delivery_dashboard_v1` (`cacheSchemaVersion: 1`); each per-project monthly P&L payload is cached under a distinct key whose suffix is bumped per cache-schema version (`_v1` in Phase A v1.19.0; **`_v2`** as of Phase B v1.20.0 because each month row now carries `projected: bool` + `revenueItems[]` for the FR-95 drill-down). The per-project payload's `cacheSchemaVersion` MUST match the client-known constant; mismatched payloads MUST be treated as a cache miss and re-fetched. Both caches share a single TTL preference persisted in `localStorage` under `fos_delivery_dashboard_ttl_minutes_v1` (5 / 10 / 30 / Off, default 10 min). Manual **Refresh** MUST invalidate **every** `fos_delivery_pnl_*` entry alongside the projects-list cache so the next selection re-fetches.
+- The **client** caches the last successful projects-list JSON in `sessionStorage` under key **`fos_delivery_dashboard_v2`** as of **v3.29.4** (was `fos_delivery_dashboard_v1`; key bump drops stale Total Cost blobs). Server `cacheSchemaVersion` for the Delivery projects list remains **2**. Each per-project monthly P&L payload is cached under a distinct key whose suffix is bumped per cache-schema version (`_v1` in Phase A v1.19.0; **`_v2`** as of Phase B v1.20.0 because each month row now carries `projected: bool` + `revenueItems[]` for the FR-95 drill-down). The per-project payload's `cacheSchemaVersion` MUST match the client-known constant; mismatched payloads MUST be treated as a cache miss and re-fetched. Both caches share a single TTL preference persisted in `localStorage` under `fos_delivery_dashboard_ttl_minutes_v1` (5 / 10 / 30 / Off, default 10 min). Live Delivery list loads MUST call **`getDeliveryDashboardData`** (Datastore hydrate / typed rebuild) and MUST NOT derive the list from a browser-cached Agreement payload. Manual **Refresh** MUST invalidate **every** `fos_delivery_pnl_*` entry alongside the projects-list and Agreement session caches so the next selection re-fetches.
 
 ### 9.2 Branding and layout (normative)
 
@@ -721,6 +721,10 @@ The **Clockify to Fibery Sync** product (see `docs/PRD.md`) remains the **system
 
 | Date | Version | Change Summary | Author |
 | --- | --- | --- | --- |
+| 2026-09-22 | 3.29.6 | **Lookback evidence links.** Uploaded narrative evidence filenames link to Google Drive (`viewUrl`, domain view sharing on upload); opens in a new browser tab. Teamwork glossary notebook sync sends Markdown (not HTML). PATCH -> **3.29.6**. | Cursor |
+| 2026-09-13 | 3.29.5 | **BUG-040-03 Projected margin.** `projectedMarginPct` from `(projectedRev - projectedCost) / projectedRev` (Locked Decision #6); removed unused `current` rate-mode branch. Lookback `eacMarginPct` uses frozen `projectedMarginPct`. **BUG-006-01 Total Cost KPI.** Agreement `laborCosts`/`materialsOdc` from bulk `fos_labor_costs`/`fos_other_direct_costs` sums, not Fibery rollups. PATCH -> **3.29.5**. | Cursor |
+| 2026-09-13 | 3.29.4 | **Delivery Total Cost stale browser cache.** Live Delivery always loads via `getDeliveryDashboardData` (no derive-from-browser-Agreement shortcut). Client projects-list key `fos_delivery_dashboard_v2`; Reload clears Delivery + Agreement session caches. Fixes KPI Total Cost $0 / 100% margin when Datastore hydrate already had correct `total_labor_costs` (e.g. LeadWhisper Combined). PATCH -> **3.29.4**. | Cursor |
+| 2026-09-11 | 3.29.3 | **BUG-040-02 Actual margin to date.** `actualMarginPctToDate` sums recognized-only revenue per month (`revenueRecognized` on P&L months); blended forecast revenue unchanged for projected margin/GP/EAC. Diagnostic: `test_buildProjectPerformanceBlock_ActualMarginExcludesUnrecognizedForecast_`. PATCH -> **3.29.3**. | Cursor |
 | 2026-09-11 | 3.29.2 | **CHANGE-056-13 Lookback Action Required filters.** Status/Owner use shared `fos-util-multi` dropdown widget (same as PM Overview); presentation-only, filter logic unchanged. PATCH -> **3.29.2**. | Cursor |
 | 2026-09-10 | 3.29.1 | **CHANGE-036-03 AI Usage hydrate pause.** New `AI_USAGE_HYDRATE_ENABLED` kill switch hides Finance nav AI Usage, skips Supabase hydrate step, pauses AI usage diagnostic steps, and gates notification catalog; feature 017 ingest unchanged. **Feature 057:** `runDiagnosticSuiteManual_()` for Apps Script editor (non-heavy default). PATCH -> **3.29.1**. | Cursor |
 | 2026-09-10 | 3.29.0 | **Feature 057 standing diagnostic suite.** `scripts/run_diagnostics.py` runs `_diag_runFullDiagnosticsSuite` via `clasp run` (dev-time only; no Web App entry point). Expanded `FOS_DIAG_SUITE_STEPS_` with Lookback, Performance Review, and panel health checks; registry minimum self-check. MINOR -> **3.29.0**. | Cursor |

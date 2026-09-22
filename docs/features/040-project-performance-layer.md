@@ -1,7 +1,7 @@
 # Feature: Project Performance layer (Delivery)
 
 > **Status:** Shipped (**v3.6.0**; patched through **v3.8.2**)  
-> **PRD version:** **3.28.0** (`FR-137`, `AC-99`; allocated cost = hours × user cost rate)  
+> **PRD version:** **3.29.5** (`FR-137`, `AC-99`; allocated cost = hours × user cost rate)  
 > **Feature ID:** **040**  
 > **Release type:** Enhancement  
 > **Task list:** Delivery  
@@ -424,6 +424,133 @@ Traced end to end and found **structurally correct, but unverified against live 
 
 ---
 
+### BUG-040-02: "Actual margin to date" counts un-invoiced forecast milestone revenue once its Target Date arrives, inflating the live figure above Lookback's frozen figure for the same historical period
+
+**CONFIRMED 2026-09-11 via live Supabase query** (project `jpcbugdpdvyutlusicxa`), root-caused end to end from a user report: **SOW 1 Canon Deployment and Integration Services** shows **Actual margin to date = 8.2%** on the Lookback detail page (frozen at Aug 31, 2026 lock) but **46.9%** on PM Overview's live Project Performance tab (All Time / today, 2026-09-11) for the identical project and identical historical window. This is a genuine calculation bug, not a stale-Lookback or stale-sync issue - both numbers are internally consistent with their own inputs, but one of those inputs is wrong.
+
+**Mechanism (confirmed, code-level and against live data):**
+
+`buildProjectPerformanceBlock_` (`src/projectPerformanceMetrics.js` lines 434-566) computes:
+```js
+var actualMarginPctToDate =
+  revToDate > 0 ? ppRound1_(((revToDate - actualCostToDate) / revToDate) * 100) : null;
+```
+where `revToDate` (line 475) is `sum(m.revenue for every month m where m.key <= asOfMonthKey)`. Nothing here filters on whether that month's revenue is actually **recognized** (invoiced/earned) versus merely **forecast**.
+
+The `m.revenue` values themselves come from `buildMonthlyPnL_` (`src/deliveryDashboard.js`), specifically `resolvePnlRevenueItemAmount_` / `resolvePnlRevenueItemMonthKey_` (lines 1178-1201):
+```js
+function resolvePnlRevenueItemAmount_(row) {
+  var target = Number(row.targetAmount || 0);
+  if (row.recognized === true) {
+    var actual = Number(row.actualAmount || 0);
+    if (isFinite(actual) && actual !== 0) return actual;
+    return isFinite(target) ? target : 0;
+  }
+  return isFinite(target) ? target : 0;   // <-- unrecognized milestones still contribute Target Amount
+}
+function resolvePnlRevenueItemMonthKey_(row) {
+  if (row.recognized === true) {
+    return monthKeyFromIso_(row.actualDate || row.targetDate);
+  }
+  return monthKeyFromIso_(row.targetDate || row.actualDate);  // <-- bucketed by Target Date, not Actual Date
+}
+```
+This recognized/forecast blending was added deliberately (per the adjacent code comment, "Phase B FR-94... future-dated milestones land in projected months") so that **`projectedMarginPct`** (a forward-looking, plan-inclusive figure) has forecast revenue to work with. But `buildProjectPerformanceBlock_` reuses the exact same `m.revenue` series for **both** `projectedMarginPct` *and* `actualMarginPctToDate` - there is no second, recognized-only revenue series for the "actual" calculation. Once an unrecognized milestone's **Target Date** falls on or before `asOfMonthKey`, its full Target Amount silently counts as "actual to date" revenue even though nothing has been invoiced or recognized.
+
+**Live data reproduction (`fos_revenue_items`, agreement `2ddbdf33-ab0a-4774-ba6f-d4e17b908752`):**
+
+| Milestone | Target date | Target amount | Actual amount | Recognized |
+| --- | --- | --- | --- | --- |
+| Month 1 (Jul 13 - Aug 14) | 2026-08-14 | $50,000 | $50,000 | true |
+| Month 2 (Aug 15 - Sep 11) | **2026-09-11 (today)** | $50,000 | null | **false** |
+| Month 3 (Sep 12 - Oct 9) | 2026-10-09 | $50,000 | null | false |
+
+Milestone 2's Target Date is *today* - not yet invoiced, `revenue_recognized = false`, `actual_amount = null`. Labor cost from `fos_labor_costs` (project `6a341e5e96529a8b21a9e3e4`), joined correctly to `fos_clockify_users`/`fos_team_member_roles` (see note below on a false lead ruled out):
+
+| Period | Labor cost |
+| --- | --- |
+| Jul 2026 | $15,756.25 |
+| Aug 2026 | $30,157.00 |
+| Sep 2026 (through today) | $7,217.50 |
+
+- **Lookback, locked 2026-09-11 02:24 UTC, asOfMonthKey = "2026-08":** `revToDate` = Month 1 only ($50,000, recognized, Aug bucket). `actualCostToDate` = Jul + Aug labor = $45,913.25. Margin = (50,000 - 45,913.25) / 50,000 = **8.2%.** Matches the Lookback screen exactly.
+- **PM Overview live, asOfMonthKey = "2026-09" (today):** `revToDate` = Month 1 ($50,000, recognized) **+ Month 2 ($50,000, unrecognized forecast, because its Target Date 2026-09-11 <= today)** = $100,000. `actualCostToDate` = Jul + Aug + Sep labor = $53,130.75. Margin = (100,000 - 53,130.75) / 100,000 = **46.9%.** Matches the PM Overview screen exactly.
+
+The entire discrepancy is explained by one un-invoiced $50,000 forecast milestone crossing its Target Date between the Lookback lock and today, and being counted as earned revenue in the "actual" figure it should not touch. This is not a one-time coincidence - it will recur for any project, at any lock boundary, whenever a milestone's Target Date arrives before its invoice actually posts (a common ordinary-course lag, not an error condition), and will get worse (not self-correct) if the invoice keeps slipping across further Lookback cycles while PM Overview keeps re-including the same forecast amount for every month that passes.
+
+**False lead ruled out during investigation:** an initial raw SQL reproduction joining `fos_labor_costs.user_id = fos_clockify_users.clockify_user_id` showed nearly every person's hours failing to match a role/cost rate (only one user matched). This was **not** a real bug - `loadFosClockifyUsersByClockifyIdMap_` (`src/supabasePanelBuilders.js` lines 163-179) keys its lookup map by **both** `clockify_user_id` **and** lowercased `clockify_user_email`, since `fos_labor_costs.user_id` is stored as an email address for most rows. Re-running the join with `OR lower(clockify_user_email) = lower(user_id)` resolved every user correctly and produced the labor costs above. Also ruled out earlier in this investigation: a role/cost-rate change between the two calculation times (`fos_team_member_roles.synced_at` predates the Lookback lock), and a revenue-recognition change on Month 1 (flat at $50,000 both times).
+
+**Acceptance Criteria (testable):**
+- [x] `actualMarginPctToDate` (and the underlying `actualCostToDate`/`revToDate` accumulation) sums **recognized-only** revenue for months `<= asOfMonthKey` - i.e., it must exclude any revenue item where `recognized !== true`, regardless of whether its Target Date has passed. `projectedMarginPct`/`projectedGrossProfit` keep using the existing blended (recognized + forecast) series unchanged - this bug is scoped to the "Actual" figure only, not the "Projected" one.
+- [x] For SOW 1 Canon Deployment and Integration Services, PM Overview's live "Actual margin to date" (All Time) recalculates to match Lookback's frozen 8.2% for the Aug 2026 lock's historical window (allowing for any additional *recognized* revenue/cost that has posted since, if any) - it must no longer include Month 2's un-invoiced $50,000.
+- [x] Re-run/verify at least one other project where a milestone's Target Date has passed without an actual invoice, to confirm the fix generalizes and isn't a one-project patch.
+- [x] No regression to `projectedMarginPct`, `eacDollars`, or `timingReview`, which intentionally rely on the blended recognized+forecast revenue series - only `actualMarginPctToDate`'s revenue input changes.
+- [x] Confirm whether the Lookback freeze path and PM Overview live path both call the same corrected code (they should, per **FEATURE-056-11**'s design of reusing this calculation) - if Lookback has any separate revenue-summing logic instead of routing through `buildProjectPerformanceBlock_`, it needs the identical fix.
+
+**Architecture Review:**
+- **Security:** None - read-only calculation-logic fix, no new `google.script.run` entry point, no auth/access-gate change.
+- **Performance:** None - same query shape, only a filter added to values already fetched.
+- **Regression risk:** `buildProjectPerformanceBlock_`'s `actualMarginPctToDate` is consumed by PM Overview's Project Performance tab (**040**) and Lookback's frozen `metrics.performance.actualMarginPctToDate` (**056** **FEATURE-056-11**) - both must be re-verified. `projectedMarginPct` and `eacDollars` deliberately keep the current blended series and must NOT be touched, or the fix will regress the "Projected" and "EAC" KPI cards, which are intentionally forward-looking. Grep for other direct readers of `revToDate`/`actualCostToDate`/`m.revenue` inside this function before changing the shared loop, since the fix should add a parallel recognized-only accumulator rather than mutate the existing blended one in place.
+- **Testing gaps:** No existing `_diag_*` or `test_`-prefixed function asserts `actualMarginPctToDate` against a fixture with a mix of recognized and unrecognized-but-past-target-date revenue items - this exact edge case (a milestone whose Target Date has arrived but which is not yet recognized) has no coverage today. Add a `test_buildProjectPerformanceBlock_ActualMarginExcludesUnrecognizedForecast_()`-style manual function with a fixture months array containing both a recognized item and an unrecognized item whose target month is `<= asOfMonthKey`, asserting `actualMarginPctToDate` reflects only the recognized amount. Register it in `FOS_DIAG_SUITE_STEPS_` (`src/perfParityDiagnostics.js`, feature **057**) so it runs automatically after every `clasp push`, not just on manual re-check.
+
+**Verification Steps:**
+1. Apply the recognized-only filter to `actualCostToDate`'s companion `revToDate` in `buildProjectPerformanceBlock_`.
+2. Re-check SOW 1 Canon Deployment's PM Overview live "Actual margin to date" against the 8.2%/46.9% figures above; confirm it now reflects only recognized revenue.
+3. Spot-check a project with no unrecognized-but-past-due milestones to confirm `actualMarginPctToDate` is unchanged there (no regression for the common case).
+4. Confirm `projectedMarginPct` and `eacDollars` are byte-for-byte unchanged for the same projects (this fix must not touch that series).
+5. Re-lock or re-run the Aug 2026 Lookback month; confirm frozen `metrics.performance.actualMarginPctToDate` still matches (Lookback was already correct here - this step is a non-regression check, not a fix target).
+
+---
+
+### BUG-040-03: "Projected margin" does not implement Locked Decision #6's formula - it ignores actuals-to-date, remaining planned hours, and revenue milestones entirely
+
+**CONFIRMED 2026-09-13 by direct code read**, prompted by a user request to verify that "EAC margin" is computed as *current actuals + current planned hours (from resource assignments) + planned revenue (from revenue milestones)*. That is exactly this spec's own **Locked product decision #6** (top of this document): *"Formula: (Revenue to date + remaining planned revenue - Cost to date - remaining planned cost) / (Revenue to date + remaining planned revenue)."* The code does **not** implement this formula for the figure users see as "Projected margin" (or for anything labeled EAC-related margin) - it computes something structurally different.
+
+**Mechanism:** `buildProjectPerformanceBlock_` (`src/projectPerformanceMetrics.js`) already builds the *correct* ingredients for Locked Decision #6, and even exposes them as a dollar figure:
+```js
+var projectedRev = revToDate + remainingPlannedRevenue;          // line 526
+var projectedCost = actualCostToDate + remainingPlanCost;        // line 527
+var projectedGp = projectedRev - projectedCost;                  // line 528
+...
+projectedGrossProfit: projectedRev > 0 || projectedCost > 0 ? ppRound2_(projectedGp) : null,  // line 559
+```
+`revToDate`/`actualCostToDate` are true actuals-to-date (sum of months `<= asOfMonthKey`); `remainingPlannedHours`/`remainingPlannedAllocCost` are pulled from the resource allocation plan for months `> asOfMonthKey` (`ppPlannedHoursForMonth_`/`ppPlannedAllocCostForMonth_`, lines 91-115 - genuinely sourced from `resourceAllocations`, matching "planned hours based on resource assignments"); `remainingPlannedRevenue` sums `m.revenue` for those same future months, which for not-yet-elapsed months is always the milestone's Target Amount (matching "planned revenue based on revenue milestones"). **This is precisely the formula the user described and the spec already locked.**
+
+But the percentage actually returned as `projectedMarginPct` (line 529-530) throws all of that away:
+```js
+var projectedLabor = ppComputeAllocationLaborMargin_(assignments, 'current');   // line 441
+...
+var projectedMarginPct = projectedLabor.ok ? projectedLabor.pct : null;
+```
+`ppComputeAllocationLaborMargin_` (lines 318-370) computes an entirely different thing: it filters `assignments` to `allocatedAndBillable === true`, then sums **every billable allocation's full lifetime `allocatedHours` x current Team Member Role bill/cost rate** - with no reference to `asOfMonthKey`, no actual labor cost ever logged, no actual revenue ever recognized, and no revenue milestone data at all (it substitutes `allocatedHours x billRate` as a revenue proxy instead of the real milestone Target Amounts). It is a static "if this SOW ran entirely at today's role rate card" markup calculation, not an actuals-plus-remaining-plan estimate at completion.
+
+**Two concrete consequences, both confirmed against live data this session:**
+1. **It is date-invariant, so Lookback's "lock down as of end of month" does not apply to it.** `ppComputeAllocationLaborMargin_` never reads `asOfMonthKey` - locking the same project in July, August, or September would freeze the identical percentage every time, because the calculation never looks at how much of the project has actually elapsed. Contrast with `actualMarginPctToDate`, which correctly changes lock-to-lock because it sums only months `<= asOfMonthKey` (per **BUG-040-02**'s fix).
+2. **It explains the suspicious uniformity the user flagged in the previous investigation.** Every SOW sampled from the Action Required list showed "Projected margin: 50.0%" regardless of actual project health (`current_margin` for the same projects ranged from -7.8% to 91.1%, per **BUG-040-02**'s and the Lookback-EAC investigation's live queries) - consistent with a formula driven purely by a standardized bill-rate:cost-rate markup on role cards rather than any project-specific actual or planned-revenue signal.
+
+**Acceptance Criteria (testable):**
+- [x] `projectedMarginPct` is computed as `(projectedRev - projectedCost) / projectedRev * 100` using the already-computed `projectedRev`/`projectedCost` (or equivalently exposes a margin computed from `revToDate + remainingPlannedRevenue` and `eacDollars`'s cost basis) - i.e., wire the existing, already-correct dollar-level Locked-Decision-#6 calculation into the percentage the UI displays, instead of `ppComputeAllocationLaborMargin_(assignments, 'current')`.
+- [x] Confirm whether `ppComputeAllocationLaborMargin_(assignments, 'current')` still has a legitimate purpose anywhere else (e.g., as an input to `plannedMarginPct`'s SOW-rate sibling, which is intentionally a static rate-card calculation per Locked Decision #5's "SOW bill and cost rates... rates used when the SOW was written") - if `rateMode: 'current'` is now unused after this fix, remove the dead branch rather than leaving an orphaned code path.
+- [x] For at least 3 projects at different points in their lifecycle (early, mid, near-complete), confirm `projectedMarginPct` now changes month-to-month as actuals accrue and remaining plan shrinks, rather than staying pinned to a role-rate-card constant.
+- [x] Re-lock the Aug 2026 (and, if available, an earlier) Lookback month for the same project and confirm the frozen `metrics.performance.projectedMarginPct` differs appropriately between lock dates - proving the "lock down as of end of month" behavior now actually applies to this figure.
+- [x] No regression to `plannedMarginPct` (Locked Decision #5, intentionally a static SOW-rate-card calculation - must NOT be touched), `eacHours`, `eacDollars`, or `actualMarginPctToDate` (**BUG-040-02** - must remain on its recognized-only revenue series).
+- [x] Revisit the Lookback "Action Required" list's **EAC column** (`p.metrics.eacMarginPct`, sourced today from the manually-maintained and largely-neglected Fibery field `Agreement Management/Target Planned Margin At Complete` - see the 2026-09-11/2026-09-13 EAC-column investigation) - once `projectedMarginPct` is fixed, it becomes a far better candidate source for that column than the neglected Fibery field. Decide (with Bernard) whether to re-point `eacMarginPct` at the corrected `projectedMarginPct`, or keep them as two intentionally distinct concepts - do not silently conflate them without an explicit decision recorded here. **Decision (2026-09-13):** re-point `eacMarginPct` at frozen `projectedMarginPct` (Locked Decision #6); Fibery `Target Planned Margin At Complete` no longer used for Lookback list or auto-select criteria.
+
+**Architecture Review:**
+- **Security:** None - calculation-logic fix, no new `google.script.run` entry point.
+- **Performance:** None - reuses values already computed in the same function; no new queries.
+- **Regression risk:** `projectedMarginPct` is consumed by PM Overview's Project Performance tab KPI strip ("Projected margin"), Lookback's frozen `metrics.performance.projectedMarginPct`, and Engagement Update snapshots (**037**, which shares this builder per Locked Decision #11) - all three must be re-verified. `ppComputeAllocationLaborMargin_(assignments, 'sow')` (Planned margin, Locked Decision #5) must be left untouched - only the `'current'`-mode call site feeding `projectedMarginPct` changes. If the Lookback EAC-column re-pointing (last AC above) is accepted, that touches **056**'s `lookbackBuildProjectMetricsBlob_` as well and needs its own re-verification pass there.
+- **Testing gaps:** No existing `_diag_*`/`test_`-prefixed function asserts `projectedMarginPct` changes across lock dates as actuals accrue, or that it matches `(projectedRev - projectedCost) / projectedRev`. Add a `test_buildProjectPerformanceBlock_ProjectedMarginUsesActualsPlusRemainingPlan_()`-style fixture-driven check (two different `asOfMonthKey` values over the same fixture months/assignments, asserting the resulting `projectedMarginPct` differs and matches the hand-computed formula) and register it in `FOS_DIAG_SUITE_STEPS_` (`src/perfParityDiagnostics.js`, feature **057**).
+
+**Verification Steps:**
+1. Change `projectedMarginPct` to derive from `projectedRev`/`projectedCost` instead of `ppComputeAllocationLaborMargin_(assignments, 'current')`.
+2. Re-check a handful of projects from the Action Required list; confirm "Projected margin" no longer reads a flat 50%/100% matching Target Margin and instead varies with each project's actual trajectory.
+3. Re-lock two different months for the same project; confirm `metrics.performance.projectedMarginPct` differs between them.
+4. Confirm `plannedMarginPct`, `eacHours`, `eacDollars`, and `actualMarginPctToDate` are unchanged for the same projects.
+5. Decide and record the Lookback EAC-column question (last Acceptance Criterion above) before closing this out.
+
+---
+
 ## Change requests
 
 | Date | Request | Disposition |
@@ -445,3 +572,7 @@ Traced end to end and found **structurally correct, but unverified against live 
 | 2026-09-01 | **v3.20.18:** Date-range (and all-time) allocated cost = allocated hours × Team Member Role cost rate when Fibery Allocated Cost is empty. Delivery P&L schema **19**. |
 | 2026-09-10 | **v3.28.0:** BUG-040-01 closed as downstream of BUG-036-01 sync fix. Re-verified August 2026 Lookback metrics and per-project Planned/Projected margin (see AC table). No code change in `projectPerformanceMetrics.js`. |
 | 2026-09-10 | **Confirmed via live Supabase query:** root cause is **BUG-036-01** (sync pipeline stuck since 2026-08-25) - `sowBillRate`/`sowCostRate`/`roleOnSow` have never been synced into `fos_resource_allocations.raw` at all. No calculation-logic fix needed here pending BUG-036-01's remediation; re-verify after that ships. |
+| 2026-09-11 | **BUG-040-02 opened and root-caused via live Supabase query:** `actualMarginPctToDate` blends recognized and unrecognized-forecast revenue once a milestone's Target Date arrives, inflating "Actual margin to date" on PM Overview relative to Lookback's frozen figure for the same historical window (SOW 1 Canon Deployment: 8.2% frozen vs. 46.9% live, explained entirely by one un-invoiced $50,000 milestone crossing its Target Date). |
+| 2026-09-13 | **v3.29.5 BUG-040-03 fix:** `projectedMarginPct` from `(projectedRev - projectedCost) / projectedRev` (Locked Decision #6); removed `ppComputeAllocationLaborMargin_` `current` rate mode. Lookback `eacMarginPct` uses frozen `projectedMarginPct`. Diagnostic `test_buildProjectPerformanceBlock_ProjectedMarginUsesActualsPlusRemainingPlan_` in feature **057** suite. |
+| 2026-09-11 | **v3.29.3 BUG-040-02 fix:** `buildMonthlyPnL_` emits `revenueRecognized` per month; `buildProjectPerformanceBlock_` uses `recognizedRevToDate` for `actualMarginPctToDate` only; blended `m.revenue` unchanged for projected GP/EAC. Diagnostic `test_buildProjectPerformanceBlock_ActualMarginExcludesUnrecognizedForecast_` registered in feature **057** suite. |
+| 2026-09-13 | **BUG-040-03 opened via code review (user-requested verification):** `projectedMarginPct` does not implement Locked Decision #6's actuals-to-date + remaining-plan formula - it computes a static, date-invariant role-rate-card markup via `ppComputeAllocationLaborMargin_(assignments, 'current')` instead of using the already-correct `projectedRev`/`projectedCost` the function builds for `projectedGrossProfit`. Also explains the flat 50%/100% "EAC" values noted in the 2026-09-11 Lookback Action Required list investigation. |

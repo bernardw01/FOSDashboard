@@ -1,5 +1,5 @@
 /**
- * PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.6 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 056: Drive uploads for Lookback narrative screenshots.
  */
@@ -65,6 +65,7 @@ function lbUploadEvidence_(projectId, fileName, mimeType, base64Data, uploadedBy
     var subIt = folder.getFoldersByName(id);
     var sub = subIt.hasNext() ? subIt.next() : folder.createFolder(id);
     file.moveTo(sub);
+    lbTryEnsureEvidenceSharing_(file.getId());
   } catch (err2) {
     return {
       ok: false,
@@ -80,7 +81,74 @@ function lbUploadEvidence_(projectId, fileName, mimeType, base64Data, uploadedBy
     uploaded_by_email: uploadedByEmail,
   }, { Prefer: 'return=representation' });
   if (!ins.ok) return { ok: false, message: ins.message || 'Could not save evidence metadata.' };
-  return { ok: true, evidence: lbRows_(ins.json)[0] || null };
+  var raw = lbRows_(ins.json)[0] || null;
+  return { ok: true, evidence: raw ? lbMapEvidenceForClient_(raw) : null };
+}
+
+/**
+ * @param {string} driveFileId
+ * @return {string}
+ */
+function lbEvidenceViewUrlFromId_(driveFileId) {
+  var id = String(driveFileId || '').trim();
+  if (!id) return '';
+  return 'https://drive.google.com/file/d/' + encodeURIComponent(id) + '/view';
+}
+
+/**
+ * Best-effort sharing so Hub users can open evidence in a new browser tab.
+ * @param {string} driveFileId
+ */
+function lbTryEnsureEvidenceSharing_(driveFileId) {
+  var id = String(driveFileId || '').trim();
+  if (!id) return;
+  var cache = CacheService.getScriptCache();
+  var cacheKey = 'lb_ev_sh_' + id;
+  if (cache.get(cacheKey)) return;
+  try {
+    var file = DriveApp.getFileById(id);
+    try {
+      file.setSharing(DriveApp.Access.DOMAIN, DriveApp.Permission.VIEW);
+    } catch (e1) {
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    }
+    cache.put(cacheKey, '1', 21600);
+  } catch (e) {
+    /* missing or inaccessible file */
+  }
+}
+
+/**
+ * @param {Object} row Supabase evidence row
+ * @return {!Object}
+ */
+function lbMapEvidenceForClient_(row) {
+  row = row || {};
+  var fid = String(row.drive_file_id || '').trim();
+  if (fid) lbTryEnsureEvidenceSharing_(fid);
+  return {
+    id: row.id,
+    file_name: row.file_name || 'image',
+    fileName: row.file_name || 'image',
+    mime_type: row.mime_type,
+    mimeType: row.mime_type,
+    uploaded_at: row.uploaded_at,
+    uploadedAt: row.uploaded_at,
+    uploaded_by_email: row.uploaded_by_email,
+    uploadedByEmail: row.uploaded_by_email,
+    drive_file_id: fid,
+    driveFileId: fid,
+    viewUrl: lbEvidenceViewUrlFromId_(fid),
+  };
+}
+
+/**
+ * @return {!{ ok: boolean, url?: string }}
+ */
+function test_lookbackEvidenceViewUrlFormat_() {
+  var url = lbEvidenceViewUrlFromId_('abc123');
+  var ok = url === 'https://drive.google.com/file/d/abc123/view' && lbEvidenceViewUrlFromId_('') === '';
+  return { ok: ok, url: url };
 }
 
 /**

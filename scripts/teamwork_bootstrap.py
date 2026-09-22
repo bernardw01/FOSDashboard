@@ -204,8 +204,8 @@ def create_notebook(name: str, description: str, md_content: str) -> int:
             "notebook": {
                 "name": name,
                 "description": description,
-                "content": md_to_html(md_content),
-                "content-type": "HTML",
+                "content": md_content,
+                "content-type": "MARKDOWN",
             }
         },
     )

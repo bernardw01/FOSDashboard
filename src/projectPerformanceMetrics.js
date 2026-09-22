@@ -1,5 +1,5 @@
 /**
- * PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.6 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 040: shared project performance metrics (planned / projected margin,
  * EAC hours and dollars, timing-review flag, lifetime resources). Consumed by
@@ -29,6 +29,33 @@ function ppRound2_(n) {
 /** @private */
 function ppRound1_(n) {
   return ppRound_(n, 1);
+}
+
+/**
+ * Recognized-only revenue for one P&L month row (BUG-040-02). Blended `m.revenue`
+ * still includes forecast milestones; actual margin to date must not.
+ *
+ * @param {?Object} m
+ * @return {number}
+ * @private
+ */
+function ppRecognizedRevenueForMonth_(m) {
+  if (!m) return 0;
+  if (m.revenueRecognized !== null && m.revenueRecognized !== undefined && m.revenueRecognized !== '') {
+    var direct = Number(m.revenueRecognized);
+    return isFinite(direct) ? direct : 0;
+  }
+  var items = m.revenueItems;
+  if (items && items.length) {
+    var sum = 0;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].recognized === true) {
+        sum += Number(items[i].amount || 0);
+      }
+    }
+    return sum;
+  }
+  return 0;
 }
 
 /**
@@ -283,12 +310,14 @@ function ppAllocationOverlapsYmdRange_(durStart, durEnd, startYmd, endYmd) {
 }
 
 /**
+ * Planned margin (Locked Decision #5): static SOW bill/cost rate card on billable
+ * allocations. Not used for projected margin (BUG-040-03).
+ *
  * @param {!Array<!Object>} assignments
- * @param {'sow'|'current'} rateMode
  * @return {!{ pct: ?number, ok: boolean, reason: ?string }}
  * @private
  */
-function ppComputeAllocationLaborMargin_(assignments, rateMode) {
+function ppComputeAllocationLaborMargin_(assignments) {
   var billable = [];
   for (var i = 0; i < (assignments || []).length; i++) {
     var a = assignments[i];
@@ -308,16 +337,11 @@ function ppComputeAllocationLaborMargin_(assignments, rateMode) {
   var totalCost = 0;
   var missingBill = 0;
   var missingCost = 0;
-  var rateLabel = rateMode === 'sow' ? 'SOW' : 'cost card';
   for (var j = 0; j < billable.length; j++) {
     var row = billable[j];
     var h = Number(row.allocatedHours || 0);
-    var billRate = rateMode === 'sow'
-      ? ppNormalizeRate_(row.sowBillRate)
-      : ppNormalizeRate_(row.currentBillRate);
-    var costRate = rateMode === 'sow'
-      ? ppNormalizeRate_(row.sowCostRate)
-      : ppNormalizeRate_(row.currentCostRate);
+    var billRate = ppNormalizeRate_(row.sowBillRate);
+    var costRate = ppNormalizeRate_(row.sowCostRate);
     if (billRate == null) missingBill++;
     if (costRate == null) missingCost++;
     if (billRate == null || costRate == null) continue;
@@ -325,13 +349,13 @@ function ppComputeAllocationLaborMargin_(assignments, rateMode) {
     totalCost += h * costRate;
   }
   if (missingBill > 0 || missingCost > 0 || totalRev <= 0) {
-    var reason = 'Margin requires ' + rateLabel + ' bill and cost rates on every billable allocation.';
+    var reason = 'Margin requires SOW bill and cost rates on every billable allocation.';
     if (missingBill > 0 && missingCost > 0) {
-      reason = rateLabel + ' bill and cost rates missing on one or more billable allocations.';
+      reason = 'SOW bill and cost rates missing on one or more billable allocations.';
     } else if (missingCost > 0) {
-      reason = 'No ' + rateLabel + ' cost rate on one or more billable allocations.';
+      reason = 'No SOW cost rate on one or more billable allocations.';
     } else if (missingBill > 0) {
-      reason = 'No ' + rateLabel + ' bill rate on one or more billable allocations.';
+      reason = 'No SOW bill rate on one or more billable allocations.';
     }
     return { pct: null, ok: false, reason: reason };
   }
@@ -437,8 +461,7 @@ function buildProjectPerformanceBlock_(args) {
   var resourceAllocations = args.resourceAllocations || null;
   var asOfMonthKey = String(args.asOfMonthKey || ppCurrentMonthKey_()).slice(0, 7);
   var assignments = args.assignments || (resourceAllocations && resourceAllocations.assignments) || [];
-  var planned = ppComputeAllocationLaborMargin_(assignments, 'sow');
-  var projectedLabor = ppComputeAllocationLaborMargin_(assignments, 'current');
+  var planned = ppComputeAllocationLaborMargin_(assignments);
   var plannedMarginPct = planned.ok ? planned.pct : null;
   var plannedMarginReason = planned.ok ? null : planned.reason;
   var hasAllocationData =
@@ -449,6 +472,7 @@ function buildProjectPerformanceBlock_(args) {
   var actualLaborToDate = 0;
   var actualExpensesToDate = 0;
   var revToDate = 0;
+  var recognizedRevToDate = 0;
   var remainingPlannedHours = 0;
   var remainingPlannedAllocCost = 0;
   var remainingPlannedExpenses = 0;
@@ -473,6 +497,7 @@ function buildProjectPerformanceBlock_(args) {
       actualLaborToDate += labor;
       actualExpensesToDate += expenses;
       revToDate += revenue;
+      recognizedRevToDate += ppRecognizedRevenueForMonth_(m);
     } else {
       remainingPlannedHours += ppPlannedHoursForMonth_(m);
       var pc = ppPlannedAllocCostForMonth_(resourceAllocations, m.key);
@@ -526,10 +551,18 @@ function buildProjectPerformanceBlock_(args) {
   var projectedRev = revToDate + remainingPlannedRevenue;
   var projectedCost = actualCostToDate + remainingPlanCost;
   var projectedGp = projectedRev - projectedCost;
-  var projectedMarginPct = projectedLabor.ok ? projectedLabor.pct : null;
-  var projectedMarginReason = projectedLabor.ok ? null : projectedLabor.reason;
+  var projectedMarginPct =
+    projectedRev > 0
+      ? ppRound1_(((projectedRev - projectedCost) / projectedRev) * 100)
+      : null;
+  var projectedMarginReason =
+    projectedRev > 0
+      ? null
+      : 'Projected margin requires planned revenue (actual plus remaining milestones).';
   var actualMarginPctToDate =
-    revToDate > 0 ? ppRound1_(((revToDate - actualCostToDate) / revToDate) * 100) : null;
+    recognizedRevToDate > 0
+      ? ppRound1_(((recognizedRevToDate - actualCostToDate) / recognizedRevToDate) * 100)
+      : null;
 
   var timingRecommended =
     periodGp !== null &&
@@ -689,4 +722,127 @@ function ppBuildResourcesLifetime_(months, assignments, customerName, opts) {
     return String(a.name).localeCompare(String(b.name));
   });
   return ppFillAllocatedCostFromRates_(out, assignments || []);
+}
+
+/**
+ * BUG-040-02: actual margin to date must exclude unrecognized forecast revenue
+ * once a milestone Target Date passes.
+ * @return {!Object}
+ */
+function test_buildProjectPerformanceBlock_ProjectedMarginUsesActualsPlusRemainingPlan_() {
+  var months = [
+    {
+      key: '2026-06',
+      revenue: 100000,
+      revenueRecognized: 100000,
+      labor: 40000,
+      expenses: 0,
+      laborByPerson: [{ hours: 100, allocatedHours: 50 }],
+    },
+    {
+      key: '2026-07',
+      revenue: 100000,
+      revenueRecognized: 0,
+      labor: 10000,
+      expenses: 5000,
+      laborByPerson: [{ hours: 50, allocatedHours: 80 }],
+    },
+    {
+      key: '2026-08',
+      revenue: 100000,
+      revenueRecognized: 0,
+      labor: 0,
+      expenses: 0,
+      laborByPerson: [{ hours: 0, allocatedHours: 100 }],
+    },
+  ];
+  var resourceAllocations = {
+    hasAllocations: true,
+    months: [
+      { key: '2026-07', allocatedCost: 15000 },
+      { key: '2026-08', allocatedCost: 20000 },
+    ],
+  };
+  var perfJun = buildProjectPerformanceBlock_({
+    months: months,
+    asOfMonthKey: '2026-06',
+    resourceAllocations: resourceAllocations,
+    assignments: [],
+  });
+  var perfJul = buildProjectPerformanceBlock_({
+    months: months,
+    asOfMonthKey: '2026-07',
+    resourceAllocations: resourceAllocations,
+    assignments: [],
+  });
+  var projectedRevJun = 100000 + 200000;
+  var projectedCostJun = 40000 + 15000 + 20000 + 5000;
+  var expectedJun = ppRound1_(((projectedRevJun - projectedCostJun) / projectedRevJun) * 100);
+  var projectedRevJul = 200000 + 100000;
+  var projectedCostJul = 50000 + 20000;
+  var expectedJul = ppRound1_(((projectedRevJul - projectedCostJul) / projectedRevJul) * 100);
+  var pass =
+    perfJun.projectedMarginPct === expectedJun &&
+    perfJul.projectedMarginPct === expectedJul &&
+    perfJun.projectedMarginPct !== perfJul.projectedMarginPct;
+  return {
+    ok: true,
+    pass: pass,
+    projectedMarginJun: perfJun.projectedMarginPct,
+    projectedMarginJul: perfJul.projectedMarginPct,
+    expectedJun: expectedJun,
+    expectedJul: expectedJul,
+    message: pass
+      ? 'PASS: projected margin varies by asOfMonthKey and matches (rev-cost)/rev.'
+      : 'FAIL: projected margin still date-invariant or formula mismatch.',
+  };
+}
+
+function test_buildProjectPerformanceBlock_ActualMarginExcludesUnrecognizedForecast_() {
+  var months = [
+    {
+      key: '2026-08',
+      revenue: 50000,
+      revenueRecognized: 50000,
+      labor: 30157,
+      expenses: 0,
+      grossProfit: 19843,
+      laborByPerson: [{ hours: 100 }],
+    },
+    {
+      key: '2026-09',
+      revenue: 50000,
+      revenueRecognized: 0,
+      labor: 7217.5,
+      expenses: 0,
+      grossProfit: 42782.5,
+      laborByPerson: [{ hours: 50 }],
+    },
+  ];
+  var perf = buildProjectPerformanceBlock_({
+    months: months,
+    asOfMonthKey: '2026-09',
+    resourceAllocations: { hasAllocations: false },
+    assignments: [],
+  });
+  var actualCostToDate = 30157 + 7217.5;
+  var expectedActualMargin = ppRound1_(((50000 - actualCostToDate) / 50000) * 100);
+  var blendedWrongMargin = ppRound1_(((100000 - actualCostToDate) / 100000) * 100);
+  var expectedProjectedGp = ppRound2_(100000 - actualCostToDate);
+  var pass =
+    perf.actualMarginPctToDate === expectedActualMargin &&
+    perf.actualMarginPctToDate !== blendedWrongMargin &&
+    perf.projectedGrossProfit === expectedProjectedGp;
+  return {
+    ok: true,
+    pass: pass,
+    actualMarginPctToDate: perf.actualMarginPctToDate,
+    expectedActualMargin: expectedActualMargin,
+    blendedWrongMargin: blendedWrongMargin,
+    projectedGrossProfit: perf.projectedGrossProfit,
+    expectedProjectedGp: expectedProjectedGp,
+    message: pass
+      ? 'PASS: actual margin to date uses recognized-only revenue; projected GP unchanged.'
+      : 'FAIL: actual margin to date still blends unrecognized forecast revenue.',
+  };
 }

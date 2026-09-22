@@ -1,5 +1,5 @@
 /**
- * PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.6 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 056: google.script.run surface for monthly Lookback.
  */
@@ -83,7 +83,8 @@ function lbMapBundleForClient_(bundle, auth) {
   var i;
   for (i = 0; i < projects.length; i++) {
     var mapped = lbMapProject_(projects[i]);
-    mapped.evidence = evMap[String(projects[i].id)] || [];
+    var evRows = evMap[String(projects[i].id)] || [];
+    mapped.evidence = evRows.map(lbMapEvidenceForClient_);
     if (mapped.selected) {
       selected.push(mapped);
       kpis.totalSelected++;

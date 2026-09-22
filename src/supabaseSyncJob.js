@@ -1,5 +1,5 @@
 /**
- * PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.6 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: Fibery -> Supabase hydrate (nightly + ADMIN Pull).
  * Dataset am-mirror (supabaseAmMirror.js) hydrates Agreement Management typed

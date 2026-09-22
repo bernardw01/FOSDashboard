@@ -1,6 +1,6 @@
 # Feature: Delivery Dashboard - Active Projects + Per-Project P&L
 
-> **PRD version 3.9.5** - Full Delivery P&L keeps Allocated cost (plan) line; portfolio hydrate no longer overwrites with slim blobs. Live rebuild of Delivery panel JSON when schema lags (Assigned Owner). Delivery status/owner filters keep matching projects in view (in-memory re-render). Assigned Owner filter on Active Projects; portfolio margin Sankey removed. Feature **034** adds browser/Drive Agreement reuse for the Active Projects list; per-project P&L behavior is unchanged. **v3.4.11:** chart month modal shows hours by individual (`laborByPerson`); chart/tooltips stay on `laborByRole`. **v3.4.12:** month modal adds logged vs allocated hours, Fibery % Allocated, sort/filter, orange for non-billable logged; P&L cache schema **13**. **v3.9.5:** Live labor from `fos_labor_costs` can uniquely match Clockify project name when `clockify_project_id` is empty.
+> **PRD version 3.29.5** - Full Delivery P&L keeps Allocated cost (plan) line; portfolio hydrate no longer overwrites with slim blobs. Live rebuild of Delivery panel JSON when schema lags (Assigned Owner). Delivery status/owner filters keep matching projects in view (in-memory re-render). Assigned Owner filter on Active Projects; portfolio margin Sankey removed. Feature **034** adds browser/Drive Agreement reuse for the Active Projects list; per-project P&L behavior is unchanged. **v3.4.11:** chart month modal shows hours by individual (`laborByPerson`); chart/tooltips stay on `laborByRole`. **v3.4.12:** month modal adds logged vs allocated hours, Fibery % Allocated, sort/filter, orange for non-billable logged; P&L cache schema **13**. **v3.9.5:** Live labor from `fos_labor_costs` can uniquely match Clockify project name when `clockify_project_id` is empty.
 > `src/Code.js` `FOS_PRD_VERSION` and every `src/*` file header MUST match the
 > version line in `docs/FOS-Dashboard-PRD.md`.
 
@@ -17,7 +17,7 @@
 | **P&L month modal allocation + variance** | Chart click modal: **Actual / Allocated / Variance** by role; `allocatedByRole`; cache **`_v7`** | v2.12.8 | **Shipped** (modal columns superseded **v3.4.11**) |
 | **P&L month modal hours by person** | Chart click modal: **Name / Role / Hours / Cost** from `laborByPerson[]`; chart/tooltips unchanged (`laborByRole`); cache **`_v12`** | v3.4.11 | **Shipped** (extended **v3.4.12**) |
 | **P&L month modal logged vs allocated** | Sort/filter; Hours logged vs allocated; Fibery % Allocated; orange without Allocated & Billable; cache **`_v13`** | v3.4.12 | **Shipped** |
-| **Agreement payload reuse** | Active Projects derives from a fresh browser Agreement payload when safe, otherwise today's Agreement Drive cache before Fibery; source labels propagate. | v2.26.0 | **Shipped** ([034](034-live-dashboard-warm-cache-and-portfolio-batching.md)) |
+| **Agreement payload reuse** | Active Projects derives from a fresh browser Agreement payload when safe, otherwise today's Agreement Drive cache before Fibery; source labels propagate. | v2.26.0 | **Shipped** ([034](034-live-dashboard-warm-cache-and-portfolio-batching.md)); **Live client path superseded v3.29.4** (always `getDeliveryDashboardData`) |
 
 ## Goal
 
@@ -264,7 +264,7 @@ is the reconciliation source of truth.
 
 - Reuse the **Auto-refresh selector** + **Stale badge** pattern from the
  Agreement Dashboard. Cache key for the projects list:
- `fos_delivery_dashboard_v1`. Cache key per monthly P&L:
+ `fos_delivery_dashboard_v2`. Cache key per monthly P&L:
  `fos_delivery_pnl_<agreementId>_v1`. TTL preference persists in
  `localStorage` under `fos_delivery_dashboard_ttl_minutes_v1` and
  applies to BOTH cache families (so a single TTL knob controls the
@@ -396,7 +396,7 @@ function getDeliveryProjectMonthlyPnL(agreementId) {
 
 ## Client cache contract
 
-- **Projects list cache key:** `fos_delivery_dashboard_v1`. Value =
+- **Projects list cache key:** `fos_delivery_dashboard_v2`. Value =
  `{ projects, fetchedAt, ttlMinutes, cacheSchemaVersion: 2 }` (v3.4.4: `assignedOwner` on each project).
 - **Per-project monthly P&L cache key:** `fos_delivery_pnl_<agreementId>_v10`.
  Value = monthly P&L payload (`cacheSchemaVersion: 10` as of v2.15.12).
@@ -481,7 +481,7 @@ No new Fibery-side properties are required. `FIBERY_HOST` /
  P&L card header.
 - [ ] **AC-47 - Cache + selection persistence.** The projects-list
  payload MUST cache in `sessionStorage` under
- `fos_delivery_dashboard_v1` (`cacheSchemaVersion: 1`). The monthly
+ `fos_delivery_dashboard_v2` (`cacheSchemaVersion: 1`). The monthly
  P&L for each selected project MUST cache under
  `fos_delivery_pnl_<agreementId>_v1` and reuse the same TTL
  preference. Panel switches MUST NOT re-render the table or the
@@ -550,7 +550,7 @@ No new Fibery-side properties are required. `FIBERY_HOST` /
  d. Mirror the v1.13.1 loading overlay + sticky-render pattern (the
  v1.14.2 viewport-fixed spinner is scoped to full-panel loads only;
  the per-grid spinner is a smaller, in-card overlay).
- e. On **Refresh**, drop `fos_delivery_dashboard_v1` AND every
+ e. On **Refresh**, drop `fos_delivery_dashboard_v2` AND every
  `fos_delivery_pnl_*` key, then reload.
 6. **Activity logging**: emit `delivery_panel_open`, `delivery_refresh`,
  `delivery_project_select`, `delivery_project_deselect`,
@@ -690,10 +690,47 @@ coding. Numbered M.1 - M.7 to distinguish them from the original 1 - 7.
  months") and surface in a small attention strip above the Active
  Projects table.
 
+## Bug fixes (engineering-tracked)
+
+*(Technical appendix; not synced to any Teamwork notebook per `docs/teamwork-workflow.md` "Bug-fix releases." Authored by Claude Code from a live Supabase query 2026-09-11; implementation belongs to Cursor.)*
+
+### BUG-006-01: "Total cost" / "Gross profit" KPI chips read a Fibery rollup field that is `0` for every currently-active agreement
+
+**CONFIRMED 2026-09-11 via live Supabase query** (project `jpcbugdpdvyutlusicxa`). The Active Projects KPI strip's **§D.5/§D.6/§D.7** values (`agreement.laborCosts`, `agreement.materialsOdc`, and their sum `totalCost`) do not come from the same raw `Labor Costs`/`Other Direct Costs` rows §M.3/§M.4 sum for the monthly P&L grid - they come straight from two **Fibery agreement-level rollup fields**, mirrored verbatim with no calculation on our side (`src/supabaseAmMirror.js` lines 289-290): `Agreement Management/Total Labor Costs` → `fos_agreements.total_labor_costs`, `Agreement Management/Total Materials & ODC` → `fos_agreements.total_materials_odc`.
+
+**Live data:** every one of the **45** currently-active agreements has `total_labor_costs = 0` and `total_materials_odc = 0`, freshly synced (as recent as the morning of 2026-09-11) - not a stale-sync artifact (see **036** BUG-036-01, already resolved and unrelated). This is uniform across projects with thousands of billable hours logged (SOW 15 PCL Utility: 14,038 billable hours; SOW 16: 11,048 billable hours) as well as ones with none - ruling out any per-project data-quality explanation (e.g. non-billable hours) on our side. The `Labor Costs`/`Other Direct Costs` raw rows themselves are fine: `buildMonthlyPnL_`'s independent §M.3/§M.4 sums (used by the monthly grid directly below this KPI strip on the same card) are non-zero and correct for the same projects.
+
+**Distinct from the in-flight v3.29.4 client-cache fix:** the 2026-09-13 change (cache key bump to `fos_delivery_dashboard_v2`; Active Projects always calls the live `getDeliveryDashboardData` instead of deriving from a possibly-stale browser Agreement payload) fixes a **client-side staleness** symptom - a cached blob could show `laborCosts: 0` even after the server had a better value. It does **not** touch where the **live server response's** `agreement.laborCosts`/`agreement.materialsOdc` values themselves come from. If the Fibery rollup field is genuinely `0` for every agreement (confirmed above), the live server call will keep returning `$0` Total Cost / near-100%-of-revenue Gross Profit for every project even after that cache fix - re-verify this specifically, don't assume the cache fix alone resolves it.
+
+**Acceptance Criteria (testable):**
+- [x] After the v3.29.4 cache fix ships, re-check the Active Projects KPI strip for a project with real logged labor cost (e.g. SOW 15 PCL Utility). If Total Cost still reads `$0`, confirm live `getDeliveryDashboardData` is still sourcing `laborCosts`/`materialsOdc` from `agreement.laborCosts`/`agreement.materialsOdc` (the Fibery rollup) rather than from real transaction data.
+- [x] Re-source §D.5/§D.6 (`agreement.laborCosts`, `agreement.materialsOdc`) from the same raw `fos_labor_costs`/`fos_other_direct_costs` sums §M.3/§M.4 already compute correctly for the monthly grid on the same project - not from the Fibery rollup fields, which have no live signal to fall back on when they read `0`.
+- [x] Preserve the "no extra fetch" design constraint on the Active Projects table (see this doc's "Computed values" section header) - check whether the nightly sync's `portfolio-pnl` step (`src/supabaseSyncJob.js`) already produces a per-project lifetime labor+ODC sum that can be reused here without adding a live per-project P&L fetch to the list view; only add a new aggregate query if no such precomputed sum exists. **Finding:** `portfolio-pnl` hydrate does not expose per-project lifetime labor+ODC; agreement hydrate builds one bulk map (`buildAgreementLifetimeCostMapsFromSupabase_`) instead.
+- [x] §M.9's existing discrepancy check (compares `Σ §M.3` to `agreement.laborCosts`) should have been surfacing a large-percentage-mismatch tooltip on every affected project's monthly grid already - confirm whether it's actually firing today, and if not, why (this reconciliation check is the thing that should have caught this). **Finding:** `hasLaborDelta` is true when Fibery rollup is `0` and grid sum is non-zero, but the caption renders only on the **monthly P&L detail** panel (`#delivery-pnl-reconcile`), not on the Active Projects KPI strip.
+- [x] No regression to the Fibery-rollup-sourced fields for any agreement where they are legitimately correct (spot-check after the fix that a project's new Total Cost matches what Fibery/Accounting shows, not just that it's non-zero).
+- [x] Flag to Bernard (outside Cursor's scope) that `Agreement Management/Total Labor Costs` / `Total Materials & ODC` appear broken or unmaintained in Fibery itself for every current agreement - worth checking directly in Fibery regardless of this app-side fix, since other Fibery-native views/reports relying on those same fields would show the same $0.
+
+**Architecture Review:**
+- **Security:** None - read-only calculation-logic change, no new `google.script.run` entry point.
+- **Performance:** Must not turn the Active Projects list into an N+1 per-project P&L fetch - see the "no extra fetch" constraint above. Check the `portfolio-pnl` sync step first.
+- **Regression risk:** `agreement.laborCosts`/`materialsOdc`/`totalCost` feed the Active Projects table, the KPI strip's Total Cost and Gross Profit chips, and `agreementAlerts.js` (`totalCost` comparisons against `revRec` for margin-flag alerts, line ~193) - re-verify alerts still fire correctly once the source data is no longer flatlined at $0.
+- **Testing gaps:** No existing `_diag_*`/`test_`-prefixed function compares `agreement.laborCosts` against an independently-summed `fos_labor_costs` total for a known project. Add one and register it in `FOS_DIAG_SUITE_STEPS_` (`src/perfParityDiagnostics.js`, feature **057**) so a future Fibery-rollup regression like this one is caught automatically instead of by manual observation.
+
+**Verification Steps:**
+1. Re-source §D.5/§D.6 from raw labor/ODC sums (or a precomputed portfolio-pnl equivalent) instead of the Fibery rollup fields.
+2. Confirm SOW 15 PCL Utility (and a couple of others) now show real, non-zero Total Cost on the Active Projects KPI strip and table.
+3. Confirm the monthly P&L grid's own lifetime totals row (§M.8) still matches the KPI strip's Total Cost (no new discrepancy introduced by the fix).
+4. Confirm `agreementAlerts.js` margin-flag alerts still behave sanely post-fix (spot-check one project that should now flag and one that shouldn't).
+
+---
+
 ## Changelog
 
 | Date | Version | Notes |
 | --- | --- | --- |
+| 2026-09-13 | 3.29.5 | **BUG-040-03 Projected margin.** `projectedMarginPct` from `(projectedRev - projectedCost) / projectedRev`; removed unused `current` rate-mode branch. Lookback `eacMarginPct` re-pointed to frozen `projectedMarginPct`. **BUG-006-01 Total Cost KPI.** Agreement `laborCosts`/`materialsOdc` from bulk `fos_labor_costs`/`fos_other_direct_costs` sums (not Fibery rollups). Diagnostics registered in feature **057**. PATCH -> **3.29.5**. |
+| 2026-09-13 | 3.29.4 | Live Delivery list always calls `getDeliveryDashboardData` (no browser-Agreement derive). Client projects-list key **`fos_delivery_dashboard_v2`**; Reload clears Delivery + Agreement session caches. Fixes Total Cost $0 when Datastore hydrate already had correct labor costs. |
+| 2026-09-11 | - | **BUG-006-01 opened via live Supabase query:** `agreement.laborCosts`/`materialsOdc` (Total Cost KPI) are sourced from Fibery rollup fields (`Total Labor Costs`/`Total Materials & ODC`) that read `0` for all 45 currently-active agreements, independent of and not fixed by the same-day client-cache fix above. |
 | 2026-08-24 | 3.9.5 | Live P&L labor prefers `clockify_project_id`; when empty, uniquely match `fos_labor_costs.time_entry_project_name` so recently imported Clockify projects show cost. |
 | 2026-08-04 | 3.4.12 | Month modal: logged vs allocated hours, Fibery % Allocated, sort/filter, orange without Allocated & Billable. P&L cache schema **13**. |
 | 2026-07-31 | 3.4.11 | Chart month modal shows **Name / Role / Hours / Cost** from per-month **`laborByPerson[]`**. Stacked chart and tooltips unchanged (`laborByRole`). P&L cache schema **12**. |

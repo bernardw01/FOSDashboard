@@ -1,5 +1,5 @@
 /**
- * PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.6 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 047 Step 0: parity and measurement harness.
  *
@@ -1920,7 +1920,7 @@ function _diag_verifyWorkstreamB7AgreementHydrateRpc() {
  * silent registry truncation (syntax error dropping tail entries).
  * @const {number}
  */
-var FOS_DIAG_SUITE_MIN_REGISTERED_STEPS_ = 24;
+var FOS_DIAG_SUITE_MIN_REGISTERED_STEPS_ = 27;
 
 /**
  * @param {!Object} payload
@@ -2134,6 +2134,13 @@ var FOS_DIAG_SUITE_STEPS_ = [
     },
   },
   {
+    id: 'lookback-evidence-view-url',
+    label: 'Lookback: evidence Drive view URL shape',
+    fn: function () {
+      return test_lookbackEvidenceViewUrlFormat_();
+    },
+  },
+  {
     id: 'engagement-review-reviews-tab',
     label: 'Performance Review: Reviews tab visibility',
     fn: function () {
@@ -2215,6 +2222,27 @@ var FOS_DIAG_SUITE_STEPS_ = [
     label: 'Delivery: projects payload builds',
     fn: function () {
       return perfDiagSuiteCheckDeliveryHealth_();
+    },
+  },
+  {
+    id: 'project-performance-actual-margin-recognized',
+    label: 'Project Performance: actual margin excludes forecast revenue',
+    fn: function () {
+      return test_buildProjectPerformanceBlock_ActualMarginExcludesUnrecognizedForecast_();
+    },
+  },
+  {
+    id: 'project-performance-projected-margin-formula',
+    label: 'Project Performance: projected margin uses actuals plus plan',
+    fn: function () {
+      return test_buildProjectPerformanceBlock_ProjectedMarginUsesActualsPlusRemainingPlan_();
+    },
+  },
+  {
+    id: 'delivery-labor-costs-fos-sum',
+    label: 'Delivery: agreement laborCosts matches fos_labor_costs sum',
+    fn: function () {
+      return test_deliveryAgreementLaborCostsMatchFosLaborSum_();
     },
   },
   {

@@ -1,5 +1,5 @@
 /**
- * PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.6 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `pm-overview`, panel
  * `#panel-pm-overview`). Public endpoints, all authorized via
@@ -1232,6 +1232,8 @@ function buildMonthlyPnL_(args) {
   var laborRoleTotals = {};
   var odcByMonth = {};
   var revenueByMonth = {};
+  // Recognized-only revenue per month (BUG-040-02 actual margin to date).
+  var revenueRecognizedByMonth = {};
   // Phase B (FR-94 / FR-95) - capture the contributing milestone rows
   // per month so the client can render the drill-down modal without a
   // second Fibery fetch.
@@ -1306,6 +1308,9 @@ function buildMonthlyPnL_(args) {
     var amount = resolvePnlRevenueItemAmount_(r);
     if (!isFinite(amount)) continue;
     revenueByMonth[keyR] = (revenueByMonth[keyR] || 0) + amount;
+    if (r.recognized === true) {
+      revenueRecognizedByMonth[keyR] = (revenueRecognizedByMonth[keyR] || 0) + amount;
+    }
     if (!revenueItemsByMonth[keyR]) revenueItemsByMonth[keyR] = [];
     revenueItemsByMonth[keyR].push({
       id: r.id,
@@ -1379,6 +1384,7 @@ function buildMonthlyPnL_(args) {
   for (var m = 0; m < allMonthKeys.length; m++) {
     var mk = allMonthKeys[m];
     var rev = Number(revenueByMonth[mk] || 0);
+    var revRecognized = Number(revenueRecognizedByMonth[mk] || 0);
     var lab = Number(laborByMonth[mk] || 0);
     var exp = Number(odcByMonth[mk] || 0);
     var totalCost = lab + exp;
@@ -1413,6 +1419,7 @@ function buildMonthlyPnL_(args) {
       key: mk,
       label: monthLabel_(mk),
       revenue: rev,
+      revenueRecognized: revRecognized,
       labor: lab,
       laborEmployee: Number(laborByMonthEmployee[mk] || 0),
       laborContractor: Number(laborByMonthContractor[mk] || 0),
@@ -2619,5 +2626,60 @@ function emptyDiscrepancy_() {
     summedLabor: 0, lifetimeLabor: 0, laborDeltaPct: 0, hasLaborDelta: false,
     summedExpenses: 0, lifetimeExpenses: 0, expensesDeltaPct: 0, hasExpensesDelta: false,
     summedMarginPct: null, lifetimeMarginPct: null, marginPtsDelta: 0, hasMarginDelta: false,
+  };
+}
+
+/**
+ * BUG-006-01: agreement.laborCosts must match independently summed fos_labor_costs.
+ * @return {!Object}
+ */
+function test_deliveryAgreementLaborCostsMatchFosLaborSum_() {
+  if (typeof isSupabaseConfigured_ !== 'function' || !isSupabaseConfigured_()) {
+    return {
+      ok: true,
+      pass: true,
+      skipped: true,
+      message: 'SKIP: Supabase not configured.',
+    };
+  }
+  var built = buildAgreementDashboardPayloadFromSupabase_();
+  if (!built || built.ok === false) {
+    return {
+      ok: true,
+      pass: false,
+      message: 'FAIL: agreement Supabase payload build failed.',
+    };
+  }
+  var agreements = built.agreements || [];
+  var checked = 0;
+  var matched = 0;
+  for (var i = 0; i < agreements.length; i++) {
+    var ag = agreements[i];
+    if (!ag || !ag.id) continue;
+    var ctx = fetchAgreementContextForPnlFromSupabase_(ag.id);
+    if (!ctx.ok) continue;
+    var fetched = fetchLaborCostsForAgreementFromSupabase_(
+      ag.id,
+      ctx.agreement.clockifyProjectId,
+      0,
+      ctx.agreement.name
+    );
+    if (!fetched.ok || !fetched.rows.length) continue;
+    var expected = sumMappedLaborRowCosts_(fetched.rows);
+    if (expected <= 0) continue;
+    checked++;
+    if (Math.abs(Number(ag.laborCosts || 0) - expected) < 0.02) matched++;
+  }
+  var pass = checked > 0 && matched === checked;
+  return {
+    ok: true,
+    pass: pass,
+    checked: checked,
+    matched: matched,
+    message: pass
+      ? 'PASS: agreement laborCosts matches fos_labor_costs sum (' + matched + ' projects).'
+      : checked
+        ? 'FAIL: laborCosts mismatch vs fos_labor_costs for ' + (checked - matched) + ' project(s).'
+        : 'SKIP: no agreements with non-zero fos_labor_costs rows found.',
   };
 }

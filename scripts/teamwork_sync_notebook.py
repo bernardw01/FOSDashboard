@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Push git feature spec markdown to an existing Teamwork notebook (PUT content)."""
+"""Push git markdown to an existing Teamwork notebook (PUT content).
+
+Teamwork notebooks on this site use Markdown (`content-type: MARKDOWN`), not HTML.
+Git mirrors stay markdown; only absolutize relative doc links before upload.
+"""
 
 from __future__ import annotations
 
@@ -16,6 +20,8 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from teamwork_bootstrap import api, md_to_html, notebook_url  # noqa: E402
 
 MANIFEST = ROOT / "docs" / "teamwork-manifest.json"
+NOTEBOOK_CONTENT_TYPE_MARKDOWN = "MARKDOWN"
+NOTEBOOK_CONTENT_TYPE_HTML = "HTML"
 
 
 def absolutize_feature_links(md: str) -> str:
@@ -39,11 +45,34 @@ def absolutize_feature_links(md: str) -> str:
     return re.sub(r"\[([^\]]+)\]\(([^)]+)\)", repl, md)
 
 
+def inject_before_heading_md(md: str, heading: str, fragment: str) -> str:
+    for prefix in ("### ", "## "):
+        token = f"{prefix}{heading}"
+        if token in md:
+            return md.replace(token, fragment + "\n\n" + token, 1)
+    return md + "\n\n" + fragment
+
+
 def inject_before_heading(html: str, heading: str, fragment: str) -> str:
     token = f"<h3>{heading}</h3>"
     if token in html:
         return html.replace(token, fragment + "\n" + token, 1)
     return html + "\n" + fragment
+
+
+def markdown_to_notebook_content(
+    md: str,
+    *,
+    inject_md: str = "",
+    inject_before: str | None = None,
+) -> str:
+    content = absolutize_feature_links(md)
+    if inject_md:
+        if inject_before:
+            content = inject_before_heading_md(content, inject_before, inject_md)
+        else:
+            content += "\n\n" + inject_md
+    return content
 
 
 def markdown_to_notebook_html(
@@ -52,6 +81,7 @@ def markdown_to_notebook_html(
     inject_html: str = "",
     inject_before: str | None = None,
 ) -> str:
+    """Legacy HTML conversion for notebooks created with `content-type: HTML`."""
     html = md_to_html(absolutize_feature_links(md))
     if inject_html:
         if inject_before:
@@ -61,13 +91,27 @@ def markdown_to_notebook_html(
     return html
 
 
+def resolve_notebook_content_type(notebook_key: str, nb_entry: dict) -> str:
+    explicit = nb_entry.get("contentType") or nb_entry.get("content_type")
+    if explicit:
+        return str(explicit).upper()
+    # Default: Teamwork site uses Markdown notebooks for customer-facing specs.
+    return NOTEBOOK_CONTENT_TYPE_MARKDOWN
+
+
 def update_notebook(
     notebook_id: int,
     *,
     content: str,
+    content_type: str = NOTEBOOK_CONTENT_TYPE_MARKDOWN,
     description: str | None = None,
 ) -> None:
-    body: dict = {"notebook": {"content": content}}
+    body: dict = {
+        "notebook": {
+            "content": content,
+            "content-type": content_type,
+        }
+    }
     if description is not None:
         body["notebook"]["description"] = description
     api("PUT", f"/notebooks/{notebook_id}.json", body)
@@ -101,16 +145,28 @@ def sync_notebook(
         raise SystemExit(f"Notebook key not in manifest: {notebook_key!r}")
 
     nb_id = int(nb_entry["id"])
+    content_type = resolve_notebook_content_type(notebook_key, nb_entry)
     md = md_path.read_text(encoding="utf-8")
-    html = markdown_to_notebook_html(
-        md, inject_html=inject_html, inject_before=inject_before
-    )
+    if content_type == NOTEBOOK_CONTENT_TYPE_HTML:
+        content = markdown_to_notebook_html(
+            md, inject_html=inject_html, inject_before=inject_before
+        )
+    else:
+        inject_md = inject_html
+        content = markdown_to_notebook_content(
+            md, inject_md=inject_md, inject_before=inject_before
+        )
 
     if dry_run:
-        print(f"DRY RUN - would PUT /notebooks/{nb_id}.json ({len(html)} chars)")
+        print(
+            f"DRY RUN - would PUT /notebooks/{nb_id}.json "
+            f"({content_type}, {len(content)} chars)"
+        )
         return nb_id
 
-    update_notebook(nb_id, content=html, description=description)
+    update_notebook(
+        nb_id, content=content, content_type=content_type, description=description
+    )
     nb_entry["lastSyncedAt"] = date.today().isoformat()
     save_manifest(manifest)
 
@@ -121,7 +177,7 @@ def sync_notebook(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Sync docs/features/*.md HTML into a Teamwork notebook."
+        description="Sync docs/features/*.md markdown into a Teamwork notebook."
     )
     parser.add_argument(
         "--notebook-key",
@@ -140,7 +196,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Build HTML only; do not call Teamwork API.",
+        help="Build notebook payload only; do not call Teamwork API.",
     )
     return parser.parse_args()
 

@@ -1,5 +1,5 @@
 /**
- * PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.6 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: panel hydrate builders that read Supabase typed
  * tables (Agreement Management mirror from `supabaseAmMirror.js`, labor
@@ -289,6 +289,135 @@ function buildAgreementRevenueRawRowsFromSupabase_(
 }
 
 /**
+ * Sum labor cost from mapped P&L labor rows.
+ *
+ * @param {!Array<!Object>} rows
+ * @return {number}
+ * @private
+ */
+function sumMappedLaborRowCosts_(rows) {
+  var sum = 0;
+  for (var i = 0; i < (rows || []).length; i++) {
+    sum += Number(rows[i].cost || 0);
+  }
+  return sum;
+}
+
+/**
+ * Sum ODC amount from P&L ODC rows.
+ *
+ * @param {!Array<!Object>} rows
+ * @return {number}
+ * @private
+ */
+function sumMappedOdcRowAmounts_(rows) {
+  var sum = 0;
+  for (var i = 0; i < (rows || []).length; i++) {
+    sum += Number(rows[i].amount || 0);
+  }
+  return sum;
+}
+
+/**
+ * BUG-006-01: lifetime labor/ODC totals from `fos_labor_costs` /
+ * `fos_other_direct_costs` (same sources as `buildMonthlyPnL_`), not Fibery
+ * agreement rollups. One pass during agreement hydrate (no N+1 list fetch).
+ *
+ * @param {!Array<!Object>} agreementRows
+ * @return {!{ laborByAgreementId: !Object, odcByAgreementId: !Object }}
+ * @private
+ */
+function buildAgreementLifetimeCostMapsFromSupabase_(agreementRows) {
+  var laborByAgreementId = {};
+  var odcByAgreementId = {};
+  var projectIdToAgreementId = {};
+  for (var i = 0; i < (agreementRows || []).length; i++) {
+    var row = agreementRows[i];
+    if (!row || !row.fibery_id) continue;
+    var pid = row.clockify_project_id ? String(row.clockify_project_id).trim() : '';
+    if (pid) projectIdToAgreementId[pid] = String(row.fibery_id);
+  }
+
+  var includeProjectedOdc = typeof resolveIncludeProjectedOdc_ === 'function'
+    ? resolveIncludeProjectedOdc_()
+    : true;
+  var odcFilters = null;
+  if (!includeProjectedOdc) {
+    odcFilters = { status_name: 'eq.Actual' };
+  }
+  var odcRes = supabaseSelectAll_(
+    'fos_other_direct_costs',
+    odcFilters,
+    'agreement_id,amount,status_name'
+  );
+  if (odcRes.ok) {
+    var odcRows = odcRes.rows || [];
+    for (var o = 0; o < odcRows.length; o++) {
+      var or = odcRows[o];
+      var agId = or.agreement_id ? String(or.agreement_id) : '';
+      if (!agId) continue;
+      var amt = Number(or.amount || 0);
+      if (!isFinite(amt)) continue;
+      odcByAgreementId[agId] = (odcByAgreementId[agId] || 0) + amt;
+    }
+  } else {
+    supabaseWarn_('agreement lifetime ODC map fetch failed', { message: odcRes.message });
+  }
+
+  var laborSelect =
+    'project_id,clockify_time_log_id,start_date_time,clockify_hours,seconds,user_id,time_entry_user_name';
+  if (!perfFlag_('PERF_USE_NORMALIZED_LABOR_COLS')) {
+    laborSelect += ',fibery_payload_json';
+  }
+  var laborRes = supabaseSelectAll_('fos_labor_costs', null, laborSelect);
+  if (laborRes.ok) {
+    var usersByClockifyId = loadFosClockifyUsersByClockifyIdMap_();
+    var rolesMap = loadFosTeamMemberRolesMap_();
+    var laborRows = laborRes.rows || [];
+    for (var l = 0; l < laborRows.length; l++) {
+      var lr = laborRows[l];
+      var projectId = lr.project_id ? String(lr.project_id) : '';
+      var agreementId = projectId ? projectIdToAgreementId[projectId] : '';
+      if (!agreementId) continue;
+      var mapped = mapFosLaborCostRowToDeliveryPnlRaw_(lr, usersByClockifyId, rolesMap);
+      laborByAgreementId[agreementId] =
+        (laborByAgreementId[agreementId] || 0) + Number(mapped.cost || 0);
+    }
+  } else {
+    supabaseWarn_('agreement lifetime labor map fetch failed', { message: laborRes.message });
+  }
+
+  return { laborByAgreementId: laborByAgreementId, odcByAgreementId: odcByAgreementId };
+}
+
+/**
+ * @param {string} agreementId
+ * @param {?string} clockifyProjectId
+ * @param {?string} agreementName
+ * @param {!{ laborByAgreementId: !Object, odcByAgreementId: !Object }} maps
+ * @return {number}
+ * @private
+ */
+function resolveAgreementLifetimeLaborFromMaps_(agreementId, clockifyProjectId, agreementName, maps) {
+  maps = maps || { laborByAgreementId: {}, odcByAgreementId: {} };
+  var id = String(agreementId || '');
+  if (maps.laborByAgreementId[id] != null && maps.laborByAgreementId[id] !== undefined) {
+    return Number(maps.laborByAgreementId[id] || 0);
+  }
+  if (typeof fetchLaborCostsForAgreementFromSupabase_ !== 'function') {
+    return 0;
+  }
+  var fetched = fetchLaborCostsForAgreementFromSupabase_(
+    id,
+    clockifyProjectId,
+    0,
+    agreementName
+  );
+  if (!fetched.ok) return 0;
+  return sumMappedLaborRowCosts_(fetched.rows);
+}
+
+/**
  * Builds the Agreement Dashboard payload from Supabase typed tables
  * (`fos_agreements`, `fos_companies`, `fos_company_segments`,
  * `fos_revenue_items`) instead of live Fibery queries. Reuses every
@@ -309,7 +438,7 @@ function buildAgreementDashboardPayloadFromSupabase_() {
     { or: '(state_name.is.null,state_name.neq.Closed-Lost)' },
     'fibery_id,public_id,name,state_name,agreement_type,agreement_progress_name,' +
       'customer_id,assigned_owner_id,owner_email,owner_name,total_planned_revenue,rev_recognized,total_labor_costs,total_materials_odc,' +
-      'current_margin,target_margin,duration_start,duration_end,execution_date'
+      'current_margin,target_margin,duration_start,duration_end,execution_date,clockify_project_id'
   );
   if (!agreementsRes.ok) {
     return emptyAgreementPayloadFromSupabase_(
@@ -361,6 +490,7 @@ function buildAgreementDashboardPayloadFromSupabase_() {
   }
 
   var agreementRows = agreementsRes.rows || [];
+  var lifetimeCostMaps = buildAgreementLifetimeCostMapsFromSupabase_(agreementRows);
   var companyRows = companiesRes.rows || [];
   var companyNameById = {};
   for (var ci = 0; ci < companyRows.length; ci++) {
@@ -402,8 +532,13 @@ function buildAgreementDashboardPayloadFromSupabase_() {
       assignedOwner: ownerName || null,
       plannedRev: r.total_planned_revenue,
       revRec: r.rev_recognized,
-      laborCosts: r.total_labor_costs,
-      materialsOdc: r.total_materials_odc,
+      laborCosts: resolveAgreementLifetimeLaborFromMaps_(
+        r.fibery_id,
+        r.clockify_project_id,
+        r.name,
+        lifetimeCostMaps
+      ),
+      materialsOdc: numberOr_(lifetimeCostMaps.odcByAgreementId[r.fibery_id], 0),
       margin: r.current_margin,
       targetMargin: r.target_margin,
       duration: { start: r.duration_start, end: r.duration_end },
@@ -1952,6 +2087,8 @@ function buildDeliveryProjectMonthlyPnLFromSupabase_(agreementId, options) {
   }
 
   var thresholds = getAgreementThresholds_();
+  var laborSum = sumMappedLaborRowCosts_(laborFetch.rows);
+  var odcSum = sumMappedOdcRowAmounts_(odcFetch.rows);
   var built = buildMonthlyPnL_({
     laborRows: laborFetch.rows,
     odcRows: odcFetch.rows,
@@ -1959,8 +2096,8 @@ function buildDeliveryProjectMonthlyPnLFromSupabase_(agreementId, options) {
     durStart: ctx.agreement.durStart,
     durEnd: ctx.agreement.durEnd,
     targetMarginPct: ctx.agreement.targetMargin,
-    lifetimeLabor: ctx.agreement.laborCosts,
-    lifetimeExpenses: ctx.agreement.materialsOdc,
+    lifetimeLabor: laborSum,
+    lifetimeExpenses: odcSum,
     lifetimeMarginPct: ctx.agreement.margin,
     thresholds: thresholds,
   });

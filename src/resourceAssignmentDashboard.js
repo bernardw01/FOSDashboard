@@ -1,5 +1,5 @@
 /**
- * PRD version 3.29.2 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.6 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Resource assignment dashboard (feature 027): portfolio-wide Fibery
  * Resource Allocations by ISO week with alerts.

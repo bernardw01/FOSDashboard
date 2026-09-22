@@ -1,15 +1,15 @@
 # Performance Hub glossary
 
-> **PRD version 3.20.18** - see `docs/FOS-Dashboard-PRD.md`.  
+> **PRD version 3.29.5** - see `docs/FOS-Dashboard-PRD.md`.  
 > **Teamwork notebook:** [Performance Hub glossary](https://win.godeap.io/app/projects/1615262/notebooks/313662)  
-> **Audience:** PMs, Client Engagement, Finance, and anyone reading PM Overview or related Hub numbers.  
-> **Date:** 2026-09-01
+> **Audience:** PMs, Client Engagement, Finance, and anyone reading PM Overview, Lookback, or related Hub numbers.  
+> **Date:** 2026-09-14
 
-**Source of truth in product:** FinOps Performance Hub as of PRD **3.20.18** behavior (SOW-rate Planned margin, date-range Actual margin to date). Formulas match **Project Performance** after feature **053** and feature **046** (hide plan KPIs when there is no resource plan).
+**Source of truth in product:** FinOps Performance Hub as of PRD **3.29.5**. Formulas below match `buildProjectPerformanceBlock_` in `projectPerformanceMetrics.js` and the Active Projects / P&L builders described in features **006**, **040**, and **056**.
 
 Each term has a plain-language meaning, then **Hub-specific caveats** so two similar labels are not mixed up. Several names exist in Fibery or in conversation but are **not** labeled the same way in the Hub.
 
-Related specs: [040](features/040-project-performance-layer.md), [046](features/046-planned-margins-require-resource-plan.md), [049](features/049-agreement-bid-program-fields.md), [053](features/053-pm-overview-sow-margin-and-role.md).
+Related specs: [006](features/006-delivery-project-pnl.md), [040](features/040-project-performance-layer.md), [046](features/046-planned-margins-require-resource-plan.md), [049](features/049-agreement-bid-program-fields.md), [053](features/053-pm-overview-sow-margin-and-role.md), [056](features/056-monthly-lookback-financial-review.md).
 
 ---
 
@@ -21,7 +21,7 @@ Related specs: [040](features/040-project-performance-layer.md), [046](features/
 
 `(hours × SOW bill rate − hours × SOW cost rate) ÷ (hours × SOW bill rate)`
 
-**Where you see it:** Project Performance KPI chip **Planned margin** (subtext **From SOW rates**).
+**Where you see it:** Project Performance KPI chip **Planned margin** (subtext **From SOW rates**). Lookback project detail freezes the same value at lock/re-run.
 
 **Caveats unique to the Hub:**
 
@@ -45,7 +45,7 @@ Related specs: [040](features/040-project-performance-layer.md), [046](features/
 
 - This is the **milestone / revenue-item plan**, not `allocated hours × SOW bill rate`. Those two plans can disagree if staffing rates and milestone amounts were not kept in sync.
 - **Rev recognized** is only the subset of revenue items marked recognized. Remaining contract value is typically planned minus recognized.
-- Accounting P&L months also place **unrecognized** (forecast) milestones into future months by **Target Date**, so monthly revenue on the chart is not the same as lifetime Contract value.
+- Monthly P&L also places **unrecognized** (forecast) milestones into months by **Target Date** for **projected** views; that blending does **not** feed **Actual margin to date** (see below).
 
 ---
 
@@ -59,13 +59,29 @@ Related specs: [040](features/040-project-performance-layer.md), [046](features/
 | --- | --- |
 | Labor plan for Planned margin | Allocated hours × **SOW cost rate** (billable allocations only) |
 | Resource table **Allocated cost** | Allocated hours × **current Team Member Role cost rate** (cost card), in the selected range |
-| **EAC $** remaining piece | Remaining months' **allocation cost** (Fibery allocated cost on the P&L plan line) plus remaining P&L expense months |
+| **EAC $** remaining piece | Remaining months' **allocation cost** on the P&L plan line plus remaining P&L expense months |
 
 **Caveats unique to the Hub:**
 
 - **SOW cost rates**, **today's cost-card rates**, and **Fibery Allocated Cost** are three different cost plans. They will not always match.
 - Expenses/ODC are in **Total cost** and **EAC $**, not in Planned margin.
 - Date range changes **Allocated cost** on the resource table; it does **not** invent a separate "planned cost to date" KPI.
+
+---
+
+## Total Cost (labor + Materials and ODC)
+
+**What it means:** Lifetime **logged labor cost plus other direct costs (ODC)** for the agreement.
+
+**How the Hub calculates it (v3.29.5):** Sum of **`fos_labor_costs`** (Clockify time entries mapped to cost) **plus** **`fos_other_direct_costs`** for the agreement. This is the same raw data the monthly P&L grid uses (sections M.3 / M.4).
+
+**Where you see it:** Active Projects KPI strip **Total cost**; selected-project financials; **Gross profit** = revenue recognized minus total cost.
+
+**Caveats unique to the Hub:**
+
+- The Hub **does not** use Fibery rollup fields **Total Labor Costs** / **Total Materials & ODC** for this KPI (those rollups are often stale or zero in Fibery). Bernard should still verify those Fibery formulas separately for Fibery-native reports.
+- After a Datastore hydrate, agreement list totals come from one bulk pass over typed tables (no per-row P&L fetch on the list view).
+- Monthly P&L **lifetime** row should align with this total when the same labor/ODC rows are in scope.
 
 ---
 
@@ -82,7 +98,7 @@ Related specs: [040](features/040-project-performance-layer.md), [046](features/
 - Portfolio or pursuit reviews: which deals were bid thin, and which later plans or actuals drifted from the original bid.
 - They are **not** a substitute for Contract value, Planned margin, EAC, or Actual margin. Those numbers are allowed to move with the live agreement.
 
-**Where you see them in the Hub today:** Fields are on the agreement in Fibery and mirrored into Datastore (feature **049**). They are **not** Project Performance chips yet. Product can surface them later as a fixed "original bid" column or KPI without mixing them into date-range actuals.
+**Where you see them in the Hub today:** Fields are on the agreement in Fibery and mirrored into Datastore (feature **049**). They are **not** Project Performance chips yet.
 
 ---
 
@@ -129,11 +145,11 @@ Related specs: [040](features/040-project-performance-layer.md), [046](features/
 
 ## Estimate to Complete (ETC)
 
-**What it means:** Work and cost **still left** after today (or after the as-of month): what we still expect to burn to finish.
+**What it means:** Work and cost **still left** after the as-of month: what we still expect to burn to finish.
 
 **How the Hub uses it (not labeled ETC):** It is the **remaining** half of EAC.
 
-- **Hours ETC:** planned allocation hours in months **after** the current UTC as-of month.
+- **Hours ETC:** planned allocation hours in P&L months **after** the as-of month key.
 - **Cost ETC:** remaining planned **allocation cost** plus remaining **expense/ODC** months on the P&L.
 
 **Where you see it:** Not its own chip. You infer it as **EAC minus actuals to date** (hours or $).
@@ -141,7 +157,6 @@ Related specs: [040](features/040-project-performance-layer.md), [046](features/
 **Caveats unique to the Hub:**
 
 - Remaining hours come from **month-prorated allocations** on the P&L, not from a separate ETC field in Fibery.
-- Remaining allocation **dollars** on EAC still follow the **P&L allocated-cost plan** (Fibery allocated cost spread by duration), which can differ from hours × cost-card rate on the resource table.
 - The Performance **date range does not change** ETC / EAC. Changing Start/End only affects Actual margin to date and the resource table.
 - With **no resource plan**, EAC (and therefore this remaining piece) is hidden.
 
@@ -156,14 +171,13 @@ Related specs: [040](features/040-project-performance-layer.md), [046](features/
 - **EAC hours:** logged hours through the as-of month **plus** remaining planned allocation hours. **Budget** (subtext) is total allocated hours when a plan exists.
 - **EAC $:** labor **plus expenses/ODC** actuals to date **plus** remaining planned allocation cost **plus** remaining planned expenses. Subtext: **Labor + expenses/ODC**. This is **not labor-only**.
 
-**Where you see it:** Project Performance chips **EAC hours** and **EAC $**.
+**Where you see it:** Project Performance chips **EAC hours** and **EAC $**. Lookback project detail freezes the same values at lock/re-run.
 
 **Caveats unique to the Hub:**
 
 - Hidden (**N/A** / **No plan available**) when there is no resource plan.
-- **Date range does not change** EAC; it stays full-project.
-- EAC $ **budget** uses total Fibery allocation cost plus expenses on the series; it can disagree with summing **Allocated cost** on the resource table (especially after hours × cost-card rates).
-- Engagement Review status packs use the **same EAC construction** so the two surfaces should not drift.
+- **Date range does not change** EAC; it stays full-project through the as-of month key.
+- **EAC $** is a **dollar** forecast, not a margin percent. Do not confuse with **Projected margin** or the Lookback **EAC** column (below).
 
 ---
 
@@ -175,7 +189,7 @@ Related specs: [040](features/040-project-performance-layer.md), [046](features/
 
 **(Revenue recognized − total cost) ÷ revenue recognized**
 
-where total cost is **labor + Materials and ODC** (agreement / recognized basis).
+where total cost is **labor + Materials and ODC** (Datastore sums as of v3.29.5).
 
 **Where you see it:** Project financials chip labeled **Margin** (not "Actual margin"); Active Projects **Margin** column. Subtext can show **Target Margin**.
 
@@ -189,40 +203,66 @@ where total cost is **labor + Materials and ODC** (agreement / recognized basis)
 
 ## Projected Margin
 
-**What it means:** The labor margin we would get if we **keep the same allocation plan but price it at today's cost cards** (current Team Member Role bill and cost rates), not the rates locked on the SOW.
+**What it means:** **Will we finish healthy?** A **project-level** margin that blends **actuals to date** with the **remaining plan** (revenue milestones plus planned labor/expense months), so lumpy invoice timing does not dominate the story.
 
-**How the Hub calculates it:** Same weighted formula as Planned margin, substituting **current** role bill/cost rates for SOW rates.
+**How the Hub calculates it (Locked Decision #6, v3.29.5):**
 
-**Where you see it:** Project Performance **Projected margin** (subtext **Cost card rates**).
+**Numerator:** `(revenue to date + remaining planned revenue) − (cost to date + remaining planned cost)`
+
+**Denominator:** `(revenue to date + remaining planned revenue)`
+
+Where:
+
+- **Revenue to date + remaining planned revenue** uses the P&L month series (recognized **plus** forecast milestone amounts bucketed by Target Date for future months).
+- **Cost to date + remaining planned cost** uses logged labor and ODC through the as-of month plus remaining allocation cost and remaining expense months after the as-of month.
+
+**Where you see it:** Project Performance **Projected margin** chip. Lookback project detail **Projected margin** (frozen). Lookback **Action Required** list **EAC** column (see below).
 
 **Caveats unique to the Hub:**
 
-- This is **not** "actuals to date + remaining P&L plan" even though older specs described that. The Hub still **computes** that smoothed P&L projection internally (and uses remaining revenue for the timing badge), but the **chip** is the **cost-card allocation margin**.
-- Labor-only; 100% rate coverage on billable allocations or **N/A**.
-- **N/A** with no resource plan.
-- **Date range does not change** Projected margin.
+- This is **not** a static "cost card rate × all allocated hours" margin. It **changes month to month** as actuals accrue and remaining plan shrinks (as-of month key matters).
+- **Not** the same as **Planned margin** (SOW rates only, no actuals).
+- **N/A** with no resource plan (same gate as EAC hours/$).
+- **Date range on Project Performance does not change** Projected margin; only the as-of month (UTC month of "today" live, or reporting month end in Lookback) matters.
 
 ---
 
 ## Actual Margin to Date
 
-**What it means:** Margin for the **period you are looking at** on Project Performance: money in vs money out on the monthly P&L, not the SOW-rate plan.
+**What it means:** Margin for **recognized revenue and logged cost** in the months you are looking at on Project Performance: an accounting-style "what happened in this window?" view, not the SOW-rate plan.
 
-**How the Hub calculates it:**
+**How the Hub calculates it (v3.29.3+):**
 
-**(Revenue − labor − expenses) ÷ revenue**
+**(Recognized revenue in range − labor − expenses) ÷ recognized revenue in range**
 
-for P&L **calendar months** in the selected date range. **All Time** = through the as-of month.
+for P&L **calendar months** in the selected date range through the as-of month. **All Time** = all months through as-of.
 
-**Where you see it:** Project Performance **Actual margin to date** (the range label sits next to this chip).
+**Critical revenue rule:** Only **recognized** revenue items count. Unrecognized milestones whose Target Date has passed do **not** inflate this figure (forecast amounts still appear on the P&L chart and in **Projected margin**, but not here).
+
+**Where you see it:** Project Performance **Actual margin to date** (the range label sits next to this chip). Lookback freezes the same metric at lock/re-run for the reporting month as-of.
 
 **Caveats unique to the Hub:**
 
-- This is the **only** margin KPI that **follows the date range**. Planned, Projected, and EAC stay full-project.
+- This is the **only** margin KPI on Project Performance that **follows the date range** (Start/End). Planned, Projected, and EAC stay project-level.
 - Still shown when there is **no resource plan**.
-- Revenue in a month can include **forecast** (unrecognized milestones on Target Date), not only recognized invoices. That can differ from the project-strip **Margin** chip (recognized lifetime).
-- Resource-table hours/cost can filter to **calendar days**; this margin still follows **whole P&L months** in range.
-- If revenue in range is zero, the value is blank / not a percent.
+- Can differ from the project-strip **Margin** chip (lifetime recognized) and from **Projected margin** (includes remaining plan and forecast revenue).
+- If recognized revenue in range is zero, the value is blank / not a percent.
+
+---
+
+## Lookback EAC column (Action Required list)
+
+**What it means:** In **Performance Review / Lookback**, the **EAC** column on the Action Required table is **not** Fibery **Target Planned Margin At Complete** and **not** EAC dollars.
+
+**How the Hub sources it (v3.29.5):** The same **`projectedMarginPct`** frozen at lock or **Re-run recommended list** (`metrics.eacMarginPct` in the Lookback project blob). Auto-select rules that compare margin to **`LOOKBACK_MARGIN_THRESHOLD`** use this value too.
+
+**Where you see it:** Lookback month **Action Required** list **EAC** column; also in frozen project detail as **Projected margin** (the list column label says EAC for historical PDF alignment; the number is projected margin).
+
+**Caveats unique to the Hub:**
+
+- Fibery **Target Planned Margin At Complete** is **deprecated** for Lookback display (often neglected and identical to Target Margin on many SOWs).
+- Numbers **do not update live** after lock. Admin must **Re-run recommended list** (open month) or **delete + re-lock** (archived month) to refresh after formula changes.
+- Compare to **Actual margin** columns in Lookback (Fibery **Current Margin** / frozen actual margin fields), which answer a different question.
 
 ---
 
@@ -234,11 +274,12 @@ for P&L **calendar months** in the selected date range. **All Time** = through t
 | Planned Revenue | Full SOW | Revenue item targets | **Contract value** |
 | Planned Margin | Full SOW staffing | SOW bill/cost × allocated hours | **Planned margin** |
 | Planned Costs | (no single chip) | Several cost plans | Allocated cost / EAC remaining |
-| Projected Margin | Full SOW staffing | **Today's** role rates × hours | **Projected margin** |
+| Projected Margin | Through finish (as-of month) | Actuals + remaining P&L plan | **Projected margin**; Lookback **EAC** column |
 | Actual Margin | Lifetime recognized | Recognized rev vs labor+ODC | **Margin** |
-| Actual Margin to Date | Selected months | P&L rev vs labor+expenses | **Actual margin to date** |
+| Actual Margin to Date | Selected months | **Recognized** P&L rev vs labor+expenses | **Actual margin to date** |
+| Total Cost | Lifetime | `fos_labor_costs` + ODC sums | **Total cost** |
 | ETC | Remaining after as-of | Remaining allocations (+ ODC) | Inside EAC, not named |
-| EAC | Finish | Actuals + ETC | **EAC hours** / **EAC $** |
+| EAC hours / EAC $ | Finish | Actuals + ETC (hours or dollars) | **EAC hours** / **EAC $** |
 
 ---
 
@@ -246,5 +287,6 @@ for P&L **calendar months** in the selected date range. **All Time** = through t
 
 | Date | Note |
 | --- | --- |
+| 2026-09-14 | **Refresh for v3.29.5:** Projected margin = Locked Decision #6 (actuals + remaining plan); Actual margin to date = recognized revenue only; Total Cost from Datastore labor/ODC sums; Lookback EAC column = frozen projected margin. |
 | 2026-09-01 | First version from current PRD and Project Performance behavior (features 040, 046, 049, 053). Teamwork notebook **313662**. |
 | 2026-09-01 | Bid Revenue, Bid Costs, and Bid Margin described as the frozen original customer proposal; usage vs live Planned / Actual / EAC. |
