@@ -1,5 +1,5 @@
 /**
- * PRD version 3.29.6 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.9 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 040: shared project performance metrics (planned / projected margin,
  * EAC hours and dollars, timing-review flag, lifetime resources). Consumed by
@@ -120,7 +120,14 @@ function ppPlannedAllocCostForMonth_(resourceAllocations, monthKey) {
  * @return {string}
  * @private
  */
-function ppPersonKey_(name, role) {
+function ppPersonKey_(name, role, personEmail) {
+  var email = '';
+  if (typeof deliveryPnlResolvePersonEmail_ === 'function') {
+    email = deliveryPnlResolvePersonEmail_(name, personEmail);
+  } else if (typeof fosNormalizePersonEmailKey_ === 'function') {
+    email = fosNormalizePersonEmailKey_(personEmail) || fosNormalizePersonEmailKey_(name);
+  }
+  if (email) return 'email:' + email;
   return String(name || '(Unknown user)') + '\0' + String(role || '(No role)');
 }
 
@@ -225,6 +232,9 @@ function ppAssignmentCostRate_(asg) {
  */
 function ppResolveCostRateForPerson_(name, role, assignments, loggedHours, loggedCost) {
   var roleNorm = String(role || '(No role)').trim().toLowerCase();
+  var laborEmail = typeof deliveryPnlResolvePersonEmail_ === 'function'
+    ? deliveryPnlResolvePersonEmail_(name, null)
+    : '';
   var anyHours = 0;
   var anyCost = 0;
   var roleHours = 0;
@@ -233,7 +243,11 @@ function ppResolveCostRateForPerson_(name, role, assignments, loggedHours, logge
   for (var i = 0; i < (assignments || []).length; i++) {
     var asg = assignments[i];
     var asgName = asg.name || asg.clockifyUserName || asg.allocationName;
-    if (!ppPersonNamesMatch_(name, asgName)) continue;
+    var asgEmail = typeof deliveryPnlResolvePersonEmail_ === 'function'
+      ? deliveryPnlResolvePersonEmail_(asgName, asg.clockifyUserEmail)
+      : '';
+    var emailMatch = laborEmail && asgEmail && laborEmail === asgEmail;
+    if (!emailMatch && !ppPersonNamesMatch_(name, asgName)) continue;
     var rate = ppAssignmentCostRate_(asg);
     if (rate == null) continue;
     anyRate = rate;
@@ -382,7 +396,14 @@ function ppFormatSowRoleDisplayForPerson_(personName, assignments, rowBillable, 
   var endYmd = rangeYmd && rangeYmd.endYmd ? String(rangeYmd.endYmd).slice(0, 10) : '';
   for (var i = 0; i < (assignments || []).length; i++) {
     var a = assignments[i];
-    if (!ppPersonNamesMatch_(personName, a.name)) continue;
+    var laborEmail = typeof deliveryPnlResolvePersonEmail_ === 'function'
+      ? deliveryPnlResolvePersonEmail_(personName, null)
+      : '';
+    var asgEmail = typeof deliveryPnlResolvePersonEmail_ === 'function'
+      ? deliveryPnlResolvePersonEmail_(a.name, a.clockifyUserEmail)
+      : '';
+    var emailMatch = laborEmail && asgEmail && laborEmail === asgEmail;
+    if (!emailMatch && !ppPersonNamesMatch_(personName, a.name)) continue;
     if (!ppAllocationOverlapsYmdRange_(a.durStart, a.durEnd, startYmd, endYmd)) continue;
     if (a.allocatedAndBillable !== true) continue;
     sawBillable = true;
@@ -415,24 +436,41 @@ function ppAttachSowRoleDisplay_(rows, assignments, rangeYmd) {
   return rows;
 }
 
-function ppEnsureResourcesLifetimeRow_(byKey, name, role) {
+function ppEnsureResourcesLifetimeRow_(byKey, name, role, personEmail) {
+  var email = typeof deliveryPnlResolvePersonEmail_ === 'function'
+    ? deliveryPnlResolvePersonEmail_(name, personEmail)
+    : '';
+  if (email) {
+    var emailKey = 'email:' + email;
+    if (byKey[emailKey]) {
+      byKey[emailKey].name = ppPreferDisplayName_(byKey[emailKey].name, name);
+      if (!byKey[emailKey].personEmail) byKey[emailKey].personEmail = email;
+      return byKey[emailKey];
+    }
+  }
   var roleNorm = String(role || '(No role)').trim().toLowerCase();
   var keys = Object.keys(byKey);
   for (var i = 0; i < keys.length; i++) {
     var existing = byKey[keys[i]];
+    if (email && existing.personEmail && existing.personEmail === email) {
+      existing.name = ppPreferDisplayName_(existing.name, name);
+      return existing;
+    }
     if (String(existing.role || '').trim().toLowerCase() !== roleNorm) {
       continue;
     }
     if (ppPersonNamesMatch_(existing.name, name)) {
       existing.name = ppPreferDisplayName_(existing.name, name);
+      if (email && !existing.personEmail) existing.personEmail = email;
       return existing;
     }
   }
-  var key = ppPersonKey_(name, role);
+  var key = ppPersonKey_(name, role, personEmail);
   byKey[key] = {
     personKey: key,
     name: name,
     role: role || '(No role)',
+    personEmail: email || null,
     allocatedHoursLife: 0,
     loggedHoursLife: 0,
     allocatedCostLife: 0,
@@ -623,7 +661,7 @@ function ppBuildResourcesLifetime_(months, assignments, customerName, opts) {
       var p = people[j];
       var name = p.name || '(Unknown user)';
       var role = p.role || '(No role)';
-      var mRow = ppEnsureResourcesLifetimeRow_(monthMap, name, role);
+      var mRow = ppEnsureResourcesLifetimeRow_(monthMap, name, role, p.userEmail);
       mRow.loggedHoursLife += Number(p.hours || 0);
       mRow.loggedCostLife += Number(p.cost || 0);
       // Within a month, take max allocated so alias duplicates do not double-count.
@@ -647,7 +685,7 @@ function ppBuildResourcesLifetime_(months, assignments, customerName, opts) {
     var mKeys = Object.keys(monthMap);
     for (var mi = 0; mi < mKeys.length; mi++) {
       var src = monthMap[mKeys[mi]];
-      var life = ppEnsureResourcesLifetimeRow_(byKey, src.name, src.role);
+      var life = ppEnsureResourcesLifetimeRow_(byKey, src.name, src.role, src.personEmail);
       life.loggedHoursLife += src.loggedHoursLife;
       life.loggedCostLife += src.loggedCostLife;
       life.allocatedHoursLife += src.allocatedHoursLife;
@@ -669,7 +707,7 @@ function ppBuildResourcesLifetime_(months, assignments, customerName, opts) {
       var asg = assignments[a];
       var aName = asg.name || '(Unknown user)';
       var aRole = asg.roleName || '(No role)';
-      var aRow = ppEnsureResourcesLifetimeRow_(byKey, aName, aRole);
+      var aRow = ppEnsureResourcesLifetimeRow_(byKey, aName, aRole, asg.clockifyUserEmail);
       var asgHours = Number(asg.allocatedHours || 0);
       var asgRate = ppAssignmentCostRate_(asg);
       var asgCost = asgRate != null && asgHours > 0

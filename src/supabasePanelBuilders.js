@@ -1,5 +1,5 @@
 /**
- * PRD version 3.29.6 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.9 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 036 cutover: panel hydrate builders that read Supabase typed
  * tables (Agreement Management mirror from `supabaseAmMirror.js`, labor
@@ -176,6 +176,17 @@ function loadFosClockifyUsersByClockifyIdMap_() {
     }
     return map;
   });
+}
+
+/**
+ * Lowercased email when `value` looks like an email; else empty string.
+ * @param {*} value
+ * @return {string}
+ */
+function fosNormalizePersonEmailKey_(value) {
+  if (value === null || value === undefined) return '';
+  var s = String(value).trim().toLowerCase();
+  return s.indexOf('@') >= 0 ? s : '';
 }
 
 /**
@@ -933,7 +944,7 @@ function buildResourceAssignmentDashboardPayloadFromSupabaseCore_(rangeStartYmd,
     var allocationsRes = supabaseSelectAll_(
       'fos_resource_allocations',
       null,
-      'fibery_id,allocation_name,agreement_id,clockify_user_id,clockify_user_role_id,' +
+      'fibery_id,allocation_name,agreement_id,clockify_user_id,clockify_user_email,clockify_user_role_id,' +
         'allocated_billable,allocated_hours,percent_allocated,duration_start,duration_end'
     );
     if (!allocationsRes.ok) {
@@ -1126,7 +1137,15 @@ function fetchResourceAllocationsViaRpc_(startYmd, endYmd) {
 function mapFosResourceAllocationRowToRaw_(row, agreementsMap, companiesMap, usersMap, rolesMap) {
   var agreement = row.agreement_id ? agreementsMap[row.agreement_id] : null;
   var company = agreement && agreement.customer_id ? companiesMap[agreement.customer_id] : null;
-  var user = row.clockify_user_id ? usersMap[row.clockify_user_id] : null;
+  var usersByIdentity = loadFosClockifyUsersByClockifyIdMap_();
+  var allocEmail = fosNormalizePersonEmailKey_(row.clockify_user_email);
+  var user = null;
+  if (allocEmail && usersByIdentity[allocEmail]) {
+    user = usersByIdentity[allocEmail];
+  }
+  if (!user && row.clockify_user_id) {
+    user = usersMap[row.clockify_user_id] || null;
+  }
   var role = row.clockify_user_role_id ? rolesMap[row.clockify_user_role_id] : null;
   return {
     id: row.fibery_id,
@@ -1134,6 +1153,9 @@ function mapFosResourceAllocationRowToRaw_(row, agreementsMap, companiesMap, use
     allocationName: row.allocation_name,
     percentAllocated: row.percent_allocated,
     clockifyUserId: row.clockify_user_id,
+    clockifyUserEmail: allocEmail || (user && user.clockify_user_email
+      ? fosNormalizePersonEmailKey_(user.clockify_user_email)
+      : null),
     clockifyUserName: user ? user.name : null,
     clockifyUserCompany: user ? user.company_enum_name : null,
     roleName: role ? role.name : null,
@@ -1685,7 +1707,7 @@ function fetchResourceAllocationsForAgreementFromSupabase_(agreementId) {
   var res = supabaseSelectAll_(
     'fos_resource_allocations',
     { agreement_id: 'eq.' + agreementId },
-    'fibery_id,allocation_name,clockify_user_id,clockify_user_role_id,allocated_cost,' +
+    'fibery_id,allocation_name,clockify_user_id,clockify_user_email,clockify_user_role_id,allocated_cost,' +
       'allocated_hours,percent_allocated,allocated_billable,duration_start,duration_end,raw'
   );
   if (!res.ok) {
@@ -1700,7 +1722,18 @@ function fetchResourceAllocationsForAgreementFromSupabase_(agreementId) {
   var out = [];
   for (var i = 0; i < rows.length; i++) {
     var r = rows[i];
-    var user = r.clockify_user_id ? usersMap[r.clockify_user_id] : null;
+    var usersByIdentity = loadFosClockifyUsersByClockifyIdMap_();
+    var allocEmail = fosNormalizePersonEmailKey_(r.clockify_user_email);
+    var user = null;
+    if (allocEmail && usersByIdentity[allocEmail]) {
+      user = usersByIdentity[allocEmail];
+    }
+    if (!user && r.clockify_user_id) {
+      user = usersMap[r.clockify_user_id] || null;
+    }
+    if (!allocEmail && user && user.clockify_user_email) {
+      allocEmail = fosNormalizePersonEmailKey_(user.clockify_user_email);
+    }
     var role = r.clockify_user_role_id ? rolesMap[r.clockify_user_role_id] : null;
     var billableRaw = r.allocated_billable;
     out.push({
@@ -1708,6 +1741,7 @@ function fetchResourceAllocationsForAgreementFromSupabase_(agreementId) {
       allocatedCost: numberOr_(r.allocated_cost, 0),
       allocatedHours: numberOr_(r.allocated_hours, 0),
       allocationName: stringOrNull_(r.allocation_name),
+      clockifyUserEmail: allocEmail,
       clockifyUserName: user ? stringOrNull_(user.name) : null,
       percentAllocated:
         r.percent_allocated != null && r.percent_allocated !== '' ? numberOr_(r.percent_allocated, 0) : null,
@@ -1843,11 +1877,16 @@ function mapFosLaborCostRowToDeliveryPnlRaw_(row, usersByClockifyId, rolesMap) {
     stringOrNull_(p['Agreement Management/Time Entry User Name']) ||
     (user && user.name ? String(user.name).trim() : null) ||
     null;
+  var userEmail =
+    fosNormalizePersonEmailKey_(user && user.clockify_user_email) ||
+    fosNormalizePersonEmailKey_(row.user_id) ||
+    '';
   return {
     id: row.clockify_time_log_id || '',
     cost: cost,
     startDateTime: row.start_date_time || null,
     userName: userName,
+    userEmail: userEmail || null,
     hours: hours,
     userRole: userRole,
     clockifyUserRole: clockifyUserRole,

@@ -1,5 +1,5 @@
 /**
- * PRD version 3.29.6 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.9 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `pm-overview`, panel
  * `#panel-pm-overview`). Public endpoints, all authorized via
@@ -106,9 +106,11 @@ var DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_ = 2;
  *   v16 - v3.7.6 / feature 040 R5: laborByPerson.allocatedCost (month-prorated).
  *   v19 - v3.29.0: laborByPerson.allocatedCost uses hours * user cost rate
  *        when Fibery Allocated Cost is empty.
+ *   v20 - v3.29.9: resource allocation joins use Clockify user email
+ *        (Fibery formula on Resource Allocations) as the primary person key.
  * @const {number}
  */
-var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 19;
+var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 20;
 
 /** @const {number} Default TTL (minutes) for the client-side cache. */
 var DELIVERY_DEFAULT_CACHE_TTL_MIN_ = 10;
@@ -1251,6 +1253,7 @@ function buildMonthlyPnL_(args) {
     if (!isFinite(cost)) { laborSkipped++; continue; }
     var roleName = l.userRole || l.clockifyUserRole || '(No role)';
     var personName = String(l.userName || '').trim() || '(Unknown user)';
+    var personEmail = deliveryPnlResolvePersonEmail_(personName, l.userEmail || l.userId);
     var hours = Number(l.hours);
     if (!isFinite(hours) || hours < 0) hours = 0;
     laborByMonth[key] = (laborByMonth[key] || 0) + cost;
@@ -1266,8 +1269,16 @@ function buildMonthlyPnL_(args) {
     var personKey = personName + '\0' + roleName;
     var personAgg = laborByMonthByPerson[key][personKey];
     if (!personAgg) {
-      personAgg = { name: personName, role: roleName, hours: 0, cost: 0 };
+      personAgg = {
+        name: personName,
+        role: roleName,
+        hours: 0,
+        cost: 0,
+        userEmail: personEmail || null,
+      };
       laborByMonthByPerson[key][personKey] = personAgg;
+    } else if (personEmail && !personAgg.userEmail) {
+      personAgg.userEmail = personEmail;
     }
     personAgg.hours += hours;
     personAgg.cost += cost;
@@ -1406,6 +1417,7 @@ function buildMonthlyPnL_(args) {
         role: pa.role,
         hours: Math.round(pa.hours * 100) / 100,
         cost: pa.cost,
+        userEmail: pa.userEmail || null,
       });
     }
     laborByPerson.sort(function (a, b) {
@@ -1780,21 +1792,22 @@ function fetchResourceAllocationsForAgreement_(agreementId) {
           'Agreement Management/Clockify User',
           'Agreement Management/Name',
         ],
+        clockifyUserEmail: 'Agreement Management/Clockify User Clockify User Email',
         percentAllocated: 'Agreement Management/Percent Allocated',
         allocatedAndBillable: 'Agreement Management/Allocated & Billable',
         roleName: [
-          'Agreement Management/Clockify User Team Member Role',
+          'Agreement Management/Team Member Role',
           'Agreement Management/Name',
         ],
         roleOnSow: 'Agreement Management/Role on SOW',
         sowBillRate: 'Agreement Management/SOW Bill Rate',
         sowCostRate: 'Agreement Management/SOW Cost Rate',
         currentBillRate: [
-          'Agreement Management/Clockify User Team Member Role',
+          'Agreement Management/Team Member Role',
           'Agreement Management/Bill Rate',
         ],
         currentCostRate: [
-          'Agreement Management/Clockify User Team Member Role',
+          'Agreement Management/Team Member Role',
           'Agreement Management/Cost Rate',
         ],
       },
@@ -1817,6 +1830,7 @@ function fetchResourceAllocationsForAgreement_(agreementId) {
       allocatedHours: numberOr_(page[i].allocatedHours, 0),
       allocationName: stringOrNull_(page[i].allocationName),
       clockifyUserName: stringOrNull_(page[i].clockifyUserName),
+      clockifyUserEmail: deliveryPnlPersonEmailKey_(page[i].clockifyUserEmail) || null,
       percentAllocated: page[i].percentAllocated != null && page[i].percentAllocated !== ''
         ? numberOr_(page[i].percentAllocated, 0) : null,
       allocatedAndBillable: billableRaw === true ? true : billableRaw === false ? false : null,
@@ -1885,6 +1899,7 @@ function buildResourceAllocationAssignmentsList_(rows) {
     out.push({
       id: row.id,
       name: name,
+      clockifyUserEmail: deliveryPnlPersonEmailKey_(row.clockifyUserEmail) || null,
       roleName: stringOrNull_(row.roleName) || '(No role)',
       durationLabel: formatResourceAllocationDurationLabel_(row.durStart, row.durEnd),
       durStart: row.durStart || null,
@@ -1939,6 +1954,45 @@ function deliveryPnlNormalizePersonToken_(s) {
     .toLowerCase()
     .replace(/@.*$/, '')
     .replace(/[._\s\-]+/g, '');
+}
+
+/**
+ * Canonical email key for labor ↔ allocation matching.
+ * @param {*} value
+ * @return {string}
+ * @private
+ */
+function deliveryPnlPersonEmailKey_(value) {
+  if (typeof fosNormalizePersonEmailKey_ === 'function') {
+    return fosNormalizePersonEmailKey_(value);
+  }
+  if (value === null || value === undefined) return '';
+  var s = String(value).trim().toLowerCase();
+  return s.indexOf('@') >= 0 ? s : '';
+}
+
+/**
+ * @param {?string} name
+ * @param {?string} emailField
+ * @return {string}
+ * @private
+ */
+function deliveryPnlResolvePersonEmail_(name, emailField) {
+  var e = deliveryPnlPersonEmailKey_(emailField);
+  if (e) return e;
+  return deliveryPnlPersonEmailKey_(name);
+}
+
+/**
+ * @param {?string} displayName
+ * @param {?string} emailField
+ * @return {string}
+ * @private
+ */
+function deliveryPnlAllocPersonToken_(displayName, emailField) {
+  var email = deliveryPnlResolvePersonEmail_(displayName, emailField);
+  if (email) return 'email:' + email;
+  return '~' + deliveryPnlNormalizePersonToken_(displayName);
 }
 
 /**
@@ -2028,6 +2082,7 @@ function prorateAllocationHoursForMonth_(row, monthKey) {
   var name = stringOrNull_(row.clockifyUserName)
     || stringOrNull_(row.allocationName)
     || '(Unnamed)';
+  var allocEmail = deliveryPnlPersonEmailKey_(row.clockifyUserEmail);
   var role = stringOrNull_(row.roleName) || '(No role)';
   var billable = row.allocatedAndBillable === true
     ? true
@@ -2066,6 +2121,7 @@ function prorateAllocationHoursForMonth_(row, monthKey) {
     billable: billable,
     name: name,
     role: role,
+    userEmail: allocEmail || null,
   };
 }
 
@@ -2100,14 +2156,14 @@ function enrichMonthsLaborByPersonWithAllocations_(months, allocRows, customerNa
       }
       return allocByPerson[token];
     }
-    function personToken(name) {
-      return '~' + deliveryPnlNormalizePersonToken_(name);
+    function personToken(name, emailField) {
+      return deliveryPnlAllocPersonToken_(name, emailField);
     }
 
     for (var ai = 0; ai < allocRows.length; ai++) {
       var slice = prorateAllocationHoursForMonth_(allocRows[ai], monthKey);
       if (!slice) continue;
-      var token = personToken(slice.name);
+      var token = personToken(slice.name, slice.userEmail);
       if (!token || token === '~') continue;
       var pers = ensurePerson(token, slice.name);
       pers.hasOverlap = true;
@@ -2133,10 +2189,15 @@ function enrichMonthsLaborByPersonWithAllocations_(months, allocRows, customerNa
       if (slice.billable === true) roleAgg.billableTrue = true;
     }
 
-    function findAllocPerson(laborName) {
+    function findAllocPerson(laborName, laborEmail) {
+      var email = deliveryPnlResolvePersonEmail_(laborName, laborEmail);
+      if (email) {
+        var emailToken = personToken(laborName, email);
+        if (allocByPerson[emailToken]) return allocByPerson[emailToken];
+      }
       var keys = deliveryPnlPersonAliasKeys_(laborName);
       for (var k = 0; k < keys.length; k++) {
-        var t = personToken(keys[k]);
+        var t = personToken(keys[k], null);
         if (allocByPerson[t]) return allocByPerson[t];
       }
       // Scan all for alias match (different display forms).
@@ -2162,13 +2223,13 @@ function enrichMonthsLaborByPersonWithAllocations_(months, allocRows, customerNa
       var lRole = row.role || '(No role)';
       var logged = Number(row.hours || 0);
       var cost = Number(row.cost || 0);
-      var allocPers = findAllocPerson(lName);
+      var allocPers = findAllocPerson(lName, row.userEmail);
       var allocHours = 0;
       var allocCost = 0;
       var pct = null;
       var billable = null;
       if (allocPers) {
-        seenLaborTokens[personToken(allocPers.displayName)] = true;
+        seenLaborTokens[personToken(allocPers.displayName, row.userEmail)] = true;
         // Prefer matching role; else sum all roles for the person.
         var roleAgg = allocPers.byRole[lRole];
         if (roleAgg) {
@@ -2682,4 +2743,42 @@ function test_deliveryAgreementLaborCostsMatchFosLaborSum_() {
         ? 'FAIL: laborCosts mismatch vs fos_labor_costs for ' + (checked - matched) + ' project(s).'
         : 'SKIP: no agreements with non-zero fos_labor_costs rows found.',
   };
+}
+
+/**
+ * Resource allocation ↔ labor person keys prefer email when present.
+ * @return {!Object}
+ */
+function test_deliveryAllocLaborEmailPersonKey_() {
+  var tok = deliveryPnlAllocPersonToken_('Andrey Vnuk', 'andrey.vnuk@harpin.ai');
+  var tok2 = deliveryPnlAllocPersonToken_('andrey.vnuk@harpin.ai', null);
+  if (tok !== 'email:andrey.vnuk@harpin.ai' || tok !== tok2) {
+    return { ok: true, pass: false, message: 'FAIL: deliveryPnlAllocPersonToken_ email mismatch.' };
+  }
+  if (typeof normalizeResourceAllocationRow_ !== 'function') {
+    return { ok: true, pass: true, skipped: true, message: 'SKIP: normalizeResourceAllocationRow_ unavailable.' };
+  }
+  var norm = normalizeResourceAllocationRow_({
+    id: 'test-alloc',
+    agreementId: 'test-agreement',
+    clockifyUserEmail: 'andrey.vnuk@harpin.ai',
+    clockifyUserName: 'Andrey Vnuk',
+    allocatedHours: 1,
+    duration: { start: '2026-01-01', end: '2026-12-31' },
+  });
+  if (!norm || norm.personKey !== 'person:email:andrey.vnuk@harpin.ai') {
+    return {
+      ok: true,
+      pass: false,
+      message: 'FAIL: normalizeResourceAllocationRow_ personKey expected person:email:…',
+    };
+  }
+  if (resourceAssignmentPersonKeyFromParts_('andrey.vnuk@harpin.ai', 'Andrey Vnuk') !== norm.personKey) {
+    return {
+      ok: true,
+      pass: false,
+      message: 'FAIL: labor person key does not match allocation person key.',
+    };
+  }
+  return { ok: true, pass: true, message: 'PASS: allocation and labor share email person keys.' };
 }

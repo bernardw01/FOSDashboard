@@ -1,5 +1,5 @@
 /**
- * PRD version 3.29.6 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.9 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Agreement Management Fibery â†’ Supabase relational mirror (Pull / nightly).
  * Full-scan steps reconcile ghosts: fibery_ids seen during the step are stored
@@ -173,7 +173,15 @@ var AM_MIRROR_ENTITY_STEPS_ = [
       departmentName: ['Agreement Management/Department', 'enum/name'],
       workStatusId: ['Agreement Management/Work Status', 'fibery/id'],
       workStatusName: ['Agreement Management/Work Status', 'enum/name'],
-      teamMemberRoleId: ['Agreement Management/Team Member Role', 'fibery/id'],
+      // Team Member Roles is a collection (1:*). Pick latest by creation-date in mapRow.
+      teamMemberRoles: {
+        'q/from': 'Agreement Management/Team Member Roles',
+        'q/select': {
+          id: 'fibery/id',
+          createdAt: 'fibery/creation-date',
+        },
+        'q/limit': AM_MIRROR_ASSIGNED_RESOURCES_SUBQUERY_LIMIT_,
+      },
       teamMemberRoleBillRate: 'Agreement Management/Team Member Role Bill Rate',
       teamMemberRoleCostRate: 'Agreement Management/Team Member Role Cost Rate',
       managerId: ['Agreement Management/Manager', 'fibery/id'],
@@ -315,8 +323,10 @@ var AM_MIRROR_ENTITY_STEPS_ = [
       allocationName: 'Agreement Management/Allocation Name',
       agreementId: ['Agreement Management/Agreement', 'fibery/id'],
       clockifyUserId: ['Agreement Management/Clockify User', 'fibery/id'],
+      clockifyUserEmail: 'Agreement Management/Clockify User Clockify User Email',
       clockifyUserCompanyId: ['Agreement Management/Clockify User Company', 'fibery/id'],
-      clockifyUserRoleId: ['Agreement Management/Clockify User Team Member Role', 'fibery/id'],
+      // Fibery renamed Clockify User Team Member Role -> Team Member Role (schema 1365).
+      clockifyUserRoleId: ['Agreement Management/Team Member Role', 'fibery/id'],
       allocatedBillable: 'Agreement Management/Allocated & Billable',
       allocatedCost: 'Agreement Management/Allocated Cost',
       allocatedHours: 'Agreement Management/Allocated Hours',
@@ -1227,15 +1237,41 @@ function amMirrorMapClockifyUser_(row) {
     department_name: row.departmentName || null,
     work_status_id: amMirrorRelId_(row.workStatusId),
     work_status_name: row.workStatusName || null,
-    team_member_role_id: amMirrorRelId_(row.teamMemberRoleId),
+    team_member_role_id: amMirrorLatestTeamMemberRoleId_(row.teamMemberRoles),
     team_member_role_bill_rate: amMirrorNum_(row.teamMemberRoleBillRate),
     team_member_role_cost_rate: amMirrorNum_(row.teamMemberRoleCostRate),
     manager_id: amMirrorRelId_(row.managerId),
     created_at: amMirrorDate_(row.createdAt),
     modified_at: amMirrorDate_(row.modifiedAt),
     synced_at: amMirrorNowIso_(),
-    raw: row,
+    raw: amMirrorRawWithout_(row, ['teamMemberRoles']),
   };
+}
+
+/**
+ * From a Team Member Roles collection subquery, return the fibery/id of the
+ * role with the latest fibery/creation-date. Ties keep the first max seen.
+ *
+ * @param {?Array<!Object>|*} roles
+ * @return {?string}
+ * @private
+ */
+function amMirrorLatestTeamMemberRoleId_(roles) {
+  if (!roles || !roles.length) return null;
+  var bestId = null;
+  var bestCreated = '';
+  for (var i = 0; i < roles.length; i++) {
+    var role = roles[i];
+    if (!role) continue;
+    var id = amMirrorRelId_(role.id);
+    if (!id) continue;
+    var created = role.createdAt != null ? String(role.createdAt) : '';
+    if (!bestId || created > bestCreated) {
+      bestId = id;
+      bestCreated = created;
+    }
+  }
+  return bestId;
 }
 
 /**
@@ -1383,6 +1419,7 @@ function amMirrorMapResourceAllocation_(row) {
     allocation_name: row.allocationName || null,
     agreement_id: amMirrorRelId_(row.agreementId),
     clockify_user_id: amMirrorRelId_(row.clockifyUserId),
+    clockify_user_email: amMirrorNormalizeEmail_(row.clockifyUserEmail),
     clockify_user_company_id: amMirrorRelId_(row.clockifyUserCompanyId),
     clockify_user_role_id: amMirrorRelId_(row.clockifyUserRoleId),
     allocated_billable: amMirrorBool_(row.allocatedBillable),
@@ -1658,6 +1695,17 @@ function amMirrorNum_(val) {
  * @param {*} val
  * @return {?boolean}
  */
+/**
+ * @param {*} val
+ * @return {?string}
+ * @private
+ */
+function amMirrorNormalizeEmail_(val) {
+  if (val === null || val === undefined) return null;
+  var s = String(val).trim().toLowerCase();
+  return s && s.indexOf('@') >= 0 ? s : null;
+}
+
 function amMirrorBool_(val) {
   if (val === null || val === undefined) return null;
   if (typeof val === 'boolean') return val;

@@ -1,7 +1,7 @@
 # Feature: Supabase dashboard data layer
 
 > **Status:** Shipped (**v3.0.0**; patches through **v3.20.3** ghost reconcile)  
-> **PRD version:** **3.29.1**  
+> **PRD version:** **3.29.7**  
 > **Feature id:** 036 | **Task list:** Data platform  
 > **Release type:** Enhancement  
 > **Extends:** [003 - Agreement client cache](003-agreement-dashboard-fibery-client-cache.md), [005 - Utilization](005-utilization-management-dashboard.md), [006 - Delivery P&L](006-delivery-project-pnl.md), [009 - Historical snapshots](009-dashboard-historical-snapshots.md), [010 - Historical data source](010-dashboard-historical-data-source.md), [016 / 030 - Pipeline](030-sales-os-pipeline.md), [017 / 023 - AI usage](023-ai-usage-dashboard.md), [022 / 025 - Portfolio](025-portfolio-pnl-performance-and-load-source-ux.md), [027 / 028 - Resource assignments](027-resource-assignment-dashboard.md), [034 - Live Drive warm cache](034-live-dashboard-warm-cache-and-portfolio-batching.md) (live Drive path superseded by this feature).  
@@ -303,6 +303,7 @@ See [implementation plan](036-supabase-dashboard-data-layer-implementation-plan.
 
 | Date | Note |
 | --- | --- |
+| 2026-09-30 | **v3.29.7:** AM mirror role schema - Clockify Users Team Member Roles collection (latest fibery/creation-date -> team_member_role_id); Resource Allocations Team Member Role replaces Clockify User Team Member Role; Delivery/RA live Fibery selects updated. No Supabase DDL. |
 | 2026-09-10 | **v3.27.0:** BUG-036-01 code fix shipped - 4h staleness guard on `startSupabaseSync_`, Settings sync health + force-clear, `_diag_supabaseSyncHealth`, `test_supabaseSyncStaleRunningGuard_`. Ops unblock (fresh sync + BUG-040-01 re-verify) still pending Admin **Pull from Fibery**. |
 | 2026-09-10 | **v3.28.0:** BUG-036-02 shipped - empty-window messaging, ai-usage soft-fail, `_diag_aiUsageDataFreshness_`, `test_supabaseAiUsageEmptyWindowDistinction_`. Upstream AI data still stale since 2026-05-31 (feature 017 investigation documented). |
 | 2026-09-10 | **v3.29.1:** CHANGE-036-03 shipped - `AI_USAGE_HYDRATE_ENABLED` pauses Hub AI Usage nav/hydrate/diagnostics/notifications; feature 017 ingest unchanged. |
@@ -310,12 +311,12 @@ See [implementation plan](036-supabase-dashboard-data-layer-implementation-plan.
 | 2026-09-10 | Spec update: added **BUG-036-01** (confirmed live incident - FOSDashboard's own AM-mirror sync job, tracked in `fos_sync_runs`, stuck `running` since 2026-08-25 17:47 UTC, zero runs since; explains BUG-040-01's missing SOW rates as a downstream symptom). **Scope-corrected same day**: the separate `ClockifyToFiberySync` repo's own labor-cost pipeline is healthy (synced this morning) - only the Agreement Management mirror (agreements, resource allocations, portfolio-pnl, pipeline, AI usage, and FOSDashboard's own utilization panel-cache step) is affected, not "every Live panel." Not yet implemented - immediate ops remediation (clear stuck state, force a fresh sync) needed independent of the code fix. |
 | 2026-08-25 | **v3.19.0 (feature 049):** Migration **052** / `fos_programs`; `fos_agreements` Bid/Program/Initial Planned Hours columns; AM mirror `programs` + agreements select/map; Agreement cache schema **5**. |
 | 2026-08-15 | **v3.7.4:** Live Resource assignments honors From/To by rebuilding from typed tables (`buildResourceAssignmentDashboardPayloadFromSupabase_`); hydrate blob stays default-range fallback (mirrors Utilization + `fos_labor_costs`). |
-| 2026-07-29 | **v3.4.10:** AM mirror `estimated_allocations` select maps `allocation` → Fibery **Percent Allocated** (field `Agreement Management/Allocation` does not exist; overnight sync failed after resource_allocations). |
+| 2026-07-29 | **v3.4.10:** AM mirror `estimated_allocations` select maps `allocation` -> Fibery **Percent Allocated** (field `Agreement Management/Allocation` does not exist; overnight sync failed after resource_allocations). |
 | 2026-07-27 | **v3.4.6:** Migration **044** restores `anon`/`authenticated` grants + RLS policies on `fos_labor_costs` / `labor_costs` (fixes Live Labor Hours / Utilization and Pull `permission denied for table fos_labor_costs`). |
 | 2026-07-27 | **v3.4.2:** AM mirror Companies Segment / Assigned Resources / P&L revenue junctions use Fibery path vectors (nested collection `{ q/from }` fails on this workspace). |
 | 2026-07-25 | **v3.4.1:** Migration **043** restores `anon`/`authenticated` grants on AM mirror tables (fixes nightly `permission denied for table fos_am_enums`). |
 | 2026-07-24 | **v3.4.0:** Panel hydrate builds JSON from Supabase typed tables (`supabasePanelBuilders.js`); Fibery Labor Costs no longer mirrored (Clockify `fos_labor_costs` only); HubSpot/AI row mirrors before Pipeline/AI panels; AM FK constraints (migration **042**). |
-| 2026-07-23 | **v3.3.0:** ADMIN Pull / nightly hydrate Agreement Management relational tables (`am-mirror` via `supabaseAmMirror.js`) before panel JSON blobs. Migration **041**. Fibery Labor Costs → `fos_am_labor_costs` (Clockify `fos_labor_costs` unchanged). Panel aggregation builders unchanged. |
+| 2026-07-23 | **v3.3.0:** ADMIN Pull / nightly hydrate Agreement Management relational tables (`am-mirror` via `supabaseAmMirror.js`) before panel JSON blobs. Migration **041**. Fibery Labor Costs -> `fos_am_labor_costs` (Clockify `fos_labor_costs` unchanged). Panel aggregation builders unchanged. |
 | 2026-07-22 | **v3.0.12:** `fos_labor_costs` is Hub time-entry mirror of `labor_costs` (migration 038). ADMIN Pull auto-installs nightly hydrate trigger; Settings shows trigger status. |
 | 2026-07-22 | **v3.0.11:** Live serve is Datastore-only (no Fibery / Drive warm fallback). Utilization and Resource assignments no longer skip Supabase when the client sends date ranges. |
 | 2026-07-21 | **v3.0.9:** Default `DASHBOARD_READ_SOURCE` is **supabase**; `fibery` remains the kill-switch. |
@@ -323,5 +324,5 @@ See [implementation plan](036-supabase-dashboard-data-layer-implementation-plan.
 | 2026-07-21 | **v3.0.2:** Customer-facing reload labels use **Datastore** / **Reloading from Datastore** (hide Supabase vendor name); ADMIN Settings still name Supabase. |
 | 2026-07-21 | **v3.0.1:** Panel Refresh no longer skips Supabase; loading overlays use `dashboardReadSource` hint from `doGet`. |
 | 2026-07-21 | Release renumbered **MAJOR 3.0.0** (was drafted as 2.28.0) for serving-contract change to Supabase Live path. |
-| 2026-07-21 | Implemented Phases 0–7 in code (v3.0.0): supabaseClient, schema migration, sync job, serve gates, dual-write, Drive bypass, Admin Pull UI, PRD FR-133 / AC-95. |
+| 2026-07-21 | Implemented Phases 0-7 in code (v3.0.0): supabaseClient, schema migration, sync job, serve gates, dual-write, Drive bypass, Admin Pull UI, PRD FR-133 / AC-95. |
 | 2026-07-21 | Spec Draft: Supabase live serve (except Expenses), Fibery nightly + ADMIN Pull hydrate, dual-write status updates, Labor Cost sync out of scope, Drive warm caches retired for Live, historical snapshots remain on Drive (Supabase snapshots follow-on). |

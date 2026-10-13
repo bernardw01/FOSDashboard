@@ -1,5 +1,5 @@
 -- FinOps Performance Hub - combined Supabase schema
--- Generated: 2026-09-09T20:11:27Z
+-- Generated: 2026-10-13T21:22:38Z
 -- Source: C:/code/FOSDashboard/supabase/migrations
 -- Idempotent: migrations use IF NOT EXISTS where possible.
 
@@ -2375,3 +2375,976 @@ create index if not exists fos_lookback_projects_month_sort_idx
 
 commit;
 -- ========== END 056_lookback_projects_sort_order.sql ==========
+
+-- ========== BEGIN 057_fos_rpc_util_aggregates.sql ==========
+-- Feature 047 Workstream B7 / B1: Utilization aggregates RPC.
+--
+-- Returns KPIs plus the precomputed aggregate slices that
+-- buildUtilizationAggregates_ produces in Apps Script (excluding byPersonWeek,
+-- which stays row-local in JS). Uses fos_labor_costs_util_dims (migration 046)
+-- for agreement/customer/role joins.
+
+create or replace function public.fos_rpc_util_aggregates(
+  p_start timestamptz,
+  p_end   timestamptz
+) returns jsonb
+language sql
+stable
+set statement_timeout = '20s'
+as $$
+  with bounds as (
+    select p_start as start_ts, p_end as end_ts
+  ),
+  norm as (
+    select
+      coalesce(
+        nullif(lc.clockify_hours, 0),
+        case when lc.seconds is not null then lc.seconds::numeric / 3600.0 else 0 end,
+        0
+      ) as hours,
+      (
+        lower(trim(coalesce(lc.billable, ''))) in ('yes', 'y', 'true', '1')
+      ) as billable,
+      coalesce(
+        nullif(
+          coalesce(
+            nullif(
+              coalesce(
+                nullif(lc.clockify_hours, 0),
+                case when lc.seconds is not null then lc.seconds::numeric / 3600.0 else 0 end,
+                0
+              ),
+              0
+            ) * coalesce(d.user_role_cost_rate, 0),
+            0
+          ),
+          0
+        ),
+        0
+      ) as cost,
+      coalesce(nullif(trim(d.customer_name), ''), '(Unassigned)') as customer,
+      coalesce(nullif(trim(lc.time_entry_project_name), ''), '(No Project)') as project_name,
+      lc.project_id,
+      coalesce(nullif(trim(lc.time_entry_user_name), ''), '(Unknown user)') as user_name,
+      lc.user_id,
+      coalesce(nullif(trim(d.user_role_name), ''), '(No role)') as role_name,
+      coalesce(d.user_role_bill_rate, null) as user_role_bill_rate,
+      (
+        to_char(lc.start_date_time at time zone 'UTC', 'IYYY')
+        || '-W'
+        || to_char(lc.start_date_time at time zone 'UTC', 'IW')
+      ) as week_key
+    from public.fos_labor_costs lc
+    cross join bounds b
+    left join public.fos_labor_costs_util_dims d
+      on d.clockify_time_log_id = lc.clockify_time_log_id
+    where lc.start_date_time >= b.start_ts
+      and lc.start_date_time < b.end_ts
+  ),
+  kpis as (
+    select jsonb_build_object(
+      'totalHours', coalesce(sum(hours), 0),
+      'billableHours', coalesce(sum(hours) filter (where billable), 0),
+      'nonBillableHours', greatest(
+        0,
+        coalesce(sum(hours), 0) - coalesce(sum(hours) filter (where billable), 0)
+      ),
+      'utilizationPct', case
+        when coalesce(sum(hours), 0) > 0 then
+          (coalesce(sum(hours) filter (where billable), 0) / sum(hours)) * 100
+        else 0
+      end,
+      'totalCost', coalesce(sum(cost), 0),
+      'effectiveCostRate', case
+        when coalesce(sum(hours), 0) > 0 then coalesce(sum(cost), 0) / sum(hours)
+        else 0
+      end,
+      'effectiveBillRate', case
+        when coalesce(sum(hours) filter (where user_role_bill_rate is not null), 0) > 0 then
+          sum(hours * user_role_bill_rate) filter (where user_role_bill_rate is not null)
+          / sum(hours) filter (where user_role_bill_rate is not null)
+        else null
+      end,
+      'effectiveBillRateCoverage', case
+        when coalesce(sum(hours), 0) > 0 then
+          coalesce(sum(hours) filter (where user_role_bill_rate is not null), 0) / sum(hours)
+        else 0
+      end,
+      'distinctPersons', count(distinct coalesce(user_id, user_name)),
+      'distinctProjects', count(distinct coalesce(project_id, project_name)),
+      'distinctCustomers', count(distinct customer),
+      'rowCount', count(*)
+    ) as doc
+    from norm
+  ),
+  by_customer as (
+    select jsonb_build_object(
+      'name', customer,
+      'hours', sum(hours),
+      'billableHours', sum(hours) filter (where billable),
+      'cost', sum(cost)
+    ) as row_json,
+    sum(hours) as sort_hours
+    from norm
+    group by customer
+  ),
+  by_project as (
+    select jsonb_build_object(
+      'name', project_name,
+      'id', project_id,
+      'customer', customer,
+      'hours', sum(hours),
+      'billableHours', sum(hours) filter (where billable),
+      'cost', sum(cost)
+    ) as row_json,
+    sum(hours) as sort_hours
+    from norm
+    group by project_id, project_name, customer
+  ),
+  by_person as (
+    select jsonb_build_object(
+      'name', user_name,
+      'id', user_id,
+      'hours', sum(hours),
+      'billableHours', sum(hours) filter (where billable),
+      'cost', sum(cost),
+      'utilizationPct', case
+        when sum(hours) > 0 then (sum(hours) filter (where billable) / sum(hours)) * 100
+        else 0
+      end
+    ) as row_json,
+    sum(hours) as sort_hours
+    from norm
+    group by user_id, user_name
+  ),
+  by_role as (
+    select jsonb_build_object(
+      'name', role_name,
+      'hours', sum(hours),
+      'billableHours', sum(hours) filter (where billable)
+    ) as row_json,
+    sum(hours) as sort_hours
+    from norm
+    group by role_name
+  ),
+  by_week as (
+    select jsonb_build_object(
+      'week', week_key,
+      'hours', sum(hours),
+      'billableHours', sum(hours) filter (where billable),
+      'nonBillableHours', sum(hours) filter (where not billable)
+    ) as row_json,
+    week_key
+    from norm
+    where week_key is not null
+    group by week_key
+  ),
+  billable_mix as (
+    select jsonb_build_object(
+      'week', week_key,
+      'billable', sum(hours) filter (where billable),
+      'nonBillable', sum(hours) filter (where not billable)
+    ) as row_json,
+    week_key
+    from norm
+    where week_key is not null
+    group by week_key
+  )
+  select jsonb_build_object(
+    'kpis', (select doc from kpis),
+    'aggregates', jsonb_build_object(
+      'byCustomer', coalesce(
+        (
+          select jsonb_agg(row_json order by sort_hours desc)
+          from by_customer
+        ),
+        '[]'::jsonb
+      ),
+      'byProject', coalesce(
+        (
+          select jsonb_agg(row_json order by sort_hours desc)
+          from by_project
+        ),
+        '[]'::jsonb
+      ),
+      'byPerson', coalesce(
+        (
+          select jsonb_agg(row_json order by sort_hours desc)
+          from by_person
+        ),
+        '[]'::jsonb
+      ),
+      'byRole', coalesce(
+        (
+          select jsonb_agg(row_json order by sort_hours desc)
+          from by_role
+        ),
+        '[]'::jsonb
+      ),
+      'byWeek', coalesce(
+        (
+          select jsonb_agg(row_json order by week_key asc)
+          from by_week
+        ),
+        '[]'::jsonb
+      ),
+      'billableVsNonBillable', coalesce(
+        (
+          select jsonb_agg(row_json order by week_key asc)
+          from billable_mix
+        ),
+        '[]'::jsonb
+      )
+    )
+  );
+$$;
+
+comment on function public.fos_rpc_util_aggregates(timestamptz, timestamptz) is
+  'Date-bounded utilization KPIs and aggregate slices for feature 047 B7. byPersonWeek stays in Apps Script.';
+
+grant execute on function public.fos_rpc_util_aggregates(timestamptz, timestamptz)
+  to postgres, service_role, anon, authenticated;
+-- ========== END 057_fos_rpc_util_aggregates.sql ==========
+
+-- ========== BEGIN 058_fos_rpc_agreement_revenue_mapped.sql ==========
+-- Feature 047 Workstream B7 pilot: map fos_revenue_items to the raw revenue
+-- shape buildAgreementDashboardPayloadFromSupabase_ assembles in JS before
+-- normalizeRevenueItems_. Historical vs future split mirrors the JS loop.
+
+create or replace function public.fos_rpc_agreement_revenue_mapped(
+  p_today date
+) returns jsonb
+language sql
+stable
+set statement_timeout = '20s'
+as $$
+  with mapped as (
+    select
+      jsonb_build_object(
+        'id', r.fibery_id,
+        'name', r.name,
+        'targetAmount', r.target_amount,
+        'actualAmount', r.actual_amount,
+        'targetDate', r.target_date,
+        'recognized', r.revenue_recognized,
+        'state', r.state_name,
+        'agreement', a.name,
+        'agreementId', r.agreement_id,
+        'customer', c.name
+      ) as row_json,
+      r.revenue_recognized,
+      r.target_date
+    from public.fos_revenue_items r
+    left join public.fos_agreements a on a.fibery_id = r.agreement_id
+    left join public.fos_companies c on c.fibery_id = a.customer_id
+  )
+  select jsonb_build_object(
+    'historicalRaw', coalesce(
+      (
+        select jsonb_agg(row_json)
+        from mapped
+        where revenue_recognized is true
+      ),
+      '[]'::jsonb
+    ),
+    'futureRaw', coalesce(
+      (
+        select jsonb_agg(row_json)
+        from mapped
+        where revenue_recognized is not true
+          and target_date is not null
+          and target_date > p_today
+      ),
+      '[]'::jsonb
+    )
+  );
+$$;
+
+comment on function public.fos_rpc_agreement_revenue_mapped(date) is
+  'Agreement hydrate pilot: revenue item rows pre-mapped for buildAgreementDashboardPayloadFromSupabase_.';
+
+grant execute on function public.fos_rpc_agreement_revenue_mapped(date)
+  to postgres, service_role, anon, authenticated;
+-- ========== END 058_fos_rpc_agreement_revenue_mapped.sql ==========
+
+-- ========== BEGIN 059_fos_rpc_b7_parity_fixes.sql ==========
+-- Feature 047 B7 parity fixes (diag suite 2026-09-10):
+-- 1. Util RPC: coalesce zero billableHours (PG sum filter returns null);
+--    resolve person display names via fos_clockify_users like mapFosLaborCostRowToUtilRaw_.
+-- 2. Agreement revenue RPC: omit agreement/customer when JS agreementNameById would
+--    (Closed-Lost agreements excluded from hydrate map).
+
+create or replace function public.fos_rpc_util_aggregates(
+  p_start timestamptz,
+  p_end   timestamptz
+) returns jsonb
+language sql
+stable
+set statement_timeout = '20s'
+as $$
+  with bounds as (
+    select p_start as start_ts, p_end as end_ts
+  ),
+  norm as (
+    select
+      coalesce(
+        nullif(lc.clockify_hours, 0),
+        case when lc.seconds is not null then lc.seconds::numeric / 3600.0 else 0 end,
+        0
+      ) as hours,
+      (
+        lower(trim(coalesce(lc.billable, ''))) in ('yes', 'y', 'true', '1')
+      ) as billable,
+      coalesce(
+        nullif(
+          coalesce(
+            nullif(
+              coalesce(
+                nullif(lc.clockify_hours, 0),
+                case when lc.seconds is not null then lc.seconds::numeric / 3600.0 else 0 end,
+                0
+              ),
+              0
+            ) * coalesce(d.user_role_cost_rate, 0),
+            0
+          ),
+          0
+        ),
+        0
+      ) as cost,
+      coalesce(nullif(trim(d.customer_name), ''), '(Unassigned)') as customer,
+      coalesce(nullif(trim(lc.time_entry_project_name), ''), '(No Project)') as project_name,
+      lc.project_id,
+      coalesce(
+        nullif(trim(cu.name), ''),
+        nullif(trim(lc.time_entry_user_name), ''),
+        '(Unknown user)'
+      ) as user_name,
+      lc.user_id,
+      coalesce(nullif(trim(d.user_role_name), ''), '(No role)') as role_name,
+      coalesce(d.user_role_bill_rate, null) as user_role_bill_rate,
+      (
+        to_char(lc.start_date_time at time zone 'UTC', 'IYYY')
+        || '-W'
+        || to_char(lc.start_date_time at time zone 'UTC', 'IW')
+      ) as week_key
+    from public.fos_labor_costs lc
+    cross join bounds b
+    left join public.fos_labor_costs_util_dims d
+      on d.clockify_time_log_id = lc.clockify_time_log_id
+    left join lateral (
+      select u.name
+      from public.fos_clockify_users u
+      where (
+          u.clockify_user_id is not null
+          and u.clockify_user_id = lc.user_id
+        )
+        or (
+          u.clockify_user_email is not null
+          and lower(u.clockify_user_email) = lower(lc.user_id)
+        )
+      order by
+        case when u.clockify_user_id = lc.user_id then 0 else 1 end,
+        u.fibery_id
+      limit 1
+    ) cu on true
+    where lc.start_date_time >= b.start_ts
+      and lc.start_date_time < b.end_ts
+  ),
+  kpis as (
+    select jsonb_build_object(
+      'totalHours', coalesce(sum(hours), 0),
+      'billableHours', coalesce(sum(hours) filter (where billable), 0),
+      'nonBillableHours', greatest(
+        0,
+        coalesce(sum(hours), 0) - coalesce(sum(hours) filter (where billable), 0)
+      ),
+      'utilizationPct', case
+        when coalesce(sum(hours), 0) > 0 then
+          (coalesce(sum(hours) filter (where billable), 0) / sum(hours)) * 100
+        else 0
+      end,
+      'totalCost', coalesce(sum(cost), 0),
+      'effectiveCostRate', case
+        when coalesce(sum(hours), 0) > 0 then coalesce(sum(cost), 0) / sum(hours)
+        else 0
+      end,
+      'effectiveBillRate', case
+        when coalesce(sum(hours) filter (where user_role_bill_rate is not null), 0) > 0 then
+          sum(hours * user_role_bill_rate) filter (where user_role_bill_rate is not null)
+          / sum(hours) filter (where user_role_bill_rate is not null)
+        else null
+      end,
+      'effectiveBillRateCoverage', case
+        when coalesce(sum(hours), 0) > 0 then
+          coalesce(sum(hours) filter (where user_role_bill_rate is not null), 0) / sum(hours)
+        else 0
+      end,
+      'distinctPersons', count(distinct coalesce(user_id, user_name)),
+      'distinctProjects', count(distinct coalesce(project_id, project_name)),
+      'distinctCustomers', count(distinct customer),
+      'rowCount', count(*)
+    ) as doc
+    from norm
+  ),
+  by_customer as (
+    select jsonb_build_object(
+      'name', customer,
+      'hours', coalesce(sum(hours), 0),
+      'billableHours', coalesce(sum(hours) filter (where billable), 0),
+      'cost', coalesce(sum(cost), 0)
+    ) as row_json,
+    sum(hours) as sort_hours
+    from norm
+    group by customer
+  ),
+  by_project as (
+    select jsonb_build_object(
+      'name', project_name,
+      'id', project_id,
+      'customer', customer,
+      'hours', coalesce(sum(hours), 0),
+      'billableHours', coalesce(sum(hours) filter (where billable), 0),
+      'cost', coalesce(sum(cost), 0)
+    ) as row_json,
+    sum(hours) as sort_hours
+    from norm
+    group by project_id, project_name, customer
+  ),
+  by_person as (
+    select jsonb_build_object(
+      'name', user_name,
+      'id', user_id,
+      'hours', coalesce(sum(hours), 0),
+      'billableHours', coalesce(sum(hours) filter (where billable), 0),
+      'cost', coalesce(sum(cost), 0),
+      'utilizationPct', case
+        when coalesce(sum(hours), 0) > 0 then
+          (coalesce(sum(hours) filter (where billable), 0) / sum(hours)) * 100
+        else 0
+      end
+    ) as row_json,
+    sum(hours) as sort_hours
+    from norm
+    group by user_id, user_name
+  ),
+  by_role as (
+    select jsonb_build_object(
+      'name', role_name,
+      'hours', coalesce(sum(hours), 0),
+      'billableHours', coalesce(sum(hours) filter (where billable), 0)
+    ) as row_json,
+    sum(hours) as sort_hours
+    from norm
+    group by role_name
+  ),
+  by_week as (
+    select jsonb_build_object(
+      'week', week_key,
+      'hours', coalesce(sum(hours), 0),
+      'billableHours', coalesce(sum(hours) filter (where billable), 0),
+      'nonBillableHours', coalesce(sum(hours) filter (where not billable), 0)
+    ) as row_json,
+    week_key
+    from norm
+    where week_key is not null
+    group by week_key
+  ),
+  billable_mix as (
+    select jsonb_build_object(
+      'week', week_key,
+      'billable', coalesce(sum(hours) filter (where billable), 0),
+      'nonBillable', coalesce(sum(hours) filter (where not billable), 0)
+    ) as row_json,
+    week_key
+    from norm
+    where week_key is not null
+    group by week_key
+  )
+  select jsonb_build_object(
+    'kpis', (select doc from kpis),
+    'aggregates', jsonb_build_object(
+      'byCustomer', coalesce(
+        (
+          select jsonb_agg(row_json order by sort_hours desc)
+          from by_customer
+        ),
+        '[]'::jsonb
+      ),
+      'byProject', coalesce(
+        (
+          select jsonb_agg(row_json order by sort_hours desc)
+          from by_project
+        ),
+        '[]'::jsonb
+      ),
+      'byPerson', coalesce(
+        (
+          select jsonb_agg(row_json order by sort_hours desc)
+          from by_person
+        ),
+        '[]'::jsonb
+      ),
+      'byRole', coalesce(
+        (
+          select jsonb_agg(row_json order by sort_hours desc)
+          from by_role
+        ),
+        '[]'::jsonb
+      ),
+      'byWeek', coalesce(
+        (
+          select jsonb_agg(row_json order by week_key asc)
+          from by_week
+        ),
+        '[]'::jsonb
+      ),
+      'billableVsNonBillable', coalesce(
+        (
+          select jsonb_agg(row_json order by week_key asc)
+          from billable_mix
+        ),
+        '[]'::jsonb
+      )
+    )
+  );
+$$;
+
+create or replace function public.fos_rpc_agreement_revenue_mapped(
+  p_today date
+) returns jsonb
+language sql
+stable
+set statement_timeout = '20s'
+as $$
+  with mapped as (
+    select
+      jsonb_build_object(
+        'id', r.fibery_id,
+        'name', r.name,
+        'targetAmount', r.target_amount,
+        'actualAmount', r.actual_amount,
+        'targetDate', r.target_date,
+        'recognized', r.revenue_recognized,
+        'state', r.state_name,
+        'agreement', case
+          when r.agreement_id is null then null
+          when a.fibery_id is null then null
+          when a.state_name = 'Closed-Lost' then null
+          when nullif(trim(a.name), '') is null then null
+          else a.name
+        end,
+        'agreementId', r.agreement_id,
+        'customer', case
+          when r.agreement_id is null then null
+          when a.fibery_id is null then null
+          when a.state_name = 'Closed-Lost' then null
+          when a.customer_id is null then null
+          when nullif(trim(c.name), '') is null then null
+          else c.name
+        end
+      ) as row_json,
+      r.revenue_recognized,
+      r.target_date
+    from public.fos_revenue_items r
+    left join public.fos_agreements a on a.fibery_id = r.agreement_id
+    left join public.fos_companies c on c.fibery_id = a.customer_id
+  )
+  select jsonb_build_object(
+    'historicalRaw', coalesce(
+      (
+        select jsonb_agg(row_json)
+        from mapped
+        where revenue_recognized is true
+      ),
+      '[]'::jsonb
+    ),
+    'futureRaw', coalesce(
+      (
+        select jsonb_agg(row_json)
+        from mapped
+        where revenue_recognized is not true
+          and target_date is not null
+          and target_date > p_today
+      ),
+      '[]'::jsonb
+    )
+  );
+$$;
+
+comment on function public.fos_rpc_util_aggregates(timestamptz, timestamptz) is
+  'Date-bounded utilization KPIs and aggregate slices for feature 047 B7. Parity with mapFosLaborCostRowToUtilRaw_ display names; zero billableHours coalesced.';
+
+comment on function public.fos_rpc_agreement_revenue_mapped(date) is
+  'Agreement hydrate pilot: revenue rows pre-mapped; agreement/customer null when Closed-Lost or missing from JS agreementNameById map.';
+
+grant execute on function public.fos_rpc_util_aggregates(timestamptz, timestamptz)
+  to postgres, service_role, anon, authenticated;
+
+grant execute on function public.fos_rpc_agreement_revenue_mapped(date)
+  to postgres, service_role, anon, authenticated;
+-- ========== END 059_fos_rpc_b7_parity_fixes.sql ==========
+
+-- ========== BEGIN 060_fos_rpc_util_role_name_parity.sql ==========
+-- B7 util RPC parity: preserve role name whitespace (JS mapFosLaborCostRowToUtilRaw_
+-- does not trim roleFromUser.name; trim caused byRole[2].name mismatch).
+
+create or replace function public.fos_rpc_util_aggregates(
+  p_start timestamptz,
+  p_end   timestamptz
+) returns jsonb
+language sql
+stable
+set statement_timeout = '20s'
+as $$
+  with bounds as (
+    select p_start as start_ts, p_end as end_ts
+  ),
+  norm as (
+    select
+      coalesce(
+        nullif(lc.clockify_hours, 0),
+        case when lc.seconds is not null then lc.seconds::numeric / 3600.0 else 0 end,
+        0
+      ) as hours,
+      (
+        lower(trim(coalesce(lc.billable, ''))) in ('yes', 'y', 'true', '1')
+      ) as billable,
+      coalesce(
+        nullif(
+          coalesce(
+            nullif(
+              coalesce(
+                nullif(lc.clockify_hours, 0),
+                case when lc.seconds is not null then lc.seconds::numeric / 3600.0 else 0 end,
+                0
+              ),
+              0
+            ) * coalesce(d.user_role_cost_rate, 0),
+            0
+          ),
+          0
+        ),
+        0
+      ) as cost,
+      coalesce(nullif(trim(d.customer_name), ''), '(Unassigned)') as customer,
+      coalesce(nullif(trim(lc.time_entry_project_name), ''), '(No Project)') as project_name,
+      lc.project_id,
+      coalesce(
+        nullif(trim(cu.name), ''),
+        nullif(trim(lc.time_entry_user_name), ''),
+        '(Unknown user)'
+      ) as user_name,
+      lc.user_id,
+      coalesce(nullif(d.user_role_name, ''), '(No role)') as role_name,
+      coalesce(d.user_role_bill_rate, null) as user_role_bill_rate,
+      (
+        to_char(lc.start_date_time at time zone 'UTC', 'IYYY')
+        || '-W'
+        || to_char(lc.start_date_time at time zone 'UTC', 'IW')
+      ) as week_key
+    from public.fos_labor_costs lc
+    cross join bounds b
+    left join public.fos_labor_costs_util_dims d
+      on d.clockify_time_log_id = lc.clockify_time_log_id
+    left join lateral (
+      select u.name
+      from public.fos_clockify_users u
+      where (
+          u.clockify_user_id is not null
+          and u.clockify_user_id = lc.user_id
+        )
+        or (
+          u.clockify_user_email is not null
+          and lower(u.clockify_user_email) = lower(lc.user_id)
+        )
+      order by
+        case when u.clockify_user_id = lc.user_id then 0 else 1 end,
+        u.fibery_id
+      limit 1
+    ) cu on true
+    where lc.start_date_time >= b.start_ts
+      and lc.start_date_time < b.end_ts
+  ),
+  kpis as (
+    select jsonb_build_object(
+      'totalHours', coalesce(sum(hours), 0),
+      'billableHours', coalesce(sum(hours) filter (where billable), 0),
+      'nonBillableHours', greatest(
+        0,
+        coalesce(sum(hours), 0) - coalesce(sum(hours) filter (where billable), 0)
+      ),
+      'utilizationPct', case
+        when coalesce(sum(hours), 0) > 0 then
+          (coalesce(sum(hours) filter (where billable), 0) / sum(hours)) * 100
+        else 0
+      end,
+      'totalCost', coalesce(sum(cost), 0),
+      'effectiveCostRate', case
+        when coalesce(sum(hours), 0) > 0 then coalesce(sum(cost), 0) / sum(hours)
+        else 0
+      end,
+      'effectiveBillRate', case
+        when coalesce(sum(hours) filter (where user_role_bill_rate is not null), 0) > 0 then
+          sum(hours * user_role_bill_rate) filter (where user_role_bill_rate is not null)
+          / sum(hours) filter (where user_role_bill_rate is not null)
+        else null
+      end,
+      'effectiveBillRateCoverage', case
+        when coalesce(sum(hours), 0) > 0 then
+          coalesce(sum(hours) filter (where user_role_bill_rate is not null), 0) / sum(hours)
+        else 0
+      end,
+      'distinctPersons', count(distinct coalesce(user_id, user_name)),
+      'distinctProjects', count(distinct coalesce(project_id, project_name)),
+      'distinctCustomers', count(distinct customer),
+      'rowCount', count(*)
+    ) as doc
+    from norm
+  ),
+  by_customer as (
+    select jsonb_build_object(
+      'name', customer,
+      'hours', coalesce(sum(hours), 0),
+      'billableHours', coalesce(sum(hours) filter (where billable), 0),
+      'cost', coalesce(sum(cost), 0)
+    ) as row_json,
+    sum(hours) as sort_hours
+    from norm
+    group by customer
+  ),
+  by_project as (
+    select jsonb_build_object(
+      'name', project_name,
+      'id', project_id,
+      'customer', customer,
+      'hours', coalesce(sum(hours), 0),
+      'billableHours', coalesce(sum(hours) filter (where billable), 0),
+      'cost', coalesce(sum(cost), 0)
+    ) as row_json,
+    sum(hours) as sort_hours
+    from norm
+    group by project_id, project_name, customer
+  ),
+  by_person as (
+    select jsonb_build_object(
+      'name', user_name,
+      'id', user_id,
+      'hours', coalesce(sum(hours), 0),
+      'billableHours', coalesce(sum(hours) filter (where billable), 0),
+      'cost', coalesce(sum(cost), 0),
+      'utilizationPct', case
+        when coalesce(sum(hours), 0) > 0 then
+          (coalesce(sum(hours) filter (where billable), 0) / sum(hours)) * 100
+        else 0
+      end
+    ) as row_json,
+    sum(hours) as sort_hours
+    from norm
+    group by user_id, user_name
+  ),
+  by_role as (
+    select jsonb_build_object(
+      'name', role_name,
+      'hours', coalesce(sum(hours), 0),
+      'billableHours', coalesce(sum(hours) filter (where billable), 0)
+    ) as row_json,
+    sum(hours) as sort_hours
+    from norm
+    group by role_name
+  ),
+  by_week as (
+    select jsonb_build_object(
+      'week', week_key,
+      'hours', coalesce(sum(hours), 0),
+      'billableHours', coalesce(sum(hours) filter (where billable), 0),
+      'nonBillableHours', coalesce(sum(hours) filter (where not billable), 0)
+    ) as row_json,
+    week_key
+    from norm
+    where week_key is not null
+    group by week_key
+  ),
+  billable_mix as (
+    select jsonb_build_object(
+      'week', week_key,
+      'billable', coalesce(sum(hours) filter (where billable), 0),
+      'nonBillable', coalesce(sum(hours) filter (where not billable), 0)
+    ) as row_json,
+    week_key
+    from norm
+    where week_key is not null
+    group by week_key
+  )
+  select jsonb_build_object(
+    'kpis', (select doc from kpis),
+    'aggregates', jsonb_build_object(
+      'byCustomer', coalesce(
+        (
+          select jsonb_agg(row_json order by sort_hours desc)
+          from by_customer
+        ),
+        '[]'::jsonb
+      ),
+      'byProject', coalesce(
+        (
+          select jsonb_agg(row_json order by sort_hours desc)
+          from by_project
+        ),
+        '[]'::jsonb
+      ),
+      'byPerson', coalesce(
+        (
+          select jsonb_agg(row_json order by sort_hours desc)
+          from by_person
+        ),
+        '[]'::jsonb
+      ),
+      'byRole', coalesce(
+        (
+          select jsonb_agg(row_json order by sort_hours desc)
+          from by_role
+        ),
+        '[]'::jsonb
+      ),
+      'byWeek', coalesce(
+        (
+          select jsonb_agg(row_json order by week_key asc)
+          from by_week
+        ),
+        '[]'::jsonb
+      ),
+      'billableVsNonBillable', coalesce(
+        (
+          select jsonb_agg(row_json order by week_key asc)
+          from billable_mix
+        ),
+        '[]'::jsonb
+      )
+    )
+  );
+$$;
+
+comment on function public.fos_rpc_util_aggregates(timestamptz, timestamptz) is
+  'Date-bounded utilization KPIs and aggregate slices for feature 047 B7. Role names preserve source whitespace for JS parity.';
+
+grant execute on function public.fos_rpc_util_aggregates(timestamptz, timestamptz)
+  to postgres, service_role, anon, authenticated;
+-- ========== END 060_fos_rpc_util_role_name_parity.sql ==========
+
+-- ========== BEGIN 061_fos_resource_allocations_clockify_user_email.sql ==========
+-- Resource allocations: denormalized Clockify user email from Fibery
+-- (Agreement Management/Clockify User Clockify User Email) for labor joins.
+
+alter table public.fos_resource_allocations
+  add column if not exists clockify_user_email text;
+
+create index if not exists fos_resource_allocations_user_email_idx
+  on public.fos_resource_allocations (lower(clockify_user_email));
+
+comment on column public.fos_resource_allocations.clockify_user_email is
+  'Lowercased harpin email from Fibery Clockify User (formula field). Primary join key to fos_labor_costs.user_id.';
+
+-- Backfill from mirrored Clockify Users when the allocation row already links by fibery id.
+update public.fos_resource_allocations ra
+set clockify_user_email = lower(trim(u.clockify_user_email))
+from public.fos_clockify_users u
+where ra.clockify_user_id = u.fibery_id
+  and ra.clockify_user_email is null
+  and u.clockify_user_email is not null
+  and trim(u.clockify_user_email) <> '';
+-- ========== END 061_fos_resource_allocations_clockify_user_email.sql ==========
+
+-- ========== BEGIN 062_fos_rpc_ra_week_grid_email.sql ==========
+-- Feature: resource allocation person key via clockify_user_email (parity with Apps Script).
+
+create or replace function public.fos_rpc_ra_week_grid(
+  p_start date,
+  p_end   date
+) returns jsonb
+language sql
+stable
+set statement_timeout = '20s'
+as $$
+  select jsonb_build_object(
+    'rangeStart', p_start,
+    'rangeEnd', p_end,
+    'totalCount', (select count(*) from public.fos_resource_allocations),
+    'matchedCount', count(*),
+    'allocations', coalesce(jsonb_agg(alloc), '[]'::jsonb)
+  )
+  from (
+    select jsonb_build_object(
+      'id', a.fibery_id,
+      'duration', jsonb_build_object('start', a.duration_start, 'end', a.duration_end),
+      'allocationName', a.allocation_name,
+      'percentAllocated', a.percent_allocated,
+      'clockifyUserId', a.clockify_user_id,
+      'clockifyUserEmail', a.clockify_user_email,
+      'clockifyUserName', coalesce(
+        (
+          select u.name from public.fos_clockify_users u
+          where a.clockify_user_email is not null
+            and lower(u.clockify_user_email) = lower(a.clockify_user_email)
+          limit 1
+        ),
+        (
+          select u.name from public.fos_clockify_users u
+          where u.fibery_id = a.clockify_user_id
+        )
+      ),
+      'clockifyUserCompany', coalesce(
+        (
+          select u.company_enum_name from public.fos_clockify_users u
+          where a.clockify_user_email is not null
+            and lower(u.clockify_user_email) = lower(a.clockify_user_email)
+          limit 1
+        ),
+        (
+          select u.company_enum_name from public.fos_clockify_users u
+          where u.fibery_id = a.clockify_user_id
+        )
+      ),
+      'roleName', (
+        select r.name from public.fos_team_member_roles r
+        where r.fibery_id = a.clockify_user_role_id
+      ),
+      'agreementId', a.agreement_id,
+      'agreementName', (
+        select ag.name from public.fos_agreements ag
+        where ag.fibery_id = a.agreement_id
+      ),
+      'customerName', (
+        select c.name from public.fos_companies c
+        where c.fibery_id = (
+          select ag.customer_id from public.fos_agreements ag
+          where ag.fibery_id = a.agreement_id
+        )
+      ),
+      'allocatedAndBillable', a.allocated_billable,
+      'allocatedHours', a.allocated_hours
+    ) as alloc
+    from public.fos_resource_allocations a
+    where a.fibery_id is not null
+      and (
+        (a.duration_start is null and a.duration_end is null)
+        or (
+          least(
+            coalesce(a.duration_start, a.duration_end),
+            coalesce(a.duration_end, a.duration_start)
+          ) <= p_end
+          and greatest(
+            coalesce(a.duration_start, a.duration_end),
+            coalesce(a.duration_end, a.duration_start)
+          ) >= p_start
+        )
+      )
+  ) filtered;
+$$;
+
+comment on function public.fos_rpc_ra_week_grid(date, date) is
+  'Resource allocations overlapping [p_start, p_end] with display joins. Person resolution prefers clockify_user_email, then Clockify User fibery_id.';
+
+grant execute on function public.fos_rpc_ra_week_grid(date, date)
+  to postgres, service_role, anon, authenticated;
+-- ========== END 062_fos_rpc_ra_week_grid_email.sql ==========

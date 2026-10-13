@@ -1,12 +1,12 @@
 /**
- * PRD version 3.29.6 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.9 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Resource assignment dashboard (feature 027): portfolio-wide Fibery
  * Resource Allocations by ISO week with alerts.
  */
 
-/** @const {number} Schema 4 adds coverageGaps punch list (feature 048). */
-var RESOURCE_ASSIGNMENTS_CACHE_SCHEMA_VERSION_ = 5;
+/** @const {number} Schema 6: person keys prefer Clockify user email on allocations. */
+var RESOURCE_ASSIGNMENTS_CACHE_SCHEMA_VERSION_ = 6;
 
 /** @const {number} */
 var RESOURCE_ASSIGNMENTS_QUERY_PAGE_LIMIT_ = 500;
@@ -412,9 +412,10 @@ function buildResourceAllocationsPortfolioQuery_(limit, offset) {
         percentAllocated: 'Agreement Management/Percent Allocated',
         clockifyUserId: ['Agreement Management/Clockify User', 'fibery/id'],
         clockifyUserName: ['Agreement Management/Clockify User', 'Agreement Management/Name'],
+        clockifyUserEmail: 'Agreement Management/Clockify User Clockify User Email',
         clockifyUserCompany: ['Agreement Management/Clockify User Company', 'enum/name'],
         roleName: [
-          'Agreement Management/Clockify User Team Member Role',
+          'Agreement Management/Team Member Role',
           'Agreement Management/Name',
         ],
         agreementId: ['Agreement Management/Agreement', 'fibery/id'],
@@ -474,17 +475,26 @@ function fetchAllResourceAllocationsPortfolio_(maxRows) {
 function normalizeResourceAllocationRow_(row) {
   if (!row) return null;
   var dur = row.duration && typeof row.duration === 'object' ? row.duration : null;
+  var personEmail = typeof fosNormalizePersonEmailKey_ === 'function'
+    ? fosNormalizePersonEmailKey_(row.clockifyUserEmail)
+    : '';
   var personId = row.clockifyUserId != null ? String(row.clockifyUserId).trim() : '';
   var personName =
     stringOrNull_(row.clockifyUserName) ||
     stringOrNull_(row.allocationName) ||
     '(Unnamed)';
-  var personKey = personId ? 'person:' + personId : 'person:name:' + personName.toLowerCase();
+  var personKey = personEmail
+    ? 'person:email:' + personEmail
+    : personId
+      ? 'person:' + personId
+      : 'person:name:' + personName.toLowerCase();
+  var personIdForLabor = personEmail || personId;
   return {
     id: stringOr_(row.id, ''),
     personKey: personKey,
     personName: personName,
-    personId: personId,
+    personId: personIdForLabor,
+    personEmail: personEmail || null,
     company: stringOrNull_(row.clockifyUserCompany) || '',
     roleName: stringOrNull_(row.roleName) || '(No role)',
     agreementId: stringOr_(row.agreementId, ''),
@@ -514,6 +524,12 @@ function normalizeResourceAllocationRow_(row) {
  */
 function resourceAssignmentPersonKeyFromParts_(personId, personName) {
   var id = personId != null ? String(personId).trim() : '';
+  var email = typeof fosNormalizePersonEmailKey_ === 'function'
+    ? fosNormalizePersonEmailKey_(id) || fosNormalizePersonEmailKey_(personName)
+    : '';
+  if (email) {
+    return 'person:email:' + email;
+  }
   if (id) {
     return 'person:' + id;
   }
@@ -616,6 +632,12 @@ function buildResourceAssignmentPersonResolver_(persons) {
     }
     if (personId) {
       byId[personId] = canonicalKey;
+      var pidEmail = typeof fosNormalizePersonEmailKey_ === 'function'
+        ? fosNormalizePersonEmailKey_(personId)
+        : '';
+      if (pidEmail) {
+        byId[pidEmail] = canonicalKey;
+      }
     }
     var aliases = resourceAssignmentPersonAliases_(name);
     for (var i = 0; i < aliases.length; i++) {

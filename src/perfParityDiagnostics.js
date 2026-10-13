@@ -1,5 +1,5 @@
 /**
- * PRD version 3.29.6 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.9 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 047 Step 0: parity and measurement harness.
  *
@@ -2243,6 +2243,13 @@ var FOS_DIAG_SUITE_STEPS_ = [
     label: 'Delivery: agreement laborCosts matches fos_labor_costs sum',
     fn: function () {
       return test_deliveryAgreementLaborCostsMatchFosLaborSum_();
+    },
+  },
+  {
+    id: 'delivery-alloc-labor-email-key',
+    label: 'Delivery: allocation labor email person key',
+    fn: function () {
+      return test_deliveryAllocLaborEmailPersonKey_();
     },
   },
   {

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.29.6 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.29.9 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -5982,7 +5982,7 @@
       // the user upgrades.
       var DELIVERY_PNL_KEY_PREFIX = 'fos_delivery_pnl_';
       var DELIVERY_PNL_KEY_SUFFIX = '_v16';
-      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 19;
+      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 20;
       var DELIVERY_STATUS_CLIENT_META_ = {
         on_track: { enumName: 'Agreement On Track', trafficLight: 'green' },
         at_risk: { enumName: 'Agreement At Risk', trafficLight: 'yellow' },
@@ -15931,19 +15931,31 @@
       }
 
       function laborClockifyUserIsActive_(workStatus) {
-        var token = String(workStatus || '')
+        var token = laborNormalizeWorkStatusToken_(workStatus);
+        return token === 'active';
+      }
+
+      /** @param {*=} workStatus */
+      function laborNormalizeWorkStatusToken_(workStatus) {
+        return String(workStatus || '')
           .trim()
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, '');
-        return token === 'active';
       }
 
       /**
        * Prefer authoritative Active roster from fos_clockify_users (attached to
-       * laborHours config). Falls back to row/dimension work status when the
-       * roster is absent (older cached payloads).
+       * laborHours config). Always exclude an explicit non-Active Work Status
+       * (e.g. Fibery In-Active), even when a stale Active roster still lists
+       * the person. Falls back to row/dimension work status when the roster is
+       * absent (older cached payloads).
        */
       function laborPersonIsActiveForZeroHours_(cfg, personKey, displayName, workStatus) {
+        var token = laborNormalizeWorkStatusToken_(workStatus);
+        // Explicit In-Active / other statuses win over a stale Active id list.
+        if (token && token !== 'active') {
+          return false;
+        }
         var ids = cfg && cfg.activeClockifyUserIds;
         var names = cfg && cfg.activeClockifyUserNames;
         if (Array.isArray(ids) || Array.isArray(names)) {
@@ -15960,7 +15972,7 @@
           }
           return false;
         }
-        return laborClockifyUserIsActive_(workStatus);
+        return token === 'active';
       }
 
       function laborTargetHoursForCompany_(cfg, company) {
