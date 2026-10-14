@@ -1,5 +1,5 @@
 /**
- * PRD version 3.29.12 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.13 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `pm-overview`, panel
  * `#panel-pm-overview`). Public endpoints, all authorized via
@@ -108,9 +108,11 @@ var DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_ = 2;
  *        when Fibery Allocated Cost is empty.
  *   v20 - v3.29.12: resource allocation joins use Clockify user email
  *        (Fibery formula on Resource Allocations) as the primary person key.
+ *   v22 - v3.29.13: enriched laborByPerson rows keep userEmail; lifetime
+ *        allocated hours use max(monthly slices, summed assignments).
  * @const {number}
  */
-var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 21;
+var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 22;
 
 /** @const {number} Default TTL (minutes) for the client-side cache. */
 var DELIVERY_DEFAULT_CACHE_TTL_MIN_ = 10;
@@ -2209,16 +2211,19 @@ function enrichMonthsLaborByPersonWithAllocations_(months, allocRows, customerNa
     if (!month || !month.key) continue;
     var monthKey = month.key;
 
-    // personToken -> { displayName, byRole: { role: { hours, pctWeight, pctSum, billableTrue } } }
+    // personToken -> { displayName, email, byRole: { role: { hours, pctWeight, pctSum, billableTrue } } }
     var allocByPerson = {};
-    function ensurePerson(token, displayName) {
+    function ensurePerson(token, displayName, email) {
       if (!allocByPerson[token]) {
         allocByPerson[token] = {
           displayName: displayName,
+          email: email || null,
           byRole: {},
           anyBillable: false,
           hasOverlap: false,
         };
+      } else if (email && !allocByPerson[token].email) {
+        allocByPerson[token].email = email;
       }
       return allocByPerson[token];
     }
@@ -2231,7 +2236,11 @@ function enrichMonthsLaborByPersonWithAllocations_(months, allocRows, customerNa
       if (!slice) continue;
       var token = personToken(slice.name, slice.userEmail);
       if (!token) continue;
-      var pers = ensurePerson(token, slice.name);
+      var pers = ensurePerson(
+        token,
+        slice.name,
+        deliveryPnlResolvePersonEmail_(slice.name, slice.userEmail) || null
+      );
       pers.hasOverlap = true;
       if (slice.billable === true) pers.anyBillable = true;
       var roleKey = slice.role || '(No role)';
@@ -2317,6 +2326,7 @@ function enrichMonthsLaborByPersonWithAllocations_(months, allocRows, customerNa
         role: lRole,
         hours: logged,
         cost: cost,
+        userEmail: deliveryPnlResolvePersonEmail_(lName, row.userEmail) || null,
         allocatedHours: Math.round(allocHours * 100) / 100,
         allocatedCost: Math.round(allocCost * 100) / 100,
         percentAllocated: pct,
@@ -2341,6 +2351,7 @@ function enrichMonthsLaborByPersonWithAllocations_(months, allocRows, customerNa
           role: rk,
           hours: 0,
           cost: 0,
+          userEmail: ap.email || null,
           allocatedHours: Math.round(rAgg.hours * 100) / 100,
           allocatedCost: Math.round((rAgg.cost || 0) * 100) / 100,
           percentAllocated: resolvePercent(rAgg),
@@ -2918,11 +2929,36 @@ function test_deliveryEnrichAllocEmailOnlyJoin_() {
       currentCostRate: 100,
       sowCostRate: 100,
     },
+    {
+      durStart: '2026-06-01',
+      durEnd: '2026-06-30',
+      allocatedHours: 20,
+      allocatedAndBillable: true,
+      clockifyUserName: 'Denys Kozko',
+      clockifyUserEmail: 'Denys.Kozko@harpin.ai',
+      roleName: 'Developer',
+      currentCostRate: 50,
+    },
   ];
   enrichMonthsLaborByPersonWithAllocations_(months, allocRows, '');
-  var row = months[0].laborByPerson[0];
+  var row = null;
+  var allocOnly = null;
+  for (var ei = 0; ei < months[0].laborByPerson.length; ei++) {
+    var er = months[0].laborByPerson[ei];
+    if (er.name === 'Josh Bass') row = er;
+    if (er.name === 'Denys Kozko') allocOnly = er;
+  }
   if (!row || !(row.allocatedHours > 0)) {
     return { ok: true, pass: false, message: 'FAIL: email-matched labor did not receive allocation hours.' };
+  }
+  if (row.userEmail !== 'josh@harpin.ai') {
+    return { ok: true, pass: false, message: 'FAIL: logged enriched row lost userEmail.' };
+  }
+  if (!allocOnly || allocOnly.hours !== 0 || allocOnly.allocatedHours !== 20) {
+    return { ok: true, pass: false, message: 'FAIL: allocation-only enriched row missing.' };
+  }
+  if (allocOnly.userEmail !== 'denys.kozko@harpin.ai') {
+    return { ok: true, pass: false, message: 'FAIL: allocation-only enriched row lost userEmail.' };
   }
   var orphanMonths = [
     {
@@ -2937,7 +2973,112 @@ function test_deliveryEnrichAllocEmailOnlyJoin_() {
   if (orphanRow.allocatedHours > 0) {
     return { ok: true, pass: false, message: 'FAIL: labor without email must not join allocation by name.' };
   }
-  return { ok: true, pass: true, message: 'PASS: enrich joins allocations by email only.' };
+  return {
+    ok: true,
+    pass: true,
+    message: 'PASS: enrich joins allocations by email only and keeps userEmail on every row.',
+  };
+}
+
+/**
+ * Enrich then lifetime build: one row per email, allocated hours equal the
+ * assignment total (not monthly slices plus assignment), logged hours summed,
+ * and multiple assignments for one email summed before the max comparison.
+ * @return {!Object}
+ */
+function test_deliveryPerfLifetimeAllocNotDoubleCounted_() {
+  if (typeof ppBuildResourcesLifetime_ !== 'function') {
+    return { ok: true, pass: true, skipped: true, message: 'SKIP: ppBuildResourcesLifetime_ unavailable.' };
+  }
+  var andrey = 'andrey.vnuk@harpin.ai';
+  var bruno = 'bruno.cervantes@harpin.ai';
+  var months = [
+    { key: '2026-06', laborByPerson: [{ name: 'Andrey Vnuk', role: 'Developer', hours: 60, cost: 600, userEmail: andrey }] },
+    { key: '2026-07', laborByPerson: [{ name: 'Andrey Vnuk', role: 'Developer', hours: 70, cost: 700, userEmail: andrey }] },
+    {
+      key: '2026-08',
+      laborByPerson: [
+        { name: 'Andrey Vnuk', role: 'Developer', hours: 62, cost: 620, userEmail: andrey },
+        { name: 'Bruno Cervantes', role: 'Analyst', hours: 112, cost: 1120, userEmail: bruno },
+      ],
+    },
+    { key: '2026-09', laborByPerson: [] },
+  ];
+  var allocRows = [
+    {
+      durStart: '2026-06-01',
+      durEnd: '2026-09-30',
+      allocatedHours: 637,
+      allocatedAndBillable: true,
+      clockifyUserName: 'Andrey Vnuk',
+      clockifyUserEmail: andrey,
+      roleName: 'Developer',
+      currentCostRate: 10,
+    },
+    {
+      durStart: '2026-08-01',
+      durEnd: '2026-12-31',
+      allocatedHours: 300,
+      allocatedAndBillable: true,
+      clockifyUserName: 'Bruno Cervantes',
+      clockifyUserEmail: bruno,
+      roleName: 'Analyst',
+      currentCostRate: 10,
+    },
+    {
+      durStart: '2026-10-01',
+      durEnd: '2026-12-31',
+      allocatedHours: 229.5,
+      allocatedAndBillable: true,
+      clockifyUserName: 'Bruno Cervantes',
+      clockifyUserEmail: bruno,
+      roleName: 'Analyst',
+      currentCostRate: 10,
+    },
+  ];
+  enrichMonthsLaborByPersonWithAllocations_(months, allocRows, '');
+  var assignments = buildResourceAllocationAssignmentsList_(allocRows);
+  var rows = ppBuildResourcesLifetime_(months, assignments, '');
+  var byEmail = {};
+  for (var i = 0; i < rows.length; i++) {
+    var em = rows[i].personEmail;
+    if (!em) {
+      return { ok: true, pass: false, message: 'FAIL: row without personEmail: ' + rows[i].name + '.' };
+    }
+    if (byEmail[em]) {
+      return { ok: true, pass: false, message: 'FAIL: duplicate rows for ' + em + '.' };
+    }
+    byEmail[em] = rows[i];
+  }
+  var a = byEmail[andrey];
+  var b = byEmail[bruno];
+  if (rows.length !== 2 || !a || !b) {
+    return { ok: true, pass: false, message: 'FAIL: expected 2 rows (one per email), got ' + rows.length + '.' };
+  }
+  if (a.allocatedHoursLife !== 637 || a.loggedHoursLife !== 192) {
+    return {
+      ok: true,
+      pass: false,
+      message: 'FAIL: Andrey expected 637 allocated / 192 logged, got '
+        + a.allocatedHoursLife + ' / ' + a.loggedHoursLife + '.',
+    };
+  }
+  if (a.allocatedCostLife !== 6370) {
+    return { ok: true, pass: false, message: 'FAIL: Andrey allocated cost expected 6370, got ' + a.allocatedCostLife + '.' };
+  }
+  if (b.allocatedHoursLife !== 529.5 || b.loggedHoursLife !== 112) {
+    return {
+      ok: true,
+      pass: false,
+      message: 'FAIL: Bruno expected 529.5 allocated / 112 logged, got '
+        + b.allocatedHoursLife + ' / ' + b.loggedHoursLife + '.',
+    };
+  }
+  return {
+    ok: true,
+    pass: true,
+    message: 'PASS: lifetime allocated hours use summed assignments with max over monthly slices.',
+  };
 }
 
 /**

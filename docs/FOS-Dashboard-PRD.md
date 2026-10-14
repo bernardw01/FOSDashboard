@@ -1,10 +1,10 @@
 # FinOps Performance Hub (Google Workspace Web App)
 
-**PRD version 3.29.12** - `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
+**PRD version 3.29.13** - `src/Code.js` constant `FOS_PRD_VERSION` and all `src/*` file headers MUST match the version line below.
 
 Product Requirements Document
 
-Version 3.29.12 - 2026-10-14
+Version 3.29.13 - 2026-10-14
 
 ## 1) Overview
 
@@ -721,6 +721,7 @@ The **Clockify to Fibery Sync** product (see `docs/PRD.md`) remains the **system
 
 | Date | Version | Change Summary | Author |
 | --- | --- | --- | --- |
+| 2026-10-14 | 3.29.13 | **Project Performance email merge fix.** Fixes two regressions from 3.29.12 that produced duplicate "(no email)" person rows on PM Overview Project Performance: allocation enrich of Delivery P&L `laborByPerson` now keeps `userEmail` on logged and allocation-only rows, and All Time allocated hours and cost use the larger of the monthly prorated slices or the person's summed assignments (no longer adding the full allocation on top of the slices). Delivery P&L cache schema **22**. PATCH -> **3.29.13**. | Cursor |
 | 2026-10-14 | 3.29.12 | **Email-only person merge.** Delivery P&L labor, Project Performance resources, time-entry drill, and Resource Assignments labor join collapse persons on normalized email only; missing email stays orphan rows. Delivery P&L cache schema **21**; Resource Assignments cache schema **7**. PATCH -> **3.29.12**. | Cursor |
 | 2026-10-13 | 3.29.11 | **Shell load performance (feature 047).** Lazy snapshot catalog (no Drive list on page load); **`getAppBootstrap()`** replaces parallel **`getDashboardNavigation`** + **`getAppVersionStatus`**; short-TTL Users-sheet auth cache; defer notification badge prefetch; remove App Versions sync from **`doGet`**. **FR-105**, **FR-108**, **FR-123**, **AC-61** updated. PATCH -> **3.29.11**. | Cursor |
 | 2026-10-13 | 3.29.10 | **Settings panel load.** Stop blocking the Settings spinner on usage stats, AI sync status, Supabase ping/drift, and notification job status; show script property groups as soon as `getAdminSettingsPanel` returns. PATCH -> **3.29.10**. | Cursor |

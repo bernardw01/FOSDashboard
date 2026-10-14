@@ -1,5 +1,5 @@
 /**
- * PRD version 3.29.12 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.13 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 040: shared project performance metrics (planned / projected margin,
  * EAC hours and dollars, timing-review flag, lifetime resources). Consumed by
@@ -695,23 +695,51 @@ function ppBuildResourcesLifetime_(months, assignments, customerName, opts) {
   }
 
   // Seed / top up from Fibery assignments (allocation-only people + lifetime totals).
+  // Assignment totals are summed per person first, then compared with the
+  // monthly prorated slices via max so the full allocation is never added on
+  // top of the slices it was prorated from.
   if (mergeLifetime) {
+    var asgByKey = {};
+    var asgOrder = [];
     for (var a = 0; a < (assignments || []).length; a++) {
       var asg = assignments[a];
       var aName = asg.name || '(Unknown user)';
       var aRole = asg.roleName || '(No role)';
-      var aRow = ppEnsureResourcesLifetimeRow_(byKey, aName, aRole, asg.clockifyUserEmail);
+      var aKey = ppPersonKey_(aName, aRole, asg.clockifyUserEmail);
       var asgHours = Number(asg.allocatedHours || 0);
       var asgRate = ppAssignmentCostRate_(asg);
       var asgCost = asgRate != null && asgHours > 0
         ? asgHours * asgRate
         : Number(asg.allocatedCost || 0);
-      aRow.allocatedHoursLife += asgHours;
-      aRow.allocatedCostLife += asgCost;
-      if (!skipOrange && asg.allocatedAndBillable === false) {
+      if (!asgByKey[aKey]) {
+        asgByKey[aKey] = {
+          name: aName,
+          role: aRole,
+          email: asg.clockifyUserEmail,
+          hours: 0,
+          cost: 0,
+          anyFalse: false,
+          anyTrue: false,
+        };
+        asgOrder.push(aKey);
+      }
+      var grp = asgByKey[aKey];
+      grp.name = ppPreferDisplayName_(grp.name, aName);
+      if (!grp.email && asg.clockifyUserEmail) grp.email = asg.clockifyUserEmail;
+      grp.hours += asgHours;
+      grp.cost += asgCost;
+      if (asg.allocatedAndBillable === false) grp.anyFalse = true;
+      else if (asg.allocatedAndBillable === true) grp.anyTrue = true;
+    }
+    for (var g = 0; g < asgOrder.length; g++) {
+      var ag = asgByKey[asgOrder[g]];
+      var aRow = ppEnsureResourcesLifetimeRow_(byKey, ag.name, ag.role, ag.email);
+      if (ag.hours > aRow.allocatedHoursLife) aRow.allocatedHoursLife = ag.hours;
+      if (ag.cost > aRow.allocatedCostLife) aRow.allocatedCostLife = ag.cost;
+      if (!skipOrange && ag.anyFalse) {
         aRow.allocatedAndBillable = false;
         aRow.highlightOrange = true;
-      } else if (asg.allocatedAndBillable === true && aRow.allocatedAndBillable !== false) {
+      } else if (ag.anyTrue && aRow.allocatedAndBillable !== false) {
         aRow.allocatedAndBillable = true;
       }
     }

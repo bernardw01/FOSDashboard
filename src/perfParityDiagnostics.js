@@ -1,5 +1,5 @@
 /**
- * PRD version 3.29.12 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.13 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 047 Step 0: parity and measurement harness.
  *
@@ -2261,9 +2261,16 @@ var FOS_DIAG_SUITE_STEPS_ = [
   },
   {
     id: 'delivery-enrich-alloc-email-only',
-    label: 'Delivery P&L: enrich labor allocations by email',
+    label: 'Delivery: perf rows keep email through allocation enrich',
     fn: function () {
       return test_deliveryEnrichAllocEmailOnlyJoin_();
+    },
+  },
+  {
+    id: 'delivery-perf-lifetime-alloc-no-double-count',
+    label: 'Delivery: lifetime allocated hours not double counted',
+    fn: function () {
+      return test_deliveryPerfLifetimeAllocNotDoubleCounted_();
     },
   },
   {

@@ -1,7 +1,7 @@
 # Feature: Project Performance layer (Delivery)
 
 > **Status:** Shipped (**v3.6.0**; patched through **v3.8.2**)  
-> **PRD version:** **3.29.12** (`FR-137`, `AC-99`; **v3.29.12:** `resourcesLifetime` one row per normalized email; role = dominant logged hours)  
+> **PRD version:** **3.29.13** (`FR-137`, `AC-99`; **v3.29.13:** email kept through allocation enrich, lifetime allocated hours not double counted; **v3.29.12:** `resourcesLifetime` one row per normalized email; role = dominant logged hours)  
 > **Feature ID:** **040**  
 > **Release type:** Enhancement  
 > **Task list:** Delivery  
@@ -576,3 +576,4 @@ var projectedMarginPct = projectedLabor.ok ? projectedLabor.pct : null;
 | 2026-09-13 | **v3.29.5 BUG-040-03 fix:** `projectedMarginPct` from `(projectedRev - projectedCost) / projectedRev` (Locked Decision #6); removed `ppComputeAllocationLaborMargin_` `current` rate mode. Lookback `eacMarginPct` uses frozen `projectedMarginPct`. Diagnostic `test_buildProjectPerformanceBlock_ProjectedMarginUsesActualsPlusRemainingPlan_` in feature **057** suite. |
 | 2026-09-11 | **v3.29.3 BUG-040-02 fix:** `buildMonthlyPnL_` emits `revenueRecognized` per month; `buildProjectPerformanceBlock_` uses `recognizedRevToDate` for `actualMarginPctToDate` only; blended `m.revenue` unchanged for projected GP/EAC. Diagnostic `test_buildProjectPerformanceBlock_ActualMarginExcludesUnrecognizedForecast_` registered in feature **057** suite. |
 | 2026-09-13 | **BUG-040-03 opened via code review (user-requested verification):** `projectedMarginPct` does not implement Locked Decision #6's actuals-to-date + remaining-plan formula - it computes a static, date-invariant role-rate-card markup via `ppComputeAllocationLaborMargin_(assignments, 'current')` instead of using the already-correct `projectedRev`/`projectedCost` the function builds for `projectedGrossProfit`. Also explains the flat 50%/100% "EAC" values noted in the 2026-09-11 Lookback Action Required list investigation. |
+| 2026-10-14 | **v3.29.13:** Fixes 3.29.12 duplicate "(no email)" rows and doubled allocated hours on Project Performance (Marriott CO 15&16 showed Andrey Vnuk at 1274 allocated instead of 637). Enriched `laborByPerson` rows now keep `userEmail`, so `ppBuildResourcesLifetime_` merges one row per email. All Time allocated hours/cost use max(monthly prorated slices, sum of the person's assignments) instead of adding the full allocation on top of the slices; date ranges use only in-range monthly slices. Diagnostics `test_deliveryEnrichAllocEmailOnlyJoin_` (extended) and `test_deliveryPerfLifetimeAllocNotDoubleCounted_` (new) in feature **057** suite; both failed on 3.29.12 logic and pass on 3.29.13 in a local Node check. Delivery P&L schema **22**. |
