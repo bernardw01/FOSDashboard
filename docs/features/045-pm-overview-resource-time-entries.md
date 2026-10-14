@@ -1,7 +1,7 @@
 # Feature: PM Overview — resource time-entry drill-down
 
 > **Status:** Shipped (**v3.9.0**)  
-> **PRD version:** **3.9.0** (**FR-142**, **AC-103**)  
+> **PRD version:** **3.29.12** (**FR-142**, **AC-103**; **v3.29.12:** time drill and allocation sidebar filter by `personEmail`)  
 > **Release task:** [v3.9.0 - PM Overview resource time-entry drill-down](https://win.godeap.io/app/tasks/40857619)  
 > **Feature ID:** **045**  
 > **Release type:** Enhancement  

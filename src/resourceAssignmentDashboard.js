@@ -1,12 +1,12 @@
 /**
- * PRD version 3.29.9 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Resource assignment dashboard (feature 027): portfolio-wide Fibery
  * Resource Allocations by ISO week with alerts.
  */
 
 /** @const {number} Schema 6: person keys prefer Clockify user email on allocations. */
-var RESOURCE_ASSIGNMENTS_CACHE_SCHEMA_VERSION_ = 6;
+var RESOURCE_ASSIGNMENTS_CACHE_SCHEMA_VERSION_ = 7;
 
 /** @const {number} */
 var RESOURCE_ASSIGNMENTS_QUERY_PAGE_LIMIT_ = 500;
@@ -483,6 +483,7 @@ function normalizeResourceAllocationRow_(row) {
     stringOrNull_(row.clockifyUserName) ||
     stringOrNull_(row.allocationName) ||
     '(Unnamed)';
+  // Display/grid key when email is missing; labor hours do not merge across rows without email.
   var personKey = personEmail
     ? 'person:email:' + personEmail
     : personId
@@ -522,10 +523,10 @@ function normalizeResourceAllocationRow_(row) {
  * @return {string}
  * @private
  */
-function resourceAssignmentPersonKeyFromParts_(personId, personName) {
+function resourceAssignmentPersonKeyFromParts_(personId, personName, personEmailOpt) {
   var id = personId != null ? String(personId).trim() : '';
   var email = typeof fosNormalizePersonEmailKey_ === 'function'
-    ? fosNormalizePersonEmailKey_(id) || fosNormalizePersonEmailKey_(personName)
+    ? fosNormalizePersonEmailKey_(personEmailOpt) || fosNormalizePersonEmailKey_(id)
     : '';
   if (email) {
     return 'person:email:' + email;
@@ -607,7 +608,6 @@ function resourceAssignmentPersonIdFromKey_(personKey) {
  * @private
  */
 function buildResourceAssignmentPersonResolver_(persons) {
-  var byAlias = {};
   var byId = {};
   var canonicalMeta = {};
 
@@ -639,33 +639,33 @@ function buildResourceAssignmentPersonResolver_(persons) {
         byId[pidEmail] = canonicalKey;
       }
     }
-    var aliases = resourceAssignmentPersonAliases_(name);
-    for (var i = 0; i < aliases.length; i++) {
-      if (aliases[i] && !byAlias[aliases[i]]) {
-        byAlias[aliases[i]] = canonicalKey;
-      }
-    }
   }
 
   for (var pi = 0; pi < persons.length; pi++) {
     var p = persons[pi];
     var pid = p.personId || resourceAssignmentPersonIdFromKey_(p.key);
     registerPerson(p.key, p.name, pid, p.roleName, p.company);
+    if (p.personEmail && typeof fosNormalizePersonEmailKey_ === 'function') {
+      var pe = fosNormalizePersonEmailKey_(p.personEmail);
+      if (pe) {
+        byId[pe] = p.key;
+      }
+    }
   }
 
   return {
-    resolve: function (userId, userName) {
+    resolve: function (userId, userName, userEmailOpt) {
       var id = userId != null ? String(userId).trim() : '';
+      var email = typeof fosNormalizePersonEmailKey_ === 'function'
+        ? fosNormalizePersonEmailKey_(userEmailOpt) || fosNormalizePersonEmailKey_(id)
+        : '';
+      if (email && byId[email]) {
+        return { key: byId[email], meta: canonicalMeta[byId[email]] };
+      }
       if (id && byId[id]) {
         return { key: byId[id], meta: canonicalMeta[byId[id]] };
       }
-      var aliases = resourceAssignmentPersonAliases_(userName);
-      for (var ai = 0; ai < aliases.length; ai++) {
-        if (aliases[ai] && byAlias[aliases[ai]]) {
-          return { key: byAlias[aliases[ai]], meta: canonicalMeta[byAlias[aliases[ai]]] };
-        }
-      }
-      var fallbackKey = resourceAssignmentPersonKeyFromParts_(userId, userName);
+      var fallbackKey = resourceAssignmentPersonKeyFromParts_(userId, userName, userEmailOpt);
       if (!canonicalMeta[fallbackKey]) {
         canonicalMeta[fallbackKey] = {
           name: userName || '(Unknown user)',
@@ -687,7 +687,8 @@ function buildResourceAssignmentPersonResolver_(persons) {
       if (laborKey.indexOf('person:name:') === 0) {
         userName = userName || laborKey.slice('person:name:'.length);
       }
-      return this.resolve(userId, userName);
+      var userEmail = laborMeta && laborMeta.personEmail ? laborMeta.personEmail : '';
+      return this.resolve(userId, userName, userEmail);
     },
   };
 }
@@ -799,7 +800,7 @@ function aggregateResourceAssignmentLaborByProject_(
     if (!weekKey || !weekSet[weekKey]) {
       continue;
     }
-    var personKey = resourceAssignmentPersonKeyFromParts_(r.userId, r.userName);
+    var personKey = resourceAssignmentPersonKeyFromParts_(r.userId, r.userName, r.userEmail);
     if (!byProject[agreementId]) {
       byProject[agreementId] = {};
     }

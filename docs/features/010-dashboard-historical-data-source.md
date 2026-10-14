@@ -1,6 +1,6 @@
 # Dashboard historical data source (UI)
 
-> **PRD version 2.18.0** - see `docs/FOS-Dashboard-PRD.md` (**FR-105**, **AC-61**). Storage job: [009-dashboard-historical-snapshots.md](009-dashboard-historical-snapshots.md).
+> **PRD version 3.29.11** - see `docs/FOS-Dashboard-PRD.md` (**FR-105**, **AC-61**). Storage job: [009-dashboard-historical-snapshots.md](009-dashboard-historical-snapshots.md).
 
 ## Goal
 
@@ -8,12 +8,12 @@ A **Data source** control in the left sidebar lets authorized users view all das
 
 ## Status
 
-**Delivered v2.1.0** (core Fibery panels). **Expenses + Pipeline in snapshot mode:** **v2.8.0**.
+**Delivered v2.1.0** (core Fibery panels). **Expenses + Pipeline in snapshot mode:** **v2.8.0**. **Lazy catalog on load:** **v3.29.11** (feature **047** shell load perf).
 
 ## UI
 
-- Sidebar `<select id="fos-data-source">` below the user chip (label: **Data source**).
-- Options: **Live data** + one entry per catalog snapshot (`complete` and `partial`; excludes `running` / `failed`).
+- Sidebar **Data source** block below the user chip: shows **Live data** (or the active snapshot label) and **Historical snapshots…** (desktop). **Back to live data** appears in snapshot mode.
+- **v3.29.11:** No catalog fetch on page load. Opening **Historical snapshots…** calls **`getDashboardSnapshotCatalog()`** and shows loading/error in a Bootstrap modal (desktop) or bottom sheet (mobile, **FR-123**).
 - Topbar banner when snapshot mode: **Viewing snapshot as of … (not live data).**
 - Refresh / Auto-refresh / Utilization date-range controls disabled in snapshot mode (Utilization range is fixed to the snapshot window).
 
@@ -21,7 +21,7 @@ A **Data source** control in the left sidebar lets authorized users view all das
 
 - In-memory `dataSourceState` (not mixed with live `sessionStorage` keys for Fibery TTL).
 - `localStorage` key **`fos_data_source_v1`**: `{ schemaVersion: 1, mode: 'live'|'snapshot', snapshotDate }`.
-- On each page load: `getDashboardSnapshotCatalog()` refreshes the dropdown; restore saved snapshot only if still listed.
+- **v3.29.11:** On page load the client stays on **Live data** even when `localStorage` remembers a snapshot date; a hint may show **Previously used YYYY-MM-DD**. Snapshot mode starts only after the user picks a date from a freshly loaded catalog.
 
 ## Server API (`dashboardSnapshotStore.js`)
 
@@ -51,7 +51,15 @@ A **Data source** control in the left sidebar lets authorized users view all das
 
 ## Activity logging
 
-Route **`shell`**: `data_source_change`, `snapshot_bundle_load_start`, `snapshot_bundle_load_done`, `snapshot_bundle_load_error`.
+Route **`shell`**: `data_source_change`, `snapshot_catalog_open`, `snapshot_catalog_load_done`, `snapshot_catalog_load_error`, `snapshot_bundle_load_start`, `snapshot_bundle_load_done`, `snapshot_bundle_load_error`.
+
+## Verification Steps
+
+1. **Desktop:** Hard reload; confirm Apps Script executions on load include **`getAppBootstrap`** and do **not** include **`getDashboardSnapshotCatalog`** until **Historical snapshots…** is opened.
+2. Open **Historical snapshots…**, confirm catalog loads and selecting a date + **Use snapshot** loads **`getDashboardSnapshotCoreBundle`** and shows the snapshot banner.
+3. **Back to live data** clears snapshot mode and re-enables live panel fetches.
+4. Set `localStorage` `fos_data_source_v1` to a snapshot mode entry, reload: app stays Live with **Previously used** hint; no bundle load until user re-picks from catalog.
+5. **Mobile (~390px):** Data source pill → **Historical snapshots…** → pick a date; 44px tap targets on sheet options.
 
 ## Known limitations
 

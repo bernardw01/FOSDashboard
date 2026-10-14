@@ -1,6 +1,6 @@
 # Feature: Resource assignment dashboard (Operations)
 
-> **PRD version 3.19.1** - sync with `docs/FOS-Dashboard-PRD.md` (**FR-122**, **AC-81**; allocation read path extended by **FR-146** / **AC-107** in feature 047 workstream B2; daily Assigned hours workday spread extends **FR-139**).  
+> **PRD version 3.29.12** - sync with `docs/FOS-Dashboard-PRD.md` (**FR-122**, **AC-81**; **v3.29.12:** labor remaps to assignment persons by email/Clockify id only, cache schema **7**; grid `personKey` may still use id when email missing, display-only).  
 > **Intake:** Inbox task [40228925 - Resource Assignment Dashboard](https://win.godeap.io/app/tasks/40228925).  
 > **Feature id:** 027 | **Task list:** Operations  
 > **Extends / reuses:** [Feature 019](019-resource-allocation-pnl-chart.md) (Fibery Resource Allocations, calendar-day proration), [Feature 024](024-delivery-pnl-resource-assignments-modal.md) (assignment row fields), [Feature 007](007-labor-hours-dashboard.md) (expand/collapse project breakdown UX), [Feature 005](005-utilization-management-dashboard.md) (Operations date range + filter patterns).  

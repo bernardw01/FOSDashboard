@@ -1,11 +1,11 @@
 /**
- * PRD version 3.29.9 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * FinOps Performance Hub - Apps Script entry points.
  */
 
 /** @const {string} Must match the version line in docs/FOS-Dashboard-PRD.md */
-var FOS_PRD_VERSION = '3.29.9';
+var FOS_PRD_VERSION = '3.29.12';
 
 /**
  * Brief release note stored on the App Versions tab when this deployment
@@ -13,7 +13,7 @@ var FOS_PRD_VERSION = '3.29.9';
  * @const {string}
  */
 var FOS_RELEASE_DESCRIPTION =
-  'v3.29.9 Resource allocations join labor by Clockify user email (Fibery formula field).';
+  'v3.29.12 Email-only person merge for Delivery P&L, Project Performance, and Resource Assignments.';
 
 /**
  * @return {string}
@@ -99,18 +99,6 @@ function doGet(e) {
     }
   }
 
-  try {
-    syncCurrentAppVersionToCatalog_();
-  } catch (e) {
-    try {
-      console.warn(
-        'doGet: syncCurrentAppVersionToCatalog_ threw: ' + (e && e.message ? e.message : e)
-      );
-    } catch (_) {
-      /* ignore */
-    }
-  }
-
   var template = HtmlService.createTemplateFromFile('DashboardShell');
   template.prdVersion = getFosPrdVersion_();
   template.homeHeroImageUrl = getHomeHeroImageUrlForWebApp_();
@@ -146,6 +134,58 @@ function doGet(e) {
 function getDashboardNavigation() {
   var auth = requireAuthForApi_();
   return buildNavigationModel_(auth);
+}
+
+/**
+ * Single bootstrap RPC for shell init (feature 047 load perf). Excludes snapshot
+ * catalog so Drive is not touched until the user opens Historical snapshots.
+ *
+ * @return {{
+ *   ok: boolean,
+ *   navigation?: ReturnType<typeof buildNavigationModel_>,
+ *   appVersion?: !Object,
+ *   message?: string
+ * }}
+ */
+function getAppBootstrap() {
+  var auth = requireAuthForApi_();
+  try {
+    syncCurrentAppVersionToCatalog_();
+  } catch (e) {
+    try {
+      console.warn(
+        'getAppBootstrap: syncCurrentAppVersionToCatalog_ threw: ' + (e && e.message ? e.message : e)
+      );
+    } catch (_) {
+      /* ignore */
+    }
+  }
+  return {
+    ok: true,
+    navigation: buildNavigationModel_(auth),
+    appVersion: buildAppVersionStatusPayload_(),
+  };
+}
+
+/**
+ * Feature 057: validates getAppBootstrap payload shape (no snapshot catalog).
+ * @return {!Object}
+ */
+function _diag_verifyAppBootstrapShape_() {
+  var boot = getAppBootstrap();
+  if (!boot || boot.ok === false) {
+    return { ok: false, pass: false, message: 'getAppBootstrap returned not ok' };
+  }
+  if (!boot.navigation || !boot.navigation.items || !boot.navigation.userEmail) {
+    return { ok: false, pass: false, message: 'navigation model missing' };
+  }
+  if (!boot.appVersion || boot.appVersion.ok === false) {
+    return { ok: false, pass: false, message: 'appVersion missing or not ok' };
+  }
+  if (Object.prototype.hasOwnProperty.call(boot, 'snapshotCatalog')) {
+    return { ok: false, pass: false, message: 'bootstrap must not include snapshot catalog' };
+  }
+  return { ok: true, pass: true, message: 'getAppBootstrap shape ok' };
 }
 
 /**

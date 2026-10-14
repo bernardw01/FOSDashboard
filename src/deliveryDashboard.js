@@ -1,5 +1,5 @@
 /**
- * PRD version 3.29.9 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Delivery Dashboard orchestrator (route id `pm-overview`, panel
  * `#panel-pm-overview`). Public endpoints, all authorized via
@@ -106,11 +106,11 @@ var DELIVERY_DASHBOARD_CACHE_SCHEMA_VERSION_ = 2;
  *   v16 - v3.7.6 / feature 040 R5: laborByPerson.allocatedCost (month-prorated).
  *   v19 - v3.29.0: laborByPerson.allocatedCost uses hours * user cost rate
  *        when Fibery Allocated Cost is empty.
- *   v20 - v3.29.9: resource allocation joins use Clockify user email
+ *   v20 - v3.29.12: resource allocation joins use Clockify user email
  *        (Fibery formula on Resource Allocations) as the primary person key.
  * @const {number}
  */
-var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 20;
+var DELIVERY_PNL_CACHE_SCHEMA_VERSION_ = 21;
 
 /** @const {number} Default TTL (minutes) for the client-side cache. */
 var DELIVERY_DEFAULT_CACHE_TTL_MIN_ = 10;
@@ -377,6 +377,7 @@ function getDeliveryProjectPersonTimeEntries(opts) {
   opts = opts || {};
   var agreementId = String(opts.agreementId || '').trim();
   var personName = String(opts.personName || '').trim();
+  var personEmail = deliveryPnlResolvePersonEmail_(personName, opts.personEmail);
   var personRole = String(opts.personRole || '').trim();
   var startMonth = String(opts.startMonth || '').slice(0, 7);
   var endMonth = String(opts.endMonth || '').slice(0, 7);
@@ -386,6 +387,7 @@ function getDeliveryProjectPersonTimeEntries(opts) {
     ok: true,
     agreementId: agreementId,
     personName: personName,
+    personEmail: personEmail || null,
     personRole: personRole,
     days: [],
     totalHours: 0,
@@ -398,9 +400,9 @@ function getDeliveryProjectPersonTimeEntries(opts) {
     empty.message = 'Missing agreementId.';
     return empty;
   }
-  if (!personName) {
+  if (!personEmail && !personName) {
     empty.ok = false;
-    empty.message = 'Missing personName.';
+    empty.message = 'Missing personEmail or personName.';
     return empty;
   }
   if (typeof fetchAgreementContextForPnlFromSupabase_ !== 'function' ||
@@ -432,14 +434,17 @@ function getDeliveryProjectPersonTimeEntries(opts) {
     empty.truncated = true;
     return empty;
   }
-  var nameMatch = typeof ppPersonNamesMatch_ === 'function'
-    ? ppPersonNamesMatch_
-    : function (a, b) {
-      return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
-    };
   var roleWanted = personRole.toLowerCase();
+  function personMatches_(row) {
+    var rowName = String(row.userName || '').trim() || '(Unknown user)';
+    var rowEmail = deliveryPnlResolvePersonEmail_(rowName, row.userEmail || row.userId);
+    if (personEmail) {
+      return rowEmail === personEmail;
+    }
+    return rowName === personName;
+  }
   function roleMatches_(rowRole) {
-    if (!roleWanted || roleWanted === '(no role)') {
+    if (!roleWanted || roleWanted === '(no role)' || roleWanted === '(multiple roles)') {
       return true;
     }
     var got = String(rowRole || '').trim().toLowerCase();
@@ -457,8 +462,7 @@ function getDeliveryProjectPersonTimeEntries(opts) {
     var rows = laborFetch.rows || [];
     for (var i = 0; i < rows.length; i++) {
       var row = rows[i];
-      var rowName = String(row.userName || '').trim() || '(Unknown user)';
-      if (!nameMatch(personName, rowName)) continue;
+      if (!personMatches_(row)) continue;
       if (requireRole && !roleMatches_(row.userRole || row.clockifyUserRole)) continue;
       var hours = Number(row.hours);
       if (!isFinite(hours) || hours <= 0) continue;
@@ -548,23 +552,32 @@ function buildPerfLoggedTotalsByPersonRole_(laborRows, startYmd, endYmd, startMo
     if (!isFinite(cost)) cost = 0;
     var name = String(row.userName || row.timeEntryUserName || '').trim() || '(Unknown user)';
     var role = String(row.userRole || row.clockifyUserRole || '(No role)').trim() || '(No role)';
-    var key = name + '\0' + role;
+    var email = deliveryPnlResolvePersonEmail_(name, row.userEmail || row.userId);
+    var key = deliveryPnlPersonMergeKey_(email || row.userEmail || row.userId, name, role, '');
     if (!byKey[key]) {
       byKey[key] = {
+        personKey: key,
+        personEmail: email || null,
         name: name,
         role: role,
+        roleHours: {},
         loggedHoursLife: 0,
         loggedCostLife: 0,
       };
     }
-    byKey[key].loggedHoursLife += hours;
-    byKey[key].loggedCostLife += cost;
+    var agg = byKey[key];
+    agg.name = ppPreferDisplayName_(agg.name, name);
+    agg.roleHours[role] = (agg.roleHours[role] || 0) + hours;
+    agg.loggedHoursLife += hours;
+    agg.loggedCostLife += cost;
+    if (email && !agg.personEmail) agg.personEmail = email;
   }
   var keys = Object.keys(byKey);
   for (var k = 0; k < keys.length; k++) {
-    var agg = byKey[keys[k]];
-    agg.loggedHoursLife = Math.round(agg.loggedHoursLife * 100) / 100;
-    agg.loggedCostLife = Math.round(agg.loggedCostLife * 100) / 100;
+    var agg2 = byKey[keys[k]];
+    agg2.role = deliveryPnlDominantRoleFromHours_(agg2.roleHours, agg2.role);
+    agg2.loggedHoursLife = Math.round(agg2.loggedHoursLife * 100) / 100;
+    agg2.loggedCostLife = Math.round(agg2.loggedCostLife * 100) / 100;
   }
   return byKey;
 }
@@ -581,33 +594,22 @@ function buildPerfLoggedTotalsByPersonRole_(laborRows, startYmd, endYmd, startMo
 function overlayPerfResourceLoggedTotals_(rows, loggedByKey, customerName) {
   rows = rows || [];
   loggedByKey = loggedByKey || {};
-  var nameMatch = typeof ppPersonNamesMatch_ === 'function'
-    ? ppPersonNamesMatch_
-    : function (a, b) {
-      return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
-    };
   var skipOrange = typeof isNoAllocationOrangeExemptCustomer_ === 'function'
     ? isNoAllocationOrangeExemptCustomer_(customerName)
     : false;
   var loggedKeys = Object.keys(loggedByKey);
-  function findLoggedForRow_(row) {
-    var roleNorm = String(row.role || '(No role)').trim().toLowerCase();
-    for (var i = 0; i < loggedKeys.length; i++) {
-      var src = loggedByKey[loggedKeys[i]];
-      if (String(src.role || '').trim().toLowerCase() !== roleNorm) continue;
-      if (nameMatch(row.name, src.name)) return src;
-    }
-    for (var j = 0; j < loggedKeys.length; j++) {
-      var src2 = loggedByKey[loggedKeys[j]];
-      if (nameMatch(row.name, src2.name)) return src2;
-    }
-    return null;
+  function mergeKeyForRow_(row) {
+    if (row.personKey) return String(row.personKey);
+    var email = deliveryPnlResolvePersonEmail_(row.name, row.personEmail);
+    return deliveryPnlPersonMergeKey_(email || row.personEmail, row.name, row.role, '');
   }
   var out = [];
   var used = {};
   for (var r = 0; r < rows.length; r++) {
     var row = rows[r];
     var copy = {
+      personKey: row.personKey || mergeKeyForRow_(row),
+      personEmail: row.personEmail || deliveryPnlResolvePersonEmail_(row.name, row.personEmail) || null,
       name: row.name,
       role: row.role,
       allocatedHoursLife: Number(row.allocatedHoursLife || 0),
@@ -615,28 +617,35 @@ function overlayPerfResourceLoggedTotals_(rows, loggedByKey, customerName) {
       loggedHoursLife: 0,
       loggedCostLife: 0,
       highlightOrange: !!row.highlightOrange,
+      allocatedAndBillable: row.allocatedAndBillable,
+      sowRoleDisplay: row.sowRoleDisplay || null,
     };
-    var logged = findLoggedForRow_(row);
+    var lk = copy.personKey;
+    var logged = loggedByKey[lk];
+    if (!logged && copy.personEmail) {
+      logged = loggedByKey['email:' + copy.personEmail];
+    }
     if (logged) {
       copy.loggedHoursLife = Number(logged.loggedHoursLife || 0);
       copy.loggedCostLife = Number(logged.loggedCostLife || 0);
-      for (var uk = 0; uk < loggedKeys.length; uk++) {
-        if (loggedByKey[loggedKeys[uk]] === logged) {
-          used[loggedKeys[uk]] = true;
-          break;
-        }
-      }
+      copy.name = ppPreferDisplayName_(copy.name, logged.name);
+      if (logged.role) copy.role = logged.role;
+      if (logged.personEmail) copy.personEmail = logged.personEmail;
+      used[logged.personKey || lk] = true;
     }
     if (!skipOrange && copy.loggedHoursLife > 0 && copy.allocatedHoursLife <= 0) {
       copy.highlightOrange = true;
     }
     out.push(copy);
   }
-  for (var lk = 0; lk < loggedKeys.length; lk++) {
-    if (used[loggedKeys[lk]]) continue;
-    var only = loggedByKey[loggedKeys[lk]];
+  for (var lk2 = 0; lk2 < loggedKeys.length; lk2++) {
+    var lKey = loggedKeys[lk2];
+    if (used[lKey]) continue;
+    var only = loggedByKey[lKey];
     if (!(only.loggedHoursLife > 0) && !(only.loggedCostLife > 0)) continue;
     out.push({
+      personKey: only.personKey || lKey,
+      personEmail: only.personEmail || null,
       name: only.name,
       role: only.role,
       allocatedHoursLife: 0,
@@ -644,6 +653,7 @@ function overlayPerfResourceLoggedTotals_(rows, loggedByKey, customerName) {
       loggedHoursLife: Number(only.loggedHoursLife || 0),
       loggedCostLife: Number(only.loggedCostLife || 0),
       highlightOrange: !skipOrange,
+      sowRoleDisplay: null,
     });
   }
   out.sort(function (a, b) {
@@ -1266,8 +1276,8 @@ function buildMonthlyPnL_(args) {
     laborByMonthByRole[key][roleName] = (laborByMonthByRole[key][roleName] || 0) + cost;
     laborRoleTotals[roleName] = (laborRoleTotals[roleName] || 0) + cost;
     if (!laborByMonthByPerson[key]) laborByMonthByPerson[key] = {};
-    var personKey = personName + '\0' + roleName;
-    var personAgg = laborByMonthByPerson[key][personKey];
+    var mergeKey = deliveryPnlPersonMergeKey_(l.userEmail || l.userId, personName, roleName, '');
+    var personAgg = laborByMonthByPerson[key][mergeKey];
     if (!personAgg) {
       personAgg = {
         name: personName,
@@ -1275,11 +1285,14 @@ function buildMonthlyPnL_(args) {
         hours: 0,
         cost: 0,
         userEmail: personEmail || null,
+        roleHours: {},
       };
-      laborByMonthByPerson[key][personKey] = personAgg;
+      laborByMonthByPerson[key][mergeKey] = personAgg;
     } else if (personEmail && !personAgg.userEmail) {
       personAgg.userEmail = personEmail;
     }
+    personAgg.name = ppPreferDisplayName_(personAgg.name, personName);
+    personAgg.roleHours[roleName] = (personAgg.roleHours[roleName] || 0) + hours;
     personAgg.hours += hours;
     personAgg.cost += cost;
     activityMonths[key] = true;
@@ -1412,9 +1425,10 @@ function buildMonthlyPnL_(args) {
     var personKeys = Object.keys(personMap);
     for (var pk = 0; pk < personKeys.length; pk++) {
       var pa = personMap[personKeys[pk]];
+      var displayRole = deliveryPnlDominantRoleFromHours_(pa.roleHours, pa.role);
       laborByPerson.push({
         name: pa.name,
-        role: pa.role,
+        role: displayRole,
         hours: Math.round(pa.hours * 100) / 100,
         cost: pa.cost,
         userEmail: pa.userEmail || null,
@@ -1980,7 +1994,58 @@ function deliveryPnlPersonEmailKey_(value) {
 function deliveryPnlResolvePersonEmail_(name, emailField) {
   var e = deliveryPnlPersonEmailKey_(emailField);
   if (e) return e;
-  return deliveryPnlPersonEmailKey_(name);
+  if (name != null && String(name).indexOf('@') >= 0) {
+    return deliveryPnlPersonEmailKey_(name);
+  }
+  return '';
+}
+
+/**
+ * Stable merge key for labor, allocations, and performance rows (email-only merge).
+ *
+ * @param {*} emailField
+ * @param {?string} name
+ * @param {?string} role
+ * @param {*=} orphanSuffix Optional disambiguator when email is missing
+ * @return {string}
+ * @private
+ */
+function deliveryPnlPersonMergeKey_(emailField, name, role, orphanSuffix) {
+  var email = deliveryPnlResolvePersonEmail_(name, emailField);
+  if (email) return 'email:' + email;
+  var n = String(name || '(Unknown user)').trim();
+  var r = String(role || '(No role)').trim();
+  var suffix =
+    orphanSuffix != null && String(orphanSuffix) !== '' ? '\0' + String(orphanSuffix) : '';
+  return 'orphan:' + n + '\0' + r + suffix;
+}
+
+/**
+ * @param {!Object} roleHours map role -> hours
+ * @param {?string} fallbackRole
+ * @return {string}
+ * @private
+ */
+function deliveryPnlDominantRoleFromHours_(roleHours, fallbackRole) {
+  roleHours = roleHours || {};
+  var keys = Object.keys(roleHours);
+  if (!keys.length) return String(fallbackRole || '(No role)').trim() || '(No role)';
+  if (keys.length === 1) return keys[0];
+  var bestRole = keys[0];
+  var bestH = Number(roleHours[bestRole] || 0);
+  for (var i = 1; i < keys.length; i++) {
+    var k = keys[i];
+    var h = Number(roleHours[k] || 0);
+    if (h > bestH) {
+      bestH = h;
+      bestRole = k;
+    }
+  }
+  var tied = 0;
+  for (var j = 0; j < keys.length; j++) {
+    if (Number(roleHours[keys[j]] || 0) === bestH) tied++;
+  }
+  return tied > 1 ? '(Multiple roles)' : bestRole;
 }
 
 /**
@@ -1992,7 +2057,8 @@ function deliveryPnlResolvePersonEmail_(name, emailField) {
 function deliveryPnlAllocPersonToken_(displayName, emailField) {
   var email = deliveryPnlResolvePersonEmail_(displayName, emailField);
   if (email) return 'email:' + email;
-  return '~' + deliveryPnlNormalizePersonToken_(displayName);
+  var n = deliveryPnlNormalizePersonToken_(displayName) || 'unknown';
+  return 'orphan:alloc:' + n;
 }
 
 /**
@@ -2164,7 +2230,7 @@ function enrichMonthsLaborByPersonWithAllocations_(months, allocRows, customerNa
       var slice = prorateAllocationHoursForMonth_(allocRows[ai], monthKey);
       if (!slice) continue;
       var token = personToken(slice.name, slice.userEmail);
-      if (!token || token === '~') continue;
+      if (!token) continue;
       var pers = ensurePerson(token, slice.name);
       pers.hasOverlap = true;
       if (slice.billable === true) pers.anyBillable = true;
@@ -2191,22 +2257,9 @@ function enrichMonthsLaborByPersonWithAllocations_(months, allocRows, customerNa
 
     function findAllocPerson(laborName, laborEmail) {
       var email = deliveryPnlResolvePersonEmail_(laborName, laborEmail);
-      if (email) {
-        var emailToken = personToken(laborName, email);
-        if (allocByPerson[emailToken]) return allocByPerson[emailToken];
-      }
-      var keys = deliveryPnlPersonAliasKeys_(laborName);
-      for (var k = 0; k < keys.length; k++) {
-        var t = personToken(keys[k], null);
-        if (allocByPerson[t]) return allocByPerson[t];
-      }
-      // Scan all for alias match (different display forms).
-      var tokens = Object.keys(allocByPerson);
-      for (var ti = 0; ti < tokens.length; ti++) {
-        var cand = allocByPerson[tokens[ti]];
-        if (deliveryPnlPersonNamesMatch_(laborName, cand.displayName)) return cand;
-      }
-      return null;
+      if (!email) return null;
+      var emailToken = personToken(laborName, email);
+      return allocByPerson[emailToken] || null;
     }
 
     function resolvePercent(roleAgg) {
@@ -2229,7 +2282,10 @@ function enrichMonthsLaborByPersonWithAllocations_(months, allocRows, customerNa
       var pct = null;
       var billable = null;
       if (allocPers) {
-        seenLaborTokens[personToken(allocPers.displayName, row.userEmail)] = true;
+        var laborEmailTok = deliveryPnlResolvePersonEmail_(lName, row.userEmail);
+        if (laborEmailTok) {
+          seenLaborTokens[personToken(lName, laborEmailTok)] = true;
+        }
         // Prefer matching role; else sum all roles for the person.
         var roleAgg = allocPers.byRole[lRole];
         if (roleAgg) {
@@ -2755,6 +2811,14 @@ function test_deliveryAllocLaborEmailPersonKey_() {
   if (tok !== 'email:andrey.vnuk@harpin.ai' || tok !== tok2) {
     return { ok: true, pass: false, message: 'FAIL: deliveryPnlAllocPersonToken_ email mismatch.' };
   }
+  if (deliveryPnlResolvePersonEmail_('Josh Bass', null) !== '') {
+    return { ok: true, pass: false, message: 'FAIL: resolvePersonEmail must not infer email from display name.' };
+  }
+  var orphanA = deliveryPnlPersonMergeKey_(null, 'Josh Bass', 'Dev', '');
+  var orphanB = deliveryPnlPersonMergeKey_(null, 'josh.bass', 'Dev', '');
+  if (orphanA === orphanB) {
+    return { ok: true, pass: false, message: 'FAIL: orphan merge keys must not alias display names.' };
+  }
   if (typeof normalizeResourceAllocationRow_ !== 'function') {
     return { ok: true, pass: true, skipped: true, message: 'SKIP: normalizeResourceAllocationRow_ unavailable.' };
   }
@@ -2781,4 +2845,136 @@ function test_deliveryAllocLaborEmailPersonKey_() {
     };
   }
   return { ok: true, pass: true, message: 'PASS: allocation and labor share email person keys.' };
+}
+
+/**
+ * Project Performance lifetime rows merge logged hours by email across roles.
+ * @return {!Object}
+ */
+function test_deliveryPerfEmailOnlyMerge_() {
+  if (typeof ppBuildResourcesLifetime_ !== 'function') {
+    return { ok: true, pass: true, skipped: true, message: 'SKIP: ppBuildResourcesLifetime_ unavailable.' };
+  }
+  var months = [
+    {
+      key: '2026-06',
+      laborByPerson: [
+        { name: 'josh', role: 'Developer', hours: 10, cost: 100, userEmail: 'josh@harpin.ai' },
+        { name: 'Josh Bass', role: 'Lead', hours: 5, cost: 75, userEmail: 'josh@harpin.ai' },
+      ],
+    },
+  ];
+  var rows = ppBuildResourcesLifetime_(months, [], '', { mergeAssignmentLifetime: false });
+  if (rows.length !== 1) {
+    return {
+      ok: true,
+      pass: false,
+      message: 'FAIL: expected one resourcesLifetime row for one email, got ' + rows.length + '.',
+    };
+  }
+  if (rows[0].loggedHoursLife !== 15) {
+    return {
+      ok: true,
+      pass: false,
+      message: 'FAIL: expected 15 logged hours merged by email, got ' + rows[0].loggedHoursLife + '.',
+    };
+  }
+  if (rows[0].personEmail !== 'josh@harpin.ai') {
+    return { ok: true, pass: false, message: 'FAIL: personEmail missing on merged row.' };
+  }
+  return { ok: true, pass: true, message: 'PASS: perf resourcesLifetime merges by email only.' };
+}
+
+/**
+ * enrichMonthsLaborByPersonWithAllocations_ joins labor to allocations on email only.
+ * @return {!Object}
+ */
+function test_deliveryEnrichAllocEmailOnlyJoin_() {
+  var months = [
+    {
+      key: '2026-06',
+      laborByPerson: [
+        {
+          name: 'Josh Bass',
+          role: 'Developer',
+          hours: 8,
+          cost: 80,
+          userEmail: 'josh@harpin.ai',
+        },
+      ],
+    },
+  ];
+  var allocRows = [
+    {
+      durStart: '2026-06-01',
+      durEnd: '2026-06-30',
+      allocatedHours: 40,
+      allocatedCost: 4000,
+      percentAllocated: 50,
+      allocatedAndBillable: true,
+      clockifyUserName: 'josh.bass',
+      clockifyUserEmail: 'josh@harpin.ai',
+      roleName: 'Developer',
+      currentCostRate: 100,
+      sowCostRate: 100,
+    },
+  ];
+  enrichMonthsLaborByPersonWithAllocations_(months, allocRows, '');
+  var row = months[0].laborByPerson[0];
+  if (!row || !(row.allocatedHours > 0)) {
+    return { ok: true, pass: false, message: 'FAIL: email-matched labor did not receive allocation hours.' };
+  }
+  var orphanMonths = [
+    {
+      key: '2026-06',
+      laborByPerson: [
+        { name: 'Josh Bass', role: 'Developer', hours: 4, cost: 40, userEmail: null },
+      ],
+    },
+  ];
+  enrichMonthsLaborByPersonWithAllocations_(orphanMonths, allocRows, '');
+  var orphanRow = orphanMonths[0].laborByPerson[0];
+  if (orphanRow.allocatedHours > 0) {
+    return { ok: true, pass: false, message: 'FAIL: labor without email must not join allocation by name.' };
+  }
+  return { ok: true, pass: true, message: 'PASS: enrich joins allocations by email only.' };
+}
+
+/**
+ * getDeliveryProjectPersonTimeEntries filters by personEmail when provided.
+ * @return {!Object}
+ */
+function test_deliveryPersonTimeEntriesByEmail_() {
+  var laborRows = [
+    {
+      userName: 'Josh Bass',
+      userEmail: 'josh@harpin.ai',
+      userRole: 'Developer',
+      hours: 2,
+      cost: 20,
+      startDateTime: '2026-06-15T12:00:00.000Z',
+    },
+    {
+      userName: 'Other Person',
+      userEmail: 'other@harpin.ai',
+      userRole: 'Developer',
+      hours: 3,
+      cost: 30,
+      startDateTime: '2026-06-16T12:00:00.000Z',
+    },
+  ];
+  var byDay = {};
+  var personEmail = deliveryPnlResolvePersonEmail_('Josh', 'josh@harpin.ai');
+  for (var i = 0; i < laborRows.length; i++) {
+    var row = laborRows[i];
+    var rowEmail = deliveryPnlResolvePersonEmail_(row.userName, row.userEmail);
+    if (rowEmail !== personEmail) continue;
+    var day = String(row.startDateTime).slice(0, 10);
+    byDay[day] = (byDay[day] || 0) + Number(row.hours || 0);
+  }
+  var days = Object.keys(byDay);
+  if (days.length !== 1 || byDay[days[0]] !== 2) {
+    return { ok: true, pass: false, message: 'FAIL: email filter did not isolate josh@harpin.ai rows.' };
+  }
+  return { ok: true, pass: true, message: 'PASS: time entry email filter isolates one person.' };
 }

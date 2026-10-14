@@ -1,7 +1,7 @@
 # Feature: Project Performance layer (Delivery)
 
 > **Status:** Shipped (**v3.6.0**; patched through **v3.8.2**)  
-> **PRD version:** **3.29.5** (`FR-137`, `AC-99`; allocated cost = hours × user cost rate)  
+> **PRD version:** **3.29.12** (`FR-137`, `AC-99`; **v3.29.12:** `resourcesLifetime` one row per normalized email; role = dominant logged hours)  
 > **Feature ID:** **040**  
 > **Release type:** Enhancement  
 > **Task list:** Delivery  

@@ -1,11 +1,15 @@
 /**
- * PRD version 3.29.9 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Spreadsheet-backed user authorization (Users tab).
  * Script Properties: AUTH_SPREADSHEET_ID (required), AUTH_USERS_SHEET_NAME (default Users),
  * AUTH_COL_EMAIL, AUTH_COL_ROLE, AUTH_COL_TEAM (defaults Email, Role, Team),
  * AUTH_COL_FIBERY_ACCESS (default `fibery_access`),
  * AUTH_COL_PROFILE (default `Profile`) - Feature 033 Profile JSON on this same tab.
+ *
+ * Successful sheet lookups are cached briefly in `CacheService` user cache
+ * (feature 047 shell load perf) to avoid re-reading the Users tab on every
+ * `google.script.run` in the same session.
  *
  * The `fibery_access` column is OPTIONAL. When the header is missing the whole
  * deployment is treated as "no Fibery access for anyone" (deny by default).
@@ -29,11 +33,85 @@
  *   detail?: string
  * }}
  */
+/** @const {number} Seconds to cache a successful Users-sheet authorization row. */
+var AUTH_SPREADSHEET_CACHE_TTL_SEC_ = 90;
+
+/**
+ * @param {string} email
+ * @return {string}
+ * @private
+ */
+function authSpreadsheetCacheKey_(email) {
+  return 'fos_auth_v1:' + normalizeEmail_(email);
+}
+
+/**
+ * @param {string} email
+ * @private
+ */
+function invalidateAuthSpreadsheetCache_(email) {
+  if (!email) {
+    return;
+  }
+  try {
+    CacheService.getUserCache().remove(authSpreadsheetCacheKey_(email));
+  } catch (_) {
+    /* ignore */
+  }
+}
+
+/**
+ * @param {{ ok: true, email: string, role: string, team: string, fiberyAccess: boolean }} auth
+ * @private
+ */
+function putAuthSpreadsheetCache_(auth) {
+  if (!auth || !auth.ok || !auth.email) {
+    return;
+  }
+  try {
+    CacheService.getUserCache().put(
+      authSpreadsheetCacheKey_(auth.email),
+      JSON.stringify(auth),
+      AUTH_SPREADSHEET_CACHE_TTL_SEC_
+    );
+  } catch (_) {
+    /* ignore quota / serialization */
+  }
+}
+
+/**
+ * @return {null|{ ok: true, email: string, role: string, team: string, fiberyAccess: boolean }}
+ * @private
+ */
+function readAuthSpreadsheetCache_(email) {
+  if (!email) {
+    return null;
+  }
+  try {
+    var raw = CacheService.getUserCache().get(authSpreadsheetCacheKey_(email));
+    if (!raw) {
+      return null;
+    }
+    var parsed = JSON.parse(raw);
+    if (parsed && parsed.ok === true && parsed.email) {
+      return parsed;
+    }
+  } catch (_) {
+    /* ignore */
+  }
+  return null;
+}
+
 function getAuthorizationForActiveUser_() {
   var emailRaw = Session.getActiveUser().getEmail();
   var email = (emailRaw || '').trim();
   if (!email) {
     return authDeny_('NO_EMAIL', '', 'SESSION_EMAIL_EMPTY');
+  }
+
+  var cachedAuth = readAuthSpreadsheetCache_(email);
+  if (cachedAuth) {
+    return cachedAuth;
   }
 
   var props = PropertiesService.getScriptProperties();
@@ -96,9 +174,12 @@ function getAuthorizationForActiveUser_() {
         var role = row[idxRole] === null || row[idxRole] === undefined ? '' : String(row[idxRole]).trim();
         var team = row[idxTeam] === null || row[idxTeam] === undefined ? '' : String(row[idxTeam]).trim();
         var fiberyAccess = idxFiberyAccess < 0 ? false : parseFiberyAccessCell_(row[idxFiberyAccess]);
-        return { ok: true, email: email, role: role, team: team, fiberyAccess: fiberyAccess };
+        var okAuth = { ok: true, email: email, role: role, team: team, fiberyAccess: fiberyAccess };
+        putAuthSpreadsheetCache_(okAuth);
+        return okAuth;
       }
     }
+    invalidateAuthSpreadsheetCache_(email);
     return authDeny_('NOT_LISTED', email, 'USER_NOT_ON_LIST');
   } catch (e) {
     var errMsg = e && e.message ? String(e.message) : String(e);
@@ -107,8 +188,35 @@ function getAuthorizationForActiveUser_() {
     } catch (_) {
       /* ignore */
     }
+    invalidateAuthSpreadsheetCache_(email);
     return authDeny_('SHEET_ERROR', email, 'SPREADSHEET_OPEN_FAILED');
   }
+}
+
+/**
+ * Feature 057 / shell load: verifies Users-sheet auth cache round trip.
+ * @return {!Object}
+ */
+function _diag_verifyAuthSpreadsheetCache_() {
+  var emailRaw = Session.getActiveUser().getEmail();
+  var email = (emailRaw || '').trim();
+  if (!email) {
+    return { ok: false, pass: false, message: 'NO_EMAIL' };
+  }
+  invalidateAuthSpreadsheetCache_(email);
+  var first = getAuthorizationForActiveUser_();
+  if (!first.ok) {
+    return { ok: false, pass: false, message: 'first auth denied: ' + (first.reason || '') };
+  }
+  var cached = readAuthSpreadsheetCache_(email);
+  if (!cached || !cached.ok) {
+    return { ok: false, pass: false, message: 'cache empty after successful auth' };
+  }
+  var second = getAuthorizationForActiveUser_();
+  if (!second.ok || normalizeEmail_(second.email) !== normalizeEmail_(first.email)) {
+    return { ok: false, pass: false, message: 'cached auth mismatch on second call' };
+  }
+  return { ok: true, pass: true, message: 'auth spreadsheet cache ok' };
 }
 
 /**
@@ -165,6 +273,9 @@ function listAdminEmailsFromUsersSheet_() {
  * @private
  */
 function authDeny_(reason, email, detail) {
+  if (email) {
+    invalidateAuthSpreadsheetCache_(email);
+  }
   try {
     console.warn(
       'authUsersSheet: access denied reason=' + reason +

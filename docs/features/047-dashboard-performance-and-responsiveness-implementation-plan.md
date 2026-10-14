@@ -779,3 +779,16 @@ Two targets are met: the wire-byte target for the default window (945 kB against
 2. **Workstream A alone** removes most of the wasted bytes for one to two days of work. Ship it on its own first and re-measure before committing to B, or approve the full program now?
 3. **`DashboardShell.html` splitting (D2)** is the highest-effort item and touches every panel. Worth doing properly, or limit this release to the image and render fixes and treat the split as its own feature?
 4. **Detail-table rows out of the panel payload (B1):** acceptable for the utilization detail table to fetch its own page on demand, given it already paginates at 100 rows client-side?
+
+## Shell load perf (shipped v3.29.11)
+
+| Item | Change |
+| --- | --- |
+| Lazy snapshot catalog | `initDataSourceUi_()`; catalog RPC only from Historical snapshots picker |
+| Bootstrap RPC | `getAppBootstrap()` returns nav + `buildAppVersionStatusPayload_()` |
+| Auth cache | `getAuthorizationForActiveUser_()` 90s user cache; invalidate on deny |
+| doGet trim | Remove `syncCurrentAppVersionToCatalog_()` (sync on bootstrap / `getAppVersionStatus`) |
+| Deferred prefetch | Notifications via `requestIdleCallback` / 4s timeout; profile stays on panel open |
+| Diagnostics | `_diag_verifyAppBootstrapShape_`, `_diag_verifyAuthSpreadsheetCache_` in suite |
+
+**Deferred:** moving `recordPageLoad_` out of `doGet` (risk to FR-60 logging on failed client init).

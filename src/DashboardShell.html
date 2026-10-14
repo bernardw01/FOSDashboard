@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- PRD version 3.29.9 - sync with docs/FOS-Dashboard-PRD.md -->
+<!-- PRD version 3.29.12 - sync with docs/FOS-Dashboard-PRD.md -->
 <html lang="en" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8" />
@@ -3336,6 +3336,21 @@
       letter-spacing: 0.04em;
     }
 
+    .fos-data-source-current {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 0.375rem;
+      color: var(--text);
+      font-size: 0.8125rem;
+      padding: 0.35rem 0.5rem;
+    }
+
+    .fos-data-source-historical-btn,
+    .fos-data-source-live-btn {
+      min-height: 44px;
+      font-size: 0.8125rem;
+    }
+
     .fos-data-source-select {
       background: var(--surface2);
       border-color: var(--border);
@@ -3346,6 +3361,15 @@
     .fos-data-source-select:focus {
       border-color: var(--accent);
       box-shadow: 0 0 0 0.15rem rgba(82, 201, 229, 0.25);
+    }
+
+    .fos-snapshot-picker-list {
+      max-height: min(50vh, 320px);
+      overflow-y: auto;
+    }
+
+    .fos-snapshot-picker-option {
+      min-height: 44px;
     }
 
     .fos-data-source-hint {
@@ -5039,10 +5063,30 @@
         </div>
 
         <div class="px-3 pb-2 border-bottom border-secondary border-opacity-25 flex-shrink-0 fos-sidebar-data-source">
-          <label for="fos-data-source" class="form-label fos-data-source-label text-secondary text-uppercase fw-semibold mb-1">
+          <p class="form-label fos-data-source-label text-secondary text-uppercase fw-semibold mb-1">
             Data source
-          </label>
-          <select id="fos-data-source" class="form-select form-select-sm fos-data-source-select" aria-label="Data source">
+          </p>
+          <p id="fos-data-source-current" class="fos-data-source-current mb-2" aria-live="polite">Live data</p>
+          <button
+            type="button"
+            id="fos-data-source-historical-btn"
+            class="btn btn-outline-secondary btn-sm w-100 fos-data-source-historical-btn"
+          >
+            Historical snapshots…
+          </button>
+          <button
+            type="button"
+            id="fos-data-source-live-btn"
+            class="btn btn-outline-secondary btn-sm w-100 fos-data-source-live-btn d-none mt-2"
+          >
+            Back to live data
+          </button>
+          <select
+            id="fos-data-source"
+            class="form-select form-select-sm fos-data-source-select d-none"
+            aria-hidden="true"
+            tabindex="-1"
+          >
             <option value="live">Live data</option>
           </select>
           <p id="fos-data-source-hint" class="fos-data-source-hint text-secondary mb-0 mt-1 d-none"></p>
@@ -5472,6 +5516,33 @@
             <button type="button" class="btn btn-outline-secondary btn-sm" id="expensesDetailCopyCsvBtn">Copy CSV</button>
             <button type="button" class="btn btn-fos-primary px-4" data-bs-dismiss="modal">Close</button>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="modal fade fos-modal"
+    id="fosSnapshotPickerModal"
+    tabindex="-1"
+    aria-labelledby="fosSnapshotPickerTitle"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content rounded-4">
+        <div class="modal-header">
+          <h5 class="modal-title fw-semibold" id="fosSnapshotPickerTitle">Historical snapshots</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p id="fos-snapshot-picker-status" class="small text-secondary mb-2">Loading snapshot catalog…</p>
+          <div id="fos-snapshot-picker-list" class="list-group fos-snapshot-picker-list d-none" role="listbox" aria-label="Snapshot dates"></div>
+        </div>
+        <div class="modal-footer border-0 pt-0 flex-wrap gap-2">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-fos-primary px-4" id="fos-snapshot-picker-confirm" disabled>
+            Use snapshot
+          </button>
         </div>
       </div>
     </div>
@@ -5982,7 +6053,7 @@
       // the user upgrades.
       var DELIVERY_PNL_KEY_PREFIX = 'fos_delivery_pnl_';
       var DELIVERY_PNL_KEY_SUFFIX = '_v16';
-      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 20;
+      var DELIVERY_PNL_CACHE_SCHEMA_VERSION = 21;
       var DELIVERY_STATUS_CLIENT_META_ = {
         on_track: { enumName: 'Agreement On Track', trafficLight: 'green' },
         at_risk: { enumName: 'Agreement At Risk', trafficLight: 'yellow' },
@@ -6007,7 +6078,7 @@
       var EXPENSES_FILTERS_SCHEMA_VERSION = 1;
       var DEFAULT_TTL_MINUTES = 10;
       var RA_CACHE_KEY = 'fos_resource_assignments_v1';
-      var RA_CACHE_SCHEMA_VERSION = 5;
+      var RA_CACHE_SCHEMA_VERSION = 7;
       var RA_TTL_PREF_KEY = 'fos_resource_assignments_ttl_minutes_v1';
       var RA_FILTERS_PREF_KEY = 'fos_resource_assignments_filters_v1';
       var RA_FILTERS_SCHEMA_VERSION = 1;
@@ -6757,7 +6828,14 @@
           expensesDetailCopyCsvBtn: document.getElementById('expensesDetailCopyCsvBtn'),
           expensesDetailCopyAlert: document.getElementById('expensesDetailCopyAlert'),
           dataSourceSelect: document.getElementById('fos-data-source'),
+          dataSourceCurrent: document.getElementById('fos-data-source-current'),
+          dataSourceHistoricalBtn: document.getElementById('fos-data-source-historical-btn'),
+          dataSourceLiveBtn: document.getElementById('fos-data-source-live-btn'),
           dataSourceHint: document.getElementById('fos-data-source-hint'),
+          snapshotPickerModal: document.getElementById('fosSnapshotPickerModal'),
+          snapshotPickerStatus: document.getElementById('fos-snapshot-picker-status'),
+          snapshotPickerList: document.getElementById('fos-snapshot-picker-list'),
+          snapshotPickerConfirm: document.getElementById('fos-snapshot-picker-confirm'),
           snapshotBanner: document.getElementById('fos-snapshot-banner'),
           snapshotBannerText: document.getElementById('fos-snapshot-banner-text'),
           settingsLinkWrap: document.getElementById('settings-link-wrap'),
@@ -7005,15 +7083,7 @@
           els.snapshotBannerText.textContent =
             'Viewing snapshot as of ' + formatSnapshotBannerDate_(d) + ' (not live data).';
         }
-        if (els.dataSourceHint) {
-          if (snap && dataSourceState.manifest && dataSourceState.manifest.status === 'partial') {
-            els.dataSourceHint.textContent = 'This snapshot is partial; some Delivery P&L files may be missing.';
-            els.dataSourceHint.classList.remove('d-none');
-          } else {
-            els.dataSourceHint.classList.add('d-none');
-            els.dataSourceHint.textContent = '';
-          }
-        }
+        refreshDataSourceChrome_();
         setLiveControlsDisabled_(snap);
         if (snap) {
           lockUtilRangeToSnapshotManifest_();
@@ -7067,6 +7137,7 @@
         if (els.dataSourceSelect) {
           els.dataSourceSelect.value = 'live';
         }
+        refreshDataSourceChrome_();
         updateSnapshotChrome_();
       }
 
@@ -7154,10 +7225,76 @@
           .replace(/\u00e2\u20ac\u00a6/g, '...');
       }
 
+      var snapshotPickerState_ = {
+        catalog: null,
+        selectedDate: null,
+        wired: false,
+      };
+
+      function refreshDataSourceChrome_() {
+        var isSnap = dataSourceState.mode === 'snapshot';
+        if (els.dataSourceCurrent) {
+          els.dataSourceCurrent.textContent = isSnap
+            ? fosSanitizeDisplayText_(
+                'Snapshot · ' + formatSnapshotBannerDate_(dataSourceState.snapshotDate)
+              )
+            : fosSanitizeDisplayText_('Live data');
+        }
+        if (els.dataSourceHistoricalBtn) {
+          els.dataSourceHistoricalBtn.classList.toggle('d-none', isSnap);
+        }
+        if (els.dataSourceLiveBtn) {
+          els.dataSourceLiveBtn.classList.toggle('d-none', !isSnap);
+        }
+        updateDataSourceHint_();
+        updateMobileDataSourcePill_();
+      }
+
+      function updateDataSourceHint_() {
+        if (!els.dataSourceHint) {
+          return;
+        }
+        if (
+          !isLiveDataSource_() &&
+          dataSourceState.manifest &&
+          dataSourceState.manifest.status === 'partial'
+        ) {
+          els.dataSourceHint.textContent =
+            'This snapshot is partial; some Delivery P&L files may be missing.';
+          els.dataSourceHint.classList.remove('d-none');
+          return;
+        }
+        var pref = readDataSourcePref_();
+        if (isLiveDataSource_() && pref && pref.mode === 'snapshot' && pref.snapshotDate) {
+          els.dataSourceHint.textContent =
+            'Previously used snapshot ' +
+            pref.snapshotDate +
+            '. Open Historical snapshots to restore.';
+          els.dataSourceHint.classList.remove('d-none');
+          return;
+        }
+        els.dataSourceHint.classList.add('d-none');
+        els.dataSourceHint.textContent = '';
+      }
+
+      function syncDataSourceSelectValue_() {
+        if (!els.dataSourceSelect) {
+          return;
+        }
+        var want =
+          dataSourceState.mode === 'snapshot' && dataSourceState.snapshotDate
+            ? dataSourceState.snapshotDate
+            : 'live';
+        if (els.dataSourceSelect.querySelector('option[value="' + want + '"]')) {
+          els.dataSourceSelect.value = want;
+        } else {
+          els.dataSourceSelect.value = 'live';
+        }
+      }
+
       function populateDataSourceSelect_(catalog) {
         if (!els.dataSourceSelect) return;
         var sel = els.dataSourceSelect;
-        var prev = sel.value;
         sel.innerHTML = '';
         var liveOpt = document.createElement('option');
         liveOpt.value = 'live';
@@ -7175,35 +7312,8 @@
           opt.textContent = fosSanitizeDisplayText_(s.label || s.snapshotDate);
           sel.appendChild(opt);
         }
-        var pref = readDataSourcePref_();
-        var want = 'live';
-        if (pref && pref.mode === 'snapshot' && pref.snapshotDate) {
-          var found = false;
-          for (var j = 0; j < snaps.length; j++) {
-            if (snaps[j].snapshotDate === pref.snapshotDate) {
-              found = true;
-              break;
-            }
-          }
-          if (found) want = pref.snapshotDate;
-          else writeDataSourcePref_('live', null);
-        } else if (prev && prev !== 'live') {
-          for (var k = 0; k < snaps.length; k++) {
-            if (snaps[k].snapshotDate === prev) {
-              want = prev;
-              break;
-            }
-          }
-        }
-        sel.value = want;
-        updateMobileDataSourcePill_();
-        if (want === 'live') {
-          if (dataSourceState.mode === 'snapshot') {
-            clearSnapshotBundle_();
-          }
-        } else if (dataSourceState.mode !== 'snapshot' || dataSourceState.snapshotDate !== want) {
-          enterSnapshotMode_(want, { rerender: false });
-        }
+        syncDataSourceSelectValue_();
+        refreshDataSourceChrome_();
       }
 
       function enterSnapshotMode_(snapshotDate, opts) {
@@ -7284,24 +7394,210 @@
         enterSnapshotMode_(val, { rerender: true });
       }
 
-      function initDataSourceCatalog_() {
+      function loadSnapshotCatalog_(onDone) {
         google.script.run
           .withSuccessHandler(function (catalog) {
             if (!catalog || catalog.ok === false) {
-              if (els.dataSourceHint && catalog && catalog.message) {
-                els.dataSourceHint.textContent = catalog.message;
-                els.dataSourceHint.classList.remove('d-none');
-              }
-              populateDataSourceSelect_({ ok: true, live: { label: 'Live data' }, snapshots: [] });
+              logActivity_(
+                'snapshot_catalog_load_error',
+                'shell',
+                (catalog && catalog.message) || 'catalog not ok'
+              );
+              if (onDone) onDone(null, (catalog && catalog.message) || 'Could not load snapshots.');
               return;
             }
-            populateDataSourceSelect_(catalog);
-            updateSnapshotChrome_();
+            logActivity_(
+              'snapshot_catalog_load_done',
+              'shell',
+              'count=' + ((catalog.snapshots && catalog.snapshots.length) || 0)
+            );
+            snapshotPickerState_.catalog = catalog;
+            if (onDone) onDone(catalog, null);
           })
-          .withFailureHandler(function () {
-            populateDataSourceSelect_({ ok: true, live: { label: 'Live data' }, snapshots: [] });
+          .withFailureHandler(function (err) {
+            var msg = err && err.message ? err.message : 'Catalog load failed.';
+            logActivity_('snapshot_catalog_load_error', 'shell', msg);
+            if (onDone) onDone(null, msg);
           })
           .getDashboardSnapshotCatalog();
+      }
+
+      function confirmSnapshotSelection_(snapshotDate) {
+        if (!snapshotDate) {
+          return;
+        }
+        var catalog = snapshotPickerState_.catalog;
+        populateDataSourceSelect_(
+          catalog || { ok: true, live: { label: 'Live data' }, snapshots: dataSourceState.catalogSnapshots }
+        );
+        if (els.dataSourceSelect) {
+          els.dataSourceSelect.value = snapshotDate;
+        }
+        onDataSourceSelectChange_();
+      }
+
+      function renderSnapshotPickerList_(catalog, selectedDate) {
+        if (!els.snapshotPickerList || !els.snapshotPickerStatus) {
+          return;
+        }
+        var snaps = (catalog && catalog.snapshots) || [];
+        els.snapshotPickerList.innerHTML = '';
+        if (!snaps.length) {
+          els.snapshotPickerStatus.textContent = 'No historical snapshots are available yet.';
+          els.snapshotPickerList.classList.add('d-none');
+          if (els.snapshotPickerConfirm) {
+            els.snapshotPickerConfirm.disabled = true;
+          }
+          return;
+        }
+        els.snapshotPickerStatus.textContent = 'Choose a snapshot date, then confirm.';
+        els.snapshotPickerList.classList.remove('d-none');
+        snapshotPickerState_.selectedDate = selectedDate || null;
+        for (var i = 0; i < snaps.length; i++) {
+          var s = snaps[i];
+          if (!s || !s.snapshotDate) continue;
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className =
+            'list-group-item list-group-item-action fos-snapshot-picker-option' +
+            (snapshotPickerState_.selectedDate === s.snapshotDate ? ' active' : '');
+          btn.setAttribute('role', 'option');
+          btn.textContent = fosSanitizeDisplayText_(s.label || s.snapshotDate);
+          (function (date) {
+            btn.addEventListener('click', function () {
+              snapshotPickerState_.selectedDate = date;
+              var opts = els.snapshotPickerList.querySelectorAll('.fos-snapshot-picker-option');
+              for (var j = 0; j < opts.length; j++) {
+                opts[j].classList.toggle('active', opts[j] === btn);
+              }
+              if (els.snapshotPickerConfirm) {
+                els.snapshotPickerConfirm.disabled = false;
+              }
+            });
+          })(s.snapshotDate);
+          els.snapshotPickerList.appendChild(btn);
+        }
+        if (els.snapshotPickerConfirm) {
+          els.snapshotPickerConfirm.disabled = !snapshotPickerState_.selectedDate;
+        }
+      }
+
+      function openDesktopSnapshotPickerModal_() {
+        if (typeof bootstrap === 'undefined' || !bootstrap.Modal || !els.snapshotPickerModal) {
+          return;
+        }
+        logActivity_('snapshot_catalog_open', 'shell', 'desktop');
+        snapshotPickerState_.selectedDate = null;
+        if (els.snapshotPickerStatus) {
+          els.snapshotPickerStatus.textContent = 'Loading snapshot catalog…';
+        }
+        if (els.snapshotPickerList) {
+          els.snapshotPickerList.classList.add('d-none');
+          els.snapshotPickerList.innerHTML = '';
+        }
+        if (els.snapshotPickerConfirm) {
+          els.snapshotPickerConfirm.disabled = true;
+        }
+        var modal = bootstrap.Modal.getOrCreateInstance(els.snapshotPickerModal);
+        modal.show();
+        loadSnapshotCatalog_(function (catalog, err) {
+          if (err) {
+            if (els.snapshotPickerStatus) {
+              els.snapshotPickerStatus.textContent = err;
+            }
+            return;
+          }
+          renderSnapshotPickerList_(catalog, null);
+        });
+      }
+
+      function openMobileSnapshotCatalogSheet_() {
+        logActivity_('snapshot_catalog_open', 'shell', 'mobile');
+        loadSnapshotCatalog_(function (catalog, err) {
+          if (err) {
+            if (els.errorBanner) {
+              els.errorBanner.textContent = err;
+              els.errorBanner.classList.remove('d-none');
+            }
+            return;
+          }
+          populateDataSourceSelect_(catalog);
+          var items = [{ id: 'live', label: 'Live data', selected: isLiveDataSource_() }];
+          var snaps = (catalog && catalog.snapshots) || [];
+          for (var i = 0; i < snaps.length; i++) {
+            var s = snaps[i];
+            if (!s || !s.snapshotDate) continue;
+            items.push({
+              id: s.snapshotDate,
+              label: fosSanitizeDisplayText_(s.label || s.snapshotDate),
+              selected:
+                dataSourceState.mode === 'snapshot' && dataSourceState.snapshotDate === s.snapshotDate,
+            });
+          }
+          openMobileFilterSheet_({
+            title: 'Historical snapshots',
+            context: 'data_source_snapshot',
+            items: items,
+            onSelect: function (val) {
+              if (!val || val === 'live') {
+                if (els.dataSourceSelect) {
+                  els.dataSourceSelect.value = 'live';
+                }
+                onDataSourceSelectChange_();
+                return;
+              }
+              confirmSnapshotSelection_(val);
+            },
+          });
+        });
+      }
+
+      function openHistoricalSnapshotsPicker_() {
+        if (isLargeViewport()) {
+          openDesktopSnapshotPickerModal_();
+        } else {
+          openMobileSnapshotCatalogSheet_();
+        }
+      }
+
+      function wireSnapshotPickerOnce_() {
+        if (snapshotPickerState_.wired) {
+          return;
+        }
+        snapshotPickerState_.wired = true;
+        if (els.dataSourceHistoricalBtn) {
+          els.dataSourceHistoricalBtn.addEventListener('click', function () {
+            openHistoricalSnapshotsPicker_();
+          });
+        }
+        if (els.dataSourceLiveBtn) {
+          els.dataSourceLiveBtn.addEventListener('click', function () {
+            if (els.dataSourceSelect) {
+              els.dataSourceSelect.value = 'live';
+            }
+            onDataSourceSelectChange_();
+          });
+        }
+        if (els.snapshotPickerConfirm) {
+          els.snapshotPickerConfirm.addEventListener('click', function () {
+            if (!snapshotPickerState_.selectedDate) {
+              return;
+            }
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal && els.snapshotPickerModal) {
+              bootstrap.Modal.getOrCreateInstance(els.snapshotPickerModal).hide();
+            }
+            confirmSnapshotSelection_(snapshotPickerState_.selectedDate);
+          });
+        }
+      }
+
+      function initDataSourceUi_() {
+        dataSourceState.mode = 'live';
+        dataSourceState.snapshotDate = null;
+        dataSourceState.catalogSnapshots = [];
+        populateDataSourceSelect_({ ok: true, live: { label: 'Live data' }, snapshots: [] });
+        wireSnapshotPickerOnce_();
+        refreshDataSourceChrome_();
       }
 
       if (els.dataSourceSelect) {
@@ -7637,28 +7933,32 @@
       }
 
       function openMobileDataSourceSheet_() {
-        if (!els.dataSourceSelect) {
-          return;
-        }
         logActivity_('mobile_data_source_open', 'shell', '');
-        var items = [];
-        for (var i = 0; i < els.dataSourceSelect.options.length; i++) {
-          var opt = els.dataSourceSelect.options[i];
-          items.push({
-            id: opt.value,
-            label: opt.textContent,
-            selected: opt.value === els.dataSourceSelect.value,
-          });
-        }
+        var items = [
+          {
+            id: 'live',
+            label: 'Live data',
+            selected: isLiveDataSource_(),
+          },
+          {
+            id: '__historical__',
+            label: 'Historical snapshots…',
+            selected: false,
+          },
+        ];
         openMobileFilterSheet_({
           title: 'Data source',
           context: 'data_source',
           items: items,
           onSelect: function (val) {
-            if (els.dataSourceSelect.value !== val) {
-              els.dataSourceSelect.value = val;
-              onDataSourceSelectChange_();
+            if (val === '__historical__') {
+              openMobileSnapshotCatalogSheet_();
+              return;
             }
+            if (els.dataSourceSelect) {
+              els.dataSourceSelect.value = val || 'live';
+            }
+            onDataSourceSelectChange_();
             updateMobileDataSourcePill_();
           },
         });
@@ -7862,6 +8162,8 @@
         loading: false,
         usage: null,
         usageError: null,
+        usagePending: false,
+        settingsLoaded: false,
         aiUsageSync: null,
         aiUsageSyncError: null,
         aiUsageSyncRunning: false,
@@ -8377,6 +8679,9 @@
         }
         if (!data || data.ok === false) {
           var msg = (data && data.message) || 'Usage data is unavailable.';
+          if (!err && adminSettingsState_.usagePending) {
+            msg = 'Loading usage analytics…';
+          }
           els.settingsUsageHost.appendChild(
             createSettingsCollapseGroup_('usage-analytics', 'Usage - last 30 days', function (body) {
               var p2 = document.createElement('p');
@@ -9475,11 +9780,20 @@
         markAdminSettingsDirty_();
       }
 
+      function refreshAdminSettingsOperatorsIfReady_() {
+        if (adminSettingsState_.loading || !adminSettingsState_.settingsLoaded) {
+          return;
+        }
+        renderAdminSettingsGroups_();
+      }
+
       function loadAdminSettingsPanel_() {
         if (!els.panelSettings) return;
         adminSettingsState_.loading = true;
+        adminSettingsState_.settingsLoaded = false;
         adminSettingsState_.usage = null;
         adminSettingsState_.usageError = null;
+        adminSettingsState_.usagePending = true;
         adminSettingsState_.aiUsageSync = null;
         adminSettingsState_.aiUsageSyncError = null;
         adminSettingsState_.aiUsageSyncRunning = false;
@@ -9497,17 +9811,23 @@
         if (els.settingsSaveStatus) els.settingsSaveStatus.classList.add('d-none');
         markAdminSettingsDirty_();
 
-        var pending = 5;
-        var settingsOk = false;
-
-        function tick() {
-          pending -= 1;
-          if (pending > 0) return;
-          finishAdminSettingsPanelLoad_();
-          renderAdminAppVersionsRegistry_();
-          renderAdminUsageHost_();
-          if (settingsOk) {
-            renderAdminSettingsGroups_();
+        function finishCoreSettingsLoad_(settingsOk) {
+          try {
+            adminSettingsState_.settingsLoaded = !!settingsOk;
+            finishAdminSettingsPanelLoad_();
+            renderAdminAppVersionsRegistry_();
+            renderAdminUsageHost_();
+            if (settingsOk) {
+              renderAdminSettingsGroups_();
+            }
+          } catch (renderErr) {
+            console.warn('Settings panel render failed', renderErr);
+            finishAdminSettingsPanelLoad_();
+            if (els.settingsFetchError) {
+              els.settingsFetchError.textContent =
+                'Settings loaded but the panel could not render. Reload the page.';
+              els.settingsFetchError.classList.remove('d-none');
+            }
           }
         }
 
@@ -9519,14 +9839,13 @@
                   (data && data.message) || 'Could not load settings.';
                 els.settingsFetchError.classList.remove('d-none');
               }
-              tick();
+              finishCoreSettingsLoad_(false);
               return;
             }
             adminSettingsState_.groups = JSON.parse(JSON.stringify(data.groups || []));
             adminSettingsState_.baseline = adminSettingsBaselineJson_();
             adminSettingsState_.dirty = false;
-            settingsOk = true;
-            tick();
+            finishCoreSettingsLoad_(true);
           })
           .withFailureHandler(function (err) {
             var msg = err && err.message ? err.message : 'Could not load settings.';
@@ -9537,12 +9856,13 @@
               els.settingsFetchError.textContent = msg;
               els.settingsFetchError.classList.remove('d-none');
             }
-            tick();
+            finishCoreSettingsLoad_(false);
           })
           .getAdminSettingsPanel();
 
         google.script.run
           .withSuccessHandler(function (usage) {
+            adminSettingsState_.usagePending = false;
             if (!usage || usage.ok === false) {
               adminSettingsState_.usage = usage || null;
               adminSettingsState_.usageError = null;
@@ -9550,16 +9870,17 @@
               adminSettingsState_.usage = usage;
               adminSettingsState_.usageError = null;
             }
-            tick();
+            renderAdminUsageHost_();
           })
           .withFailureHandler(function (err) {
+            adminSettingsState_.usagePending = false;
             var umsg = err && err.message ? err.message : 'Could not load usage statistics.';
             if (umsg === 'NOT_AUTHORIZED' || umsg === 'FORBIDDEN') {
               umsg = 'Administrator access required.';
             }
             adminSettingsState_.usage = null;
             adminSettingsState_.usageError = umsg;
-            tick();
+            renderAdminUsageHost_();
           })
           .getAdminUsageStats();
 
@@ -9573,7 +9894,7 @@
               adminSettingsState_.aiUsageSync = syncStatus;
               adminSettingsState_.aiUsageSyncError = null;
             }
-            tick();
+            refreshAdminSettingsOperatorsIfReady_();
           })
           .withFailureHandler(function (err) {
             var smsg = err && err.message ? err.message : 'Could not load AI usage sync status.';
@@ -9582,7 +9903,7 @@
             }
             adminSettingsState_.aiUsageSync = null;
             adminSettingsState_.aiUsageSyncError = smsg;
-            tick();
+            refreshAdminSettingsOperatorsIfReady_();
           })
           .getAiUsageSyncStatus();
 
@@ -9596,7 +9917,7 @@
               adminSettingsState_.supabaseSync = sbStatus;
               adminSettingsState_.supabaseSyncError = null;
             }
-            tick();
+            refreshAdminSettingsOperatorsIfReady_();
           })
           .withFailureHandler(function (err) {
             var sbmsg =
@@ -9606,7 +9927,7 @@
             }
             adminSettingsState_.supabaseSync = null;
             adminSettingsState_.supabaseSyncError = sbmsg;
-            tick();
+            refreshAdminSettingsOperatorsIfReady_();
           })
           .getSupabaseSyncStatus();
 
@@ -9620,7 +9941,7 @@
               adminSettingsState_.notificationJobStatus = jobStatus;
               adminSettingsState_.notificationJobError = null;
             }
-            tick();
+            refreshAdminSettingsOperatorsIfReady_();
           })
           .withFailureHandler(function (err) {
             var nmsg =
@@ -9630,7 +9951,7 @@
             }
             adminSettingsState_.notificationJobStatus = null;
             adminSettingsState_.notificationJobError = nmsg;
-            tick();
+            refreshAdminSettingsOperatorsIfReady_();
           })
           .getNotificationJobStatusForSettings();
       }
@@ -31980,6 +32301,12 @@
       function fetchDeliveryPerfResourceRows_(payload, range, onDone) {
         onDone = onDone || function () {};
         if (!range || range.isAllTime) {
+          var perfBlock = payload && payload.performance;
+          var lifeRows = perfBlock && perfBlock.resourcesLifetime;
+          if (lifeRows && lifeRows.length) {
+            onDone(lifeRows.slice(), null);
+            return;
+          }
           onDone(buildDeliveryPerfResourceRowsLocal_(payload, range), null);
           return;
         }
@@ -32086,10 +32413,15 @@
           var hVar = perfHoursVariance_(r);
           var cVar = perfCostVariance_(r);
           var sowRole = perfSowRoleDisplay_(r, payload);
+          var nameCell = escapeHtml(r.name || ' - ');
+          if (!r.personEmail) {
+            nameCell +=
+              ' <span class="small text-secondary" title="No email on labor rows; person matching uses display name only for this row.">(no email)</span>';
+          }
           html +=
             '<tr class="' + orange.trim() + ' fos-delivery-perf-row"' + orangeTitle +
               ' data-perf-row="' + i + '" role="button" tabindex="0">' +
-              '<td>' + escapeHtml(r.name || ' - ') + '</td>' +
+              '<td>' + nameCell + '</td>' +
               '<td>' + escapeHtml(sowRole) + '</td>' +
               '<td class="num">' + escapeHtml(formatPerfTableNumber_(r.allocatedHoursLife || 0)) + '</td>' +
               '<td class="num">' + escapeHtml(formatPerfTableNumber_(r.loggedHoursLife || 0)) + '</td>' +
@@ -32101,7 +32433,7 @@
           cardsHtml +=
             '<div class="fos-delivery-perf-resource-card' + (r.highlightOrange ? ' is-orange' : '') + '"' +
               orangeTitle + ' data-perf-row="' + i + '" role="button" tabindex="0">' +
-              '<div class="fw-semibold">' + escapeHtml(r.name || ' - ') + '</div>' +
+              '<div class="fw-semibold">' + nameCell + '</div>' +
               '<div class="small" style="color:var(--ag-text-muted)">' + escapeHtml(sowRole) + '</div>' +
               '<div class="small mt-2">Allocated: ' + escapeHtml(formatPerfTableNumber_(r.allocatedHoursLife || 0)) +
                 ' · Logged: ' + escapeHtml(formatPerfTableNumber_(r.loggedHoursLife || 0)) +
@@ -32401,26 +32733,36 @@
         return String(role).trim();
       }
 
-      function filterPerfAllocationsForPerson_(personName) {
+      function filterPerfAllocationsForPerson_(row) {
         var payload = deliveryState.lastPnlPayload || {};
         var alloc = payload.resourceAllocations || {};
         var rows = alloc.assignments || [];
-        if (!rows.length || !personName) return [];
+        if (!rows.length || !row) return [];
+        var personEmail = row.personEmail ? String(row.personEmail).trim().toLowerCase() : '';
+        var personName = row.name ? String(row.name).trim() : '';
         var out = [];
         for (var i = 0; i < rows.length; i++) {
-          if (deliveryPerfPersonNamesMatch_(personName, rows[i].name)) out.push(rows[i]);
+          var asg = rows[i];
+          if (personEmail) {
+            var asgEmail = asg.clockifyUserEmail
+              ? String(asg.clockifyUserEmail).trim().toLowerCase()
+              : '';
+            if (asgEmail && asgEmail === personEmail) out.push(asg);
+            continue;
+          }
+          if (personName && String(asg.name || '').trim() === personName) out.push(asg);
         }
         return out;
       }
 
-      function renderDeliveryPerfTimeAllocations_(personName) {
+      function renderDeliveryPerfTimeAllocations_(row) {
         var section = els.deliveryPnlPerfTimeAllocSection;
         var wrap = els.deliveryPnlPerfTimeAllocWrap;
         var tbody = els.deliveryPnlPerfTimeAllocBody;
         var emptyEl = els.deliveryPnlPerfTimeAllocEmpty;
         var table = els.deliveryPnlPerfTimeAllocTable;
         if (!section) return false;
-        var rows = filterPerfAllocationsForPerson_(personName);
+        var rows = filterPerfAllocationsForPerson_(row);
         if (emptyEl) {
           emptyEl.classList.add('d-none');
           emptyEl.textContent = '';
@@ -32480,7 +32822,7 @@
             orangeEl.textContent = '';
           }
         }
-        var hasAllocations = renderDeliveryPerfTimeAllocations_(name);
+        var hasAllocations = renderDeliveryPerfTimeAllocations_(row);
         if (els.deliveryPnlPerfTimeBody) {
           els.deliveryPnlPerfTimeBody.innerHTML =
             '<tr><td colspan="3" class="text-secondary">Loading time entries…</td></tr>';
@@ -32543,6 +32885,7 @@
           .getDeliveryProjectPersonTimeEntries({
             agreementId: deliveryState.selectedId || '',
             personName: row.name || '',
+            personEmail: row.personEmail || '',
             personRole: row.role || '',
             startMonth: range.startMonth || '',
             endMonth: range.endMonth || '',
@@ -34015,25 +34358,35 @@
         updateNavHintVisibility();
       });
 
+      function scheduleDeferredShellPrefetches_() {
+        var run = function () {
+          refreshNotificationBadgeLazy_();
+        };
+        if (typeof window.requestIdleCallback === 'function') {
+          window.requestIdleCallback(run, { timeout: 5000 });
+        } else {
+          setTimeout(run, 4000);
+        }
+      }
+
       function init() {
         syncMobileShellChrome_();
         wireMobileShellOnce_();
         migrateUtilizationSessionCache_();
-        initDataSourceCatalog_();
+        initDataSourceUi_();
         hydratePanelCachesFromIdb_();
         google.script.run
-          .withSuccessHandler(applyAppVersionStatus_)
-          .withFailureHandler(function () {
-            /* version check is best-effort */
-          })
-          .getAppVersionStatus();
-        google.script.run
-          .withSuccessHandler(function (model) {
+          .withSuccessHandler(function (boot) {
+            if (!boot || boot.ok === false) {
+              showError((boot && boot.message) || 'Could not load dashboard.');
+              return;
+            }
+            applyAppVersionStatus_(boot.appVersion);
+            var model = boot.navigation;
             perfSlimChartsEnabled_ = !!(model && model.perfSlimCharts);
             var finishNav_ = function () {
               renderNav(model);
-              ensureProfileLoaded_();
-              refreshNotificationBadgeLazy_();
+              scheduleDeferredShellPrefetches_();
               applyDeepLinkPanelFromHash_();
             };
             if (lazyPanelMarkup && !deferredPanelMarkupReady_) {
@@ -34055,7 +34408,7 @@
             }
             showError(msg);
           })
-          .getDashboardNavigation();
+          .getAppBootstrap();
       }
 
       init();

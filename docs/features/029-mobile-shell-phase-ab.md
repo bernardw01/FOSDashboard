@@ -39,7 +39,7 @@ Improve phone and narrow-viewport use of the FOS Dashboard Web App with a **mobi
 
 ## Operations
 
-- **Activity (whitelist in `userActivityLog.js`):** `mobile_bottom_nav`, `mobile_data_source_open`, `mobile_filter_sheet_open`, `mobile_filter_sheet_select`, `home_quick_nav`, `agreement_mobile_charts_toggle`, `pipeline_mobile_charts_toggle`.
+- **Activity (whitelist in `userActivityLog.js`):** `mobile_bottom_nav`, `mobile_data_source_open`, `mobile_filter_sheet_open`, `mobile_filter_sheet_select`, `home_quick_nav`, `agreement_mobile_charts_toggle`, `pipeline_mobile_charts_toggle`, `snapshot_catalog_open`, `snapshot_catalog_load_done`, `snapshot_catalog_load_error` (**v3.29.11** lazy catalog).
 
 ## Edge cases
 

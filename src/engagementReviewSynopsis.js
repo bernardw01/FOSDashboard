@@ -1,5 +1,5 @@
 /**
- * PRD version 3.29.9 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 037: AI synopsis for completed Engagement Reviews (locked decision
  * #25). Assembles review metadata + meeting notes + Engagement Update

@@ -1,5 +1,5 @@
 /**
- * PRD version 3.29.9 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 040: shared project performance metrics (planned / projected margin,
  * EAC hours and dollars, timing-review flag, lifetime resources). Consumed by
@@ -125,10 +125,16 @@ function ppPersonKey_(name, role, personEmail) {
   if (typeof deliveryPnlResolvePersonEmail_ === 'function') {
     email = deliveryPnlResolvePersonEmail_(name, personEmail);
   } else if (typeof fosNormalizePersonEmailKey_ === 'function') {
-    email = fosNormalizePersonEmailKey_(personEmail) || fosNormalizePersonEmailKey_(name);
+    email = fosNormalizePersonEmailKey_(personEmail);
+    if (!email && name != null && String(name).indexOf('@') >= 0) {
+      email = fosNormalizePersonEmailKey_(name);
+    }
   }
   if (email) return 'email:' + email;
-  return String(name || '(Unknown user)') + '\0' + String(role || '(No role)');
+  if (typeof deliveryPnlPersonMergeKey_ === 'function') {
+    return deliveryPnlPersonMergeKey_(personEmail, name, role, '');
+  }
+  return 'orphan:' + String(name || '(Unknown user)') + '\0' + String(role || '(No role)');
 }
 
 /**
@@ -230,11 +236,12 @@ function ppAssignmentCostRate_(asg) {
  * @return {?number}
  * @private
  */
-function ppResolveCostRateForPerson_(name, role, assignments, loggedHours, loggedCost) {
+function ppResolveCostRateForPerson_(name, role, assignments, loggedHours, loggedCost, personEmail) {
   var roleNorm = String(role || '(No role)').trim().toLowerCase();
   var laborEmail = typeof deliveryPnlResolvePersonEmail_ === 'function'
-    ? deliveryPnlResolvePersonEmail_(name, null)
+    ? deliveryPnlResolvePersonEmail_(name, personEmail)
     : '';
+  if (!laborEmail) return null;
   var anyHours = 0;
   var anyCost = 0;
   var roleHours = 0;
@@ -246,8 +253,7 @@ function ppResolveCostRateForPerson_(name, role, assignments, loggedHours, logge
     var asgEmail = typeof deliveryPnlResolvePersonEmail_ === 'function'
       ? deliveryPnlResolvePersonEmail_(asgName, asg.clockifyUserEmail)
       : '';
-    var emailMatch = laborEmail && asgEmail && laborEmail === asgEmail;
-    if (!emailMatch && !ppPersonNamesMatch_(name, asgName)) continue;
+    if (!asgEmail || asgEmail !== laborEmail) continue;
     var rate = ppAssignmentCostRate_(asg);
     if (rate == null) continue;
     anyRate = rate;
@@ -291,7 +297,8 @@ function ppFillAllocatedCostFromRates_(rows, assignments) {
       r.role,
       assignments,
       r.loggedHoursLife,
-      r.loggedCostLife
+      r.loggedCostLife,
+      r.personEmail
     );
     if (rate == null) continue;
     r.allocatedCostLife = ppRound2_(hours * rate);
@@ -388,22 +395,22 @@ function ppComputeAllocationLaborMargin_(assignments) {
  * @return {string}
  * @private
  */
-function ppFormatSowRoleDisplayForPerson_(personName, assignments, rowBillable, rangeYmd) {
+function ppFormatSowRoleDisplayForPerson_(personName, assignments, rowBillable, rangeYmd, personEmail) {
   if (rowBillable === false) return '-';
   var roles = [];
   var sawBillable = false;
   var startYmd = rangeYmd && rangeYmd.startYmd ? String(rangeYmd.startYmd).slice(0, 10) : '';
   var endYmd = rangeYmd && rangeYmd.endYmd ? String(rangeYmd.endYmd).slice(0, 10) : '';
+  var laborEmail = typeof deliveryPnlResolvePersonEmail_ === 'function'
+    ? deliveryPnlResolvePersonEmail_(personName, personEmail)
+    : '';
+  if (!laborEmail) return '-';
   for (var i = 0; i < (assignments || []).length; i++) {
     var a = assignments[i];
-    var laborEmail = typeof deliveryPnlResolvePersonEmail_ === 'function'
-      ? deliveryPnlResolvePersonEmail_(personName, null)
-      : '';
     var asgEmail = typeof deliveryPnlResolvePersonEmail_ === 'function'
       ? deliveryPnlResolvePersonEmail_(a.name, a.clockifyUserEmail)
       : '';
-    var emailMatch = laborEmail && asgEmail && laborEmail === asgEmail;
-    if (!emailMatch && !ppPersonNamesMatch_(personName, a.name)) continue;
+    if (!asgEmail || asgEmail !== laborEmail) continue;
     if (!ppAllocationOverlapsYmdRange_(a.durStart, a.durEnd, startYmd, endYmd)) continue;
     if (a.allocatedAndBillable !== true) continue;
     sawBillable = true;
@@ -430,7 +437,8 @@ function ppAttachSowRoleDisplay_(rows, assignments, rangeYmd) {
       rows[i].name,
       assignments,
       rows[i].allocatedAndBillable,
-      rangeYmd
+      rangeYmd,
+      rows[i].personEmail
     );
   }
   return rows;
@@ -440,37 +448,18 @@ function ppEnsureResourcesLifetimeRow_(byKey, name, role, personEmail) {
   var email = typeof deliveryPnlResolvePersonEmail_ === 'function'
     ? deliveryPnlResolvePersonEmail_(name, personEmail)
     : '';
-  if (email) {
-    var emailKey = 'email:' + email;
-    if (byKey[emailKey]) {
-      byKey[emailKey].name = ppPreferDisplayName_(byKey[emailKey].name, name);
-      if (!byKey[emailKey].personEmail) byKey[emailKey].personEmail = email;
-      return byKey[emailKey];
-    }
-  }
-  var roleNorm = String(role || '(No role)').trim().toLowerCase();
-  var keys = Object.keys(byKey);
-  for (var i = 0; i < keys.length; i++) {
-    var existing = byKey[keys[i]];
-    if (email && existing.personEmail && existing.personEmail === email) {
-      existing.name = ppPreferDisplayName_(existing.name, name);
-      return existing;
-    }
-    if (String(existing.role || '').trim().toLowerCase() !== roleNorm) {
-      continue;
-    }
-    if (ppPersonNamesMatch_(existing.name, name)) {
-      existing.name = ppPreferDisplayName_(existing.name, name);
-      if (email && !existing.personEmail) existing.personEmail = email;
-      return existing;
-    }
-  }
   var key = ppPersonKey_(name, role, personEmail);
+  if (byKey[key]) {
+    byKey[key].name = ppPreferDisplayName_(byKey[key].name, name);
+    if (email && !byKey[key].personEmail) byKey[key].personEmail = email;
+    return byKey[key];
+  }
   byKey[key] = {
     personKey: key,
     name: name,
     role: role || '(No role)',
     personEmail: email || null,
+    roleHours: {},
     allocatedHoursLife: 0,
     loggedHoursLife: 0,
     allocatedCostLife: 0,
@@ -662,17 +651,14 @@ function ppBuildResourcesLifetime_(months, assignments, customerName, opts) {
       var name = p.name || '(Unknown user)';
       var role = p.role || '(No role)';
       var mRow = ppEnsureResourcesLifetimeRow_(monthMap, name, role, p.userEmail);
-      mRow.loggedHoursLife += Number(p.hours || 0);
+      var logH = Number(p.hours || 0);
+      mRow.loggedHoursLife += logH;
       mRow.loggedCostLife += Number(p.cost || 0);
-      // Within a month, take max allocated so alias duplicates do not double-count.
-      var monthAlloc = Number(p.allocatedHours || 0);
-      if (monthAlloc > mRow.allocatedHoursLife) {
-        mRow.allocatedHoursLife = monthAlloc;
+      if (logH > 0) {
+        mRow.roleHours[role] = (mRow.roleHours[role] || 0) + logH;
       }
-      var monthAllocCost = Number(p.allocatedCost || 0);
-      if (monthAllocCost > mRow.allocatedCostLife) {
-        mRow.allocatedCostLife = monthAllocCost;
-      }
+      mRow.allocatedHoursLife += Number(p.allocatedHours || 0);
+      mRow.allocatedCostLife += Number(p.allocatedCost || 0);
       if (!skipOrange && p.allocatedAndBillable === false) {
         mRow.allocatedAndBillable = false;
         mRow.highlightOrange = true;
@@ -685,11 +671,18 @@ function ppBuildResourcesLifetime_(months, assignments, customerName, opts) {
     var mKeys = Object.keys(monthMap);
     for (var mi = 0; mi < mKeys.length; mi++) {
       var src = monthMap[mKeys[mi]];
+      src.role = deliveryPnlDominantRoleFromHours_(src.roleHours, src.role);
       var life = ppEnsureResourcesLifetimeRow_(byKey, src.name, src.role, src.personEmail);
       life.loggedHoursLife += src.loggedHoursLife;
       life.loggedCostLife += src.loggedCostLife;
       life.allocatedHoursLife += src.allocatedHoursLife;
       life.allocatedCostLife += src.allocatedCostLife || 0;
+      var srcRoles = src.roleHours || {};
+      for (var sr in srcRoles) {
+        if (Object.prototype.hasOwnProperty.call(srcRoles, sr)) {
+          life.roleHours[sr] = (life.roleHours[sr] || 0) + srcRoles[sr];
+        }
+      }
       if (!skipOrange && src.allocatedAndBillable === false) {
         life.allocatedAndBillable = false;
         life.highlightOrange = true;
@@ -713,12 +706,8 @@ function ppBuildResourcesLifetime_(months, assignments, customerName, opts) {
       var asgCost = asgRate != null && asgHours > 0
         ? asgHours * asgRate
         : Number(asg.allocatedCost || 0);
-      if (asgHours > aRow.allocatedHoursLife) {
-        aRow.allocatedHoursLife = asgHours;
-      }
-      if (asgCost > aRow.allocatedCostLife) {
-        aRow.allocatedCostLife = asgCost;
-      }
+      aRow.allocatedHoursLife += asgHours;
+      aRow.allocatedCostLife += asgCost;
       if (!skipOrange && asg.allocatedAndBillable === false) {
         aRow.allocatedAndBillable = false;
         aRow.highlightOrange = true;
@@ -743,8 +732,10 @@ function ppBuildResourcesLifetime_(months, assignments, customerName, opts) {
     if (!skipOrange && r.loggedHoursLife > 0 && r.allocatedHoursLife <= 0) {
       r.highlightOrange = true;
     }
+    r.role = deliveryPnlDominantRoleFromHours_(r.roleHours, r.role);
     out.push({
       personKey: r.personKey,
+      personEmail: r.personEmail || null,
       name: r.name,
       role: r.role,
       allocatedHoursLife: ppRound2_(r.allocatedHoursLife),

@@ -1,5 +1,5 @@
 /**
- * PRD version 3.29.9 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Vendor payloads â†’ normalized AI Usage rows (feature 017).
  */

@@ -6,7 +6,7 @@
 > **Release task:** [Feature 047 - Dashboard performance and responsiveness](https://win.godeap.io/app/tasks/40839335) (re-scoped from Feature 044)
 >
 > **Status:** Shipped through **v3.20.9** (workstreams A–D, RA range cache **v3.20.0**, Settings patches **v3.20.5–3.20.9**, hero/logo patches **v3.20.1–3.20.2**). **Workstream D shipped in 3.17.0** (lazy panel markup behind `PERF_LAZY_PANEL_MARKUP`, IndexedDB panel cache, chunked heatmap/RA renders, Operations skeleton). **Workstream C shipped in 3.16.0** (incremental mirror + alerts + resume; `PERF_INCREMENTAL_AM_MIRROR` off pending measured win). **Workstream B6 shipped in 3.15.0** (`personVariances` codec); Workstream B closed out in 3.14.1. **v3.20.0:** RA range payload cache (`PERF_USE_RA_RANGE_CACHE`) + slim personVariances default on (**FR-156**).
-> **PRD version:** **3.28.2**
+> **PRD version:** **3.29.12**
 > **Feature id:** 047 | **Task list:** Data platform
 > **Release type:** Enhancement
 > **Supersedes:** [044 - Live visualization serve performance](044-live-visualization-serve-performance.md) (Spec Draft, never implemented). Workstream B below absorbs 044 phases A-D. See **Relationship to feature 044**.
@@ -338,6 +338,7 @@ Each workstream must pass parity before it ships.
 9. **Snapshot regression:** pick a historical date and confirm all panels still load from Drive.
 10. **Mobile (~390px):** on the deployed Web App in device mode, confirm each changed panel loads, filter sheets work, and **Show charts** renders from the slim payload.
 11. **Kill switches:** set each workstream's Script Property and confirm the previous path is restored.
+12. **Shell load (v3.29.12):** hard reload and confirm a single **`getAppBootstrap`** execution (not separate nav + version RPCs). Confirm **`getDashboardSnapshotCatalog`** is absent until **Historical snapshots…** opens. Run **`_diag_verifyAppBootstrapShape_()`** and **`_diag_verifyAuthSpreadsheetCache_()`** from the diagnostic suite. Defer **`recordPageLoad_`** in **`doGet`** remains unchanged (still runs on HTML serve).
 
 ## Implementation Checklist
 
@@ -361,6 +362,7 @@ Post-approval customer edits land here until ship (Teamwork notebook). Merge int
 
 | Date | PRD | Notes |
 | --- | --- | --- |
+| 2026-10-13 | **v3.29.12 shipped:** Shell load perf: lazy snapshot catalog, **`getAppBootstrap()`**, Users-sheet auth cache (~90s), deferred notification prefetch, App Versions sync removed from **`doGet`**. Diagnostics **`_diag_verifyAppBootstrapShape_`**, **`_diag_verifyAuthSpreadsheetCache_`**. |
 | 2026-09-10 | **v3.28.2 shipped:** Migration **059** fixes B7 parity gaps from diag suite (util RPC zero `billableHours` + Clockify display names; agreement revenue RPC nulls Closed-Lost agreement/customer). Re-run `_diag_runFullDiagnosticsSuite()` before enabling `PERF_USE_UTIL_RPC` / `PERF_HYDRATE_AGREEMENT_REVENUE_RPC`. |
 | 2026-09-10 | **v3.28.0 shipped:** B7 instrumentation (`datasetTimings`, `_diag_measureSupabaseHydrateDatasetTimings`), `fos_rpc_util_aggregates` (057) + `PERF_USE_UTIL_RPC`, agreement hydrate pilot `fos_rpc_agreement_revenue_mapped` (058) + `PERF_HYDRATE_AGREEMENT_REVENUE_RPC`, parity entry points `_diag_verifyWorkstreamB7UtilRpc` / `_diag_verifyWorkstreamB7AgreementHydrateRpc`. Full hydrate before/after delta pending Admin parity run + flag-on Pull. |
 | 2026-08-26 | 3.20.2 | **Hero/logo image fix (final).** v3.20.1 `?asset=` doGet routes still broken for `<img>` under `executeAs: USER_ACCESSING` (no session on cross-site img fetch from googleusercontent iframe). Reverted to inline data URLs in template; images render reliably. ~130 KB returned to HTML shell. |

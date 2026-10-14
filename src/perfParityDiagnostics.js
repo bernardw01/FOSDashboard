@@ -1,5 +1,5 @@
 /**
- * PRD version 3.29.9 - sync with docs/FOS-Dashboard-PRD.md
+ * PRD version 3.29.12 - sync with docs/FOS-Dashboard-PRD.md
  *
  * Feature 047 Step 0: parity and measurement harness.
  *
@@ -1920,7 +1920,7 @@ function _diag_verifyWorkstreamB7AgreementHydrateRpc() {
  * silent registry truncation (syntax error dropping tail entries).
  * @const {number}
  */
-var FOS_DIAG_SUITE_MIN_REGISTERED_STEPS_ = 27;
+var FOS_DIAG_SUITE_MIN_REGISTERED_STEPS_ = 32;
 
 /**
  * @param {!Object} payload
@@ -2253,6 +2253,27 @@ var FOS_DIAG_SUITE_STEPS_ = [
     },
   },
   {
+    id: 'delivery-perf-email-only-merge',
+    label: 'Delivery: Project Performance email-only merge',
+    fn: function () {
+      return test_deliveryPerfEmailOnlyMerge_();
+    },
+  },
+  {
+    id: 'delivery-enrich-alloc-email-only',
+    label: 'Delivery P&L: enrich labor allocations by email',
+    fn: function () {
+      return test_deliveryEnrichAllocEmailOnlyJoin_();
+    },
+  },
+  {
+    id: 'delivery-time-entries-by-email',
+    label: 'Delivery: time entries filter by person email',
+    fn: function () {
+      return test_deliveryPersonTimeEntriesByEmail_();
+    },
+  },
+  {
     id: 'utilization-panel-health',
     label: 'Utilization: labor mirror KPIs',
     fn: function () {
@@ -2279,6 +2300,20 @@ var FOS_DIAG_SUITE_STEPS_ = [
     heavy: true,
     fn: function () {
       return _diag_measureSupabaseHydrateDatasetTimings();
+    },
+  },
+  {
+    id: 'shell-app-bootstrap-payload',
+    label: 'Shell load: getAppBootstrap shape',
+    fn: function () {
+      return _diag_verifyAppBootstrapShape_();
+    },
+  },
+  {
+    id: 'shell-auth-spreadsheet-cache',
+    label: 'Shell load: auth spreadsheet cache',
+    fn: function () {
+      return _diag_verifyAuthSpreadsheetCache_();
     },
   },
 ];
